@@ -15,10 +15,10 @@ body,
 }
 
 body {
-  height: 600px;
+  height: 100vh;
   margin: 0;
   overflow: hidden;
-  width: 420px;
+  width: 100%;
 }
 
 body:has(.approval-shell) {

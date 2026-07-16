@@ -27,14 +27,18 @@ interface BridgeRequest { readonly kind: "mosaic-lynx:request"; readonly request
 interface PendingApproval {
   readonly request: ApprovalRequest;
   readonly resolve: (resolution: ApprovalResolution) => void;
-  windowId: number;
+  windowId?: number;
+  sidePanelTabId?: number;
   readonly timeoutId: number;
   resolved: boolean;
 }
 
 const adapters = { symbol: new SymbolChainAdapter(), nem: new NemChainAdapter() } as const;
 const approvals = new Map<string, PendingApproval>();
+const homePanelPath = "src/popup/index.html";
 let nonceMutex: Promise<void> = Promise.resolve();
+
+void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 const providerError = (code: string, message: string): never => { throw { code, message }; };
 const scopeId = (scope: MosaicScope): string => `${scope.chain}-${scope.network}`;
@@ -138,8 +142,14 @@ const summaryFor = (scope: MosaicScope, account: PublicAccount): readonly { labe
 
 const requestApproval = async (
   request: NewApprovalRequest,
+  tabId?: number,
 ): Promise<ApprovalResolution> => {
   if (approvals.size >= 50) return providerError("RESOURCE_LIMIT", "Too many approval requests are pending.");
+  if (request.type === "connect") {
+    if (tabId === undefined) return providerError("INTERNAL_ERROR", "The connection request has no browser tab.");
+    if ([...approvals.values()].some((pending) => pending.sidePanelTabId === tabId))
+      return providerError("RESOURCE_LIMIT", "Another connection approval is already open in this tab.");
+  }
   const id = crypto.randomUUID();
   const now = Date.now();
   const approval = {
@@ -150,9 +160,21 @@ const requestApproval = async (
   } as ApprovalRequest;
   const result = new Promise<ApprovalResolution>((resolve) => {
     const timeoutId = self.setTimeout(() => finishApproval(id, { approved: false }), 5 * 60_000);
-    approvals.set(id, { request: approval, resolve, windowId: -1, timeoutId, resolved: false });
+    approvals.set(id, { request: approval, resolve, timeoutId, resolved: false });
   });
   try {
+    if (request.type === "connect") {
+      const sidePanelTabId = tabId!;
+      const pending = approvals.get(id);
+      if (pending) pending.sidePanelTabId = sidePanelTabId;
+      await chrome.sidePanel.setOptions({
+        tabId: sidePanelTabId,
+        path: `src/approval/index.html?id=${encodeURIComponent(id)}`,
+        enabled: true,
+      });
+      await chrome.sidePanel.open({ tabId: sidePanelTabId });
+      return result;
+    }
     const window = await chrome.windows.create({
       url: chrome.runtime.getURL(`src/approval/index.html?id=${encodeURIComponent(id)}`),
       type: "popup",
@@ -175,6 +197,12 @@ const finishApproval = (id: string, resolution: ApprovalResolution): void => {
   pending.resolved = true;
   clearTimeout(pending.timeoutId);
   approvals.delete(id);
+  if (pending.sidePanelTabId !== undefined)
+    void chrome.sidePanel.setOptions({
+      tabId: pending.sidePanelTabId,
+      path: homePanelPath,
+      enabled: true,
+    });
   pending.resolve(resolution);
 };
 
@@ -256,7 +284,7 @@ const markMessageNonceUsed = async (nonceHash: string): Promise<void> => {
   } finally { release(); }
 };
 
-const handleConnect = async (origin: string, params: unknown): Promise<readonly MosaicAccount[]> => {
+const handleConnect = async (origin: string, params: unknown, tabId: number): Promise<readonly MosaicAccount[]> => {
   if (!isScope(params)) return providerError("INVALID_PARAMS", "connect() requires chain and network.");
   const store = await loadStore();
   const profile = activeProfile(store, params.network);
@@ -273,7 +301,7 @@ const handleConnect = async (origin: string, params: unknown): Promise<readonly 
     account: defaultAccount,
     availableAccounts: accountsForProfile(store, profile.id).map((account) => projectAccount(profile, account, params)),
     summary: summaryFor(params, defaultAccount),
-  });
+  }, tabId);
   if (!resolution.approved || !("accountIds" in resolution) || resolution.accountIds.length === 0)
     return providerError("USER_REJECTED", "The connection request was rejected.");
   const current = await loadStore();
@@ -408,9 +436,9 @@ const handleMessage = async (origin: string, params: unknown): Promise<SignedMes
   return resolution.signedMessage;
 };
 
-const handleRequest = async (origin: string, request: RpcRequest): Promise<unknown> => {
+const handleRequest = async (origin: string, request: RpcRequest, tabId: number): Promise<unknown> => {
   switch (request.method) {
-    case "permissions_connect": return handleConnect(origin, request.params);
+    case "permissions_connect": return handleConnect(origin, request.params, tabId);
     case "permissions_disconnect": {
       const store = await loadStore();
       const remaining = store.permissions.filter((grant) => grant.origin !== origin);
@@ -425,7 +453,7 @@ const handleRequest = async (origin: string, request: RpcRequest): Promise<unkno
         .flatMap((grant) => permittedAccounts(store, profile, grant).map((account) => projectAccount(profile, account, { chain: grant.chain, network: grant.network })));
     }
     case "account_getActive": {
-      const accounts = await handleRequest(origin, { method: "account_list" }) as readonly MosaicAccount[];
+      const accounts = await handleRequest(origin, { method: "account_list" }, tabId) as readonly MosaicAccount[];
       const store = await loadStore();
       const profile = activeProfile(store);
       return accounts.find((account) => account.id === profile.defaultAccountId) ?? accounts[0];
@@ -460,7 +488,7 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
     sendResponse({ error: { code: detail.code ?? "UNAUTHORIZED_ORIGIN", message: detail.message ?? "Request rejected." } });
     return;
   }
-  void handleRequest(origin, bridge.request)
+  void handleRequest(origin, bridge.request, sender.tab!.id!)
     .then((result) => sendResponse({ result }))
     .catch((error: unknown) => {
       const detail = error as { code?: string; message?: string };
