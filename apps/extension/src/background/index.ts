@@ -432,30 +432,6 @@ const handleRequest = async (origin: string, request: RpcRequest): Promise<unkno
     }
     case "sign_transaction": return handleTransaction(origin, request.params);
     case "sign_message": return handleMessage(origin, request.params);
-    case "sss_isAllowed": {
-      const store = await loadStore();
-      return store.permissions.some((grant) => grant.origin === origin);
-    }
-    case "sss_signLegacyMessage": {
-      const input = request.params as { message?: unknown; recipientPublicKey?: unknown; accountId?: unknown; chain?: unknown; network?: unknown } | undefined;
-      const scope = { chain: input?.chain, network: input?.network };
-      if (!isScope(scope) || typeof input?.message !== "string" || typeof input.recipientPublicKey !== "string")
-        return providerError("INVALID_PARAMS", "Legacy message parameters are invalid.");
-      if (scope.network === "mainnet" && !MAINNET_SIGNING_ENABLED)
-        return providerError("UNSUPPORTED_CHAIN", "Mainnet signing is disabled because release evidence is not installed.");
-      const store = await loadStore();
-      const profile = activeProfile(store, scope.network);
-      const permission = requirePermission(store, origin, profile, scope);
-      const account = chooseAccount(store, profile, permission, input.accountId);
-      const resolution = await requestApproval({
-        type: "legacy-message", origin, originAscii: originAscii(origin), scope, profile,
-        vaultRevision: vaultRevisionFor(store, profile.id), account,
-        legacyMessage: input.message, recipientPublicKey: input.recipientPublicKey,
-        summary: [...summaryFor(scope, account), { label: "Warning", value: "Legacy message: no domain, nonce, or expiry protection" }],
-      });
-      if (!resolution.approved || !("legacySignature" in resolution)) return providerError("USER_REJECTED", "Legacy signing was rejected.");
-      return resolution.legacySignature;
-    }
   }
 };
 

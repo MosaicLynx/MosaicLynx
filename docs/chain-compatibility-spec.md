@@ -180,13 +180,12 @@ fixture IDは`<prefix>-NNN`を安定IDとし、正常系`001..099`、境界`100.
 - fixture上のsigning bytes: symbol-sdk `TransactionFactory.toNonVerifiableTransaction(transaction).serialize()`の結果を独立照合する
 - multisig cosignature: `CosignatureV1`をsymbol-sdkでdeserializeし、全fieldと参照先Multisig transactionを検証してからNEM Accountの`signTransaction()`へ渡す。参照hashだけを根拠にUIを生成しない
 
-### 6.3 構造化／Legacy message
+### 6.3 構造化 message
 
 CoreはProduct Specification 12.2のdomain separationとJCSからsigning bytesを生成するが、Ed25519署名自体を実装しない。
 
 - Symbolは`SymbolFacade.createAccount(privateKey).keyPair.sign(signingBytes)`を使用し、symbol-sdk Symbol `Verifier`で返却前に検証する。
 - NEMは`NemFacade.createAccount(privateKey).keyPair.sign(signingBytes)`を使用し、symbol-sdk NEM `Verifier`で返却前に検証する。
-- SSS Legacyもraw signing bytesの生成規則だけをLegacy Adapterが担当し、署名と検証は同じsymbol-sdk KeyPair / Verifier経路を使用する。
 - MosaicLynx独自のEd25519、ed25519-keccak、SHA3 / Keccak primitive実装を本番署名経路に持たない。
 
 署名後はsymbol-sdk VerifierまたはFacadeの`verifyTransaction()`でsignatureを検証し、signed payloadをsymbol-sdk factoryで再deserializeして、元payload digest、chain、network、signer、全transaction fieldが不変であることを確認してから返す。

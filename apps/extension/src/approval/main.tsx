@@ -102,12 +102,6 @@ const App = () => {
         });
         return;
       }
-      const key = new PrivateKey(privateKey);
-      const account = approval.scope.chain === "symbol"
-        ? new SymbolFacade(approval.scope.network).createAccount(key)
-        : new NemFacade(approval.scope.network).createAccount(key);
-      const signature = account.keyPair.sign(new TextEncoder().encode(approval.legacyMessage)).toString();
-      await resolve({ approved: true, legacySignature: signature });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The request could not be completed.");
     } finally {
@@ -159,13 +153,6 @@ const App = () => {
           <strong>Chain state is not checked</strong>
           <p>Balances, restrictions, metadata, and announce status are external to this offline signing check.</p>
           <details><summary>Technical details</summary><code>{approval.payload}</code></details>
-        </section>
-      )}
-
-      {approval.type === "legacy-message" && (
-        <section className="danger-panel">
-          <strong>Legacy signature</strong>
-          <p>This message has no MosaicLynx domain, nonce, or expiry protection and may be reusable in another context.</p>
         </section>
       )}
 

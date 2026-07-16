@@ -29,9 +29,6 @@ importers:
       '@mosaic-lynx/provider-api':
         specifier: workspace:*
         version: link:../../packages/provider-api
-      '@mosaic-lynx/sss-adapter':
-        specifier: workspace:*
-        version: link:../../packages/sss-adapter
       '@nemnesia/symbol-sdk':
         specifier: 3.3.2-pure.2
         version: 3.3.2-pure.2
@@ -120,12 +117,6 @@ importers:
       vite:
         specifier: ^7.2.6
         version: 7.3.6(lightningcss@1.32.0)
-
-  packages/sss-adapter:
-    dependencies:
-      '@mosaic-lynx/provider-api':
-        specifier: workspace:*
-        version: link:../provider-api
 
 packages:
 

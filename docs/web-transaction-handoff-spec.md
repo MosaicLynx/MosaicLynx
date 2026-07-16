@@ -28,7 +28,7 @@ v1のrelease単位は次のとおりとする。
 
 ### 2.2 v1 の対象外
 
-- 構造化メッセージ署名と Legacy メッセージ署名
+- メッセージ署名
 - MosaicLynx SDKが公開するアカウント接続・一覧・切断API
 - PC の Web ページから QR code でスマートフォンへ渡すフロー
 - dApp による transport の強制指定

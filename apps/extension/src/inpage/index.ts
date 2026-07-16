@@ -4,7 +4,6 @@ import {
   type RpcExecutor,
   type RpcRequest,
 } from "@mosaic-lynx/provider-api";
-import { installSssAdapter, type SssWindow } from "@mosaic-lynx/sss-adapter";
 
 declare global {
   interface Window {
@@ -69,7 +68,6 @@ if (!window.mosaicLynx) {
     configurable: false,
     writable: false,
   });
-  installSssAdapter(window as unknown as SssWindow, provider);
   window.addEventListener(responseEvent.replace("response", "event"), (event: Event) => {
     const detail = (event as CustomEvent<{ readonly event?: Parameters<typeof provider.emit>[0]; readonly payload?: unknown }>).detail;
     if (detail?.event) provider.emit(detail.event, detail.payload as never);

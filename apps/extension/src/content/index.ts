@@ -28,7 +28,7 @@ window.addEventListener(requestEvent, (event: Event) => {
   const rpc = request.request as { readonly method?: unknown; readonly params?: unknown };
   const methods = new Set([
     "permissions_connect", "permissions_disconnect", "account_list", "account_getActive",
-    "sign_message", "sign_transaction", "sss_isAllowed", "sss_signLegacyMessage",
+    "sign_message", "sign_transaction",
   ]);
   if (typeof rpc.method !== "string" || !methods.has(rpc.method)) return;
   const payload = (rpc.params as { readonly payload?: unknown } | undefined)?.payload;

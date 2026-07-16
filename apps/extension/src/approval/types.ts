@@ -42,17 +42,10 @@ export interface MessageApproval extends ApprovalBase {
   readonly messageParams: SignMessageParams;
 }
 
-export interface LegacyMessageApproval extends ApprovalBase {
-  readonly type: "legacy-message";
-  readonly legacyMessage: string;
-  readonly recipientPublicKey: string;
-}
-
 export type ApprovalRequest =
   | ConnectApproval
   | TransactionApproval
-  | MessageApproval
-  | LegacyMessageApproval;
+  | MessageApproval;
 
 export type NewApprovalRequest = ApprovalRequest extends infer Request
   ? Request extends ApprovalRequest
@@ -64,5 +57,4 @@ export type ApprovalResolution =
   | { readonly approved: false }
   | { readonly approved: true; readonly accountIds: readonly string[] }
   | { readonly approved: true; readonly signedTransaction: SignedTransaction }
-  | { readonly approved: true; readonly signedMessage: SignedMessage }
-  | { readonly approved: true; readonly legacySignature: string };
+  | { readonly approved: true; readonly signedMessage: SignedMessage };

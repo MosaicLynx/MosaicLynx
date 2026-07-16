@@ -106,9 +106,7 @@ export type RpcMethod =
   | "account_list"
   | "account_getActive"
   | "sign_message"
-  | "sign_transaction"
-  | "sss_isAllowed"
-  | "sss_signLegacyMessage";
+  | "sign_transaction";
 
 export interface RpcRequest {
   readonly method: RpcMethod;
@@ -181,22 +179,6 @@ export class RpcMosaicLynxProvider implements MosaicLynxProvider {
     params: SignTransactionParams,
   ): Promise<SignedTransaction> {
     return this.executor.request({ method: "sign_transaction", params });
-  }
-
-  /** SSS Adapter-only RPC. It is intentionally absent from MosaicLynxProvider. */
-  public isSssAllowed(): Promise<boolean> {
-    return this.executor.request({ method: "sss_isAllowed" });
-  }
-
-  /** SSS Adapter-only legacy signing RPC. */
-  public signLegacyMessage(params: {
-    readonly message: string;
-    readonly recipientPublicKey: string;
-    readonly accountId: string;
-    readonly chain: MosaicChain;
-    readonly network: MosaicNetwork;
-  }): Promise<string> {
-    return this.executor.request({ method: "sss_signLegacyMessage", params });
   }
 
   public on<T extends ProviderEventName>(
