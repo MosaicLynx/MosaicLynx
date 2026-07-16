@@ -340,7 +340,7 @@ Chain Adapterは固定版symbol-sdkを次の標準経路として使用する。
 
 MosaicLynx独自のcatbuffer parser、serializer、公開鍵／address導出、署名対象byteのslice、署名、transaction hash実装を本番経路に持たない。MosaicLynxが追加実装するのはallowlist判定、全fieldの意味検証、上限、canonical byte比較、資産増減要約、Permission / revision検証に限定する。symbol-sdkに機能が存在しない場合は独自実装で補わず、そのtransactionまたは機能を未対応として拒否する。
 
-MVP の署名 allowlist は次に限定する。SDK更新で新しい type / version が追加されても自動的に許可しない。
+MVPの署名allowlistは次に限定する。symbol-sdk更新で新しいtype / versionが追加されても自動的に許可しない。
 
 | チェーン | outer transaction | version | 許可する inner / 追加条件 |
 | --- | --- | --- | --- |
