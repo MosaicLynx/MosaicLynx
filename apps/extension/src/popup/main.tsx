@@ -8,6 +8,7 @@ import {
   loadStore,
   saveStore,
   type ExtensionStore,
+  type PermissionGrant,
   type PublicAccount,
   type PublicProfile,
   type VaultContents,
@@ -235,6 +236,11 @@ const App = () => {
       const active = store.profiles.find((item) => item.id === store.settings.activeProfileId);
       setProfileNameDraft(active?.name ?? "");
     }
+    if (view === "accounts" && store) {
+      const active = store.profiles.find((item) => item.id === store.settings.activeProfileId);
+      const activeAccount = store.accounts.find((item) => item.id === active?.defaultAccountId);
+      setAccountNameDraft(activeAccount?.name ?? "");
+    }
   };
 
   const selectProfile = async (profileId: string): Promise<void> => {
@@ -270,6 +276,8 @@ const App = () => {
   const selectAccount = async (accountId: string): Promise<void> => {
     if (!store) return;
     const active = store.profiles.find((item) => item.id === store.settings.activeProfileId);
+    const selected = store.accounts.find((item) => item.profileId === active?.id && item.id === accountId);
+    setAccountNameDraft(selected?.name ?? "");
     if (!active || active.defaultAccountId === accountId) return;
     const now = new Date().toISOString();
     const next: ExtensionStore = {
@@ -280,6 +288,77 @@ const App = () => {
     };
     await saveStore(next);
     setStore(next);
+  };
+
+  const renameAccount = async (): Promise<void> => {
+    if (!store) return;
+    const active = store.profiles.find((item) => item.id === store.settings.activeProfileId);
+    const activeAccount = store.accounts.find((item) => item.profileId === active?.id && item.id === active?.defaultAccountId);
+    if (!activeAccount) return;
+    setError("");
+    setNotice("");
+    if (!accountNameDraft.trim()) {
+      setError(t("requiredAccountName"));
+      return;
+    }
+    const now = new Date().toISOString();
+    const next: ExtensionStore = {
+      ...store,
+      accounts: store.accounts.map((item) => item.id === activeAccount.id
+        ? { ...item, name: accountNameDraft.trim(), revision: item.revision + 1, updatedAt: now }
+        : item),
+    };
+    await saveStore(next);
+    setStore(next);
+    setAccountNameDraft(accountNameDraft.trim());
+    setNotice(t("accountRenamed"));
+  };
+
+  const deleteAccount = async (): Promise<void> => {
+    if (!store) return;
+    const active = store.profiles.find((item) => item.id === store.settings.activeProfileId);
+    const activeAccount = store.accounts.find((item) => item.profileId === active?.id && item.id === active?.defaultAccountId);
+    const remainingAccounts = store.accounts.filter((item) => item.profileId === active?.id && item.id !== activeAccount?.id);
+    if (!active || !activeAccount) return;
+    setError("");
+    setNotice("");
+    if (!remainingAccounts.length) {
+      setError(t("lastAccountCannotBeDeleted"));
+      return;
+    }
+    if (!window.confirm(t("confirmDeleteAccount", { name: activeAccount.name }))) return;
+    const now = new Date().toISOString();
+    const permissions = store.permissions
+      .map((grant) => grant.profileId === active.id && grant.accountIds.includes(activeAccount.id)
+        ? { ...grant, accountIds: grant.accountIds.filter((id) => id !== activeAccount.id), revision: grant.revision + 1, updatedAt: now }
+        : grant)
+      .filter((grant) => grant.accountIds.length > 0);
+    const nextDefaultAccount = remainingAccounts[0]!;
+    const next: ExtensionStore = {
+      ...store,
+      accounts: store.accounts.filter((item) => item.id !== activeAccount.id),
+      profiles: store.profiles.map((item) => item.id === active.id
+        ? { ...item, defaultAccountId: nextDefaultAccount.id, revision: item.revision + 1, updatedAt: now }
+        : item),
+      permissions,
+      usedMessageNonces: store.usedMessageNonces.filter((entry) => entry.accountId !== activeAccount.id),
+    };
+    await saveStore(next);
+    setStore(next);
+    setAccountNameDraft(nextDefaultAccount.name);
+    setNotice(t("accountDeleted"));
+  };
+
+  const deleteConnection = async (grant: PermissionGrant): Promise<void> => {
+    if (!store || !window.confirm(t("confirmDeleteConnection", { origin: grant.origin }))) return;
+    const next: ExtensionStore = {
+      ...store,
+      permissions: store.permissions.filter((item) => !(item.origin === grant.origin
+        && item.profileId === grant.profileId && item.chain === grant.chain && item.network === grant.network)),
+    };
+    await saveStore(next);
+    setStore(next);
+    setNotice(t("connectionDeleted"));
   };
 
   const addDerivedAccount = async (): Promise<void> => {
@@ -332,7 +411,7 @@ const App = () => {
       };
       await saveStore(next);
       setStore(next);
-      setAccountNameDraft("");
+      setAccountNameDraft(newAccount.name);
       setAccountPassword("");
       setShowAddAccount(false);
       setNotice(t("accountAdded"));
@@ -553,11 +632,18 @@ const App = () => {
             <PasswordField label={t("password")} value={accountPassword} onChange={setAccountPassword} revealLabel={t("revealPassword")} autoComplete="current-password" />
             {profile.passwordHint && <small className="password-hint">{t("hint")}: {profile.passwordHint}</small>}
             {error && <p className="form-error" role="alert">{error}</p>}
-            <div className="button-row"><button onClick={() => { setShowAddAccount(false); setAccountPassword(""); setError(""); }}>{t("cancel")}</button><button className="primary" disabled={busy} onClick={() => void addDerivedAccount()}>{busy ? t("adding") : t("addAccount")}</button></div>
+            <div className="button-row"><button onClick={() => { setShowAddAccount(false); setAccountNameDraft(account?.name ?? ""); setAccountPassword(""); setError(""); }}>{t("cancel")}</button><button className="primary" disabled={busy} onClick={() => void addDerivedAccount()}>{busy ? t("adding") : t("addAccount")}</button></div>
           </section>
         ) : (
-          <footer className="management-footer">
+          <section className="edit-panel account-edit-panel">
+            <label className="field"><span>{t("accountName")}</span><input value={accountNameDraft} onChange={(event) => setAccountNameDraft(event.target.value)} /></label>
+            {error && <p className="form-error" role="alert">{error}</p>}
             {notice && <p className="form-notice" role="status">{notice}</p>}
+            <div className="button-row"><button className="danger-button" onClick={() => void deleteAccount()}>{t("deleteAccount")}</button><button className="primary" onClick={() => void renameAccount()}>{t("rename")}</button></div>
+          </section>
+        )}
+        {!showAddAccount && (
+          <footer className="management-footer">
             <button className="primary wide" onClick={() => { setAccountNameDraft(`Account ${profile.nextAccountIndex + 1}`); setShowAddAccount(true); setNotice(""); }}>{t("addAccount")}</button>
           </footer>
         )}
@@ -569,9 +655,10 @@ const App = () => {
     return (
       <main className={`app-shell management-shell theme-${store.settings.theme}`}>
         {pageHeader(t("connectionManagement"))}
+        {notice && <p className="form-notice" role="status">{notice}</p>}
         <section className="connections-list">
           {connections.length
-            ? connections.map((grant) => <p className="connection" key={`${grant.origin}-${grant.chain}`}>{grant.origin}<small>{grant.chain} {grant.network} · {t("connectedAccountCount", { count: grant.accountIds.length })}</small></p>)
+            ? connections.map((grant) => <div className="connection" key={`${grant.origin}-${grant.chain}`}><span>{grant.origin}<small>{grant.chain} {grant.network} · {t("connectedAccountCount", { count: grant.accountIds.length })}</small></span><button className="danger-button" onClick={() => void deleteConnection(grant)}>{t("deleteConnection")}</button></div>)
             : <p className="empty-state">{t("noConnections")}</p>}
         </section>
       </main>
@@ -596,9 +683,6 @@ const App = () => {
         </div>
         <div className="public-key-details"><span>{t("publicKey")}</span><code>{account?.identities[scope.chain].publicKey}</code></div>
       </section>
-      <footer>
-        <button className="wide" onClick={() => openView("accounts")}>{t("accountManagement")}</button>
-      </footer>
     </main>
   );
 };

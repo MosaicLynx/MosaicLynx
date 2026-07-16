@@ -153,6 +153,12 @@ button.selected {
   color: white;
 }
 
+button.danger-button {
+  background: #f7e6df;
+  border-color: #b86a58;
+  color: #762c19;
+}
+
 button.wide {
   flex: 1;
 }
@@ -252,6 +258,24 @@ button.wide {
   margin: 0;
   padding: 9px 0;
   overflow-wrap: anywhere;
+}
+
+.connections-list .connection {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.connections-list .connection > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.connections-list .connection button {
+  flex: 0 0 auto;
+  font-size: 11px;
+  padding: 6px 9px;
 }
 
 .warning-panel,
@@ -739,6 +763,10 @@ details code {
 
 .account-list .management-item {
   min-height: 55px;
+}
+
+.account-edit-panel .button-row .danger-button {
+  margin-right: auto;
 }
 
 .account-list .management-item span {
