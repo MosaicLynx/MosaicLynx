@@ -2,9 +2,10 @@
 
 ## 1. 目的
 
-本書は、MosaicLynx の Chrome Extension（Manifest V3）と、将来の React Native / Expo アプリで共有できるアーキテクチャを定義する。
+本書は、MosaicLynx の Chrome Extension（Manifest V3）、Web ページ向け MosaicLynx SDK、将来の React Native / Expo アプリで共有できるアーキテクチャを定義する。
 
 プロダクト要件は [Product Specification](./product-spec.md) に定義する。
+Web ページから Extension または Mobile App へトランザクションを渡す仕様は [Web Transaction Handoff Specification](./web-transaction-handoff-spec.md) に定義する。
 
 ## 2. アーキテクチャ原則
 
@@ -20,9 +21,39 @@
 
 ## 3. システム構成
 
+Web ページは MosaicLynx SDK の共通 API を利用する。SDK は対応 Provider の存在を検出した場合は Extension と直接通信し、Provider がない対応スマートフォンでは E2E 暗号化した Mobile Relay を選択する。dApp は transport を選択しない。
+
 ```text
 dApp
-  │ window.mosaicLynx / window.SSS
+  │ @mosaiclynx/sdk
+  ▼
+MosaicLynx SDK
+  ├── Extension Adapter ──> window.mosaicLynx
+  │                              │
+  │                              ▼
+  │                        In-page Provider
+  │                              │ DOM CustomEvent（requestId 付き）
+  │                              ▼
+  │                        Content Script
+  │                              │ chrome.runtime messaging
+  │                              ▼
+  │                        Background Service Worker ── Approval UI
+  │
+  └── Mobile Relay Adapter
+          │ E2E 暗号文のみ
+          ▼
+       Relay <──────────────> Mobile App ── Approval UI
+                                   │
+                                   ├── Core
+                                   ├── Symbol / NEM Chain Adapters
+                                   └── Vault / Signer
+```
+
+SSS 互換 dApp は従来どおり次の Extension 内経路を使用する。
+
+```text
+dApp
+  │ window.SSS
   ▼
 In-page Provider / SSS Adapter
   │ DOM CustomEvent（requestId 付き）
@@ -44,19 +75,23 @@ Background Service Worker ───── Approval Window / Popup / Settings
 
 In-page Provider と Content Script は信頼しない領域として扱う。秘密情報の復号、権限判定、承認状態、署名の最終実行は Background 側に集約する。
 
+Relay は信頼しない transport とし、transaction、署名結果、session secret、capability token を平文で渡さない。Mobile App は Core と Chain Adapter の同じ解析・署名規則を使用し、Relay 内で解析または署名しない。モバイル要求の Origin は Web ページによる自己申告であり、Extension の `sender.url` で確定した Origin と同じ保証を持たない。
+
 ## 4. Monorepo 構成
 
 現行構成を次の責務で維持・拡張する。
 
 ```text
 apps/
-└── extension/             Chrome 固有の Background / Content / In-page / UI
+├── extension/             Chrome 固有の Background / Content / In-page / UI
+└── mobile/                将来の React Native / Expo host、App Link、承認 UI
 
 packages/
 ├── core/                  ドメイン、ユースケース、Port
 ├── chain-symbol/          Symbol 固有処理
 ├── chain-nem/             NEM 固有処理
 ├── provider-api/          公開 API、RPC、Event、エラー定義
+├── sdk/                   @mosaiclynx/sdk、transport 選択、Extension / Relay Adapter
 └── sss-adapter/           window.SSS 互換変換
 ```
 
@@ -183,6 +218,21 @@ Core および Chain Adapter は SSS に依存しない。
 - 自動ロックタイマー
 - ローカライズとテーマ適用
 
+### 5.6 MosaicLynx SDK と Mobile Relay
+
+`packages/sdk` は dApp に transport 非依存の `signTransaction()` を公開し、次を担当する。
+
+- 対応 `window.mosaicLynx` Provider の検出と Extension Adapter の選択
+- Provider がない対応 mobile browser での Mobile Relay Adapter の選択
+- Extension の接続前提を満たすための `getAccounts()` / `connect()` の内部調整
+- Relay session、E2E 暗号化、App Link 起動、response 待機、ACK / cancel
+- Provider / Relay 固有 error から共通 SDK error への変換
+- signed payload、request digest、chain、network、expected signer の結果検証
+
+SDK は transport の強制 option、Relay credential、Extension の `accountId` を公開しない。Provider が利用可能な場合は常に Extension を優先し、拒否または失敗後に Mobile Relay へ自動 fallback しない。
+
+Relay は暗号文と最小限の短寿命 metadata だけを保持する。Mobile App は App Link の fragment から session secret と App capability を受け取り、Relay から request を取得してローカルで復号・解析・承認・署名する。request / response は別鍵の AES-256-GCM で保護し、5分の TTL、first-write-wins、ACK / cancel / expiry 時の削除を必須とする。詳細な wire protocol と HTTP API は Web Transaction Handoff Specification に従う。
+
 ## 6. 依存方向
 
 ```text
@@ -190,6 +240,12 @@ extension ──> core
 extension ──> provider-api
 extension ──> sss-adapter
 extension ──> chain-symbol / chain-nem
+
+sdk ────────> provider-api
+sdk ────────> Web platform APIs
+sdk ────────> chain-symbol / chain-nem（公開 transaction の結果検証のみ）
+mobile ─────> core
+mobile ─────> chain-symbol / chain-nem
 
 chain-symbol ──> core
 chain-nem ─────> core
@@ -205,6 +261,8 @@ provider-api ──> shared types only
 - `chain-* -> chrome.* / UI`
 - `provider-api -> extension`
 - `sss-adapter -> core / chain-*`
+- `sdk -> extension / chrome.*`
+- `relay -> core / chain-* / Vault`
 
 ## 7. ドメインモデル
 
