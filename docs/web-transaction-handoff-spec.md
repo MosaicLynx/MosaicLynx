@@ -4,9 +4,9 @@
 
 本書は、dApp が MosaicLynx へトランザクション署名を要求し、署名済みトランザクションを受け取るための Web 向け統合仕様を定義する。
 
-Web ページ向けライブラリの正式名称は **MosaicLynx SDK**、npm package 名は `@mosaiclynx/sdk` とする。SDK は Chrome 拡張機能へ直接渡す方式と、スマートフォンアプリへリレー経由で渡す方式の差を隠蔽し、dApp に一つの `signTransaction()` を公開する。
+Web ページ向けライブラリの正式名称は **MosaicLynx SDK**、npm package 名は `@mosaiclynx/sdk` とする。SDK は Chrome 拡張機能へ直接渡す方式と、スマートフォンアプリへリレー経由で渡す方式の差を隠蔽し、dApp に一つの `signTransaction()` を公開する。Extension AdapterはExtension MVP、Mobile Relay AdapterとRelay / AppはMobileマイルストーンの提供物である。本書のv1は両者の最終契約を定義するが、Mobile実装をExtension MVPの受け入れ条件には含めない。
 
-MosaicLynx 全体のプロダクト要件は [Product Specification](./product-spec.md)、コンポーネントの責務と依存方向は [Architecture](./architecture.md) に定義する。本書と共通仕様が矛盾する場合、署名可否とトランザクション解析には Product Specification、Web 受け渡しプロトコルには本書を適用する。
+MosaicLynx 全体のプロダクト要件は [Product Specification](./product-spec.md)、コンポーネントの責務と依存方向は [Architecture](./architecture.md)、鍵・network・transaction・署名byteの固定契約は [Chain Compatibility Specification](./chain-compatibility-spec.md) に定義する。本書と共通仕様が矛盾する場合、署名可否はProduct Specification、chain byte規則はChain Compatibility Specification、Web受け渡しprotocolは本書を適用する。
 
 ## 2. 対応範囲
 
@@ -18,6 +18,13 @@ MosaicLynx 全体のプロダクト要件は [Product Specification](./product-s
 - 同一スマートフォン上の Web ブラウザから MosaicLynx アプリへの受け渡し
 - E2E 暗号化した一時リレーによる要求と結果の往復
 - Extension / Mobile Relay 間で共通化した結果型とエラー型
+
+v1のrelease単位は次のとおりとする。
+
+| マイルストーン | 必須範囲 |
+| --- | --- |
+| Extension MVP | SDK公開API、Extension Adapter、Provider 2.x、共通結果検証 |
+| Mobile v1 | Mobile Relay Adapter、Relay、iOS / Android App、verified App Link、Origin proof、mobile signer保証表示 |
 
 ### 2.2 v1 の対象外
 
@@ -190,11 +197,19 @@ Mobile Relay Adapter は、session 生成、暗号化、Relay 登録、App Link 
 SDK は次の object を RFC 8785 JCS で canonicalize し、SHA-256 digest を計算してから暗号化する。
 
 ```ts
+interface OriginProof {
+  version: "mosaiclynx.origin.v1";
+  keyId: string;
+  algorithm: "Ed25519";
+  signature: string; // paddingなしbase64url
+}
+
 interface RelaySigningRequest {
   protocol: "mosaiclynx.relay.v1";
   operation: "signTransaction";
   requestId: string;
   initiatorOrigin: string;
+  originProof?: OriginProof;
   chain: "symbol" | "nem";
   network: "mainnet" | "testnet";
   payload: string;
@@ -203,6 +218,41 @@ interface RelaySigningRequest {
   expiresAt: string;
 }
 ```
+
+Mobile Mainnet要求では`originProof`を必須とする。Mainnetの`initiatorOrigin`はpublic DNSへ解決するHTTPS・既定port 443に限定する。SDKはrequestId生成後、同一Originの`POST /.well-known/mosaiclynx/sign-request`へ次のJCS objectを`Content-Type: application/json`、`credentials: "omit"`、`redirect: "error"`、`cache: "no-store"`で送る。
+
+```ts
+interface OriginProofInput {
+  version: "mosaiclynx.origin.v1";
+  requestId: string;
+  initiatorOrigin: string;
+  chain: "symbol" | "nem";
+  network: "mainnet";
+  payloadHash: string; // SHA-256(decoded transaction bytes), lowercase hex
+  expiresAt: string;
+}
+```
+
+dApp backendは入力schema、`initiatorOrigin`、TTLを検証し、`SHA-256(UTF8("mosaiclynx.origin.v1\0") || UTF8(JCS(OriginProofInput)))`をEd25519で署名して`OriginProof`を返す。SDKはresponseをそのまま信頼せずrequestへ含め、Appが独立検証する。
+
+Appは`${initiatorOrigin}/.well-known/mosaiclynx.json`から次のmanifestを取得する。redirect、cross-origin、DNS rebinding、loopback / link-local / private / reserved address、HTTP downgrade、32 KiB超過を拒否する。DNS解決結果を接続先IPと照合し、取得全体を3秒でtimeoutする。
+
+```ts
+interface OriginKeyManifest {
+  version: "mosaiclynx.origin-keys.v1";
+  origin: string;
+  keys: Array<{
+    keyId: string;
+    algorithm: "Ed25519";
+    publicKey: string;
+    notBefore: string;
+    notAfter: string;
+    status: "active" | "revoked";
+  }>;
+}
+```
+
+manifestの`origin`完全一致、key ID、algorithm、有効期間、statusを検証する。`Cache-Control`に従う上限24時間cacheとし、失効keyを受理しない。Testnetはproofなしを許容できるが「要求元未検証」を表示する。
 
 - `requestId` は CSPRNG で生成した 128-bit 値の padding なし base64url とする。
 - `initiatorOrigin` は SDK 自身が `window.location.origin` から取得し、dApp 引数では上書きできない。
@@ -266,6 +316,7 @@ https://link.mosaiclynx.app/v1/handoff/{sessionId}#s={sessionSecret}&a={appToken
 - URL fragment は HTTP request、Referer、server access log へ送らない。
 - App は scheme、host、path、ID と fragment の形式を strict validation し、未知 field、重複 field、過剰長を拒否する。
 - iOS は Associated Domains、Android は Digital Asset Links により `link.mosaiclynx.app` と正規アプリを関連付ける。custom URL scheme は v1 の標準経路にしない。
+- HTTPS fallback pageはthird-party script、analytics、service workerを持たず、`default-src 'none'; script-src`を固定したhash付きfirst-party bootstrapだけに限定する。bootstrapは最初の同期処理でfragmentをstrict parseし、必要な導入判定後に`history.replaceState()`でfragmentを除去する。fragment、session ID、tokenをDOM、browser storage、error reportingへ渡さない。
 
 ### 7.4 App の署名前検証
 
@@ -277,8 +328,18 @@ App は Core と Chain Adapter を再利用し、Product Specification 12.4 の 
 - chain、network、transaction type / version、全 field、inner transaction を解析できる。
 - decode 後の canonical serialization が元 payload と byte-for-byte で一致する。
 - `expectedSignerPublicKey` がある場合、選択可能な account と一致する。
+- Mainnetでは`originProof`が同一Originのwell-known manifestに登録された未失効鍵で検証できる。
 
-`initiatorOrigin` は Relay による改ざんから AEAD で保護されるが、App はブラウザの実際の Origin を独立に検証できない。承認画面では「要求元（未検証）」として canonical / Punycode 表記を表示し、transaction の解析内容を主な承認判断材料にする。Extension 承認画面の検証済み Origin と同じ保証があるように表示してはならない。
+`initiatorOrigin` は Relay による改ざんからAEADで保護されるだけでは、ブラウザの実際のOriginを証明しない。AppはMainnetで上記`originProof`を検証し、成功時だけ「登録鍵で検証済み」と表示する。Testnetでproofがない場合は「要求元（未検証）」としてcanonical / Punycode表記を表示し、Extension承認画面の検証済みOriginと同じ保証があるように表示しない。
+
+### 7.5 Mobile Signer保証
+
+- Mobile Appの秘密鍵はiOS Keychain / Secure EnclaveまたはAndroid Keystoreのhardware-backed keyで直接Symbol/NEM署名が可能な場合、`Hardware-backed`として扱う。
+- OS APIが対象algorithmの直接署名を提供しない場合は、hardware-backed wrapping keyでVault keyをwrapし、秘密鍵自体はApp memoryで短時間利用する。この方式は`OS-backed Software Vault`でありSecure Enclave内署名と表示しない。
+- hardware-backed wrappingも利用できない端末ではpassword + Argon2idの`Software Vault`として明示し、Mainnetを既定無効にする。ユーザーが設定で有効化する場合は端末保証の低下を再確認する。
+- biometric / device credentialはOSのuser-presence gateとして署名要求ごとに使用する。biometric data、passcode、assertionをWebまたはRelayへ返さない。
+- rooted / jailbroken判定、hardware attestation失敗、screen overlay / accessibility abuse検知はrisk signalとして表示・policy評価するが、単一のheuristicだけで鍵を削除しない。
+- App background、device lock、screen capture開始、5分timeout、memory warning、operation cancelでsecret handleを無効化する。Mainnet署名画面ではOSのscreen capture抑止APIを利用可能な範囲で有効にする。
 
 ## 8. E2E 暗号化
 
@@ -328,7 +389,7 @@ Relay による session ID、direction、expiry、暗号文の差し替えは AE
 
 ### 9.1 共通要件
 
-- Base URL は `https://relay.mosaiclynx.app/v1` に固定し、SDK option や dApp 引数で変更できない。
+- Origin は `https://relay.mosaiclynx.app`、API prefix は `/v1` に固定し、SDK option や dApp 引数で変更できない。以下のendpoint表記はこのOriginに対する絶対pathである。
 - TLS 1.2 以上を必須とし、HSTS を有効にする。
 - Cookie、HTTP authentication、user account、transaction ID tracking を使用しない。
 - credential を必要とする endpoint は `Authorization: Bearer {capabilityToken}` を使用する。
@@ -504,7 +565,7 @@ diagnostics、Relay log、telemetry に payload、signed payload、hash、public
 - signed response は元 request digest、chain、network、expected signer と照合し、別 request へ転用しない。
 - SDK は受領した signed payload が元 unsigned transaction と chain 規則上対応することを検証する。
 - Web page 自身の侵害、悪意ある dApp、端末 OS、アンロック中 App、正規配布 artifact の侵害は E2E Relay 暗号化の保証範囲外である。
-- initiator Origin は自己申告値であり、Mobile App で検証済み Origin と表示しない。この制約を開発者文書と承認 UI に常時明記する。
+- initiator Origin文字列だけを検証根拠にしない。Mainnetはorigin proofを必須とし、Testnetでproofがない場合だけ未検証と表示する。proofはOriginの登録鍵による要求整合性を示すもので、サイト運営主体の善性、transactionの安全性、Web page非侵害までは保証しない。
 
 ## 14. 受け入れ条件とテスト
 
@@ -547,7 +608,9 @@ diagnostics、Relay log、telemetry に payload、signed payload、hash、public
 - 未インストール fallback が fragment を送信・保存せず、導入案内を表示する。
 - 元ページが開いたまま response を取得し、App から browser callback を開かない。
 - App close、拒否、lock、timeout、navigation、page disposal で署名結果を返さない。
-- App 承認画面が initiator Origin を「要求元（未検証）」と表示する。
+- App 承認画面がMainnetでは有効なorigin proofを必須とし「登録鍵で検証済み」、proofを省略できるTestnetでは「要求元（未検証）」と表示する。
+- well-known manifestのredirect、期限切れ／失効key、wrong Origin、wrong request digest、改ざんproof、private-network解決を拒否する。
+- hardware-backed / OS-backed Software Vault / Software Vaultの保証レベルを正しく表示し、非hardware-backed端末ではMainnetを既定無効にする。
 - unknown / non-canonical / oversized transaction と signer 不一致を署名前に拒否する。
 - Symbol / NEM × Mainnet / Testnet の対応 transaction 固定 vectorで署名結果を検証する。
 
@@ -558,7 +621,7 @@ diagnostics、Relay log、telemetry に payload、signed payload、hash、public
 - 構造化メッセージ署名
 - アカウント接続と公開 Identity の取得
 - PC とスマートフォン間の QR handoff
-- 登録済み dApp key による initiator Origin の追加検証
+- transparency logまたは第三者認証を伴うdApp key directory（v1の同一Originwell-known方式を置換せず追加する）
 - 組織向け policy / 二者承認 / hardware signer
 - 明示的に信頼登録した自己ホスト Relay
 
