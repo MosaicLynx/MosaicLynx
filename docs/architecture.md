@@ -355,35 +355,92 @@ interface PermissionGrant {
 ### 7.4 Approval
 
 ```ts
-interface ApprovalRequest {
-  id: string;
-  type: "connect" | "signStructuredMessage" | "signLegacyMessage" | "signTransaction";
-  origin: string;
-  tabId: number;
-  frameId: 0;
-  documentId: string;
-  profileId: string;
-  scope: ConnectionScope;
-  accountId?: string;
-  stateRevisions: {
+type ApprovalOperation =
+  | "connect"
+  | "signStructuredMessage"
+  | "signLegacyMessage"
+  | "signTransaction"
+  | "cosignTransaction";
+type ApprovalStatus =
+  | "pending" | "presented" | "approved" | "signing"
+  | "completed" | "rejected" | "cancelled" | "expired" | "failed";
+
+interface ApprovalRequestEnvelopeV1 {
+  schema: "mosaiclynx.approval.v1";
+  approvalId: string;          // 128-bit CSPRNG、paddingなしbase64url
+  requestId: string;           // Provider requestとのsingle-use相関ID
+  operation: ApprovalOperation;
+  binding: {
+    extensionInstanceId: string;
+    origin: string;            // Backgroundがsender.urlから確定したcanonical Origin
+    originAscii: string;
+    tabId: number;
+    frameId: 0;
+    documentId: string;
+    profileId: string;
+    accountId?: string;
+    scope: ConnectionScope;
+  };
+  revisions: {
     profile: number;
     account?: number;
     permission?: number;
     vault: number;
   };
-  requestDigest: string;
-  summary: DisplayField[];
-  createdAt: string;
-  expiresAt: string;
-  status: "pending" | "approved" | "signing" | "completed" | "rejected" | "expired" | "failed";
+  request: ApprovalCanonicalRequest;
+  requestDigest: string;       // SHA-256(JCS({operation,binding,revisions,request}))
+  payloadDigest?: string;      // SHA-256(decoded raw payload)
+  inspection?: {
+    schema: "mosaiclynx.inspection.v1";
+    fixtureContractVersion: string;
+    parserVersion: string;
+    canonicalPayloadDigest: string;
+    resultDigest: string;      // SHA-256(JCS(result))
+    result: TransactionInspection;
+  };
+  display: {
+    locale: "ja" | "en";
+    fields: DisplayField[];    // cacheにすぎず、承認・署名の根拠にしない
+  };
+  lifecycle: {
+    createdAt: string;
+    expiresAt: string;
+    status: ApprovalStatus;
+    revision: number;          // 全遷移で+1するCAS値
+    presentedAt?: string;
+    decidedAt?: string;
+    terminalAt?: string;
+    terminalReason?: string;   // 安定codeのみ。parser内部情報は禁止
+  };
 }
+
+type ApprovalCanonicalRequest =
+  | { kind: "connect"; requestedAccountIds: string[] }
+  | { kind: "structuredMessage"; message: StructuredMessage }
+  | { kind: "legacyMessage"; encoding: "hex"; payload: string }
+  | {
+      kind: "transaction";
+      chain: "symbol" | "nem";
+      network: "mainnet" | "testnet";
+      payload: string;
+      parentPayload?: string;
+      expectedSignerPublicKey?: string;
+    };
 ```
 
-`summary` は表示専用とし、署名対象には使用しない。承認時は `requestDigest`、Origin、tabId、frameId、documentId、profileId、scope、accountId と元要求が一致することを再検証する。navigation または tab close により document が変わった要求は拒否する。
+`ApprovalRequestEnvelopeV1`をExtension内の承認要求の唯一の正本とする。`request`にはProviderから受領した意味を変えない元payloadを保持し、hexのcase以外の正規化、signer補完、alias解決を行わない。`requestDigest`は`operation`、全`binding`、全`revisions`、`request`を上記順のobjectとしてJCS canonicalizeしたUTF-8 byteのSHA-256 lowercase hexとする。`display`と`inspection.result`は派生cacheであり、署名入力へ逆変換しない。未知field、欠落field、schema不一致はfail closedとする。
 
-状態遷移は `pending → approved → signing → completed`、`pending → rejected / expired`、または処理中の `failed` だけを許可し、compare-and-set で二重遷移を防止する。`approved`、`signing`、`completed` から別の署名を開始せず、Service Worker 再起動後に `approved` / `signing` を復元して続行しない。
+正本は`chrome.storage.local`の専用`approvalBodies`へ、Profile Vaultとは別のinstallation-scoped 256-bit approval storage keyでAES-256-GCM暗号化して保存する。鍵はWebCryptoで生成したextractable=falseの`CryptoKey`とし、extension originのIndexedDBへstructured cloneで保存してContent Scriptへhandleを渡さない。AADは`schema || approvalId || requestId || profileId || createdAt || expiresAt`、nonceはrecordごとに一意な96-bit CSPRNG値とする。`chrome.storage.session`には`approvalId`、binding、digest、期限、status、revisionだけの非秘密索引を置き、raw payload、message本文、inspection全文を置かない。暗号化失敗、鍵喪失、AEAD失敗時は復旧を試みず`failed`にする。
+
+承認時は `requestDigest`、Origin、tabId、frameId、documentId、profileId、scope、accountId、全revisionと元要求が一致することを再検証する。navigation または tab close により document が変わった要求は拒否する。Backgroundは受領時にschema、sender binding、Permission、上限、digest、chain inspectionを独立検証する。trusted documentはBackgroundのsummaryを信用せず、正本をStorageから復号し、同じ検証器でschema、binding、revision、canonical payload、inspection、signer、digestを再計算する。承認直前とProfile mutex取得後の署名直前にも再計算し、Backgroundとtrusted documentの`requestDigest`、`payloadDigest`、`resultDigest`が全て一致した場合だけ署名する。
+
+状態遷移は `pending → presented → approved → signing → completed`、`pending / presented → rejected / cancelled / expired`、任意の非終端状態から`failed`だけを許可し、`approvalId + lifecycle.revision + current status`のcompare-and-setで二重遷移を防止する。終端状態は変更不可とする。`approved`はUI判断を記録するだけで署名権限tokenではなく、同じtrusted document内で直ちに`signing`へCASできない場合は`failed`にする。
+
+Service Worker再起動時は`pending / presented`だけを索引から復元し、tab、document、期限、正本AEAD、全revisionを再検証して`pending`へ戻す。`approved / signing`は必ず`failed: WORKER_RESTART_DURING_DECISION`とし再開しない。approval windowのclose / crash / reload、別routeへのnavigationは対象approvalを`cancelled`にし、そのwindowだけが所有するVault handleを破棄する。要求元top-level documentのnavigation / reload / tab close、Origin変更は同じ`documentId`に属する全approvalを`cancelled`にする。extension reload / update、approval storage key喪失は全非終端approvalを`failed`にする。
 
 Approval の TTL は作成から5分を上限とする。構造化メッセージはメッセージ自身の `expiresAt` と Approval TTL の早い方を使用する。期限延長は既存 request の更新ではなく、新しい requestId、digest、nonce と再承認を必要とする。
+
+終端化後はraw正本と派生inspectionを同期削除し、非秘密tombstone（approvalId hash、requestId hash、status、terminalAt、expiresAt）だけを最大24時間保持してlate responseとreplayを拒否する。`expired`は期限監視と次回起動時sweepの双方で処理し、正本を期限後60秒以内に削除する。Profile削除、Permission disconnect、manual lockでは該当範囲を即時終端化して正本を削除する。Storage削除はbest effortではなく、削除確認後のread-backで不在を検証し、失敗中は新規署名を停止する。ブラウザ媒体上の物理的secure eraseは保証しない。
 
 構造化メッセージは次の論理フィールドを canonical encoding し、表示内容ではなくその byte 列へ署名する。
 
@@ -592,9 +649,16 @@ MosaicLynx は署名結果をネットワークへアナウンスしない。
 - Profile の手動ロック時は、その Profile の復号鍵、秘密情報、署名待ち要求を破棄する。
 - 自動ロックはtrusted signing document内のProfileごとの最終ユーザー操作から計測し、初期値は15分とする。dAppのRPC、polling、background eventをactivityとして延長しない。
 - ブラウザ終了、端末のスリープからの復帰、全trusted signing document close / crash、extension reload / update時は全 Profile locked とする。Service Worker再起動時は8.5の再接続検証を行い、trusted documentがなければlockedとする。
-- 複数タブからの要求は直列化または明示的にキュー管理し、どの Origin の要求かを混同しない。
+- pending上限はProfile全体で20件、同一`Profile + Origin`で5件、同一top-level documentで3件とし、いずれかへ達した新規要求を永続化・window作成前に`RESOURCE_LIMIT`で拒否する。全Profile合計は50件、同一Originからの受付はrolling 60秒に10件までとする。`connect`と署名要求を別枠にして上限を迂回させない。終端要求とtombstoneはpending数へ数えない。
+- Profileごとに受付時刻昇順のFIFO queueを持つ。同時刻は`approvalId`のbyte順で決定し、優先度変更、Originによる割込み、dApp指定順を許可しない。期限切れ、context失効、cancel済みはhead到達前にも除去する。
+- 一つのProfileで表示可能な承認windowは常に1個とする。別Profileを含むextension全体でも最大2個とし、各windowは一つの`approvalId`だけを所有する。既存windowへ次要求を差し替えず、終端化してUIが初期化された後にだけ次を表示する。popup、home、approval window間で同じVault sessionを暗黙共有しない。
+- Profile mutexは`signing`、lock、Account / Permission / Vault更新を直列化する。queue待ちとユーザー閲覧中にmutexを保持しない。mutex取得後にrevisionと全digestを再検証する。lockは新規署名より優先し、実行中署名を結果返却前に無効化するcancel generationを増加させる。
+- user cancelは対象approvalだけ、window closeはそのwindow所有approvalだけ、top-level navigation / tab closeは同じ`documentId`の全approval、Origin disconnectは同じ`Origin + Profile + scope`の全approval、Account削除は同じ`Profile + accountId`、Profile lock / deleteは同じProfile、extension reload / updateは全Profileの非終端approvalを無効化する。
+- disconnect / revision変更 / cancelと署名完了が競合した場合、mutex内のcancel generationとCASを最後に照合し、cancelが先にcommit済みなら署名済みbyteを破棄してdAppへ返さない。暗号処理自体を中断できない場合も結果公開を阻止する。
 
 署名、Profile / Account 更新、Permission 更新、lock は Profile 単位の mutex で直列化する。各要求は作成時の Profile、Account、Permission、Vault の revision を保持し、承認時と署名直前にすべて一致することを確認する。不一致なら承認済みであっても破棄する。Service Worker 再起動後は `approved` 状態から署名を再開せず、新しい要求と再承認を必要とする。
+
+queue、上限counter、window ownership、cancel generationは`chrome.storage.session`の非秘密索引を正本とし、更新は単一Background controllerでCASする。Worker再起動時は暗号化正本との突合でcounterを再構築し、不一致時は小さい値へ補正せず全非終端要求をfail closedで終端化する。rate limit状態はOrigin hashと時刻bucketだけをsessionへ保持し、raw payloadを含めない。
 
 パスワード、KDF salt、暗号文、ロック状態は Profile ごとに独立させる。一つの Profile のアンロック結果を別の Profile へ流用しない。
 
@@ -636,6 +700,7 @@ Provider は最低限、次の安定したコードを持つ。
 | `NETWORK_MISMATCH` | 要求、Profile、payload のネットワークが一致しない |
 | `REQUEST_EXPIRED` | 要求が有効期限を超えた |
 | `CONTEXT_CHANGED` | Origin、document、Profile、Account、Permission、Vault の revision が変化した |
+| `RESOURCE_LIMIT` | pending、rate、windowの上限に達した。要求は保存・表示していない |
 | `INTERNAL_ERROR` | 外部へ詳細を公開しない内部エラー |
 
 内部例外、Storage key、スタックトレース、暗号エラーの詳細を Web ページへそのまま返さない。

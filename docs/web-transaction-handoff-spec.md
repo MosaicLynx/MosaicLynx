@@ -334,9 +334,25 @@ App は Core と Chain Adapter を再利用し、Product Specification 12.4 の 
 
 ### 7.5 Mobile Signer保証
 
-- Mobile Appの秘密鍵はiOS Keychain / Secure EnclaveまたはAndroid Keystoreのhardware-backed keyで直接Symbol/NEM署名が可能な場合、`Hardware-backed`として扱う。
-- OS APIが対象algorithmの直接署名を提供しない場合は、hardware-backed wrapping keyでVault keyをwrapし、秘密鍵自体はApp memoryで短時間利用する。この方式は`OS-backed Software Vault`でありSecure Enclave内署名と表示しない。
-- hardware-backed wrappingも利用できない端末ではpassword + Argon2idの`Software Vault`として明示し、Mainnetを既定無効にする。ユーザーが設定で有効化する場合は端末保証の低下を再確認する。
+Mobile v1のSymbol/NEM鍵は、両chainが要求する固定版symbol-sdkのEd25519 variant、決定的import/restore、同一private key共有を全て満たす必要がある。iOS Secure Enclaveの公開署名APIはP-256、Android StrongBoxの必須署名algorithmもP-256であり、CryptoKitの通常`Curve25519.Signing`をSecure Enclave署名と混同しない。Androidのsecure wrapped importはKeystoreが対応するalgorithmへ限定され、任意のSymbol/NEM raw keyを直接署名keyとして扱える根拠にしない。したがってMobile v1は全対応OSで`Hardware-backed`直接署名を**非対応**とし、実機capabilityを理由に自動昇格しない。将来の直接署名はchainごとの固定vector、import、attestation、署名byte一致を満たす別仕様変更を必要とする。
+
+| OS / 端末 | runtime判定 | Symbol/NEM直接署名 | Vault wrapping | v1保証表示 | Mainnet既定 |
+| --- | --- | --- | --- | --- | --- |
+| iOS 16+、`SecureEnclave.isAvailable=true`、device passcode有効 | Secure Enclave P-256 key生成、Keychain access control、biometry current setの実操作に成功 | 不可 | Secure Enclave P-256 key agreementからHKDFで得るKEKによりVault keyをAES-GCM wrap。chain keyは承認後だけApp memoryへ復号 | `OS-backed Software Vault (Secure Enclave protected)` | 条件付き有効 |
+| iOS 16+、Secure Enclaveなし／passcodeなし／biometryなし | Keychain protectionとuser-presenceの実操作結果 | 不可 | password + Argon2idのみ。Keychain保存だけでhardware-backedと表示しない | `Software Vault` | 無効、設定でも有効化不可 |
+| Android 9+ (API 28+)、`KeyInfo.securityLevel=STRONGBOX`かつ有効なhardware attestation | AES-256-GCM key、user authentication、attestation chain/revocationを検証 | 不可 | StrongBox AES keyでVault keyをwrap | `OS-backed Software Vault (StrongBox protected)` | 条件付き有効 |
+| Android 9+、`securityLevel=TRUSTED_ENVIRONMENT`かつhardware attestation有効 | 同上。StrongBox要求のfallback結果を明示 | 不可 | TEE AES keyでVault keyをwrap | `OS-backed Software Vault (TEE protected)` | 条件付き有効 |
+| Android 9+、security level software／attestation不明・失敗／user authなし | `KeyInfo`とattestation検証結果 | 不可 | password + Argon2idのみ | `Software Vault` | 無効、設定でも有効化不可 |
+| unsupported OS、root/jailbreakを確認、OS security updateがsupport policy外 | support matrix、integrity risk signal | 不可 | 新規Vault作成・importを許可しない | `Unsupported` | 不可 |
+
+wrapping keyはProfileごと・installationごとに生成し、`profileId, vaultVersion, chainCompatibilityVersion, wrappingKeyId`をAADへ含める。生体認証／device credentialはOSのuser-presence gateとしてMainnet署名ごとに要求する。biometric data、passcode、assertion、attestation credentialをWebまたはRelayへ返さない。unwrap後のVault keyとchain private keyは署名controllerの上書き可能bufferだけに置き、署名・検証後に参照を破棄する。これはOSやApp process侵害下の平文memoryを防ぐ保証ではない。
+
+import / restoreはmnemonicまたは暗号化backupをApp memoryで復号して全Identityを再導出・照合した後、現在端末で新しいwrapping keyを生成しcopy-on-writeで再wrapする。Secure Enclave / Keystore key自体をbackup、同期、端末間移送せず、旧端末のhardware keyがない状態で「hardware keyを復元した」と表示しない。端末移行後は全AccountのSymbol/NEM public key/address、Profile network、derivation path、backup schemaが一致するまでcommitしない。imported private keyも同じ再wrap対象であり、元秘密または暗号化backupなしに端末bound wrapping keyだけから復旧できない。
+
+Mobile Mainnetは次を全て満たす場合だけ有効にする。(1) 上表のOS-backed wrapping、(2) device lockと署名ごとのuser presence、(3) iOS Secure Enclave実操作またはAndroid hardware attestationの検証、(4) root/jailbreak重大signalなし、(5) support対象OS/security update、(6) backup exportと別環境restore verification済み、(7)有効なOrigin proof、(8) Mainnet release evidence合格。実行時に一つでも失われた場合は既存Profileを削除せず即lockしMainnet署名を拒否する。TestnetだけSoftware Vaultを許可する。
+
+capability根拠はApple CryptoKit `SecureEnclave` / `SecureEnclave.P256`とAndroid Keystore / Key Attestationの公式仕様をreleaseごとに再確認し、確認日、OS範囲、実機model、security level、成功・失敗結果を`mobile-capability-report.json`へ保存する。
+
 - biometric / device credentialはOSのuser-presence gateとして署名要求ごとに使用する。biometric data、passcode、assertionをWebまたはRelayへ返さない。
 - rooted / jailbroken判定、hardware attestation失敗、screen overlay / accessibility abuse検知はrisk signalとして表示・policy評価するが、単一のheuristicだけで鍵を削除しない。
 - App background、device lock、screen capture開始、5分timeout、memory warning、operation cancelでsecret handleを無効化する。Mainnet署名画面ではOSのscreen capture抑止APIを利用可能な範囲で有効にする。
