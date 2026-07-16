@@ -1,0 +1,16 @@
+{
+  "id": "BIP32-SHARED-TESTNET-001",
+  "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+  "network": "testnet",
+  "accountIndex": 0,
+  "derivationPath": "44/1/0/0/0",
+  "privateKey": "99DA0B339E5C3E3DDDD59678B52A7C7E5F9E02BD07AF4E220CD69228766BCDDB",
+  "symbol": {
+    "address": "TAPS6PH4GZNA6GQ26S7T44S4BYM3Z2CHUJ53HGA",
+    "publicKey": "811B322F9C28877BF9F543A8E8DB1F3C4FD45A6CCC6CADF315499893D49B8299"
+  },
+  "nem": {
+    "address": "TCKUCPJPOSUD6L572UDDGKLBHB2HKEXYUHMT7JCO",
+    "publicKey": "F3A6530BB810DFCE3F18DAC30B90A8B8A97501AE57E3B2F27BC6C034CF6655AB"
+  }
+}

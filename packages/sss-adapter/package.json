@@ -1,0 +1,16 @@
+{
+  "name": "@mosaic-lynx/sss-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@mosaic-lynx/provider-api": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "pnpm --filter @mosaic-lynx/provider-api build && tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  }
+}

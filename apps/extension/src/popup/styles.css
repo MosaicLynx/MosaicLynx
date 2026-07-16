@@ -1,0 +1,272 @@
+:root {
+  color: #17211f;
+  background: #f5f6ef;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 360px;
+}
+
+input,
+select,
+textarea {
+  background: #fffef8;
+  border: 1px solid #9cad9f;
+  border-radius: 4px;
+  color: inherit;
+  font: inherit;
+  padding: 9px 10px;
+  width: 100%;
+}
+
+textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+button {
+  font: inherit;
+}
+
+.app-shell {
+  display: grid;
+  gap: 20px;
+  min-height: 460px;
+  padding: 24px;
+}
+
+.approval-shell {
+  min-height: 650px;
+}
+
+header {
+  border-bottom: 1px solid #b7c7bc;
+  padding-bottom: 18px;
+}
+
+.eyebrow,
+.section-label {
+  color: #5c6f64;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0;
+  margin: 0 0 7px;
+}
+
+h1 {
+  font-size: 30px;
+  font-weight: 500;
+  margin: 0 0 13px;
+}
+
+.status {
+  border-radius: 4px;
+  display: inline-block;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  padding: 5px 8px;
+}
+.network-badge {
+  background: #253c67;
+  border-radius: 4px;
+  color: white;
+  float: right;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  margin-top: 2px;
+  padding: 5px 8px;
+}
+.locked {
+  background: #f0d8cb;
+  color: #762c19;
+}
+.unlocked {
+  background: #d5ead9;
+  color: #205d35;
+}
+
+section {
+  border-bottom: 1px solid #d2dbd2;
+  padding-bottom: 14px;
+}
+.empty-state {
+  color: #637069;
+  margin: 0;
+}
+
+footer {
+  align-self: end;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+button {
+  background: #e3e9df;
+  border: 1px solid #9cad9f;
+  border-radius: 4px;
+  color: #17211f;
+  cursor: pointer;
+  padding: 8px 11px;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+button.primary,
+button.selected {
+  background: #244d3c;
+  border-color: #244d3c;
+  color: white;
+}
+
+.field {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 12px;
+}
+
+.field > span,
+.summary-row > span {
+  color: #5c6f64;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.tabs button {
+  flex: 1;
+}
+
+.origin {
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.origin span {
+  color: #637069;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+
+.summary-row {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 13px;
+}
+
+.summary-row strong {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.account-choice {
+  align-items: start;
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.account-choice input {
+  margin-top: 3px;
+  width: auto;
+}
+
+.account-choice span,
+.account-choice small,
+.connection,
+.connection small,
+.account-card,
+.account-card small,
+.account-card code {
+  display: block;
+}
+
+.account-choice small,
+.connection small,
+.account-card small,
+.account-card code {
+  color: #637069;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.account-card {
+  background: #eef1e8;
+  border-radius: 5px;
+  margin: 12px 0;
+  padding: 12px;
+}
+
+.connection {
+  border-bottom: 1px solid #e0e5dd;
+  margin: 0;
+  padding: 9px 0;
+  overflow-wrap: anywhere;
+}
+
+.warning-panel,
+.danger-panel,
+.secret-panel,
+.assurance {
+  border-radius: 5px;
+  padding: 12px;
+}
+
+.warning-panel {
+  background: #f4eac9;
+  color: #5e4612;
+}
+
+.danger-panel {
+  background: #f0d8cb;
+  color: #762c19;
+}
+
+.secret-panel {
+  background: #19231f;
+  color: #f8f3df;
+}
+
+.assurance {
+  background: #e9ede5;
+  color: #46544b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.form-error {
+  color: #a22e20;
+  font-weight: 700;
+}
+
+.mnemonic {
+  display: grid;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  line-height: 1.7;
+  padding-left: 26px;
+}
+
+details code {
+  display: block;
+  font-size: 9px;
+  max-height: 120px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}

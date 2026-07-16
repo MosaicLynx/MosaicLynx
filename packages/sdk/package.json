@@ -1,0 +1,25 @@
+{
+  "name": "@mosaiclynx/sdk",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@mosaic-lynx/provider-api": "workspace:*",
+    "@nemnesia/symbol-sdk": "3.3.2-pure.2"
+  },
+  "devDependencies": {
+    "vite": "^7.2.6"
+  },
+  "scripts": {
+    "build": "pnpm --filter @mosaic-lynx/provider-api build && tsc -p tsconfig.json && vite build",
+    "typecheck": "pnpm --filter @mosaic-lynx/provider-api build && tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  }
+}

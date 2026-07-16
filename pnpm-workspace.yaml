@@ -1,0 +1,7 @@
+packages:
+  - apps/*
+  - packages/*
+allowBuilds:
+  esbuild: true
+minimumReleaseAgeExclude:
+  - '@nemnesia/symbol-sdk@3.3.2-pure.2'
