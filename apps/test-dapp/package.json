@@ -1,0 +1,20 @@
+{
+  "name": "@mosaic-lynx/test-dapp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@mosaic-lynx/provider-api": "workspace:*",
+    "@mosaiclynx/sdk": "workspace:*",
+    "@nemnesia/symbol-sdk": "3.3.2-pure.2"
+  },
+  "devDependencies": {
+    "vite": "^7.2.6"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  }
+}

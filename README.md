@@ -13,6 +13,16 @@ pnpm build
 
 Chrome の「パッケージ化されていない拡張機能を読み込む」から `apps/extension/dist` を指定します。
 
+### Transfer テストページ
+
+拡張機能を読み込んだ Chrome で、Symbol / NEM の Transfer 作成と署名フローを確認できます。
+
+```sh
+pnpm --filter @mosaic-lynx/test-dapp dev
+```
+
+表示された `http://127.0.0.1:5173` を開き、拡張機能に接続して recipient、amount、message を入力します。テストページは署名済み payload を表示しますが、ネットワークへの announce は行いません。
+
 ## MosaicLynx SDK
 
 ```ts

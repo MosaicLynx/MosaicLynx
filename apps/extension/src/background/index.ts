@@ -72,8 +72,15 @@ const activeProfile = (store: ExtensionStore, network?: MosaicScope["network"]):
   return profile;
 };
 
-const accountById = (profile: PublicProfile, accountId: string): PublicAccount => {
-  const account = profile.accounts.find((item) => item.id === accountId);
+const accountsForProfile = (store: ExtensionStore, profileId: string): readonly PublicAccount[] =>
+  store.accounts.filter((account) => account.profileId === profileId);
+
+const vaultRevisionFor = (store: ExtensionStore, profileId: string): number =>
+  store.vaults.find((vault) => vault.profileId === profileId)?.revision
+  ?? providerError("VAULT_LOCKED", "The active profile vault is unavailable.");
+
+const accountById = (store: ExtensionStore, profile: PublicProfile, accountId: string): PublicAccount => {
+  const account = store.accounts.find((item) => item.profileId === profile.id && item.id === accountId);
   if (!account) return providerError("ACCOUNT_NOT_FOUND", "The account is unavailable.");
   return account;
 };
@@ -98,10 +105,11 @@ const permissionFor = (
     && grant.chain === scope.chain && grant.network === scope.network);
 
 const permittedAccounts = (
+  store: ExtensionStore,
   profile: PublicProfile,
   permission: PermissionGrant,
 ): readonly PublicAccount[] => permission.accountIds
-  .map((id) => profile.accounts.find((account) => account.id === id))
+  .map((id) => store.accounts.find((account) => account.profileId === profile.id && account.id === id))
   .filter((account): account is PublicAccount => Boolean(account));
 
 const requirePermission = (
@@ -176,13 +184,14 @@ chrome.windows.onRemoved.addListener((windowId) => {
 });
 
 const chooseAccount = (
+  store: ExtensionStore,
   profile: PublicProfile,
   permission: PermissionGrant,
   accountId: unknown,
 ): PublicAccount => {
   const id = typeof accountId === "string" ? accountId : profile.defaultAccountId;
   if (!permission.accountIds.includes(id)) return providerError("ACCOUNT_NOT_FOUND", "The account is outside this origin permission.");
-  return accountById(profile, id);
+  return accountById(store, profile, id);
 };
 
 const nonceDigest = async (
@@ -252,16 +261,17 @@ const handleConnect = async (origin: string, params: unknown): Promise<readonly 
   const store = await loadStore();
   const profile = activeProfile(store, params.network);
   const existing = permissionFor(store, origin, profile.id, params);
-  if (existing) return permittedAccounts(profile, existing).map((account) => projectAccount(profile, account, params));
-  const defaultAccount = accountById(profile, profile.defaultAccountId);
+  if (existing) return permittedAccounts(store, profile, existing).map((account) => projectAccount(profile, account, params));
+  const defaultAccount = accountById(store, profile, profile.defaultAccountId);
   const resolution = await requestApproval({
     type: "connect",
     origin,
     originAscii: originAscii(origin),
     scope: params,
     profile,
+    vaultRevision: vaultRevisionFor(store, profile.id),
     account: defaultAccount,
-    availableAccounts: profile.accounts.map((account) => projectAccount(profile, account, params)),
+    availableAccounts: accountsForProfile(store, profile.id).map((account) => projectAccount(profile, account, params)),
     summary: summaryFor(params, defaultAccount),
   });
   if (!resolution.approved || !("accountIds" in resolution) || resolution.accountIds.length === 0)
@@ -270,7 +280,10 @@ const handleConnect = async (origin: string, params: unknown): Promise<readonly 
   const currentProfile = activeProfile(current, params.network);
   if (currentProfile.id !== profile.id || currentProfile.revision !== profile.revision)
     return providerError("CONTEXT_CHANGED", "The profile changed during approval.");
-  const validIds = [...new Set(resolution.accountIds)].filter((id) => currentProfile.accounts.some((account) => account.id === id));
+  if (vaultRevisionFor(current, profile.id) !== vaultRevisionFor(store, profile.id))
+    return providerError("CONTEXT_CHANGED", "The profile vault changed during approval.");
+  const validIds = [...new Set(resolution.accountIds)].filter((id) =>
+    current.accounts.some((account) => account.profileId === currentProfile.id && account.id === id));
   if (validIds.length !== resolution.accountIds.length) return providerError("CONTEXT_CHANGED", "The selected accounts changed.");
   const now = new Date().toISOString();
   const grant: PermissionGrant = {
@@ -284,7 +297,7 @@ const handleConnect = async (origin: string, params: unknown): Promise<readonly 
     updatedAt: now,
   };
   await saveStore({ ...current, permissions: [...current.permissions, grant] });
-  return validIds.map((id) => projectAccount(currentProfile, accountById(currentProfile, id), params));
+  return validIds.map((id) => projectAccount(currentProfile, accountById(current, currentProfile, id), params));
 };
 
 const handleTransaction = async (origin: string, params: unknown): Promise<SignedTransaction> => {
@@ -296,7 +309,7 @@ const handleTransaction = async (origin: string, params: unknown): Promise<Signe
   const store = await loadStore();
   const profile = activeProfile(store, scope.network);
   const permission = requirePermission(store, origin, profile, scope);
-  const account = chooseAccount(profile, permission, input.accountId);
+  const account = chooseAccount(store, profile, permission, input.accountId);
   let inspection;
   try { inspection = adapters[scope.chain].inspectTransaction(scope.network, input.payload, account.identities[scope.chain].publicKey); }
   catch (error) {
@@ -311,6 +324,7 @@ const handleTransaction = async (origin: string, params: unknown): Promise<Signe
     originAscii: originAscii(origin),
     scope,
     profile,
+    vaultRevision: vaultRevisionFor(store, profile.id),
     account,
     payload: input.payload,
     inspection,
@@ -330,7 +344,8 @@ const handleTransaction = async (origin: string, params: unknown): Promise<Signe
   const currentProfile = current.profiles.find((item) => item.id === profile.id);
   const currentVault = current.vaults.find((item) => item.profileId === profile.id);
   if (!currentPermission || currentPermission.revision !== permission.revision
-    || currentProfile?.revision !== profile.revision || currentVault?.revision !== profile.revision)
+    || currentProfile?.revision !== profile.revision
+    || currentVault?.revision !== vaultRevisionFor(store, profile.id))
     return providerError("CONTEXT_CHANGED", "Profile or permission changed during approval.");
   return resolution.signedTransaction;
 };
@@ -343,7 +358,7 @@ const handleMessage = async (origin: string, params: unknown): Promise<SignedMes
   const store = await loadStore();
   const profile = activeProfile(store, input.network);
   const permission = requirePermission(store, origin, profile, input);
-  const account = chooseAccount(profile, permission, input.accountId);
+  const account = chooseAccount(store, profile, permission, input.accountId);
   let structured;
   try { structured = createStructuredMessage(origin, input); }
   catch (error) {
@@ -360,6 +375,7 @@ const handleMessage = async (origin: string, params: unknown): Promise<SignedMes
     originAscii: originAscii(origin),
     scope: input,
     profile,
+    vaultRevision: vaultRevisionFor(store, profile.id),
     account,
     messageParams: input,
     summary: [...summaryFor(input, account), { label: "Purpose", value: input.purpose }, { label: "Expires", value: input.expiresAt }],
@@ -371,7 +387,7 @@ const handleMessage = async (origin: string, params: unknown): Promise<SignedMes
   const currentPermission = permissionFor(current, origin, profile.id, input);
   const currentVault = current.vaults.find((item) => item.profileId === profile.id);
   if (currentProfile?.revision !== profile.revision || currentPermission?.revision !== permission.revision
-    || currentVault?.revision !== profile.revision)
+    || currentVault?.revision !== vaultRevisionFor(store, profile.id))
     return providerError("CONTEXT_CHANGED", "Profile or permission changed during approval.");
   const signed = resolution.signedMessage;
   if (signed.signerPublicKey.toUpperCase() !== account.identities[input.chain].publicKey.toUpperCase()
@@ -406,7 +422,7 @@ const handleRequest = async (origin: string, request: RpcRequest): Promise<unkno
       const store = await loadStore();
       const profile = activeProfile(store);
       return store.permissions.filter((grant) => grant.origin === origin && grant.profileId === profile.id)
-        .flatMap((grant) => permittedAccounts(profile, grant).map((account) => projectAccount(profile, account, { chain: grant.chain, network: grant.network })));
+        .flatMap((grant) => permittedAccounts(store, profile, grant).map((account) => projectAccount(profile, account, { chain: grant.chain, network: grant.network })));
     }
     case "account_getActive": {
       const accounts = await handleRequest(origin, { method: "account_list" }) as readonly MosaicAccount[];
@@ -430,9 +446,10 @@ const handleRequest = async (origin: string, request: RpcRequest): Promise<unkno
       const store = await loadStore();
       const profile = activeProfile(store, scope.network);
       const permission = requirePermission(store, origin, profile, scope);
-      const account = chooseAccount(profile, permission, input.accountId);
+      const account = chooseAccount(store, profile, permission, input.accountId);
       const resolution = await requestApproval({
-        type: "legacy-message", origin, originAscii: originAscii(origin), scope, profile, account,
+        type: "legacy-message", origin, originAscii: originAscii(origin), scope, profile,
+        vaultRevision: vaultRevisionFor(store, profile.id), account,
         legacyMessage: input.message, recipientPublicKey: input.recipientPublicKey,
         summary: [...summaryFor(scope, account), { label: "Warning", value: "Legacy message: no domain, nonce, or expiry protection" }],
       });

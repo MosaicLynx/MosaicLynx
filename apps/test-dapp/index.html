@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>MosaicLynx Transfer Lab</title>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">MosaicLynx · extension test bench</p>
+          <h1>Transfer Lab</h1>
+          <p class="lede">Symbol / NEM の未署名 Transfer を組み立て、拡張機能へ署名を依頼します。ネットワークへの announce は行いません。</p>
+        </div>
+        <div id="provider-status" class="status waiting"><span></span>確認中</div>
+      </header>
+
+      <section class="card connection-card">
+        <div>
+          <p class="section-label">01 · Connection</p>
+          <h2>署名アカウント</h2>
+        </div>
+        <button id="connect" class="secondary" type="button">拡張機能に接続</button>
+        <div id="account" class="account muted">まだ接続されていません</div>
+      </section>
+
+      <section class="card composer">
+        <div class="section-heading">
+          <div>
+            <p class="section-label">02 · Compose</p>
+            <h2>転送内容</h2>
+          </div>
+          <div class="chain-switch" role="group" aria-label="チェーン">
+            <button type="button" data-chain="symbol" class="active">Symbol</button>
+            <button type="button" data-chain="nem">NEM</button>
+          </div>
+        </div>
+
+        <form id="transfer-form">
+          <div class="grid two">
+            <label>Network
+              <select id="network" required>
+                <option value="testnet">Testnet</option>
+                <option value="mainnet">Mainnet</option>
+              </select>
+            </label>
+            <label>Amount <span id="currency">XYM</span>
+              <input id="amount" type="text" inputmode="decimal" value="1" required />
+            </label>
+          </div>
+          <label>Recipient address
+            <input id="recipient" type="text" autocomplete="off" spellcheck="false" placeholder="T..." required />
+          </label>
+          <label>Message <span class="optional">optional · UTF-8</span>
+            <textarea id="message" rows="3" maxlength="512" placeholder="MosaicLynx extension test"></textarea>
+          </label>
+          <div class="notice">Mainnet では実資産を扱います。現在の開発版拡張機能は仕様により Mainnet 署名を拒否します。</div>
+          <button id="sign" class="primary" type="submit">Transfer を作成して署名</button>
+        </form>
+      </section>
+
+      <section class="card result-card">
+        <div class="section-heading">
+          <div>
+            <p class="section-label">03 · Result</p>
+            <h2>署名結果</h2>
+          </div>
+          <button id="copy" class="text-button" type="button" disabled>JSON をコピー</button>
+        </div>
+        <div id="result" class="result empty">署名を実行すると、hash・signer public key・payload がここに表示されます。</div>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

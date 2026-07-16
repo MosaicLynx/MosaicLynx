@@ -9,7 +9,7 @@ import {
 import { NemFacade } from "@nemnesia/symbol-sdk/nem";
 import type {
   ChainAdapterPort,
-  ChainScope,
+  ConnectionScope,
   GeneratedAccountMaterial,
   SharedAccountMaterial,
   TransactionInspection,
@@ -29,12 +29,12 @@ const bytesFor = (payload: string): Uint8Array => {
 const equal = (left: Uint8Array, right: Uint8Array): boolean =>
   left.length === right.length && left.every((byte, index) => byte === right[index]);
 
-const networkIdentifier = (network: ChainScope["network"]): number =>
+const networkIdentifier = (network: ConnectionScope["network"]): number =>
   network === "mainnet" ? 0x68 : 0x98;
 
 const assertTransfer = (
   transaction: models.TransferTransactionV1 | models.EmbeddedTransferTransactionV1,
-  network: ChainScope["network"],
+  network: ConnectionScope["network"],
 ): string => {
   if (transaction.version !== 1 || transaction.type.value !== 16724
     || transaction.network.value !== networkIdentifier(network))
@@ -52,7 +52,7 @@ const assertTransfer = (
 };
 
 const inspect = (
-  network: ChainScope["network"],
+  network: ConnectionScope["network"],
   payload: string,
   expectedSignerPublicKey: string,
 ): { transaction: models.Transaction; inspection: TransactionInspection } => {
@@ -112,7 +112,7 @@ const inspect = (
 };
 
 const createMaterial = (
-  network: ChainScope["network"],
+  network: ConnectionScope["network"],
   privateKey: PrivateKey,
 ): GeneratedAccountMaterial => {
   const account = new SymbolFacade(network).createAccount(privateKey);
@@ -132,7 +132,7 @@ export const generateMnemonic = (): string => {
 };
 
 export const deriveSharedAccount = (
-  network: ChainScope["network"],
+  network: ConnectionScope["network"],
   mnemonic: string,
   accountIndex: number,
 ): SharedAccountMaterial & { readonly derivationPath: string } => {
@@ -159,16 +159,16 @@ export const deriveSharedAccount = (
 export class SymbolChainAdapter implements ChainAdapterPort {
   public readonly chain = "symbol" as const;
 
-  public createAccount(network: ChainScope["network"]): GeneratedAccountMaterial {
+  public createAccount(network: ConnectionScope["network"]): GeneratedAccountMaterial {
     return createMaterial(network, PrivateKey.random());
   }
 
-  public importAccount(network: ChainScope["network"], privateKey: string): GeneratedAccountMaterial {
+  public importAccount(network: ConnectionScope["network"], privateKey: string): GeneratedAccountMaterial {
     return createMaterial(network, new PrivateKey(privateKey));
   }
 
   public inspectTransaction(
-    network: ChainScope["network"],
+    network: ConnectionScope["network"],
     payload: string,
     expectedSignerPublicKey: string,
   ): TransactionInspection {
@@ -176,7 +176,7 @@ export class SymbolChainAdapter implements ChainAdapterPort {
   }
 
   public signTransaction(
-    network: ChainScope["network"],
+    network: ConnectionScope["network"],
     payload: string,
     privateKeyHex: string,
   ): { readonly payload: string; readonly hash: string; readonly signerPublicKey: string } {
@@ -196,7 +196,7 @@ export class SymbolChainAdapter implements ChainAdapterPort {
   }
 
   public verifySignedTransaction(
-    network: ChainScope["network"],
+    network: ConnectionScope["network"],
     unsignedPayload: string,
     result: { readonly payload: string; readonly hash: string; readonly signerPublicKey: string },
   ): boolean {

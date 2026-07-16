@@ -15,9 +15,19 @@ declare global {
 const requestEvent = "mosaic-lynx:request";
 const responseEvent = "mosaic-lynx:response";
 
+const createRequestId = (): string => {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  // RFC 4122 UUID v4. getRandomValues is available in every supported
+  // extension injection context, including pages without randomUUID().
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"));
+  return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10).join("")}`;
+};
+
 class PageRpcExecutor implements RpcExecutor {
   public request<TResult>(request: RpcRequest): Promise<TResult> {
-    const id = crypto.randomUUID();
+    const id = createRequestId();
     return new Promise<TResult>((resolve, reject) => {
       const timeout = window.setTimeout(() => {
         window.removeEventListener(responseEvent, onResponse);
@@ -64,4 +74,10 @@ if (!window.mosaicLynx) {
     const detail = (event as CustomEvent<{ readonly event?: Parameters<typeof provider.emit>[0]; readonly payload?: unknown }>).detail;
     if (detail?.event) provider.emit(detail.event, detail.payload as never);
   });
+  window.dispatchEvent(new CustomEvent("mosaic-lynx:ready", {
+    detail: { apiVersion: provider.apiVersion },
+  }));
 }
+document.documentElement.dataset.mosaicLynxProvider = window.mosaicLynx
+  ? window.mosaicLynx.apiVersion
+  : "blocked";

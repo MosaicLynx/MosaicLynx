@@ -6,7 +6,7 @@ import {
 } from "@nemnesia/symbol-sdk/nem";
 import type {
   ChainAdapterPort,
-  ChainScope,
+  ConnectionScope,
   GeneratedAccountMaterial,
   TransactionInspection,
 } from "@mosaic-lynx/core";
@@ -22,7 +22,7 @@ const bytesFor = (payload: string): Uint8Array => {
 const equal = (left: Uint8Array, right: Uint8Array): boolean =>
   left.length === right.length && left.every((byte, index) => byte === right[index]);
 
-const networkIdentifier = (network: ChainScope["network"]): number =>
+const networkIdentifier = (network: ConnectionScope["network"]): number =>
   network === "mainnet" ? 0x68 : 0x98;
 
 type AnyNemTransfer =
@@ -31,7 +31,7 @@ type AnyNemTransfer =
   | models.NonVerifiableTransferTransactionV1
   | models.NonVerifiableTransferTransactionV2;
 
-const assertTransfer = (transaction: AnyNemTransfer, network: ChainScope["network"]): string => {
+const assertTransfer = (transaction: AnyNemTransfer, network: ConnectionScope["network"]): string => {
   if ((transaction.version !== 1 && transaction.version !== 2)
     || transaction.type.value !== 257 || transaction.network.value !== networkIdentifier(network))
     throw new Error("UNSUPPORTED_TRANSACTION: only NEM Transfer v1/v2 is allowed");
@@ -51,7 +51,7 @@ const assertTransfer = (transaction: AnyNemTransfer, network: ChainScope["networ
 };
 
 const inspect = (
-  network: ChainScope["network"],
+  network: ConnectionScope["network"],
   payload: string,
   expectedSignerPublicKey: string,
 ): { transaction: models.Transaction; inspection: TransactionInspection } => {
@@ -102,7 +102,7 @@ const inspect = (
 };
 
 const createMaterial = (
-  network: ChainScope["network"],
+  network: ConnectionScope["network"],
   privateKey: PrivateKey,
 ): GeneratedAccountMaterial => {
   const account = new NemFacade(network).createAccount(privateKey);
@@ -116,16 +116,16 @@ const createMaterial = (
 export class NemChainAdapter implements ChainAdapterPort {
   public readonly chain = "nem" as const;
 
-  public createAccount(network: ChainScope["network"]): GeneratedAccountMaterial {
+  public createAccount(network: ConnectionScope["network"]): GeneratedAccountMaterial {
     return createMaterial(network, PrivateKey.random());
   }
 
-  public importAccount(network: ChainScope["network"], privateKey: string): GeneratedAccountMaterial {
+  public importAccount(network: ConnectionScope["network"], privateKey: string): GeneratedAccountMaterial {
     return createMaterial(network, new PrivateKey(privateKey));
   }
 
   public inspectTransaction(
-    network: ChainScope["network"],
+    network: ConnectionScope["network"],
     payload: string,
     expectedSignerPublicKey: string,
   ): TransactionInspection {
@@ -133,7 +133,7 @@ export class NemChainAdapter implements ChainAdapterPort {
   }
 
   public signTransaction(
-    network: ChainScope["network"],
+    network: ConnectionScope["network"],
     payload: string,
     privateKeyHex: string,
   ): { readonly payload: string; readonly hash: string; readonly signerPublicKey: string } {
@@ -153,7 +153,7 @@ export class NemChainAdapter implements ChainAdapterPort {
   }
 
   public verifySignedTransaction(
-    network: ChainScope["network"],
+    network: ConnectionScope["network"],
     unsignedPayload: string,
     result: { readonly payload: string; readonly hash: string; readonly signerPublicKey: string },
   ): boolean {

@@ -13,6 +13,8 @@ interface ApprovalBase {
   readonly originAscii: string;
   readonly scope: MosaicScope;
   readonly profile: PublicProfile;
+  /** Vault revision captured independently from mutable public profile metadata. */
+  readonly vaultRevision: number;
   readonly account: PublicAccount;
   readonly createdAt: string;
   readonly expiresAt: string;

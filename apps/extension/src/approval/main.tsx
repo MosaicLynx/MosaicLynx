@@ -65,7 +65,7 @@ const App = () => {
     try {
       const store = await loadStore();
       const envelope = store.vaults.find((vault) => vault.profileId === approval.profile.id);
-      if (!envelope || envelope.revision !== approval.profile.revision)
+      if (!envelope || envelope.revision !== approval.vaultRevision)
         throw new Error("The profile changed while this request was open.");
       const contents = await decryptVault(envelope, password);
       if (approval.type === "connect") {

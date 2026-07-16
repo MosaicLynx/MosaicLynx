@@ -11,8 +11,10 @@
     "@mosaic-lynx/sss-adapter": "workspace:*",
     "@nemnesia/symbol-sdk": "3.3.2-pure.2",
     "@noble/hashes": "2.2.0",
+    "i18next": "^26.3.6",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react-dom": "^19.2.3",
+    "react-i18next": "^17.0.9"
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.3.0",

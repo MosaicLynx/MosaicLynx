@@ -1,13 +1,23 @@
+import inpageScript from "../inpage/index.ts?script&module";
+
 const requestEvent = "mosaic-lynx:request";
 const responseEvent = "mosaic-lynx:response";
 const providerEvent = "mosaic-lynx:event";
 
+// MAIN-world declarative content scripts are the primary installation path.
+// Keep a compiled script-tag fallback for Chrome variants or policies that do
+// not execute the manifest `world: MAIN` entry.
+document.documentElement.dataset.mosaicLynxBridge = "ready";
 const script = document.createElement("script");
 script.type = "module";
-script.src = chrome.runtime.getURL("src/inpage/index.ts");
+script.src = chrome.runtime.getURL(inpageScript);
 script.dataset.mosaicLynx = "inpage";
+script.addEventListener("load", () => script.remove(), { once: true });
+script.addEventListener("error", () => {
+  document.documentElement.dataset.mosaicLynxInjection = "failed";
+  script.remove();
+}, { once: true });
 (document.head ?? document.documentElement).append(script);
-script.remove();
 
 window.addEventListener(requestEvent, (event: Event) => {
   const request = (

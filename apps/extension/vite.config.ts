@@ -28,11 +28,11 @@ export default defineConfig({
             js: ["src/content/index.ts"],
             run_at: "document_start",
           },
-        ],
-        web_accessible_resources: [
           {
-            resources: ["src/inpage/index.ts"],
             matches: ["<all_urls>"],
+            js: ["src/inpage/index.ts"],
+            run_at: "document_start",
+            world: "MAIN",
           },
         ],
       },

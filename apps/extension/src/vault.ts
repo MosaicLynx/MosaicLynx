@@ -1,8 +1,18 @@
 import { argon2idAsync } from "@noble/hashes/argon2.js";
 import type { NetworkKind, AccountSource, ChainIdentity } from "@mosaic-lynx/core";
 
-export const STORAGE_KEY = "mosaicLynxStoreV1";
-export const SCHEMA_VERSION = 1;
+export const LEGACY_STORAGE_KEY = "mosaicLynxStoreV1";
+export const STORE_SCHEMA_VERSION = 2;
+export const VAULT_SCHEMA_VERSION = 1;
+
+export const STORAGE_KEYS = {
+  meta: "mosaicLynxMetaV2",
+  profiles: "mosaicLynxProfilesV2",
+  accounts: "mosaicLynxAccountsV2",
+  vaults: "mosaicLynxVaultsV2",
+  permissions: "mosaicLynxPermissionsV2",
+  usedMessageNonces: "mosaicLynxUsedMessageNoncesV2",
+} as const;
 
 export interface PublicAccount {
   readonly id: string;
@@ -19,7 +29,6 @@ export interface PublicProfile {
   readonly id: string;
   readonly name: string;
   readonly network: NetworkKind;
-  readonly accounts: readonly PublicAccount[];
   readonly defaultAccountId: string;
   readonly nextAccountIndex: number;
   readonly revision: number;
@@ -65,8 +74,9 @@ export interface VaultEnvelope {
 }
 
 export interface ExtensionStore {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly profiles: readonly PublicProfile[];
+  readonly accounts: readonly PublicAccount[];
   readonly vaults: readonly VaultEnvelope[];
   readonly permissions: readonly PermissionGrant[];
   readonly usedMessageNonces: readonly {
@@ -87,8 +97,9 @@ export interface ExtensionStore {
 }
 
 export const emptyStore = (): ExtensionStore => ({
-  schemaVersion: SCHEMA_VERSION,
+  schemaVersion: STORE_SCHEMA_VERSION,
   profiles: [],
+  accounts: [],
   vaults: [],
   permissions: [],
   usedMessageNonces: [],
@@ -125,7 +136,7 @@ const aadFor = (profileId: string, revision: number): Uint8Array => encoder.enco
   format: "mosaiclynx.profile-vault.v1",
   profileId,
   formatVersion: 1,
-  schemaVersion: SCHEMA_VERSION,
+  schemaVersion: VAULT_SCHEMA_VERSION,
   revision,
   kdf: { name: "argon2id", memoryKiB: 65536, iterations: 3, parallelism: 1, outputBytes: 32 },
   cipher: { name: "AES-256-GCM" },
@@ -223,10 +234,60 @@ export const decryptVault = async (envelope: VaultEnvelope, password: string): P
   }
 };
 
+interface StoreMeta {
+  readonly schemaVersion: 2;
+  readonly settings: ExtensionStore["settings"];
+}
+
+interface LegacyPublicProfile extends PublicProfile {
+  readonly accounts: readonly PublicAccount[];
+}
+
+interface LegacyExtensionStore extends Omit<ExtensionStore, "schemaVersion" | "profiles" | "accounts"> {
+  readonly schemaVersion: 1;
+  readonly profiles: readonly LegacyPublicProfile[];
+}
+
+const migrateLegacyStore = (legacy: LegacyExtensionStore): ExtensionStore => ({
+  schemaVersion: STORE_SCHEMA_VERSION,
+  profiles: legacy.profiles.map(({ accounts: _accounts, ...profile }) => profile),
+  accounts: legacy.profiles.flatMap((profile) => profile.accounts),
+  vaults: legacy.vaults ?? [],
+  permissions: legacy.permissions ?? [],
+  usedMessageNonces: legacy.usedMessageNonces ?? [],
+  settings: legacy.settings,
+});
+
 export const loadStore = async (): Promise<ExtensionStore> => {
-  const value = (await chrome.storage.local.get(STORAGE_KEY))[STORAGE_KEY] as ExtensionStore | undefined;
-  return value ? { ...value, usedMessageNonces: value.usedMessageNonces ?? [] } : emptyStore();
+  const keys = [...Object.values(STORAGE_KEYS), LEGACY_STORAGE_KEY];
+  const stored = await chrome.storage.local.get(keys);
+  const meta = stored[STORAGE_KEYS.meta] as StoreMeta | undefined;
+  if (meta?.schemaVersion === STORE_SCHEMA_VERSION) {
+    return {
+      schemaVersion: STORE_SCHEMA_VERSION,
+      profiles: (stored[STORAGE_KEYS.profiles] as readonly PublicProfile[] | undefined) ?? [],
+      accounts: (stored[STORAGE_KEYS.accounts] as readonly PublicAccount[] | undefined) ?? [],
+      vaults: (stored[STORAGE_KEYS.vaults] as readonly VaultEnvelope[] | undefined) ?? [],
+      permissions: (stored[STORAGE_KEYS.permissions] as readonly PermissionGrant[] | undefined) ?? [],
+      usedMessageNonces: (stored[STORAGE_KEYS.usedMessageNonces] as ExtensionStore["usedMessageNonces"] | undefined) ?? [],
+      settings: meta.settings,
+    };
+  }
+  const legacy = stored[LEGACY_STORAGE_KEY] as LegacyExtensionStore | undefined;
+  if (!legacy) return emptyStore();
+  const migrated = migrateLegacyStore(legacy);
+  await saveStore(migrated);
+  return migrated;
 };
 
-export const saveStore = (store: ExtensionStore): Promise<void> =>
-  chrome.storage.local.set({ [STORAGE_KEY]: store });
+export const saveStore = async (store: ExtensionStore): Promise<void> => {
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.meta]: { schemaVersion: STORE_SCHEMA_VERSION, settings: store.settings } satisfies StoreMeta,
+    [STORAGE_KEYS.profiles]: store.profiles,
+    [STORAGE_KEYS.accounts]: store.accounts,
+    [STORAGE_KEYS.vaults]: store.vaults,
+    [STORAGE_KEYS.permissions]: store.permissions,
+    [STORAGE_KEYS.usedMessageNonces]: store.usedMessageNonces,
+  });
+  await chrome.storage.local.remove(LEGACY_STORAGE_KEY);
+};
