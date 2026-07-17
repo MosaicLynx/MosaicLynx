@@ -48,14 +48,19 @@ describe('approval summary', () => {
     const approval = {
       ...base,
       type: 'message',
+      availableAccounts: [account],
       messageParams: { ...base.scope, purpose: 'Sign in', nonce: 'nonce', expiresAt: '2026-01-01T00:05:00.000Z' },
     } as unknown as ApprovalRequest;
 
-    expect(approvalSummary(approval, (key) => en[key])).toEqual(
+    expect(approvalSummary(approval, (key) => en[key], account as never)).toEqual(
       expect.arrayContaining([
+        { label: 'approvalAccount', value: 'Account A\nTALICE' },
         { label: 'approvalPurpose', value: 'Sign in' },
         { label: 'approvalExpires', value: '2026-01-01T00:05:00.000Z' },
       ])
+    );
+    expect(approvalSummary(approval, (key) => en[key])).not.toContainEqual(
+      expect.objectContaining({ label: 'approvalAccount' })
     );
   });
 });

@@ -6,6 +6,7 @@ import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import Checkbox from '@mui/material/Checkbox';
 import Chip from '@mui/material/Chip';
+import Radio from '@mui/material/Radio';
 import TextField from '@mui/material/TextField';
 import { PrivateKey } from '@nemnesia/symbol-sdk';
 import { NemFacade } from '@nemnesia/symbol-sdk/nem';
@@ -17,7 +18,7 @@ import { useTranslation } from 'react-i18next';
 import i18n, { type TranslationKey } from '../popup/i18n.js';
 import '../popup/styles.css';
 import { AppThemeProvider, setAppThemeMode } from '../ui/theme.js';
-import { type VaultContents, decryptVault, loadStore } from '../vault.js';
+import { type PublicAccount, type PublicProfile, type VaultContents, decryptVault, loadStore } from '../vault.js';
 import { approvalSummary } from './summary.js';
 import type { ApprovalRequest, ApprovalResolution } from './types.js';
 
@@ -35,22 +36,22 @@ class ApprovalError extends Error {
   }
 }
 
-const privateKeyFor = (approval: ApprovalRequest, vault: VaultContents): string => {
-  const source = approval.account.source;
+const privateKeyFor = (profile: PublicProfile, account: PublicAccount, vault: VaultContents): string => {
+  const source = account.source;
   let privateKey: string;
   if (source.kind === 'mnemonicDerived') {
     if (!vault.mnemonic) throw new ApprovalError('approvalRequestFailed');
-    const material = deriveSharedAccount(approval.profile.network, vault.mnemonic, source.accountIndex);
+    const material = deriveSharedAccount(profile.network, vault.mnemonic, source.accountIndex);
     if (material.derivationPath !== source.derivationPath) throw new ApprovalError('approvalRequestFailed');
     privateKey = material.privateKey;
     for (const chain of ['symbol', 'nem'] as const) {
-      const expected = approval.account.identities[chain];
+      const expected = account.identities[chain];
       const actual = material.identities[chain];
       if (expected.address !== actual.address || expected.publicKey !== actual.publicKey)
         throw new ApprovalError('approvalRequestFailed');
     }
   } else {
-    privateKey = vault.importedPrivateKeys[approval.account.id] ?? '';
+    privateKey = vault.importedPrivateKeys[account.id] ?? '';
     if (!privateKey) throw new ApprovalError('approvalRequestFailed');
   }
   return privateKey;
@@ -62,6 +63,7 @@ const App = () => {
   const [ready, setReady] = useState(false);
   const [password, setPassword] = useState('');
   const [selected, setSelected] = useState<readonly string[]>([]);
+  const [selectedMessageAccountId, setSelectedMessageAccountId] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<TranslationKey>();
 
@@ -78,6 +80,8 @@ const App = () => {
       setAppThemeMode(store.settings.theme);
       setApproval(value);
       if (value?.type === 'connect') setSelected([value.account.id]);
+      if (value?.type === 'message' && value.availableAccounts.length === 1)
+        setSelectedMessageAccountId(value.availableAccounts[0]!.id);
       setReady(true);
     })().catch(() => {
       if (mounted) setReady(true);
@@ -92,7 +96,17 @@ const App = () => {
   }, [ready, t]);
 
   const expired = useMemo(() => (approval ? Date.parse(approval.expiresAt) <= Date.now() : false), [approval]);
-  const summary = useMemo(() => (approval ? approvalSummary(approval, (key) => t(key)) : []), [approval, t]);
+  const selectedMessageAccount = useMemo(
+    () =>
+      approval?.type === 'message'
+        ? approval.availableAccounts.find((account) => account.id === selectedMessageAccountId)
+        : undefined,
+    [approval, selectedMessageAccountId]
+  );
+  const summary = useMemo(
+    () => (approval ? approvalSummary(approval, (key) => t(key), selectedMessageAccount) : []),
+    [approval, selectedMessageAccount, t]
+  );
 
   const resolve = async (resolution: ApprovalResolution): Promise<void> => {
     await chrome.runtime.sendMessage({ kind: 'mosaiclynx:approval:resolve', id, resolution });
@@ -123,8 +137,16 @@ const App = () => {
         await resolve({ approved: true, accountIds: selected });
         return;
       }
-      privateKey = privateKeyFor(approval, contents);
       if (approval.type === 'transaction') {
+        const preparation = (await chrome.runtime.sendMessage({
+          kind: 'mosaiclynx:approval:prepare-transaction',
+          id,
+        })) as { readonly ok: boolean; readonly error?: { readonly code: string } };
+        if (!preparation.ok)
+          throw new ApprovalError(
+            preparation.error?.code === 'CONTEXT_CHANGED' ? 'approvalProfileChanged' : 'approvalRequestFailed'
+          );
+        privateKey = privateKeyFor(approval.profile, approval.account, contents);
         const signedTransaction = adapters[approval.scope.chain].signTransaction(
           approval.scope.network,
           approval.payload,
@@ -134,19 +156,38 @@ const App = () => {
         return;
       }
       if (approval.type === 'message') {
+        const selectedAccount = approval.availableAccounts.find(
+          (candidate) => candidate.id === selectedMessageAccountId
+        );
+        if (!selectedAccount) throw new ApprovalError('approvalSelectAccount');
+        const preparation = (await chrome.runtime.sendMessage({
+          kind: 'mosaiclynx:approval:prepare-message',
+          id,
+          accountId: selectedAccount.id,
+        })) as { readonly ok: boolean; readonly error?: { readonly code: string } };
+        if (!preparation.ok)
+          throw new ApprovalError(
+            preparation.error?.code === 'NONCE_REUSED'
+              ? 'approvalNonceReused'
+              : preparation.error?.code === 'CONTEXT_CHANGED'
+                ? 'approvalProfileChanged'
+                : 'approvalRequestFailed'
+          );
+        privateKey = privateKeyFor(approval.profile, selectedAccount, contents);
         const structured = createStructuredMessage(approval.origin, approval.messageParams);
         const key = new PrivateKey(privateKey);
-        const account =
+        const signingAccount =
           approval.scope.chain === 'symbol'
             ? new SymbolFacade(approval.scope.network).createAccount(key)
             : new NemFacade(approval.scope.network).createAccount(key);
-        const signature = account.keyPair.sign(structured.signingBytes).toString();
+        const signature = signingAccount.keyPair.sign(structured.signingBytes).toString();
         const signingDigest = await structuredMessageDigest(structured.signingBytes);
         await resolve({
           approved: true,
+          accountId: selectedAccount.id,
           signedMessage: {
             signature,
-            signerPublicKey: account.publicKey.toString(),
+            signerPublicKey: signingAccount.publicKey.toString(),
             signingDigest,
             message: structured.message,
           },
@@ -228,6 +269,26 @@ const App = () => {
         </section>
       )}
 
+      {approval.type === 'message' && approval.availableAccounts.length > 1 && (
+        <section>
+          <p className="section-label">{t('approvalSigningAccount').toUpperCase()}</p>
+          {approval.availableAccounts.map((account) => (
+            <label className="account-choice" key={account.id}>
+              <Radio
+                checked={selectedMessageAccountId === account.id}
+                onChange={() => setSelectedMessageAccountId(account.id)}
+                disabled={busy}
+                name="signing-account"
+              />
+              <span>
+                <strong>{account.name}</strong>
+                <small>{account.identities[approval.scope.chain].address}</small>
+              </span>
+            </label>
+          ))}
+        </section>
+      )}
+
       {approval.type === 'transaction' && (
         <Alert severity="warning" variant="outlined">
           <strong>{t('approvalChainStateUnverifiedTitle')}</strong>
@@ -266,7 +327,13 @@ const App = () => {
           variant="contained"
           type="button"
           onClick={() => void approve()}
-          disabled={busy || !password || expired || (approval.type === 'connect' && selected.length === 0)}
+          disabled={
+            busy ||
+            !password ||
+            expired ||
+            (approval.type === 'connect' && selected.length === 0) ||
+            (approval.type === 'message' && !selectedMessageAccountId)
+          }
         >
           {busy ? t('approvalVerifying') : t('approvalApprove')}
         </Button>

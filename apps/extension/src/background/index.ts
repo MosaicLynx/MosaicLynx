@@ -23,6 +23,7 @@ import {
   loadStore,
   saveStore,
 } from '../vault.js';
+import { AccountSelectionError, messageAccountCandidates, transactionAccount } from './account-selection.js';
 
 interface BridgeRequest {
   readonly kind: 'mosaiclynx:request';
@@ -35,6 +36,11 @@ interface PendingApproval {
   sidePanelTabId?: number;
   readonly timeoutId: number;
   resolved: boolean;
+  messageAccountId?: string;
+  messageNonceHash?: string;
+  messagePreparation?: Promise<string>;
+  transactionPreparation?: Promise<void>;
+  transactionPrepared?: boolean;
 }
 
 const adapters = { symbol: new SymbolChainAdapter(), nem: new NemChainAdapter() } as const;
@@ -157,7 +163,11 @@ const emit = async (origin: string, event: 'accountsChanged' | 'disconnect', pay
   );
 };
 
-const requestApproval = async (request: NewApprovalRequest, tabId?: number): Promise<ApprovalResolution> => {
+const requestApproval = async (
+  request: NewApprovalRequest,
+  tabId?: number,
+  preparedMessage?: { readonly accountId: string; readonly nonceHash: string }
+): Promise<ApprovalResolution> => {
   if (approvals.size >= 50) return providerError('RESOURCE_LIMIT', 'Too many approval requests are pending.');
   if (request.type === 'connect') {
     if (tabId === undefined) return providerError('INTERNAL_ERROR', 'The connection request has no browser tab.');
@@ -174,7 +184,15 @@ const requestApproval = async (request: NewApprovalRequest, tabId?: number): Pro
   } as ApprovalRequest;
   const result = new Promise<ApprovalResolution>((resolve) => {
     const timeoutId = self.setTimeout(() => finishApproval(id, { approved: false }), 5 * 60_000);
-    approvals.set(id, { request: approval, resolve, timeoutId, resolved: false });
+    approvals.set(id, {
+      request: approval,
+      resolve,
+      timeoutId,
+      resolved: false,
+      ...(preparedMessage
+        ? { messageAccountId: preparedMessage.accountId, messageNonceHash: preparedMessage.nonceHash }
+        : {}),
+    });
   });
   try {
     if (request.type === 'connect') {
@@ -223,18 +241,6 @@ const finishApproval = (id: string, resolution: ApprovalResolution): void => {
 chrome.windows.onRemoved.addListener((windowId) => {
   for (const [id, pending] of approvals) if (pending.windowId === windowId) finishApproval(id, { approved: false });
 });
-
-const chooseAccount = (
-  store: ExtensionStore,
-  profile: PublicProfile,
-  permission: PermissionGrant,
-  accountId: unknown
-): PublicAccount => {
-  const id = typeof accountId === 'string' ? accountId : profile.defaultAccountId;
-  if (!permission.accountIds.includes(id))
-    return providerError('ACCOUNT_NOT_FOUND', 'The account is outside this origin permission.');
-  return accountById(store, profile, id);
-};
 
 const nonceDigest = async (origin: string, profileId: string, accountId: string, nonce: string): Promise<string> => {
   const bytes = new TextEncoder().encode(`${origin}\0${profileId}\0${accountId}\0${nonce}`);
@@ -312,6 +318,81 @@ const markMessageNonceUsed = async (nonceHash: string): Promise<void> => {
   }
 };
 
+const prepareMessageApproval = (id: string, accountId: string): Promise<string> => {
+  const pending = approvals.get(id);
+  const request = pending?.request;
+  if (!pending || pending.resolved || request?.type !== 'message')
+    return Promise.reject({ code: 'CONTEXT_CHANGED', message: 'The message approval is no longer available.' });
+  if (pending.messageAccountId && pending.messageAccountId !== accountId)
+    return Promise.reject({ code: 'CONTEXT_CHANGED', message: 'The signing account selection is already fixed.' });
+  if (pending.messagePreparation) return pending.messagePreparation;
+
+  pending.messageAccountId = accountId;
+  pending.messagePreparation = (async () => {
+    const selected = request.availableAccounts.find((account) => account.id === accountId);
+    if (!selected) return providerError('ACCOUNT_NOT_FOUND', 'The selected account was not offered for this request.');
+
+    const current = await loadStore();
+    const currentProfile = current.profiles.find((profile) => profile.id === request.profile.id);
+    const currentPermission = permissionFor(current, request.origin, request.profile.id, request.scope);
+    const currentAccount = current.accounts.find(
+      (account) => account.profileId === request.profile.id && account.id === accountId
+    );
+    if (
+      current.settings.activeProfileId !== request.profile.id ||
+      currentProfile?.revision !== request.profile.revision ||
+      !currentPermission ||
+      currentPermission.revision !== request.permissionRevision ||
+      !currentPermission.accountIds.includes(accountId) ||
+      currentAccount?.revision !== selected.revision ||
+      vaultRevisionFor(current, request.profile.id) !== request.vaultRevision
+    )
+      return providerError('CONTEXT_CHANGED', 'Profile, account, permission, or vault changed during approval.');
+
+    const nonceHash =
+      pending.messageNonceHash ??
+      (await reserveMessageNonce(
+        request.origin,
+        request.profile.id,
+        accountId,
+        request.messageParams.nonce,
+        request.messageParams.expiresAt
+      ));
+    pending.messageNonceHash = nonceHash;
+    return nonceHash;
+  })();
+  return pending.messagePreparation;
+};
+
+const prepareTransactionApproval = (id: string): Promise<void> => {
+  const pending = approvals.get(id);
+  const request = pending?.request;
+  if (!pending || pending.resolved || request?.type !== 'transaction')
+    return Promise.reject({ code: 'CONTEXT_CHANGED', message: 'The transaction approval is no longer available.' });
+  if (pending.transactionPreparation) return pending.transactionPreparation;
+
+  pending.transactionPreparation = (async () => {
+    const current = await loadStore();
+    const currentProfile = current.profiles.find((profile) => profile.id === request.profile.id);
+    const currentPermission = permissionFor(current, request.origin, request.profile.id, request.scope);
+    const currentAccount = current.accounts.find(
+      (account) => account.profileId === request.profile.id && account.id === request.account.id
+    );
+    if (
+      current.settings.activeProfileId !== request.profile.id ||
+      currentProfile?.revision !== request.profile.revision ||
+      !currentPermission ||
+      currentPermission.revision !== request.permissionRevision ||
+      !currentPermission.accountIds.includes(request.account.id) ||
+      currentAccount?.revision !== request.account.revision ||
+      vaultRevisionFor(current, request.profile.id) !== request.vaultRevision
+    )
+      return providerError('CONTEXT_CHANGED', 'Profile, account, permission, or vault changed during approval.');
+    pending.transactionPrepared = true;
+  })();
+  return pending.transactionPreparation;
+};
+
 const handleConnect = async (origin: string, params: unknown, tabId: number): Promise<readonly MosaicAccount[]> => {
   if (!isScope(params)) return providerError('INVALID_PARAMS', 'connect() requires chain and network.');
   const store = await loadStore();
@@ -368,19 +449,16 @@ const handleTransaction = async (origin: string, params: unknown): Promise<Signe
   const scope = { chain: input?.chain, network: input?.network };
   if (!isScope(scope) || typeof input?.payload !== 'string')
     return providerError('INVALID_PARAMS', 'Transaction parameters are invalid.');
+  if (input.accountId !== undefined && typeof input.accountId !== 'string')
+    return providerError('INVALID_PARAMS', 'accountId must be a string when provided.');
   if (scope.network === 'mainnet' && !MAINNET_SIGNING_ENABLED)
     return providerError('UNSUPPORTED_CHAIN', 'Mainnet signing is disabled because release evidence is not installed.');
   const store = await loadStore();
   const profile = activeProfile(store, scope.network);
   const permission = requirePermission(store, origin, profile, scope);
-  const account = chooseAccount(store, profile, permission, input.accountId);
   let inspection;
   try {
-    inspection = adapters[scope.chain].inspectTransaction(
-      scope.network,
-      input.payload,
-      account.identities[scope.chain].publicKey
-    );
+    inspection = adapters[scope.chain].inspectTransaction(scope.network, input.payload);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'INVALID_TRANSACTION';
     if (message.startsWith('UNSUPPORTED_TRANSACTION'))
@@ -389,6 +467,18 @@ const handleTransaction = async (origin: string, params: unknown): Promise<Signe
       return providerError('NETWORK_MISMATCH', 'The transaction network does not match.');
     return providerError('INVALID_TRANSACTION', 'The transaction failed strict local validation.');
   }
+  let account: PublicAccount;
+  try {
+    account = transactionAccount(
+      permittedAccounts(store, profile, permission),
+      scope,
+      inspection.signerPublicKey,
+      input.accountId
+    );
+  } catch (error) {
+    if (error instanceof AccountSelectionError) return providerError(error.code, error.message);
+    throw error;
+  }
   const resolution = await requestApproval({
     type: 'transaction',
     origin,
@@ -396,22 +486,33 @@ const handleTransaction = async (origin: string, params: unknown): Promise<Signe
     scope,
     profile,
     vaultRevision: vaultRevisionFor(store, profile.id),
+    permissionRevision: permission.revision,
     account,
     payload: input.payload,
     inspection,
   });
-  if (!resolution.approved || !('signedTransaction' in resolution))
+  if (!resolution.approved) {
+    if (resolution.error) return providerError(resolution.error.code, resolution.error.message);
     return providerError('USER_REJECTED', 'The signing request was rejected.');
-  if (!adapters[scope.chain].verifySignedTransaction(scope.network, input.payload, resolution.signedTransaction))
+  }
+  if (!('signedTransaction' in resolution))
+    return providerError('INTERNAL_ERROR', 'The transaction approval result is invalid.');
+  if (
+    resolution.signedTransaction.signerPublicKey.toUpperCase() !==
+      account.identities[scope.chain].publicKey.toUpperCase() ||
+    !adapters[scope.chain].verifySignedTransaction(scope.network, input.payload, resolution.signedTransaction)
+  )
     return providerError('INTERNAL_ERROR', 'The signed transaction failed independent verification.');
   const current = await loadStore();
   const currentPermission = permissionFor(current, origin, profile.id, scope);
   const currentProfile = current.profiles.find((item) => item.id === profile.id);
   const currentVault = current.vaults.find((item) => item.profileId === profile.id);
+  const currentAccount = current.accounts.find((item) => item.profileId === profile.id && item.id === account.id);
   if (
     !currentPermission ||
     currentPermission.revision !== permission.revision ||
     currentProfile?.revision !== profile.revision ||
+    currentAccount?.revision !== account.revision ||
     currentVault?.revision !== vaultRevisionFor(store, profile.id)
   )
     return providerError('CONTEXT_CHANGED', 'Profile or permission changed during approval.');
@@ -421,12 +522,20 @@ const handleTransaction = async (origin: string, params: unknown): Promise<Signe
 const handleMessage = async (origin: string, params: unknown): Promise<SignedMessage> => {
   const input = params as SignMessageParams | undefined;
   if (!input || !isScope(input)) return providerError('INVALID_PARAMS', 'Structured message parameters are invalid.');
+  if (input.accountId !== undefined && typeof input.accountId !== 'string')
+    return providerError('INVALID_PARAMS', 'accountId must be a string when provided.');
   if (input.network === 'mainnet' && !MAINNET_SIGNING_ENABLED)
     return providerError('UNSUPPORTED_CHAIN', 'Mainnet signing is disabled because release evidence is not installed.');
   const store = await loadStore();
   const profile = activeProfile(store, input.network);
   const permission = requirePermission(store, origin, profile, input);
-  const account = chooseAccount(store, profile, permission, input.accountId);
+  let availableAccounts: readonly PublicAccount[];
+  try {
+    availableAccounts = messageAccountCandidates(permittedAccounts(store, profile, permission), input.accountId);
+  } catch (error) {
+    if (error instanceof AccountSelectionError) return providerError(error.code, error.message);
+    throw error;
+  }
   let structured;
   try {
     structured = createStructuredMessage(origin, input);
@@ -438,26 +547,51 @@ const handleMessage = async (origin: string, params: unknown): Promise<SignedMes
     );
   }
   const expectedDigest = await structuredMessageDigest(structured.signingBytes);
-  const reservedNonceHash = await reserveMessageNonce(origin, profile.id, account.id, input.nonce, input.expiresAt);
-  const resolution = await requestApproval({
-    type: 'message',
-    origin,
-    originAscii: originAscii(origin),
-    scope: input,
-    profile,
-    vaultRevision: vaultRevisionFor(store, profile.id),
-    account,
-    messageParams: input,
-  });
-  if (!resolution.approved || !('signedMessage' in resolution))
+  const preparedMessage =
+    availableAccounts.length === 1
+      ? {
+          accountId: availableAccounts[0]!.id,
+          nonceHash: await reserveMessageNonce(
+            origin,
+            profile.id,
+            availableAccounts[0]!.id,
+            input.nonce,
+            input.expiresAt
+          ),
+        }
+      : undefined;
+  const resolution = await requestApproval(
+    {
+      type: 'message',
+      origin,
+      originAscii: originAscii(origin),
+      scope: input,
+      profile,
+      vaultRevision: vaultRevisionFor(store, profile.id),
+      permissionRevision: permission.revision,
+      availableAccounts,
+      messageParams: input,
+    },
+    undefined,
+    preparedMessage
+  );
+  if (!resolution.approved) {
+    if (resolution.error) return providerError(resolution.error.code, resolution.error.message);
     return providerError('USER_REJECTED', 'The message signing request was rejected.');
+  }
+  if (!('signedMessage' in resolution) || !resolution.nonceHash)
+    return providerError('INTERNAL_ERROR', 'The message approval was not prepared.');
+  const account = availableAccounts.find((candidate) => candidate.id === resolution.accountId);
+  if (!account) return providerError('INTERNAL_ERROR', 'The approved signing account was not offered.');
   const current = await loadStore();
   const currentProfile = current.profiles.find((item) => item.id === profile.id);
   const currentPermission = permissionFor(current, origin, profile.id, input);
   const currentVault = current.vaults.find((item) => item.profileId === profile.id);
+  const currentAccount = current.accounts.find((item) => item.profileId === profile.id && item.id === account.id);
   if (
     currentProfile?.revision !== profile.revision ||
     currentPermission?.revision !== permission.revision ||
+    currentAccount?.revision !== account.revision ||
     currentVault?.revision !== vaultRevisionFor(store, profile.id)
   )
     return providerError('CONTEXT_CHANGED', 'Profile or permission changed during approval.');
@@ -481,7 +615,7 @@ const handleMessage = async (origin: string, params: unknown): Promise<SignedMes
     verified = false;
   }
   if (!verified) return providerError('INTERNAL_ERROR', 'The message signature failed independent verification.');
-  await markMessageNonceUsed(reservedNonceHash);
+  await markMessageNonceUsed(resolution.nonceHash);
   return resolution.signedMessage;
 };
 
@@ -524,7 +658,8 @@ void chrome.storage.local.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' });
 void chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' });
 
 chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) => {
-  const envelope = message as BridgeRequest | { kind?: string; id?: string; resolution?: ApprovalResolution };
+  const envelope = message as
+    BridgeRequest | { kind?: string; id?: string; accountId?: string; resolution?: ApprovalResolution };
   if (envelope.kind === 'mosaiclynx:approval:get') {
     if (!isTrustedExtensionPage(sender) || !envelope.id) {
       sendResponse(undefined);
@@ -538,9 +673,76 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
       sendResponse({ ok: false });
       return;
     }
+    const pending = approvals.get(envelope.id);
+    if ('signedTransaction' in envelope.resolution) {
+      if (pending?.request.type !== 'transaction' || !pending.transactionPrepared) {
+        finishApproval(envelope.id, {
+          approved: false,
+          error: { code: 'CONTEXT_CHANGED', message: 'The transaction approval was not prepared.' },
+        });
+        sendResponse({ ok: false });
+        return;
+      }
+      finishApproval(envelope.id, envelope.resolution);
+      sendResponse({ ok: true });
+      return;
+    }
+    if ('signedMessage' in envelope.resolution) {
+      if (
+        pending?.request.type !== 'message' ||
+        pending.messageAccountId !== envelope.resolution.accountId ||
+        !pending.messageNonceHash
+      ) {
+        finishApproval(envelope.id, {
+          approved: false,
+          error: { code: 'CONTEXT_CHANGED', message: 'The message approval was not prepared for this account.' },
+        });
+        sendResponse({ ok: false });
+        return;
+      }
+      finishApproval(envelope.id, { ...envelope.resolution, nonceHash: pending.messageNonceHash });
+      sendResponse({ ok: true });
+      return;
+    }
     finishApproval(envelope.id, envelope.resolution);
     sendResponse({ ok: true });
     return;
+  }
+  if (envelope.kind === 'mosaiclynx:approval:prepare-message') {
+    if (!isTrustedExtensionPage(sender) || !envelope.id || !envelope.accountId) {
+      sendResponse({ ok: false, error: { code: 'CONTEXT_CHANGED', message: 'Invalid approval request.' } });
+      return;
+    }
+    void prepareMessageApproval(envelope.id, envelope.accountId)
+      .then(() => sendResponse({ ok: true }))
+      .catch((error: unknown) => {
+        const detail = error as { code?: string; message?: string };
+        const failure = {
+          code: detail.code ?? 'INTERNAL_ERROR',
+          message: detail.message ?? 'The signing account could not be prepared.',
+        };
+        finishApproval(envelope.id!, { approved: false, error: failure });
+        sendResponse({ ok: false, error: failure });
+      });
+    return true;
+  }
+  if (envelope.kind === 'mosaiclynx:approval:prepare-transaction') {
+    if (!isTrustedExtensionPage(sender) || !envelope.id) {
+      sendResponse({ ok: false, error: { code: 'CONTEXT_CHANGED', message: 'Invalid approval request.' } });
+      return;
+    }
+    void prepareTransactionApproval(envelope.id)
+      .then(() => sendResponse({ ok: true }))
+      .catch((error: unknown) => {
+        const detail = error as { code?: string; message?: string };
+        const failure = {
+          code: detail.code ?? 'INTERNAL_ERROR',
+          message: detail.message ?? 'The transaction could not be prepared.',
+        };
+        finishApproval(envelope.id!, { approved: false, error: failure });
+        sendResponse({ ok: false, error: failure });
+      });
+    return true;
   }
   if (envelope.kind !== 'mosaiclynx:request') return;
   const bridge = envelope as BridgeRequest;

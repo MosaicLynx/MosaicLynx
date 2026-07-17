@@ -117,6 +117,7 @@ export const ja = {
   approvalPurpose: '目的',
   approvalExpires: '有効期限',
   approvalAccountsToShare: '共有するアカウント',
+  approvalSigningAccount: '署名するアカウント',
   approvalChainStateUnverifiedTitle: 'チェーン状態は未照合です',
   approvalChainStateUnverifiedBody:
     '残高、制限、メタデータ、アナウンス状態は、このオフライン署名チェックの対象外です。',
@@ -127,6 +128,7 @@ export const ja = {
   approvalRequestFailed: '要求を完了できませんでした。',
   approvalProfileChanged: 'この要求を開いている間にプロファイルが変更されました。',
   approvalSelectAccount: '少なくとも1つのアカウントを選択してください。',
+  approvalNonceReused: 'このnonceはすでに予約または使用されています。',
   approvalReject: '拒否',
   approvalApprove: '承認',
   approvalVerifying: '確認中…',

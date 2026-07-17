@@ -30,10 +30,14 @@ describe('NemChainAdapter', () => {
     transaction.deadline = new models.Timestamp(2);
     const payload = utils.uint8ToHex(transaction.serialize());
 
-    expect(adapter.inspectTransaction('testnet', payload, signer.publicKey.toString())).toMatchObject({
+    expect(adapter.inspectTransaction('testnet', payload)).toMatchObject({
       schema: 'TransferTransactionV1',
+      signerPublicKey: signer.publicKey.toString(),
       recipients: [recipient.address.toString()],
     });
+    expect(() => adapter.signTransaction('testnet', payload, PrivateKey.random().toString())).toThrow(
+      'signer mismatch'
+    );
     const signed = adapter.signTransaction('testnet', payload, signer.keyPair.privateKey.toString());
     const decoded = models.TransactionFactory.deserialize(utils.hexToUint8(signed.payload));
     expect(facade.verifyTransaction(decoded, new Signature(decoded.signature.bytes))).toBe(true);

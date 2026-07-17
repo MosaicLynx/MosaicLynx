@@ -275,6 +275,9 @@ dApp は接続時および署名要求時に対象チェーンとネットワー
 - トランザクション payload から判定したチェーンまたはネットワークが要求値と異なる場合はエラーにする。
 - 対象チェーンに属さないアカウントでは署名しない。
 - 署名 Account が接続許可の `accountIds` に含まれない場合は署名しない。
+- `accountId` が指定された場合は、その Account が接続許可に含まれることを検証する。署名 Account の決定に Profile の可変な default Account を使用しない。
+- transaction の `accountId` が省略された場合は、canonical 検証済み payload の signer public key と一致する許可済み Account を一意に解決する。一致なし、複数一致、または指定 `accountId` と signer の不一致は署名前に拒否する。
+- 構造化 message の `accountId` が省略され、許可済み Account が一つならその Account へ固定する。複数なら確認画面を未選択で表示し、ユーザーが一つを明示選択するまで署名できない。
 
 ## 12. 署名
 
@@ -305,7 +308,7 @@ dApp は接続時および署名要求時に対象チェーンとネットワー
 
 signing bytes は ASCII prefix `MOSAICLYNX\0MESSAGE\0V1\0` と、構造化 object を RFC 8785 JCS で canonicalize した UTF-8 byte 列の連結とする。`purpose` は `[a-z0-9][a-z0-9._:-]{0,63}`、nonce は CSPRNG で生成した16〜32 byteのpaddingなしbase64url、日時はUTCのRFC 3339・秒精度・fractionなしとする。`issuedAt` は現在時刻の前後5分以内、`expiresAt` は `issuedAt` より後かつ10分以内とする。UTF-8 payload は NFC 済みの有効な Unicode とし、NFC でない入力は変換せず拒否する。hex payload は偶数長lowercaseとし、decoded payload は16 KiB以下とする。
 
-dApp が申告した Origin と Background が確定した Origin が異なる場合は拒否する。期限切れ、不正な日時、再利用 nonce、空または規則外の `purpose` は拒否する。request受付時にnonce hashを原子的に`reserved`とし、署名開始時に`used`へ遷移させる。同じnonceの並行要求を拒否し、拒否・失敗後もexpiresAtまでは再利用させない。replay cacheにはpayloadを含まないhash、Origin、Profile、Account、state、expiresAtだけを短寿命で永続化し、Service Worker再起動後も期限内の再利用を拒否する。signing bytesとSHA-256 digestを承認前と署名直前に再生成して一致を確認し、chainごとの既知ベクトルで固定する。
+dApp が申告した Origin と Background が確定した Origin が異なる場合は拒否する。期限切れ、不正な日時、再利用 nonce、空または規則外の `purpose` は拒否する。署名 Account が一意な request は受付時に、複数候補から選択する request はユーザーが Account を確定した時点に、nonce hashを原子的に`reserved`とし、署名開始時に`used`へ遷移させる。選択確定後は同じ承認要求内で Account を変更できない。同じ Origin + Account + nonce の並行要求を拒否し、予約後の拒否・失敗・画面終了でもexpiresAtまでは再利用させない。replay cacheにはpayloadを含まないhash、Origin、Profile、Account、state、expiresAtだけを短寿命で永続化し、Service Worker再起動後も期限内の再利用を拒否する。signing bytesとSHA-256 digestを承認前と署名直前に再生成して一致を確認し、chainごとの既知ベクトルで固定する。
 
 最低限、次を表示する。
 

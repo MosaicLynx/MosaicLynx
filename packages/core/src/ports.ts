@@ -30,11 +30,7 @@ export interface ChainAdapterPort {
   readonly chain: ConnectionScope['chain'];
   createAccount(network: ConnectionScope['network']): GeneratedAccountMaterial;
   importAccount(network: ConnectionScope['network'], privateKey: string): GeneratedAccountMaterial;
-  inspectTransaction?(
-    network: ConnectionScope['network'],
-    payload: string,
-    expectedSignerPublicKey: string
-  ): TransactionInspection;
+  inspectTransaction?(network: ConnectionScope['network'], payload: string): TransactionInspection;
   signTransaction?(
     network: ConnectionScope['network'],
     payload: string,

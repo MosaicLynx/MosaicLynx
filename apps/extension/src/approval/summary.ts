@@ -1,4 +1,5 @@
 import type { TranslationKey } from '../popup/i18n.js';
+import type { PublicAccount } from '../vault.js';
 import type { ApprovalRequest } from './types.js';
 
 export interface ApprovalSummaryRow {
@@ -8,17 +9,23 @@ export interface ApprovalSummaryRow {
 
 type Translate = (key: TranslationKey) => string;
 
-export const approvalSummary = (approval: ApprovalRequest, t: Translate): readonly ApprovalSummaryRow[] => {
+export const approvalSummary = (
+  approval: ApprovalRequest,
+  t: Translate,
+  selectedMessageAccount?: PublicAccount
+): readonly ApprovalSummaryRow[] => {
   const rows: ApprovalSummaryRow[] = [
     {
       label: 'approvalChainNetwork',
       value: `${approval.scope.chain.toUpperCase()} ${approval.scope.network.toUpperCase()}`,
     },
-    {
-      label: 'approvalAccount',
-      value: `${approval.account.name}\n${approval.account.identities[approval.scope.chain].address}`,
-    },
   ];
+  const account = approval.type === 'message' ? selectedMessageAccount : approval.account;
+  if (account)
+    rows.push({
+      label: 'approvalAccount',
+      value: `${account.name}\n${account.identities[approval.scope.chain].address}`,
+    });
 
   if (approval.type === 'transaction') {
     rows.push(

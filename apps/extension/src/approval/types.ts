@@ -16,18 +16,20 @@ interface ApprovalBase {
   readonly profile: PublicProfile;
   /** Vault revision captured independently from mutable public profile metadata. */
   readonly vaultRevision: number;
-  readonly account: PublicAccount;
   readonly createdAt: string;
   readonly expiresAt: string;
 }
 
 export interface ConnectApproval extends ApprovalBase {
   readonly type: 'connect';
+  readonly account: PublicAccount;
   readonly availableAccounts: readonly MosaicAccount[];
 }
 
 export interface TransactionApproval extends ApprovalBase {
   readonly type: 'transaction';
+  readonly permissionRevision: number;
+  readonly account: PublicAccount;
   readonly payload: string;
   readonly inspection: {
     readonly schema: string;
@@ -39,6 +41,8 @@ export interface TransactionApproval extends ApprovalBase {
 
 export interface MessageApproval extends ApprovalBase {
   readonly type: 'message';
+  readonly permissionRevision: number;
+  readonly availableAccounts: readonly PublicAccount[];
   readonly messageParams: SignMessageParams;
 }
 
@@ -51,7 +55,13 @@ export type NewApprovalRequest = ApprovalRequest extends infer Request
   : never;
 
 export type ApprovalResolution =
-  | { readonly approved: false }
+  | { readonly approved: false; readonly error?: { readonly code: string; readonly message: string } }
   | { readonly approved: true; readonly accountIds: readonly string[] }
   | { readonly approved: true; readonly signedTransaction: SignedTransaction }
-  | { readonly approved: true; readonly signedMessage: SignedMessage };
+  | {
+      readonly approved: true;
+      readonly accountId: string;
+      readonly signedMessage: SignedMessage;
+      /** Added by Background after the trusted approval page prepares the selected account. */
+      readonly nonceHash?: string;
+    };

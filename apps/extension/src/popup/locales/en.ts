@@ -116,6 +116,7 @@ export const en = {
   approvalPurpose: 'Purpose',
   approvalExpires: 'Expires',
   approvalAccountsToShare: 'Accounts to share',
+  approvalSigningAccount: 'Signing account',
   approvalChainStateUnverifiedTitle: 'Chain state is not checked',
   approvalChainStateUnverifiedBody:
     'Balances, restrictions, metadata, and announce status are external to this offline signing check.',
@@ -126,6 +127,7 @@ export const en = {
   approvalRequestFailed: 'The request could not be completed.',
   approvalProfileChanged: 'The profile changed while this request was open.',
   approvalSelectAccount: 'Select at least one account.',
+  approvalNonceReused: 'This nonce is already reserved or used.',
   approvalReject: 'Reject',
   approvalApprove: 'Approve',
   approvalVerifying: 'Verifying…',

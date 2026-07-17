@@ -48,8 +48,7 @@ const assertTransfer = (
 
 const inspect = (
   network: ConnectionScope['network'],
-  payload: string,
-  expectedSignerPublicKey: string
+  payload: string
 ): { transaction: models.Transaction; inspection: TransactionInspection } => {
   const bytes = bytesFor(payload);
   let transaction: models.Transaction;
@@ -61,7 +60,6 @@ const inspect = (
   if (!equal(transaction.serialize(), bytes)) throw new Error('INVALID_TRANSACTION: payload is not canonical');
   if (transaction.network.value !== networkIdentifier(network)) throw new Error('NETWORK_MISMATCH');
   const signer = transaction.signerPublicKey.toString().toUpperCase();
-  if (signer !== expectedSignerPublicKey.toUpperCase()) throw new Error('INVALID_TRANSACTION: signer mismatch');
   const recipients: string[] = [];
   let schema: string;
   if (transaction instanceof models.TransferTransactionV1) {
@@ -169,12 +167,8 @@ export class SymbolChainAdapter implements ChainAdapterPort {
     return createMaterial(network, new PrivateKey(privateKey));
   }
 
-  public inspectTransaction(
-    network: ConnectionScope['network'],
-    payload: string,
-    expectedSignerPublicKey: string
-  ): TransactionInspection {
-    return inspect(network, payload, expectedSignerPublicKey).inspection;
+  public inspectTransaction(network: ConnectionScope['network'], payload: string): TransactionInspection {
+    return inspect(network, payload).inspection;
   }
 
   public signTransaction(
@@ -184,7 +178,9 @@ export class SymbolChainAdapter implements ChainAdapterPort {
   ): { readonly payload: string; readonly hash: string; readonly signerPublicKey: string } {
     const facade = new SymbolFacade(network);
     const account = facade.createAccount(new PrivateKey(privateKeyHex));
-    const { transaction } = inspect(network, payload, account.publicKey.toString());
+    const { transaction, inspection } = inspect(network, payload);
+    if (inspection.signerPublicKey !== account.publicKey.toString().toUpperCase())
+      throw new Error('INVALID_TRANSACTION: signer mismatch');
     if (!transaction.signature.bytes.every((byte) => byte === 0))
       throw new Error('INVALID_TRANSACTION: outer transaction is already signed');
     const signature = account.signTransaction(transaction);
@@ -205,8 +201,15 @@ export class SymbolChainAdapter implements ChainAdapterPort {
   ): boolean {
     try {
       const facade = new SymbolFacade(network);
-      const unsigned = inspect(network, unsignedPayload, result.signerPublicKey).transaction;
-      const signed = inspect(network, result.payload, result.signerPublicKey).transaction;
+      const unsignedInspection = inspect(network, unsignedPayload);
+      const signedInspection = inspect(network, result.payload);
+      if (
+        unsignedInspection.inspection.signerPublicKey !== result.signerPublicKey.toUpperCase() ||
+        signedInspection.inspection.signerPublicKey !== result.signerPublicKey.toUpperCase()
+      )
+        return false;
+      const unsigned = unsignedInspection.transaction;
+      const signed = signedInspection.transaction;
       const signature = new models.Signature(signed.signature.bytes);
       return (
         equal(facade.extractSigningPayload(unsigned), facade.extractSigningPayload(signed)) &&
