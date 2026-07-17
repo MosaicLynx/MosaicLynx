@@ -1,9 +1,4 @@
-import {
-  ProviderRpcError,
-  RpcMosaicLynxProvider,
-  type RpcExecutor,
-  type RpcRequest,
-} from "@mosaiclynx/provider-api";
+import { ProviderRpcError, type RpcExecutor, RpcMosaicLynxProvider, type RpcRequest } from '@mosaiclynx/provider-api';
 
 declare global {
   interface Window {
@@ -11,8 +6,8 @@ declare global {
   }
 }
 
-const requestEvent = "mosaiclynx:request";
-const responseEvent = "mosaiclynx:response";
+const requestEvent = 'mosaiclynx:request';
+const responseEvent = 'mosaiclynx:response';
 
 const createRequestId = (): string => {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -20,8 +15,8 @@ const createRequestId = (): string => {
   // extension injection context, including pages without randomUUID().
   bytes[6] = (bytes[6]! & 0x0f) | 0x40;
   bytes[8] = (bytes[8]! & 0x3f) | 0x80;
-  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"));
-  return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10).join("")}`;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0'));
+  return `${hex.slice(0, 4).join('')}-${hex.slice(4, 6).join('')}-${hex.slice(6, 8).join('')}-${hex.slice(8, 10).join('')}-${hex.slice(10).join('')}`;
 };
 
 class PageRpcExecutor implements RpcExecutor {
@@ -30,7 +25,7 @@ class PageRpcExecutor implements RpcExecutor {
     return new Promise<TResult>((resolve, reject) => {
       const timeout = window.setTimeout(() => {
         window.removeEventListener(responseEvent, onResponse);
-        reject(new ProviderRpcError("REQUEST_EXPIRED", "The MosaicLynx request expired."));
+        reject(new ProviderRpcError('REQUEST_EXPIRED', 'The MosaicLynx request expired.'));
       }, 5 * 60_000);
       const onResponse = (event: Event): void => {
         const detail = (
@@ -38,7 +33,7 @@ class PageRpcExecutor implements RpcExecutor {
             readonly id: string;
             readonly result?: TResult;
             readonly error?: {
-              readonly code: ProviderRpcError["code"];
+              readonly code: ProviderRpcError['code'];
               readonly message: string;
             };
           }>
@@ -53,29 +48,29 @@ class PageRpcExecutor implements RpcExecutor {
         resolve(detail.result as TResult);
       };
       window.addEventListener(responseEvent, onResponse);
-      window.dispatchEvent(
-        new CustomEvent(requestEvent, { detail: { id, request } }),
-      );
+      window.dispatchEvent(new CustomEvent(requestEvent, { detail: { id, request } }));
     });
   }
 }
 
 if (!window.mosaicLynx) {
   const provider = new RpcMosaicLynxProvider(new PageRpcExecutor());
-  Object.defineProperty(window, "mosaicLynx", {
+  Object.defineProperty(window, 'mosaicLynx', {
     value: provider,
     enumerable: true,
     configurable: false,
     writable: false,
   });
-  window.addEventListener(responseEvent.replace("response", "event"), (event: Event) => {
-    const detail = (event as CustomEvent<{ readonly event?: Parameters<typeof provider.emit>[0]; readonly payload?: unknown }>).detail;
+  window.addEventListener(responseEvent.replace('response', 'event'), (event: Event) => {
+    const detail = (
+      event as CustomEvent<{ readonly event?: Parameters<typeof provider.emit>[0]; readonly payload?: unknown }>
+    ).detail;
     if (detail?.event) provider.emit(detail.event, detail.payload as never);
   });
-  window.dispatchEvent(new CustomEvent("mosaiclynx:ready", {
-    detail: { apiVersion: provider.apiVersion },
-  }));
+  window.dispatchEvent(
+    new CustomEvent('mosaiclynx:ready', {
+      detail: { apiVersion: provider.apiVersion },
+    })
+  );
 }
-document.documentElement.dataset.mosaicLynxProvider = window.mosaicLynx
-  ? window.mosaicLynx.apiVersion
-  : "blocked";
+document.documentElement.dataset.mosaicLynxProvider = window.mosaicLynx ? window.mosaicLynx.apiVersion : 'blocked';

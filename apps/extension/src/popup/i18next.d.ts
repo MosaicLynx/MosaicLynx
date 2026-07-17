@@ -1,9 +1,10 @@
-import "i18next";
-import type { en } from "./locales/en.js";
+import 'i18next';
 
-declare module "i18next" {
+import type { en } from './locales/en.js';
+
+declare module 'i18next' {
   interface CustomTypeOptions {
-    defaultNS: "translation";
+    defaultNS: 'translation';
     returnNull: false;
     resources: {
       translation: typeof en;

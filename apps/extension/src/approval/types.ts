@@ -4,8 +4,9 @@ import type {
   SignMessageParams,
   SignedMessage,
   SignedTransaction,
-} from "@mosaiclynx/provider-api";
-import type { PublicAccount, PublicProfile } from "../vault.js";
+} from '@mosaiclynx/provider-api';
+
+import type { PublicAccount, PublicProfile } from '../vault.js';
 
 interface ApprovalBase {
   readonly id: string;
@@ -21,12 +22,12 @@ interface ApprovalBase {
 }
 
 export interface ConnectApproval extends ApprovalBase {
-  readonly type: "connect";
+  readonly type: 'connect';
   readonly availableAccounts: readonly MosaicAccount[];
 }
 
 export interface TransactionApproval extends ApprovalBase {
-  readonly type: "transaction";
+  readonly type: 'transaction';
   readonly payload: string;
   readonly inspection: {
     readonly schema: string;
@@ -37,18 +38,15 @@ export interface TransactionApproval extends ApprovalBase {
 }
 
 export interface MessageApproval extends ApprovalBase {
-  readonly type: "message";
+  readonly type: 'message';
   readonly messageParams: SignMessageParams;
 }
 
-export type ApprovalRequest =
-  | ConnectApproval
-  | TransactionApproval
-  | MessageApproval;
+export type ApprovalRequest = ConnectApproval | TransactionApproval | MessageApproval;
 
 export type NewApprovalRequest = ApprovalRequest extends infer Request
   ? Request extends ApprovalRequest
-    ? Omit<Request, "id" | "createdAt" | "expiresAt">
+    ? Omit<Request, 'id' | 'createdAt' | 'expiresAt'>
     : never
   : never;
 

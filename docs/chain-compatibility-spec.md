@@ -13,12 +13,11 @@
 ニーモニックはProfileの共通rootであり、Symbol / NEMまたはMainnet / Testnetごとに生成処理を分岐しない。規範手順は次のとおりとする。
 
 ```ts
-const bip32 = new Bip32(SymbolFacade.BIP32_CURVE_NAME, "english");
+const bip32 = new Bip32(SymbolFacade.BIP32_CURVE_NAME, 'english');
 const mnemonic = bip32.random();
 const words = mnemonic.trim().split(/\s+/);
-if (24 !== words.length)
-  throw new Error("invalid generated mnemonic");
-const root = bip32.fromMnemonic(mnemonic, "");
+if (24 !== words.length) throw new Error('invalid generated mnemonic');
+const root = bip32.fromMnemonic(mnemonic, '');
 ```
 
 - `random()`はSDK既定の`seedLength = 32`を使用し、BIP39 English 24 wordsを生成する。
@@ -30,9 +29,7 @@ const root = bip32.fromMnemonic(mnemonic, "");
 
 ```ts
 const facade = new SymbolFacade(profileNetwork);
-const childPrivateKey = root
-  .derivePath(facade.bip32Path(accountIndex))
-  .privateKey;
+const childPrivateKey = root.derivePath(facade.bip32Path(accountIndex)).privateKey;
 ```
 
 `facade.bip32Path(accountIndex)`の返却値を唯一のpath sourceとする。MosaicLynxのsource、設定、Storage、migrationへcoin type、path文字列、hardened flagを別定数として持たない。保存する`derivationPath`は監査・復旧表示用にsymbol-sdk返却値から生成したsnapshotであり、導出時の入力には使用しない。復旧時も同じ固定版symbol-sdkの`facade.bip32Path(accountIndex)`から再取得し、snapshotとの不一致をdowngrade / compatibility errorとして拒否する。
@@ -60,12 +57,12 @@ Symbol / NEMのpublic keyとaddressはそれぞれのsymbol-sdk Accountの`publi
 
 ## 3. Network compatibility
 
-| Chain | Network | symbol-sdk network name | identifier | generation hash seed |
-| --- | --- | --- | --- | --- |
-| Symbol | Mainnet | `mainnet` | `0x68` | `57F7DA205008026C776CB6AED843393F04CD458E0AA2D9F1D5F31A402072B2D6` |
-| Symbol | Testnet | `testnet` | `0x98` | `49D6E1CE276A85B70EAFE52349AACCA389302E7A9754BCF1221E79494FC665A4` |
-| NEM | Mainnet | `mainnet` | `0x68` | 適用なし |
-| NEM | Testnet | `testnet` | `0x98` | 適用なし |
+| Chain  | Network | symbol-sdk network name | identifier | generation hash seed                                               |
+| ------ | ------- | ----------------------- | ---------- | ------------------------------------------------------------------ |
+| Symbol | Mainnet | `mainnet`               | `0x68`     | `57F7DA205008026C776CB6AED843393F04CD458E0AA2D9F1D5F31A402072B2D6` |
+| Symbol | Testnet | `testnet`               | `0x98`     | `49D6E1CE276A85B70EAFE52349AACCA389302E7A9754BCF1221E79494FC665A4` |
+| NEM    | Mainnet | `mainnet`               | `0x68`     | 適用なし                                                           |
+| NEM    | Testnet | `testnet`               | `0x98`     | 適用なし                                                           |
 
 Symbolのgeneration hashはsymbol-sdk `Network.MAINNET / TESTNET.generationHashSeed`から取得し、上表は固定versionの回帰期待値としてだけ使用する。identifier、epoch、generation hashをMosaicLynx独自のruntime定数として複製せず、期待値と不一致ならbuildを失敗させる。runtimeでnodeから置換しない。
 
@@ -80,16 +77,16 @@ Symbolのgeneration hashはsymbol-sdk `Network.MAINNET / TESTNET.generationHashS
 
 ## 4. Transaction allowlist
 
-| Chain | symbol-sdk schema | numeric type | version | 追加条件 |
-| --- | --- | ---: | ---: | --- |
-| Symbol | `TransferTransactionV1` | `16724` | 1 | unresolved aliasなし、innerなし |
-| Symbol | `AggregateCompleteTransactionV2` | `16705` | 2 | `EmbeddedTransferTransactionV1`だけ、1..100件 |
-| Symbol | `AggregateBondedTransactionV2` | `16961` | 2 | `EmbeddedTransferTransactionV1`だけ、1..100件 |
-| Symbol | detached / attached aggregate cosignature | 親typeに従う | cosignature version 0 | 完全な親payloadを同時に検証 |
-| NEM | `TransferTransactionV1` | `257` | 1 | innerなし |
-| NEM | `TransferTransactionV2` | `257` | 2 | innerなし |
-| NEM | `MultisigTransactionV1` | `4100` | 1 | innerはTransfer v1/v2を1件、入れ子なし |
-| NEM | `CosignatureV1` | `4098` | 1 | 完全な参照先Multisig v1を同時に検証 |
+| Chain  | symbol-sdk schema                         | numeric type |               version | 追加条件                                      |
+| ------ | ----------------------------------------- | -----------: | --------------------: | --------------------------------------------- |
+| Symbol | `TransferTransactionV1`                   |      `16724` |                     1 | unresolved aliasなし、innerなし               |
+| Symbol | `AggregateCompleteTransactionV2`          |      `16705` |                     2 | `EmbeddedTransferTransactionV1`だけ、1..100件 |
+| Symbol | `AggregateBondedTransactionV2`            |      `16961` |                     2 | `EmbeddedTransferTransactionV1`だけ、1..100件 |
+| Symbol | detached / attached aggregate cosignature | 親typeに従う | cosignature version 0 | 完全な親payloadを同時に検証                   |
+| NEM    | `TransferTransactionV1`                   |        `257` |                     1 | innerなし                                     |
+| NEM    | `TransferTransactionV2`                   |        `257` |                     2 | innerなし                                     |
+| NEM    | `MultisigTransactionV1`                   |       `4100` |                     1 | innerはTransfer v1/v2を1件、入れ子なし        |
+| NEM    | `CosignatureV1`                           |       `4098` |                     1 | 完全な参照先Multisig v1を同時に検証           |
 
 SDKに同名typeの別versionが存在しても拒否する。特にSymbol Aggregate v1/v3、任意のEmbedded type、NEM multisig account modificationはallowlist外である。
 
@@ -97,29 +94,29 @@ SDKに同名typeの別versionが存在しても拒否する。特にSymbol Aggre
 
 次表と4.2〜4.4をInspectionの正本とし、列挙したfieldを一つでも読み取り、型検証、表示できない実装はそのschemaを許可しない。`u8/u16/u32/u64`はcatbufferの符号なしlittle-endian整数で、`u64`はJavaScript `number`へ変換せずBigIntまたはSDK value objectのまま`0..2^64-1`を検証する。固定長byteは長さ完全一致、可変長byteは宣言長完全一致を必須とする。SDK objectにないreserved fieldも再serialize一致とnegative fixtureでzeroを検証する。
 
-| field群 | 型・範囲 | reject条件 | UI |
-| --- | --- | --- | --- |
-| size / payloadSize / innerSize / messageSize | schema所定の`u32/u16`、入力byte内に収まる | 過小・過大、overflow、trailing、alignment外padding非zero | byte数、inner件数 |
-| signature | 64 byte | unsigned outerは非zero、署名済み親は暗号検証失敗 | statusと必要時full hex |
-| signerPublicKey | 32 byte | all-zero、選択Account/期待roleと不一致。embedded signerも必須 | full hex、Account名 |
-| version / network / type | schema所定整数、3章・4章の完全一致 | 未知値、要求scopeとの不一致 | chain、Mainnet/Testnet、type/version |
-| fee / maxFee / amount | `u64`、`0..2^64-1` | deserialize/加減算overflow、schema外負数 | atomic整数。名称・桁数を検証済みの場合だけ換算 |
-| timestamp / deadline | chain所定整数 | SDK timestamp変換不能、deadline < timestamp（NEM） | ISO換算とraw整数。現在chain時刻との有効性は未照合 |
-| address | Symbol 24 byte / NEM 40 ASCII byte | checksum/network不一致、Symbol alias、NEM形式不正 | 全文、短縮は補助のみ |
-| mosaicId | `u64` | Symbol alias bit、同一Transfer内の重複、非canonical順 | `0x` + 16桁uppercase、atomic amount |
-| message | 宣言type + 宣言長 + byte列 | 未知type、長さ不一致、制御文字を安全表示不能 | UTF-8安全表示とfull hex。暗号性は断定しない |
-| reserved / padding | schema所定幅、値0 | 一つでも非zero | technical detailsにfield名と0 |
+| field群                                      | 型・範囲                                  | reject条件                                                    | UI                                                |
+| -------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------- |
+| size / payloadSize / innerSize / messageSize | schema所定の`u32/u16`、入力byte内に収まる | 過小・過大、overflow、trailing、alignment外padding非zero      | byte数、inner件数                                 |
+| signature                                    | 64 byte                                   | unsigned outerは非zero、署名済み親は暗号検証失敗              | statusと必要時full hex                            |
+| signerPublicKey                              | 32 byte                                   | all-zero、選択Account/期待roleと不一致。embedded signerも必須 | full hex、Account名                               |
+| version / network / type                     | schema所定整数、3章・4章の完全一致        | 未知値、要求scopeとの不一致                                   | chain、Mainnet/Testnet、type/version              |
+| fee / maxFee / amount                        | `u64`、`0..2^64-1`                        | deserialize/加減算overflow、schema外負数                      | atomic整数。名称・桁数を検証済みの場合だけ換算    |
+| timestamp / deadline                         | chain所定整数                             | SDK timestamp変換不能、deadline < timestamp（NEM）            | ISO換算とraw整数。現在chain時刻との有効性は未照合 |
+| address                                      | Symbol 24 byte / NEM 40 ASCII byte        | checksum/network不一致、Symbol alias、NEM形式不正             | 全文、短縮は補助のみ                              |
+| mosaicId                                     | `u64`                                     | Symbol alias bit、同一Transfer内の重複、非canonical順         | `0x` + 16桁uppercase、atomic amount               |
+| message                                      | 宣言type + 宣言長 + byte列                | 未知type、長さ不一致、制御文字を安全表示不能                  | UTF-8安全表示とfull hex。暗号性は断定しない       |
+| reserved / padding                           | schema所定幅、値0                         | 一つでも非zero                                                | technical detailsにfield名と0                     |
 
 配列はSDK schemaが規定するcanonical orderを保持する。mosaic IDの重複、sort不正、embedded transaction間paddingの非zero、cosignature signer重複または非canonical順を拒否する。空Transfer mosaic配列はmessageが空でなければ許可できるが、asset効果0と明示する。amount 0は許可schema上有効でも強調表示する。
 
 ### 4.2 Symbol全field
 
-| schema | 必須field（wire順、reservedを含む） | schema固有のreject条件 | fixture ID prefix |
-| --- | --- | --- | --- |
-| `TransferTransactionV1` | `size, verifiableEntityHeaderReserved_1, signature, signerPublicKey, entityBodyReserved_1, version, network, type, fee, deadline, recipientAddress, mosaicsCount, messageSize, transferTransactionBodyReserved_1, message, mosaics[{mosaicId, amount}]` | type=`16724`、version=1、aliasなし、mosaic canonical order、宣言count/size一致 | `SYM-TRANSFER-V1-{MAINNET|TESTNET}-NNN` |
-| `EmbeddedTransferTransactionV1` | `size, embeddedTransactionHeaderReserved_1, signerPublicKey, entityBodyReserved_1, version, network, type, recipientAddress, mosaicsCount, messageSize, transferTransactionBodyReserved_1, message, mosaics[{mosaicId, amount}]` | 親とnetwork一致、type=`16724`、version=1、signature/fee/deadlineを持たない | `SYM-EMBEDDED-TRANSFER-V1-…` |
-| `AggregateCompleteTransactionV2` / `AggregateBondedTransactionV2` | `size, verifiableEntityHeaderReserved_1, signature, signerPublicKey, entityBodyReserved_1, version, network, type, fee, deadline, transactionsHash, payloadSize, aggregateTransactionHeaderReserved_1, transactions[], cosignatures[{version, signerPublicKey, signature}]` | type=`16705/16961`、version=2、embedded 1..100、payloadSize一致、transactionsHash再計算一致、cosignature version=0 | `SYM-AGG-{COMPLETE|BONDED}-V2-…` |
-| aggregate cosignature request | `parentPayload`の上記全field + `parentHash, cosignerPublicKey, detached` | 完全親なし、親hash/signature/transactionsHash不正、既存cosigner、initiatorと同じkey、選択Account不一致 | `SYM-COSIG-V0-{ATTACHED|DETACHED}-…` |
+| schema                                                            | 必須field（wire順、reservedを含む）                                                                                                                                                                                                                                         | schema固有のreject条件                                                                                             | fixture ID prefix            |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
+| `TransferTransactionV1`                                           | `size, verifiableEntityHeaderReserved_1, signature, signerPublicKey, entityBodyReserved_1, version, network, type, fee, deadline, recipientAddress, mosaicsCount, messageSize, transferTransactionBodyReserved_1, message, mosaics[{mosaicId, amount}]`                     | type=`16724`、version=1、aliasなし、mosaic canonical order、宣言count/size一致                                     | `SYM-TRANSFER-V1-{MAINNET    | TESTNET}-NNN` |
+| `EmbeddedTransferTransactionV1`                                   | `size, embeddedTransactionHeaderReserved_1, signerPublicKey, entityBodyReserved_1, version, network, type, recipientAddress, mosaicsCount, messageSize, transferTransactionBodyReserved_1, message, mosaics[{mosaicId, amount}]`                                            | 親とnetwork一致、type=`16724`、version=1、signature/fee/deadlineを持たない                                         | `SYM-EMBEDDED-TRANSFER-V1-…` |
+| `AggregateCompleteTransactionV2` / `AggregateBondedTransactionV2` | `size, verifiableEntityHeaderReserved_1, signature, signerPublicKey, entityBodyReserved_1, version, network, type, fee, deadline, transactionsHash, payloadSize, aggregateTransactionHeaderReserved_1, transactions[], cosignatures[{version, signerPublicKey, signature}]` | type=`16705/16961`、version=2、embedded 1..100、payloadSize一致、transactionsHash再計算一致、cosignature version=0 | `SYM-AGG-{COMPLETE           | BONDED}-V2-…` |
+| aggregate cosignature request                                     | `parentPayload`の上記全field + `parentHash, cosignerPublicKey, detached`                                                                                                                                                                                                    | 完全親なし、親hash/signature/transactionsHash不正、既存cosigner、initiatorと同じkey、選択Account不一致             | `SYM-COSIG-V0-{ATTACHED      | DETACHED}-…`  |
 
 Symbolの`maxFee`はouterの`fee` fieldそのものであり、ノードのfee multiplierを照会しないMosaicLynxはactual feeを確定しない。UIは`最大手数料 −maxFee atomic XYM`と表示し、asset正味効果ではinitiatorに`[-maxFee, 0]`の範囲として別計上する。Transferごとに各mosaic `m`について`delta[embeddedSigner,m] -= amount`、`delta[recipient,m] += amount`とする。self-transferもgross送付と受取を表示し、netは0とする。aggregateでは全embeddedをBigIntで加算し、途中または合計が`[-(2^64-1)*100, +(2^64-1)*100]`を越える実装上overflowを拒否する。cosignature画面では親の効果を「成立時の親Transaction効果」として表示し、cosigner自身のasset減少へ誤算入しない。
 
@@ -127,12 +124,12 @@ Symbolの`maxFee`はouterの`fee` fieldそのものであり、ノードのfee m
 
 ### 4.3 NEM全field
 
-| schema | 必須field（wire順、子objectを含む） | schema固有のreject条件 | fixture ID prefix |
-| --- | --- | --- | --- |
-| `TransferTransactionV1` | `type, version, entityBodyReserved_1, network, timestamp, signerPublicKeySize, signerPublicKey, signatureSize, signature, fee, deadline, recipientAddressSize, recipientAddress, amount, messageEnvelopeSize, message?{messageType,messageSize,message}` | type=`257`、entity version=1、reserved=0、固定size=`32/64/40`、unsigned signature=zero、mosaic配列なし、全length一致 | `NEM-TRANSFER-V1-{MAINNET|TESTNET}-NNN` |
-| `TransferTransactionV2` | v1全field + `mosaicsCount, mosaics[{mosaicId{namespaceId{nameSize,name},nameSize,name},amount}]` | entity version=2、qualified mosaic IDの各nameがSDK規則に適合、重複/非canonical順なし、count一致 | `NEM-TRANSFER-V2-{MAINNET|TESTNET}-NNN` |
-| `MultisigTransactionV1` | common header `type, version, entityBodyReserved_1, network, timestamp, signerPublicKeySize, signerPublicKey, signatureSize, signature, fee, deadline` + `innerTransactionSize, innerTransaction(TransferV1/V2全field), cosignaturesCount, cosignatures[CosignatureV1全field]` | type=`4100`、inner 1件、inner multisig禁止、size/network一致。通常の開始署名はcosignaturesCount=0。参照親では0..100、重複signerなし | `NEM-MULTISIG-V1-…` |
-| `CosignatureV1` | common header全field + `multisigTransactionHashOuterSize, multisigTransactionHashSize, multisigTransactionHash, multisigAccountAddressSize, multisigAccountAddress` | type=`4098`、entity version=1、固定size=`36/32/40`、完全な参照先Multisig payloadなし、hash/address/inner不一致 | `NEM-COSIG-V1-…` |
+| schema                  | 必須field（wire順、子objectを含む）                                                                                                                                                                                                                                            | schema固有のreject条件                                                                                                              | fixture ID prefix         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `TransferTransactionV1` | `type, version, entityBodyReserved_1, network, timestamp, signerPublicKeySize, signerPublicKey, signatureSize, signature, fee, deadline, recipientAddressSize, recipientAddress, amount, messageEnvelopeSize, message?{messageType,messageSize,message}`                       | type=`257`、entity version=1、reserved=0、固定size=`32/64/40`、unsigned signature=zero、mosaic配列なし、全length一致                | `NEM-TRANSFER-V1-{MAINNET | TESTNET}-NNN` |
+| `TransferTransactionV2` | v1全field + `mosaicsCount, mosaics[{mosaicId{namespaceId{nameSize,name},nameSize,name},amount}]`                                                                                                                                                                               | entity version=2、qualified mosaic IDの各nameがSDK規則に適合、重複/非canonical順なし、count一致                                     | `NEM-TRANSFER-V2-{MAINNET | TESTNET}-NNN` |
+| `MultisigTransactionV1` | common header `type, version, entityBodyReserved_1, network, timestamp, signerPublicKeySize, signerPublicKey, signatureSize, signature, fee, deadline` + `innerTransactionSize, innerTransaction(TransferV1/V2全field), cosignaturesCount, cosignatures[CosignatureV1全field]` | type=`4100`、inner 1件、inner multisig禁止、size/network一致。通常の開始署名はcosignaturesCount=0。参照親では0..100、重複signerなし | `NEM-MULTISIG-V1-…`       |
+| `CosignatureV1`         | common header全field + `multisigTransactionHashOuterSize, multisigTransactionHashSize, multisigTransactionHash, multisigAccountAddressSize, multisigAccountAddress`                                                                                                            | type=`4098`、entity version=1、固定size=`36/32/40`、完全な参照先Multisig payloadなし、hash/address/inner不一致                      | `NEM-COSIG-V1-…`          |
 
 NEM wireでは`version`、2-byte `entityBodyReserved_1`、`network`を別fieldとして読み、従来APIの合成version値だけで検証しない。`signerPublicKeySize=32`、`signatureSize=64`、`recipientAddressSize=40`等の固定size fieldを単なるparser都合として捨てずraw fieldへ含める。NEM message typeは固定版SDKが保持し再serializeできる`PLAIN=1`または`ENCRYPTED=2`だけを許可し、未知値を単なるhex messageとして続行しない。`messageEnvelopeSize=0`はmessage不在、非zeroは`8 + messageSize`との完全一致を必須とする。NEM v2 mosaic IDはnamespace nameとmosaic nameのraw ASCIIを各構成要素として全文表示し、外部metadataによる別名へ置換しない。
 

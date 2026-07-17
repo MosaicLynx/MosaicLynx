@@ -12,7 +12,10 @@
         <div>
           <p class="eyebrow">MosaicLynx · extension test bench</p>
           <h1>Transfer Lab</h1>
-          <p class="lede">Symbol / NEM の未署名 Transfer を組み立て、拡張機能へ署名を依頼します。ネットワークへの announce は行いません。</p>
+          <p class="lede">
+            Symbol / NEM の未署名 Transfer を組み立て、拡張機能へ署名を依頼します。ネットワークへの announce
+            は行いません。
+          </p>
         </div>
         <div id="provider-status" class="status waiting"><span></span>確認中</div>
       </header>
@@ -40,23 +43,29 @@
 
         <form id="transfer-form">
           <div class="grid two">
-            <label>Network
+            <label
+              >Network
               <select id="network" required>
                 <option value="testnet">Testnet</option>
                 <option value="mainnet">Mainnet</option>
               </select>
             </label>
-            <label>Amount <span id="currency">XYM</span>
+            <label
+              >Amount <span id="currency">XYM</span>
               <input id="amount" type="text" inputmode="decimal" value="1" required />
             </label>
           </div>
-          <label>Recipient address
+          <label
+            >Recipient address
             <input id="recipient" type="text" autocomplete="off" spellcheck="false" placeholder="T..." required />
           </label>
-          <label>Message <span class="optional">optional · UTF-8</span>
+          <label
+            >Message <span class="optional">optional · UTF-8</span>
             <textarea id="message" rows="3" maxlength="512" placeholder="MosaicLynx extension test"></textarea>
           </label>
-          <div class="notice">Mainnet では実資産を扱います。現在の開発版拡張機能は仕様により Mainnet 署名を拒否します。</div>
+          <div class="notice">
+            Mainnet では実資産を扱います。現在の開発版拡張機能は仕様により Mainnet 署名を拒否します。
+          </div>
           <button id="sign" class="primary" type="submit">Transfer を作成して署名</button>
         </form>
       </section>
@@ -69,7 +78,9 @@
           </div>
           <button id="copy" class="text-button" type="button" disabled>JSON をコピー</button>
         </div>
-        <div id="result" class="result empty">署名を実行すると、hash・signer public key・payload がここに表示されます。</div>
+        <div id="result" class="result empty">
+          署名を実行すると、hash・signer public key・payload がここに表示されます。
+        </div>
       </section>
     </main>
     <script type="module" src="/src/main.ts"></script>

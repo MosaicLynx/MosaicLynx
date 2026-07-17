@@ -26,12 +26,12 @@ pnpm --filter @mosaiclynx/test-dapp dev
 ## MosaicLynx SDK
 
 ```ts
-import { createMosaicLynxSDK } from "@mosaiclynx/sdk";
+import { createMosaicLynxSDK } from '@mosaiclynx/sdk';
 
 const mosaicLynx = createMosaicLynxSDK();
 const signed = await mosaicLynx.signTransaction({
-  chain: "symbol",
-  network: "testnet",
+  chain: 'symbol',
+  network: 'testnet',
   payload,
   expectedSignerPublicKey,
 });

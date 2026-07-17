@@ -1,7 +1,14 @@
 :root {
   color: var(--app-text);
   background: var(--app-bg);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
 }
 
 html,
@@ -88,9 +95,13 @@ button {
   justify-content: space-between;
 }
 
-.approval-brand-row h1 { margin: 0; }
+.approval-brand-row h1 {
+  margin: 0;
+}
 
-.approval-header .eyebrow { margin: -4px 0 2px; }
+.approval-header .eyebrow {
+  margin: -4px 0 2px;
+}
 
 .approval-header .origin {
   background: var(--app-surface);
@@ -109,7 +120,9 @@ button {
   padding: 16px;
 }
 
-.approval-summary .summary-row { margin: 0; }
+.approval-summary .summary-row {
+  margin: 0;
+}
 
 .approval-auth {
   border: 0;
@@ -141,21 +154,21 @@ header {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
   margin: 0 0 7px;
 }
 
 h1 {
   font-size: 28px;
   font-weight: 750;
-  letter-spacing: -.04em;
+  letter-spacing: -0.04em;
   margin: 0 0 13px;
 }
 
 h2 {
   font-size: 22px;
   font-weight: 720;
-  letter-spacing: -.025em;
+  letter-spacing: -0.025em;
   margin: 0 0 7px;
 }
 
@@ -208,7 +221,11 @@ button {
   cursor: pointer;
   min-height: 40px;
   padding: 9px 13px;
-  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
 }
 
 button:hover:not(:disabled) {
@@ -216,9 +233,14 @@ button:hover:not(:disabled) {
   box-shadow: 0 5px 16px color-mix(in srgb, var(--app-primary) 10%, transparent);
 }
 
-button:active:not(:disabled) { transform: translateY(1px); }
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
 
-button:focus-visible { outline: 3px solid color-mix(in srgb, var(--app-primary) 25%, transparent); outline-offset: 2px; }
+button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--app-primary) 25%, transparent);
+  outline-offset: 2px;
+}
 button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
@@ -568,7 +590,9 @@ details code {
   margin-bottom: 6px;
 }
 
-.mui-field.MuiFormControl-root { margin-bottom: 12px; }
+.mui-field.MuiFormControl-root {
+  margin-bottom: 12px;
+}
 
 .form-grid input,
 .form-grid select {
@@ -1014,8 +1038,11 @@ details code {
 }
 
 .address-card {
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--app-primary) 88%, #062b27), color-mix(in srgb, var(--app-primary) 64%, #172554));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--app-primary) 88%, #062b27),
+    color-mix(in srgb, var(--app-primary) 64%, #172554)
+  );
   border-radius: 16px;
   box-shadow: var(--app-shadow);
   color: var(--app-primary-contrast);
@@ -1035,7 +1062,7 @@ details code {
   font-family: ui-monospace, monospace;
   font-size: 15px;
   font-weight: 700;
-  letter-spacing: .035em;
+  letter-spacing: 0.035em;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }

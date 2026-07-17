@@ -1,14 +1,8 @@
-import type {
-  Account,
-  ConnectionScope,
-  PermissionGrant,
-  Profile,
-  UnlockMethod,
-} from "./domain.js";
+import type { Account, ConnectionScope, PermissionGrant, Profile, UnlockMethod } from './domain.js';
 
 export interface SharedAccountMaterial {
   readonly privateKey: string;
-  readonly identities: Account["identities"];
+  readonly identities: Account['identities'];
 }
 
 /** Legacy single-chain material retained for adapter compatibility. */
@@ -19,9 +13,9 @@ export interface GeneratedAccountMaterial {
 }
 
 export interface TransactionInspection {
-  readonly fixtureContractVersion: "1";
-  readonly chain: ConnectionScope["chain"];
-  readonly network: ConnectionScope["network"];
+  readonly fixtureContractVersion: '1';
+  readonly chain: ConnectionScope['chain'];
+  readonly network: ConnectionScope['network'];
   readonly schema: string;
   readonly numericType: number;
   readonly version: number;
@@ -33,33 +27,30 @@ export interface TransactionInspection {
 }
 
 export interface ChainAdapterPort {
-  readonly chain: ConnectionScope["chain"];
-  createAccount(network: ConnectionScope["network"]): GeneratedAccountMaterial;
-  importAccount(
-    network: ConnectionScope["network"],
-    privateKey: string,
-  ): GeneratedAccountMaterial;
+  readonly chain: ConnectionScope['chain'];
+  createAccount(network: ConnectionScope['network']): GeneratedAccountMaterial;
+  importAccount(network: ConnectionScope['network'], privateKey: string): GeneratedAccountMaterial;
   inspectTransaction?(
-    network: ConnectionScope["network"],
+    network: ConnectionScope['network'],
     payload: string,
-    expectedSignerPublicKey: string,
+    expectedSignerPublicKey: string
   ): TransactionInspection;
   signTransaction?(
-    network: ConnectionScope["network"],
+    network: ConnectionScope['network'],
     payload: string,
-    privateKey: string,
+    privateKey: string
   ): { readonly payload: string; readonly hash: string; readonly signerPublicKey: string };
   verifySignedTransaction?(
-    network: ConnectionScope["network"],
+    network: ConnectionScope['network'],
     unsignedPayload: string,
-    result: { readonly payload: string; readonly hash: string; readonly signerPublicKey: string },
+    result: { readonly payload: string; readonly hash: string; readonly signerPublicKey: string }
   ): boolean;
 }
 
 export interface ProfileRepository {
   save(profile: Profile): Promise<void>;
   getById(profileId: string): Promise<Profile | undefined>;
-  listByNetwork(network: Profile["network"]): Promise<readonly Profile[]>;
+  listByNetwork(network: Profile['network']): Promise<readonly Profile[]>;
   remove?(profileId: string): Promise<void>;
 }
 
@@ -71,11 +62,7 @@ export interface AccountRepository {
 }
 
 export interface PermissionRepository {
-  get(
-    origin: string,
-    profileId: string,
-    scope: ConnectionScope,
-  ): Promise<PermissionGrant | undefined>;
+  get(origin: string, profileId: string, scope: ConnectionScope): Promise<PermissionGrant | undefined>;
   save(grant: PermissionGrant): Promise<void>;
   remove(origin: string, profileId: string, scope: ConnectionScope): Promise<void>;
 }
@@ -99,10 +86,14 @@ export interface CryptoPort {
   signTransaction(input: {
     readonly account: Account;
     readonly profileId: string;
-    readonly chain: ConnectionScope["chain"];
+    readonly chain: ConnectionScope['chain'];
     readonly payload: string;
   }): Promise<{ readonly payload: string; readonly hash: string; readonly signerPublicKey: string }>;
 }
 
-export interface Clock { now(): Date; }
-export interface IdGenerator { next(): string; }
+export interface Clock {
+  now(): Date;
+}
+export interface IdGenerator {
+  next(): string;
+}

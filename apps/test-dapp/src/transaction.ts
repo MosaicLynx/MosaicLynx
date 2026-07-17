@@ -1,9 +1,9 @@
-import { utils } from "@nemnesia/symbol-sdk";
-import { Address as NemAddress, NemFacade, models as nem } from "@nemnesia/symbol-sdk/nem";
-import { Address as SymbolAddress, SymbolFacade, models as symbol } from "@nemnesia/symbol-sdk/symbol";
+import { utils } from '@nemnesia/symbol-sdk';
+import { Address as NemAddress, NemFacade, models as nem } from '@nemnesia/symbol-sdk/nem';
+import { Address as SymbolAddress, SymbolFacade, models as symbol } from '@nemnesia/symbol-sdk/symbol';
 
-export type Chain = "symbol" | "nem";
-export type Network = "mainnet" | "testnet";
+export type Chain = 'symbol' | 'nem';
+export type Network = 'mainnet' | 'testnet';
 
 export interface TransferInput {
   readonly chain: Chain;
@@ -15,31 +15,31 @@ export interface TransferInput {
 }
 
 const SYMBOL_CURRENCY_ID: Record<Network, bigint> = {
-  mainnet: 0x6BED913FA20223F8n,
-  testnet: 0x72C0212E67A08BCEn,
+  mainnet: 0x6bed913fa20223f8n,
+  testnet: 0x72c0212e67a08bcen,
 };
 
-const networkIdentifier = (network: Network): number => network === "mainnet" ? 0x68 : 0x98;
+const networkIdentifier = (network: Network): number => (network === 'mainnet' ? 0x68 : 0x98);
 
 const parseAmount = (value: string): bigint => {
   const match = /^(\d+)(?:\.(\d{1,6}))?$/.exec(value.trim());
-  if (!match) throw new Error("Amount は小数点以下6桁までの正数で入力してください。");
+  if (!match) throw new Error('Amount は小数点以下6桁までの正数で入力してください。');
   const whole = match[1];
-  if (!whole) throw new Error("Amount が不正です。");
-  const amount = BigInt(whole) * 1_000_000n + BigInt((match[2] ?? "").padEnd(6, "0"));
-  if (amount <= 0n || amount > 0xFFFF_FFFF_FFFF_FFFFn) throw new Error("Amount が範囲外です。");
+  if (!whole) throw new Error('Amount が不正です。');
+  const amount = BigInt(whole) * 1_000_000n + BigInt((match[2] ?? '').padEnd(6, '0'));
+  if (amount <= 0n || amount > 0xffff_ffff_ffff_ffffn) throw new Error('Amount が範囲外です。');
   return amount;
 };
 
 const publicKeyBytes = (value: string): Uint8Array<ArrayBuffer> => {
-  if (!/^[0-9a-fA-F]{64}$/.test(value)) throw new Error("署名アカウントの公開鍵が不正です。");
+  if (!/^[0-9a-fA-F]{64}$/.test(value)) throw new Error('署名アカウントの公開鍵が不正です。');
   return Uint8Array.from(utils.hexToUint8(value));
 };
 
 const createSymbolTransfer = (input: TransferInput, amount: bigint): string => {
   const facade = new SymbolFacade(input.network);
   if (!facade.network.isValidAddressString(input.recipient))
-    throw new Error("Recipient は選択した Symbol network のアドレスではありません。");
+    throw new Error('Recipient は選択した Symbol network のアドレスではありません。');
 
   const transaction = new symbol.TransferTransactionV1();
   transaction.signerPublicKey = new symbol.PublicKey(publicKeyBytes(input.signerPublicKey));
@@ -58,7 +58,7 @@ const createSymbolTransfer = (input: TransferInput, amount: bigint): string => {
 const createNemTransfer = (input: TransferInput, amount: bigint): string => {
   const facade = new NemFacade(input.network);
   if (!facade.network.isValidAddressString(input.recipient))
-    throw new Error("Recipient は選択した NEM network のアドレスではありません。");
+    throw new Error('Recipient は選択した NEM network のアドレスではありません。');
 
   const now = facade.now();
   const transaction = new nem.TransferTransactionV1();
@@ -80,7 +80,5 @@ const createNemTransfer = (input: TransferInput, amount: bigint): string => {
 
 export const createTransferPayload = (input: TransferInput): string => {
   const amount = parseAmount(input.amount);
-  return input.chain === "symbol"
-    ? createSymbolTransfer(input, amount)
-    : createNemTransfer(input, amount);
+  return input.chain === 'symbol' ? createSymbolTransfer(input, amount) : createNemTransfer(input, amount);
 };
