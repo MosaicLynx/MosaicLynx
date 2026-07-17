@@ -132,6 +132,8 @@ importers:
 
   packages/provider-api: {}
 
+  packages/release-evidence: {}
+
   packages/sdk:
     dependencies:
       '@mosaiclynx/provider-api':
