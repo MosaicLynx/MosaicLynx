@@ -111,6 +111,36 @@ export const emptyStore = (): ExtensionStore => ({
   },
 });
 
+/** Returns whether a profile can be deleted after the user has typed its name exactly. */
+export const isProfileDeletionConfirmed = (
+  store: ExtensionStore,
+  profileId: string,
+  confirmationName: string
+): boolean =>
+  store.profiles.length > 1 &&
+  store.profiles.some((profile) => profile.id === profileId && profile.name === confirmationName);
+
+/** Removes a profile and every record scoped to it, while keeping a valid active profile. */
+export const deleteProfileFromStore = (store: ExtensionStore, profileId: string): ExtensionStore => {
+  if (store.profiles.length <= 1) throw new Error('The last profile cannot be deleted.');
+  if (!store.profiles.some((profile) => profile.id === profileId)) throw new Error('Profile not found.');
+
+  const profiles = store.profiles.filter((profile) => profile.id !== profileId);
+
+  return {
+    ...store,
+    profiles,
+    accounts: store.accounts.filter((account) => account.profileId !== profileId),
+    vaults: store.vaults.filter((vault) => vault.profileId !== profileId),
+    permissions: store.permissions.filter((grant) => grant.profileId !== profileId),
+    usedMessageNonces: store.usedMessageNonces.filter((entry) => entry.profileId !== profileId),
+    settings:
+      store.settings.activeProfileId === profileId
+        ? { ...store.settings, activeProfileId: profiles[0]!.id }
+        : store.settings,
+  };
+};
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
 

@@ -60,7 +60,7 @@ export const ja = {
   closeMenu: 'メニューを閉じる',
   home: 'ホーム',
   profileManagement: 'プロファイル管理',
-  profileManagementBody: 'プロファイルの切り替え、名称変更、追加ができます。',
+  profileManagementBody: 'プロファイルの切り替え、名称変更、追加、削除ができます。',
   accountManagement: 'アカウント管理',
   accountManagementBody: 'このプロファイルのアカウントを選択・追加・編集できます。',
   connectionManagement: '接続管理',
@@ -80,6 +80,12 @@ export const ja = {
   use: '使用する',
   rename: '名前を保存',
   renamed: '名前を変更しました。',
+  deleteProfile: 'プロファイルを削除',
+  confirmDeleteProfile:
+    'プロファイル「{{name}}」を削除しますか？このプロファイルの {{accountCount}} 件のアカウントと {{connectionCount}} 件のdApp接続もすべて削除されます。この操作は元に戻せません。',
+  confirmProfileDeletionName: '確認のため「{{name}}」と入力してください',
+  profileDeleted: 'プロファイルを削除しました。',
+  lastProfileCannotBeDeleted: '最後のプロファイルは削除できません。',
   addAccount: 'アカウントを追加',
   accountName: 'アカウント名',
   addAccountBody:

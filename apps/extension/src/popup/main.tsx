@@ -30,7 +30,9 @@ import {
   type PublicProfile,
   type VaultContents,
   decryptVault,
+  deleteProfileFromStore,
   encryptVault,
+  isProfileDeletionConfirmed,
   loadStore,
   saveStore,
 } from '../vault.js';
@@ -43,7 +45,13 @@ type Language = ExtensionStore['settings']['language'];
 type HomeView = 'home' | 'menu' | 'profiles' | 'accounts' | 'connections';
 type ConfirmationAction =
   | { readonly kind: 'account'; readonly name: string }
-  | { readonly kind: 'connection'; readonly grant: PermissionGrant };
+  | { readonly kind: 'connection'; readonly grant: PermissionGrant }
+  | {
+      readonly kind: 'profile';
+      readonly profile: PublicProfile;
+      readonly accountCount: number;
+      readonly connectionCount: number;
+    };
 
 const DEBUG_SKIP_BACKUP_CONFIRMATION = !MAINNET_SIGNING_ENABLED;
 
@@ -130,6 +138,7 @@ const App = () => {
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [notice, setNotice] = useState('');
   const [confirmationAction, setConfirmationAction] = useState<ConfirmationAction>();
+  const [profileDeletionName, setProfileDeletionName] = useState('');
   const [copiedAddress, setCopiedAddress] = useState(false);
   const language = store?.settings.language ?? 'en';
   const { t, i18n } = useTranslation();
@@ -374,6 +383,19 @@ const App = () => {
     setStore(next);
     setAccountNameDraft(accountNameDraft.trim());
     setNotice(t('accountRenamed'));
+  };
+
+  const deleteProfile = async (profileId: string, confirmationName: string): Promise<void> => {
+    if (!store || !isProfileDeletionConfirmed(store, profileId, confirmationName)) return;
+    setError('');
+    setNotice('');
+    const next = deleteProfileFromStore(store, profileId);
+    await saveStore(next);
+    setStore(next);
+    const nextActive = next.profiles.find((item) => item.id === next.settings.activeProfileId);
+    setProfileNameDraft(nextActive?.name ?? '');
+    setProfileDeletionName('');
+    setNotice(t('profileDeleted'));
   };
 
   const deleteAccount = async (): Promise<void> => {
@@ -859,10 +881,14 @@ const App = () => {
   const activePublicKey = account?.identities[scope.chain].publicKey;
   const connections = store.permissions.filter((grant) => grant.profileId === profile.id);
   const profileAccounts = store.accounts.filter((item) => item.profileId === profile.id);
+  const closeConfirmationDialog = (): void => {
+    setConfirmationAction(undefined);
+    setProfileDeletionName('');
+  };
   const confirmationDialog = (
     <Dialog
       open={Boolean(confirmationAction)}
-      onClose={() => setConfirmationAction(undefined)}
+      onClose={closeConfirmationDialog}
       aria-labelledby="confirmation-dialog-title"
     >
       <DialogTitle id="confirmation-dialog-title">{t('confirmAction')}</DialogTitle>
@@ -872,19 +898,40 @@ const App = () => {
             ? t('confirmDeleteAccount', { name: confirmationAction.name })
             : confirmationAction?.kind === 'connection'
               ? t('confirmDeleteConnection', { origin: confirmationAction.grant.origin })
-              : ''}
+              : confirmationAction?.kind === 'profile'
+                ? t('confirmDeleteProfile', {
+                    name: confirmationAction.profile.name,
+                    accountCount: confirmationAction.accountCount,
+                    connectionCount: confirmationAction.connectionCount,
+                  })
+                : ''}
         </DialogContentText>
+        {confirmationAction?.kind === 'profile' && (
+          <TextField
+            autoFocus
+            fullWidth
+            sx={{ mt: 2 }}
+            label={t('confirmProfileDeletionName', { name: confirmationAction.profile.name })}
+            value={profileDeletionName}
+            onChange={(event) => setProfileDeletionName(event.target.value)}
+          />
+        )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => setConfirmationAction(undefined)}>{t('cancel')}</Button>
+        <Button onClick={closeConfirmationDialog}>{t('cancel')}</Button>
         <Button
           color="error"
           variant="contained"
+          disabled={
+            confirmationAction?.kind === 'profile' &&
+            !isProfileDeletionConfirmed(store, confirmationAction.profile.id, profileDeletionName)
+          }
           onClick={() => {
             const action = confirmationAction;
-            setConfirmationAction(undefined);
+            closeConfirmationDialog();
             if (action?.kind === 'account') void deleteAccount();
             if (action?.kind === 'connection') void deleteConnection(action.grant);
+            if (action?.kind === 'profile') void deleteProfile(action.profile.id, profileDeletionName);
           }}
         >
           {t('delete')}
@@ -1007,6 +1054,21 @@ const App = () => {
           <button className="primary wide" onClick={() => void renameProfile()}>
             {t('rename')}
           </button>
+          <button
+            className="danger-button wide"
+            disabled={store.profiles.length <= 1}
+            onClick={() =>
+              setConfirmationAction({
+                kind: 'profile',
+                profile,
+                accountCount: profileAccounts.length,
+                connectionCount: connections.length,
+              })
+            }
+          >
+            {t('deleteProfile')}
+          </button>
+          {store.profiles.length <= 1 && <p className="form-error">{t('lastProfileCannotBeDeleted')}</p>}
         </section>
         <footer>
           <button
@@ -1020,6 +1082,7 @@ const App = () => {
             {t('addProfile')}
           </button>
         </footer>
+        {confirmationDialog}
       </main>
     );
   }
