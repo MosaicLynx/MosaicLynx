@@ -4,7 +4,7 @@ import {
   type MosaicAccount,
   type MosaicLynxProvider,
   type SignedTransaction,
-} from "@mosaic-lynx/provider-api";
+} from "@mosaiclynx/provider-api";
 import { canonicalize } from "./canonical.js";
 import {
   base64UrlEncode,
@@ -33,7 +33,7 @@ export interface MosaicLynxSignTransactionParams {
   readonly expectedSignerPublicKey?: string;
 }
 
-export { type SignedTransaction } from "@mosaic-lynx/provider-api";
+export { type SignedTransaction } from "@mosaiclynx/provider-api";
 
 export type MosaicLynxSDKErrorCode =
   | "USER_REJECTED"

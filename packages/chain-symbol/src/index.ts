@@ -13,7 +13,7 @@ import type {
   GeneratedAccountMaterial,
   SharedAccountMaterial,
   TransactionInspection,
-} from "@mosaic-lynx/core";
+} from "@mosaiclynx/core";
 
 const MAX_PAYLOAD_BYTES = 256 * 1024;
 

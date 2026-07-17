@@ -7,9 +7,9 @@ import Card from "@mui/material/Card";
 import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
 import TextField from "@mui/material/TextField";
-import { NemChainAdapter } from "@mosaic-lynx/chain-nem";
-import { deriveSharedAccount, SymbolChainAdapter } from "@mosaic-lynx/chain-symbol";
-import { createStructuredMessage, structuredMessageDigest } from "@mosaic-lynx/core";
+import { NemChainAdapter } from "@mosaiclynx/chain-nem";
+import { deriveSharedAccount, SymbolChainAdapter } from "@mosaiclynx/chain-symbol";
+import { createStructuredMessage, structuredMessageDigest } from "@mosaiclynx/core";
 import { PrivateKey } from "@nemnesia/symbol-sdk";
 import { NemFacade } from "@nemnesia/symbol-sdk/nem";
 import { SymbolFacade } from "@nemnesia/symbol-sdk/symbol";
@@ -69,7 +69,7 @@ const App = () => {
     void (async () => {
       const [store, value] = await Promise.all([
         loadStore(),
-        chrome.runtime.sendMessage({ kind: "mosaic-lynx:approval:get", id }) as Promise<ApprovalRequest | undefined>,
+        chrome.runtime.sendMessage({ kind: "mosaiclynx:approval:get", id }) as Promise<ApprovalRequest | undefined>,
       ]);
       await i18n.changeLanguage(store.settings.language);
       if (!mounted) return;
@@ -92,7 +92,7 @@ const App = () => {
   const summary = useMemo(() => approval ? approvalSummary(approval, (key) => t(key)) : [], [approval, t]);
 
   const resolve = async (resolution: ApprovalResolution): Promise<void> => {
-    await chrome.runtime.sendMessage({ kind: "mosaic-lynx:approval:resolve", id, resolution });
+    await chrome.runtime.sendMessage({ kind: "mosaiclynx:approval:resolve", id, resolution });
     window.close();
   };
 

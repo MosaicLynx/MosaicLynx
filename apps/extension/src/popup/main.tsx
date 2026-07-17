@@ -17,7 +17,7 @@ import DarkModeOutlined from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlined from "@mui/icons-material/LightModeOutlined";
 import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffOutlined from "@mui/icons-material/VisibilityOffOutlined";
-import { deriveSharedAccount, generateMnemonic } from "@mosaic-lynx/chain-symbol";
+import { deriveSharedAccount, generateMnemonic } from "@mosaiclynx/chain-symbol";
 import {
   decryptVault,
   encryptVault,

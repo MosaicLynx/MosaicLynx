@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PrivateKey, utils } from "@nemnesia/symbol-sdk";
 import { SymbolFacade, models } from "@nemnesia/symbol-sdk/symbol";
-import type { MosaicLynxProvider } from "@mosaic-lynx/provider-api";
+import type { MosaicLynxProvider } from "@mosaiclynx/provider-api";
 import { createMosaicLynxSDK, MosaicLynxSDKError } from "../src/index.js";
 
 afterEach(() => {

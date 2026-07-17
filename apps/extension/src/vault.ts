@@ -1,5 +1,5 @@
 import { argon2idAsync } from "@noble/hashes/argon2.js";
-import type { NetworkKind, AccountSource, ChainIdentity } from "@mosaic-lynx/core";
+import type { NetworkKind, AccountSource, ChainIdentity } from "@mosaiclynx/core";
 
 export const LEGACY_STORAGE_KEY = "mosaicLynxStoreV1";
 export const STORE_SCHEMA_VERSION = 2;

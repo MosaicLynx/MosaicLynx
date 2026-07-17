@@ -1,10 +1,10 @@
 {
-  "name": "@mosaic-lynx/test-dapp",
+  "name": "@mosaiclynx/test-dapp",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "dependencies": {
-    "@mosaic-lynx/provider-api": "workspace:*",
+    "@mosaiclynx/provider-api": "workspace:*",
     "@mosaiclynx/sdk": "workspace:*",
     "@nemnesia/symbol-sdk": "3.3.2-pure.2"
   },

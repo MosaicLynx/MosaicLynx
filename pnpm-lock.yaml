@@ -23,16 +23,16 @@ importers:
       '@emotion/styled':
         specifier: ^11.14.1
         version: 11.14.1(@emotion/react@11.14.0(@types/react@19.2.17)(react@19.2.7))(@types/react@19.2.17)(react@19.2.7)
-      '@mosaic-lynx/chain-nem':
+      '@mosaiclynx/chain-nem':
         specifier: workspace:*
         version: link:../../packages/chain-nem
-      '@mosaic-lynx/chain-symbol':
+      '@mosaiclynx/chain-symbol':
         specifier: workspace:*
         version: link:../../packages/chain-symbol
-      '@mosaic-lynx/core':
+      '@mosaiclynx/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@mosaic-lynx/provider-api':
+      '@mosaiclynx/provider-api':
         specifier: workspace:*
         version: link:../../packages/provider-api
       '@mui/icons-material':
@@ -81,7 +81,7 @@ importers:
 
   apps/test-dapp:
     dependencies:
-      '@mosaic-lynx/provider-api':
+      '@mosaiclynx/provider-api':
         specifier: workspace:*
         version: link:../../packages/provider-api
       '@mosaiclynx/sdk':
@@ -97,7 +97,7 @@ importers:
 
   packages/chain-nem:
     dependencies:
-      '@mosaic-lynx/core':
+      '@mosaiclynx/core':
         specifier: workspace:*
         version: link:../core
       '@nemnesia/symbol-sdk':
@@ -106,7 +106,7 @@ importers:
 
   packages/chain-symbol:
     dependencies:
-      '@mosaic-lynx/core':
+      '@mosaiclynx/core':
         specifier: workspace:*
         version: link:../core
       '@nemnesia/symbol-sdk':
@@ -119,7 +119,7 @@ importers:
 
   packages/sdk:
     dependencies:
-      '@mosaic-lynx/provider-api':
+      '@mosaiclynx/provider-api':
         specifier: workspace:*
         version: link:../provider-api
       '@nemnesia/symbol-sdk':

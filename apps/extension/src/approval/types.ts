@@ -4,7 +4,7 @@ import type {
   SignMessageParams,
   SignedMessage,
   SignedTransaction,
-} from "@mosaic-lynx/provider-api";
+} from "@mosaiclynx/provider-api";
 import type { PublicAccount, PublicProfile } from "../vault.js";
 
 interface ApprovalBase {

@@ -1,5 +1,5 @@
 import { createMosaicLynxSDK, MosaicLynxSDKError, type SignedTransaction } from "@mosaiclynx/sdk";
-import type { MosaicAccount, MosaicLynxProvider } from "@mosaic-lynx/provider-api";
+import type { MosaicAccount, MosaicLynxProvider } from "@mosaiclynx/provider-api";
 import { createTransferPayload, type Chain, type Network } from "./transaction.js";
 import "./styles.css";
 
@@ -36,12 +36,12 @@ const waitForProvider = async (timeoutMs = 2_000): Promise<MosaicLynxProvider | 
   return new Promise((resolve) => {
     const finish = (): void => {
       window.clearTimeout(timeout);
-      window.removeEventListener("mosaic-lynx:ready", onReady);
+      window.removeEventListener("mosaiclynx:ready", onReady);
       resolve(window.mosaicLynx);
     };
     const onReady = (): void => finish();
     const timeout = window.setTimeout(finish, timeoutMs);
-    window.addEventListener("mosaic-lynx:ready", onReady, { once: true });
+    window.addEventListener("mosaiclynx:ready", onReady, { once: true });
   });
 };
 

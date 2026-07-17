@@ -5,7 +5,7 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 
 export type AppThemeMode = "light" | "dark";
 
-const THEME_EVENT = "mosaic-lynx:theme-change";
+const THEME_EVENT = "mosaiclynx:theme-change";
 
 export const setAppThemeMode = (mode: AppThemeMode): void => {
   window.dispatchEvent(new CustomEvent<AppThemeMode>(THEME_EVENT, { detail: mode }));

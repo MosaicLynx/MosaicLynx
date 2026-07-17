@@ -1,7 +1,7 @@
 import { Signature, utils } from "@nemnesia/symbol-sdk";
 import { NemFacade, TransactionFactory as NemTransactionFactory } from "@nemnesia/symbol-sdk/nem";
 import { SymbolFacade, SymbolTransactionFactory } from "@nemnesia/symbol-sdk/symbol";
-import type { SignedTransaction } from "@mosaic-lynx/provider-api";
+import type { SignedTransaction } from "@mosaiclynx/provider-api";
 import type { MosaicLynxSignTransactionParams } from "./index.js";
 
 const expectedNetworkIdentifier = (network: "mainnet" | "testnet"): number =>

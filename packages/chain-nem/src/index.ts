@@ -9,7 +9,7 @@ import type {
   ConnectionScope,
   GeneratedAccountMaterial,
   TransactionInspection,
-} from "@mosaic-lynx/core";
+} from "@mosaiclynx/core";
 
 const bytesFor = (payload: string): Uint8Array => {
   if (!payload || payload.length % 2 || !utils.isHexString(payload))

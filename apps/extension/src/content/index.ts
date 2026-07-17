@@ -1,8 +1,8 @@
 import inpageScript from "../inpage/index.ts?script&module";
 
-const requestEvent = "mosaic-lynx:request";
-const responseEvent = "mosaic-lynx:response";
-const providerEvent = "mosaic-lynx:event";
+const requestEvent = "mosaiclynx:request";
+const responseEvent = "mosaiclynx:response";
+const providerEvent = "mosaiclynx:event";
 
 // MAIN-world declarative content scripts are the primary installation path.
 // Keep a compiled script-tag fallback for Chrome variants or policies that do
@@ -41,7 +41,7 @@ window.addEventListener(requestEvent, (event: Event) => {
 
   void chrome.runtime
     .sendMessage({
-      kind: "mosaic-lynx:request",
+      kind: "mosaiclynx:request",
       origin: window.location.origin,
       request: request.request,
     })

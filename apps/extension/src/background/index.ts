@@ -1,6 +1,6 @@
-import { NemChainAdapter } from "@mosaic-lynx/chain-nem";
-import { SymbolChainAdapter } from "@mosaic-lynx/chain-symbol";
-import { createStructuredMessage, structuredMessageDigest } from "@mosaic-lynx/core";
+import { NemChainAdapter } from "@mosaiclynx/chain-nem";
+import { SymbolChainAdapter } from "@mosaiclynx/chain-symbol";
+import { createStructuredMessage, structuredMessageDigest } from "@mosaiclynx/core";
 import { PublicKey, Signature } from "@nemnesia/symbol-sdk";
 import { NemFacade } from "@nemnesia/symbol-sdk/nem";
 import { SymbolFacade } from "@nemnesia/symbol-sdk/symbol";
@@ -11,7 +11,7 @@ import type {
   SignMessageParams,
   SignedMessage,
   SignedTransaction,
-} from "@mosaic-lynx/provider-api";
+} from "@mosaiclynx/provider-api";
 import type { ApprovalRequest, ApprovalResolution, NewApprovalRequest } from "../approval/types.js";
 import { MAINNET_SIGNING_ENABLED } from "../release-capabilities.js";
 import {
@@ -23,7 +23,7 @@ import {
   type PublicProfile,
 } from "../vault.js";
 
-interface BridgeRequest { readonly kind: "mosaic-lynx:request"; readonly request: RpcRequest; }
+interface BridgeRequest { readonly kind: "mosaiclynx:request"; readonly request: RpcRequest; }
 interface PendingApproval {
   readonly request: ApprovalRequest;
   readonly resolve: (resolution: ApprovalResolution) => void;
@@ -131,7 +131,7 @@ const emit = async (origin: string, event: "accountsChanged" | "disconnect", pay
     try {
       if (new URL(tab.url).origin !== origin) return [];
     } catch { return []; }
-    return [chrome.tabs.sendMessage(tab.id, { kind: "mosaic-lynx:event", event, payload }).catch(() => undefined)];
+    return [chrome.tabs.sendMessage(tab.id, { kind: "mosaiclynx:event", event, payload }).catch(() => undefined)];
   }));
 };
 
@@ -455,18 +455,18 @@ void chrome.storage.session.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
 
 chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) => {
   const envelope = message as BridgeRequest | { kind?: string; id?: string; resolution?: ApprovalResolution };
-  if (envelope.kind === "mosaic-lynx:approval:get") {
+  if (envelope.kind === "mosaiclynx:approval:get") {
     if (!isTrustedExtensionPage(sender) || !envelope.id) { sendResponse(undefined); return; }
     sendResponse(approvals.get(envelope.id)?.request);
     return;
   }
-  if (envelope.kind === "mosaic-lynx:approval:resolve") {
+  if (envelope.kind === "mosaiclynx:approval:resolve") {
     if (!isTrustedExtensionPage(sender) || !envelope.id || !envelope.resolution) { sendResponse({ ok: false }); return; }
     finishApproval(envelope.id, envelope.resolution);
     sendResponse({ ok: true });
     return;
   }
-  if (envelope.kind !== "mosaic-lynx:request") return;
+  if (envelope.kind !== "mosaiclynx:request") return;
   const bridge = envelope as BridgeRequest;
   let origin: string;
   try { origin = requirePageOrigin(sender); }

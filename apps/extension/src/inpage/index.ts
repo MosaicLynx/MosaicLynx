@@ -3,7 +3,7 @@ import {
   RpcMosaicLynxProvider,
   type RpcExecutor,
   type RpcRequest,
-} from "@mosaic-lynx/provider-api";
+} from "@mosaiclynx/provider-api";
 
 declare global {
   interface Window {
@@ -11,8 +11,8 @@ declare global {
   }
 }
 
-const requestEvent = "mosaic-lynx:request";
-const responseEvent = "mosaic-lynx:response";
+const requestEvent = "mosaiclynx:request";
+const responseEvent = "mosaiclynx:response";
 
 const createRequestId = (): string => {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -72,7 +72,7 @@ if (!window.mosaicLynx) {
     const detail = (event as CustomEvent<{ readonly event?: Parameters<typeof provider.emit>[0]; readonly payload?: unknown }>).detail;
     if (detail?.event) provider.emit(detail.event, detail.payload as never);
   });
-  window.dispatchEvent(new CustomEvent("mosaic-lynx:ready", {
+  window.dispatchEvent(new CustomEvent("mosaiclynx:ready", {
     detail: { apiVersion: provider.apiVersion },
   }));
 }

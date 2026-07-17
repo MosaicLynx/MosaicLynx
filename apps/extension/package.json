@@ -1,15 +1,15 @@
 {
-  "name": "@mosaic-lynx/extension",
+  "name": "@mosaiclynx/extension",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@mosaic-lynx/chain-nem": "workspace:*",
-    "@mosaic-lynx/chain-symbol": "workspace:*",
-    "@mosaic-lynx/core": "workspace:*",
-    "@mosaic-lynx/provider-api": "workspace:*",
+    "@mosaiclynx/chain-nem": "workspace:*",
+    "@mosaiclynx/chain-symbol": "workspace:*",
+    "@mosaiclynx/core": "workspace:*",
+    "@mosaiclynx/provider-api": "workspace:*",
     "@mui/icons-material": "^9.2.0",
     "@mui/material": "^9.2.0",
     "@nemnesia/symbol-sdk": "3.3.2-pure.2",
@@ -29,7 +29,7 @@
   },
   "scripts": {
     "build": "vite build",
-    "typecheck": "pnpm --filter @mosaic-lynx/core build && pnpm --filter @mosaic-lynx/provider-api build && pnpm --filter @mosaic-lynx/chain-symbol build && pnpm --filter @mosaic-lynx/chain-nem build && tsc --noEmit -p tsconfig.json",
+    "typecheck": "pnpm --filter @mosaiclynx/core build && pnpm --filter @mosaiclynx/provider-api build && pnpm --filter @mosaiclynx/chain-symbol build && pnpm --filter @mosaiclynx/chain-nem build && tsc --noEmit -p tsconfig.json",
     "test": "vitest run --passWithNoTests"
   }
 }
