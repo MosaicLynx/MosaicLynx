@@ -28,7 +28,7 @@
     "vite": "^7.2.6"
   },
   "scripts": {
-    "build": "vite build",
+    "build": "pnpm --filter @mosaiclynx/release-evidence build && node ../../tools/evidence/embed.mjs && vite build",
     "typecheck": "pnpm --filter @mosaiclynx/core build && pnpm --filter @mosaiclynx/provider-api build && pnpm --filter @mosaiclynx/chain-symbol build && pnpm --filter @mosaiclynx/chain-nem build && tsc --noEmit -p tsconfig.json",
     "test": "vitest run --passWithNoTests"
   }

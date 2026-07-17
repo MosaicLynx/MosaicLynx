@@ -9,3 +9,5 @@ _*
 
 dist
 coverage
+
+apps/extension/.release-capabilities.json

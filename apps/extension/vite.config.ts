@@ -1,8 +1,14 @@
 import { crx } from '@crxjs/vite-plugin';
 import react from '@vitejs/plugin-react';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
+const capabilityPath = resolve(import.meta.dirname, '.release-capabilities.json');
+const capability = existsSync(capabilityPath) ? JSON.parse(readFileSync(capabilityPath, 'utf8')) : { enabled: false };
+
 export default defineConfig({
+  define: { __MOSAICLYNX_MAINNET_ENABLED__: JSON.stringify(capability.enabled === true) },
   build: {
     rollupOptions: {
       input: {

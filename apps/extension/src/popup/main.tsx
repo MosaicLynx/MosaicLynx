@@ -628,7 +628,7 @@ const App = () => {
                 <span>{t('network')}</span>
                 <select value={network} onChange={(event) => setNetwork(event.target.value as typeof network)}>
                   <option value="testnet">Testnet</option>
-                  <option value="mainnet">Mainnet</option>
+                  {MAINNET_SIGNING_ENABLED && <option value="mainnet">Mainnet</option>}
                 </select>
               </label>
               {network === 'mainnet' && <p className="danger-panel inline-panel">{t('mainnetDanger')}</p>}

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1",
+  "mode": "lite",
+  "requiredApprovals": { "release": 1, "security": 0 },
+  "allowSameApproverMultipleRoles": true,
+  "maxEvidenceAgeDays": 30,
+  "trustedKeys": {},
+  "productionHostnameDenylist": ["relay.mosaiclynx.app"]
+}
