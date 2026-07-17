@@ -18,7 +18,6 @@ interface ApprovalBase {
   readonly account: PublicAccount;
   readonly createdAt: string;
   readonly expiresAt: string;
-  readonly summary: readonly { readonly label: string; readonly value: string }[];
 }
 
 export interface ConnectApproval extends ApprovalBase {

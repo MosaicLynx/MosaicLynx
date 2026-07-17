@@ -135,11 +135,6 @@ const emit = async (origin: string, event: "accountsChanged" | "disconnect", pay
   }));
 };
 
-const summaryFor = (scope: MosaicScope, account: PublicAccount): readonly { label: string; value: string }[] => [
-  { label: "Chain / Network", value: `${scope.chain} ${scope.network}` },
-  { label: "Account", value: `${account.name}\n${account.identities[scope.chain].address}` },
-];
-
 const requestApproval = async (
   request: NewApprovalRequest,
   tabId?: number,
@@ -300,7 +295,6 @@ const handleConnect = async (origin: string, params: unknown, tabId: number): Pr
     vaultRevision: vaultRevisionFor(store, profile.id),
     account: defaultAccount,
     availableAccounts: accountsForProfile(store, profile.id).map((account) => projectAccount(profile, account, params)),
-    summary: summaryFor(params, defaultAccount),
   }, tabId);
   if (!resolution.approved || !("accountIds" in resolution) || resolution.accountIds.length === 0)
     return providerError("USER_REJECTED", "The connection request was rejected.");
@@ -356,12 +350,6 @@ const handleTransaction = async (origin: string, params: unknown): Promise<Signe
     account,
     payload: input.payload,
     inspection,
-    summary: [
-      ...summaryFor(scope, account),
-      { label: "Transaction", value: inspection.schema },
-      { label: "Recipients", value: inspection.recipients.join("\n") || "None" },
-      { label: "External state", value: "Not checked" },
-    ],
   });
   if (!resolution.approved || !("signedTransaction" in resolution))
     return providerError("USER_REJECTED", "The signing request was rejected.");
@@ -406,7 +394,6 @@ const handleMessage = async (origin: string, params: unknown): Promise<SignedMes
     vaultRevision: vaultRevisionFor(store, profile.id),
     account,
     messageParams: input,
-    summary: [...summaryFor(input, account), { label: "Purpose", value: input.purpose }, { label: "Expires", value: input.expiresAt }],
   });
   if (!resolution.approved || !("signedMessage" in resolution))
     return providerError("USER_REJECTED", "The message signing request was rejected.");

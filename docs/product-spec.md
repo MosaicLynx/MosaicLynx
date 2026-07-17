@@ -550,7 +550,7 @@ MVP の `apiVersion` は `2.0.0` とする。v1 の raw message API は互換提
 | Relay侵害 | E2E AEAD、capability分離 | AEAD / digest不一致を拒否 | Mobile端末または正規App侵害 |
 | Mobile Origin phishing | Mainnetは登録dApp鍵のOrigin proofを必須化 | Testnetでproofなしは未検証と固定表示 | 登録鍵はサイト運営主体の正当性や安全性までは保証しない |
 
-MVP の保証名は `Software Vault` とする。`OS-backed`、`Hardware`、`MPC` を実装するまで同等表示を行わない。保証レベルはホームと全署名確認画面に表示する。
+MVP の保証名は `Software Vault` とする。`OS-backed`、`Hardware`、`MPC` を実装するまで同等表示を行わない。保証レベルの説明は設定画面に集約し、署名確認画面では重複表示しない。
 
 ### 17.2 ユーザビリティとアクセシビリティ
 
@@ -568,11 +568,11 @@ MVP の保証名は `Software Vault` とする。`OS-backed`、`Hardware`、`MPC
 
 確認画面は次の三層を順番固定で表示する。
 
-1. **判断要約:** `Software Vault`、検証済みOrigin、chain / network、Account、署名者の役割、assetごとの正味増減、全宛先、最大手数料、deadline、chain状態未照合表示
+1. **判断要約:** 検証済みOrigin、chain / network、Account、署名者の役割、assetごとの正味増減、全宛先、最大手数料、deadline、chain状態未照合表示
 2. **全明細:** transaction順を維持した全inner transaction。100件までvirtualizeしてよいが、省略、paginationによる未読扱い、dApp指定の並べ替えを行わない。宛先・asset別の集約、重複宛先、自己送金、0 amountを強調する。
 3. **技術詳細:** 全raw field、payload byte length、payload digest、canonical digest、parser / symbol-sdk version、UTF-8 / hex。通常は折り畳めるがDOMから除去しない。
 
-- 承認ボタンは常に最終層の後へ置き、初期focus、Enter、Spaceの既定action、画面open直後の座標に配置しない。拒否は常時操作可能にする。
+- 承認ボタンは常に最終層の後へ通常フローで置き、本文と重なる固定表示にしない。初期focus、Enter、Spaceの既定action、画面open直後の座標に配置しない。拒否は常時操作可能にする。
 - Mainnetでは画面表示から800ms以上経過し、要約の描画完了と全検証完了を確認するまで承認をdisabledにする。aggregate / multisigは要約を一度表示領域へ入れるまで有効化しない。時間経過だけで承認しない。
 - Origin、address、public key、raw IDは先頭末尾だけで判断させず、全文表示、copyではない文字単位選択、同一画面内比較を提供する。Clipboardへ送る操作は別確認を必要とする。
 - unresolved aliasを含む要求は警告付き続行ではなく拒否画面にする。名称・divisibilityだけが未検証のraw mosaic IDはatomic amountを主表示し、換算値を表示しない。
@@ -585,7 +585,7 @@ MVP の保証名は `Software Vault` とする。`OS-backed`、`Hardware`、`MPC
 署名画面は次の情報順序を変更しない。visual designは変更できるが、括弧内のfixture binding、見出し、警告、button label、承認disabled条件を省略しない。
 
 ```text
-┌ [Software Vault]  SYMBOL MAINNET                 [拒否 / Reject]
+┌ MosaicLynx  SYMBOL MAINNET                        [拒否 / Reject]
 │ app.example (app.example)  登録Origin / Registered origin
 │ Account A  N...全文...  initiator / asset sender
 ├ 判断要約 / Decision summary
@@ -602,7 +602,7 @@ MVP の保証名は `Software Vault` とする。`OS-backed`、`Hardware`、`MPC
 ```
 
 ```text
-┌ [OS-backed Software Vault]  SYMBOL MAINNET
+┌ MosaicLynx  SYMBOL MAINNET
 │ Aggregate Complete V2 — cosigner候補 / cosigner candidate
 ├ 正味効果 / Net effects          100 inner transactions
 │ Account A: -asset X, +asset Y   最大手数料はinitiator負担
@@ -627,7 +627,6 @@ MVP の保証名は `Software Vault` とする。`OS-backed`、`Hardware`、`MPC
 | `origin.unverified` | このサイトはMosaicLynxが確認していません。サイト名ではなく送信内容を確認してください。 | MosaicLynx has not verified this site. Verify the transaction details, not the site name. |
 | `raw_asset.warning` | 名称・桁数は外部未検証です。raw IDとatomic amountで確認してください。 | Name and divisibility are externally unverified. Verify the raw ID and atomic amount. |
 | `alias.rejected` | 解決先をローカルで確認できないaliasを含むため署名できません。 | Cannot sign because an alias cannot be resolved locally. |
-| `software_vault` | Software Vault — 署名中は秘密鍵がアプリのメモリに現れます。 | Software Vault — The private key is present in app memory while signing. |
 
 #### 17.2.3 ユーザビリティ検証
 

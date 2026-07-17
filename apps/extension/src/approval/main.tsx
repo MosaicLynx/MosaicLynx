@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { useTranslation } from "react-i18next";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
@@ -12,54 +13,83 @@ import { createStructuredMessage, structuredMessageDigest } from "@mosaic-lynx/c
 import { PrivateKey } from "@nemnesia/symbol-sdk";
 import { NemFacade } from "@nemnesia/symbol-sdk/nem";
 import { SymbolFacade } from "@nemnesia/symbol-sdk/symbol";
+import { approvalSummary } from "./summary.js";
 import type { ApprovalRequest, ApprovalResolution } from "./types.js";
 import { decryptVault, loadStore, type VaultContents } from "../vault.js";
 import { AppThemeProvider, setAppThemeMode } from "../ui/theme.js";
+import i18n, { type TranslationKey } from "../popup/i18n.js";
 import "../popup/styles.css";
 
 const id = new URLSearchParams(location.search).get("id") ?? "";
 const adapters = { symbol: new SymbolChainAdapter(), nem: new NemChainAdapter() } as const;
+const approvalTypeKey = {
+  connect: "approvalTypeConnect",
+  transaction: "approvalTypeTransaction",
+  message: "approvalTypeMessage",
+} as const;
+
+class ApprovalError extends Error {
+  constructor(readonly translationKey: TranslationKey) {
+    super(translationKey);
+  }
+}
 
 const privateKeyFor = (approval: ApprovalRequest, vault: VaultContents): string => {
   const source = approval.account.source;
   let privateKey: string;
   if (source.kind === "mnemonicDerived") {
-    if (!vault.mnemonic) throw new Error("This mnemonic-derived account is absent from the vault.");
+    if (!vault.mnemonic) throw new ApprovalError("approvalRequestFailed");
     const material = deriveSharedAccount(approval.profile.network, vault.mnemonic, source.accountIndex);
-    if (material.derivationPath !== source.derivationPath) throw new Error("Derivation path compatibility check failed.");
+    if (material.derivationPath !== source.derivationPath) throw new ApprovalError("approvalRequestFailed");
     privateKey = material.privateKey;
     for (const chain of ["symbol", "nem"] as const) {
       const expected = approval.account.identities[chain];
       const actual = material.identities[chain];
       if (expected.address !== actual.address || expected.publicKey !== actual.publicKey)
-        throw new Error("The derived identity does not match the public account index.");
+        throw new ApprovalError("approvalRequestFailed");
     }
   } else {
     privateKey = vault.importedPrivateKeys[approval.account.id] ?? "";
-    if (!privateKey) throw new Error("The imported key is absent from the vault.");
+    if (!privateKey) throw new ApprovalError("approvalRequestFailed");
   }
   return privateKey;
 };
 
 const App = () => {
+  const { t } = useTranslation();
   const [approval, setApproval] = useState<ApprovalRequest>();
+  const [ready, setReady] = useState(false);
   const [password, setPassword] = useState("");
   const [selected, setSelected] = useState<readonly string[]>([]);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<TranslationKey>();
 
   useEffect(() => {
-    void chrome.runtime.sendMessage({ kind: "mosaic-lynx:approval:get", id }).then((value: ApprovalRequest | undefined) => {
+    let mounted = true;
+    void (async () => {
+      const [store, value] = await Promise.all([
+        loadStore(),
+        chrome.runtime.sendMessage({ kind: "mosaic-lynx:approval:get", id }) as Promise<ApprovalRequest | undefined>,
+      ]);
+      await i18n.changeLanguage(store.settings.language);
+      if (!mounted) return;
+      document.documentElement.lang = store.settings.language;
+      setAppThemeMode(store.settings.theme);
       setApproval(value);
       if (value?.type === "connect") setSelected([value.account.id]);
+      setReady(true);
+    })().catch(() => {
+      if (mounted) setReady(true);
     });
+    return () => { mounted = false; };
   }, []);
 
   useEffect(() => {
-    void loadStore().then((store) => setAppThemeMode(store.settings.theme));
-  }, []);
+    if (ready) document.title = t("approvalWindowTitle");
+  }, [ready, t]);
 
   const expired = useMemo(() => approval ? Date.parse(approval.expiresAt) <= Date.now() : false, [approval]);
+  const summary = useMemo(() => approval ? approvalSummary(approval, (key) => t(key)) : [], [approval, t]);
 
   const resolve = async (resolution: ApprovalResolution): Promise<void> => {
     await chrome.runtime.sendMessage({ kind: "mosaic-lynx:approval:resolve", id, resolution });
@@ -71,16 +101,21 @@ const App = () => {
   const approve = async (): Promise<void> => {
     if (!approval || !password || expired) return;
     setBusy(true);
-    setError("");
+    setError(undefined);
     let privateKey = "";
     try {
       const store = await loadStore();
       const envelope = store.vaults.find((vault) => vault.profileId === approval.profile.id);
       if (!envelope || envelope.revision !== approval.vaultRevision)
-        throw new Error("The profile changed while this request was open.");
-      const contents = await decryptVault(envelope, password);
+        throw new ApprovalError("approvalProfileChanged");
+      let contents: VaultContents;
+      try {
+        contents = await decryptVault(envelope, password);
+      } catch {
+        throw new ApprovalError("approvalUnlockFailed");
+      }
       if (approval.type === "connect") {
-        if (!selected.length) throw new Error("Select at least one account.");
+        if (!selected.length) throw new ApprovalError("approvalSelectAccount");
         await resolve({ approved: true, accountIds: selected });
         return;
       }
@@ -114,7 +149,7 @@ const App = () => {
         return;
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "The request could not be completed.");
+      setError(cause instanceof ApprovalError ? cause.translationKey : "approvalRequestFailed");
     } finally {
       privateKey = "";
       setPassword("");
@@ -122,28 +157,30 @@ const App = () => {
     }
   };
 
+  if (!ready) return <main className="app-shell" aria-busy="true" />;
+
   if (!approval)
-    return <main className="app-shell"><p className="empty-state">Request is no longer available.</p></main>;
+    return <main className="app-shell"><p className="empty-state">{t("approvalRequestUnavailable")}</p></main>;
 
   return (
     <main className="app-shell approval-shell">
       <header className="approval-header">
         <div className="approval-brand-row"><h1>MosaicLynx</h1><Chip size="small" color={approval.scope.network === "mainnet" ? "error" : "secondary"} label={approval.scope.network.toUpperCase()} /></div>
-        <p className="eyebrow">{approval.type.toUpperCase()} APPROVAL · {approval.scope.chain.toUpperCase()}</p>
+        <p className="eyebrow">{t(approvalTypeKey[approval.type])} · {approval.scope.chain.toUpperCase()}</p>
         <p className="origin"><strong>{approval.origin}</strong><br /><span>{approval.originAscii}</span></p>
       </header>
 
-      <Card component="section" variant="outlined" className="approval-summary" aria-label="Request summary">
-        {approval.summary.map((item) => (
+      <Card component="section" variant="outlined" className="approval-summary" aria-label={t("approvalRequestSummary")}>
+        {summary.map((item) => (
           <div className="summary-row" key={item.label}>
-            <span>{item.label}</span><strong>{item.value}</strong>
+            <span>{t(item.label)}</span><strong>{item.value}</strong>
           </div>
         ))}
       </Card>
 
       {approval.type === "connect" && (
         <section>
-          <p className="section-label">ACCOUNTS TO SHARE</p>
+          <p className="section-label">{t("approvalAccountsToShare").toUpperCase()}</p>
           {approval.availableAccounts.map((account) => (
             <label className="account-choice" key={account.id}>
               <Checkbox
@@ -160,29 +197,28 @@ const App = () => {
 
       {approval.type === "transaction" && (
         <Alert severity="warning" variant="outlined">
-          <strong>Chain state is not checked</strong>
-          <p>Balances, restrictions, metadata, and announce status are external to this offline signing check.</p>
-          <details><summary>Technical details</summary><code>{approval.payload}</code></details>
+          <strong>{t("approvalChainStateUnverifiedTitle")}</strong>
+          <p>{t("approvalChainStateUnverifiedBody")}</p>
+          <details><summary>{t("approvalTechnicalDetails")}</summary><code>{approval.payload}</code></details>
         </Alert>
       )}
 
       <section className="approval-auth">
         <TextField
           fullWidth
-          label="Profile password"
+          label={t("approvalProfilePassword")}
           type="password"
           autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           disabled={busy}
         />
-        <Alert severity="info" icon={false}>Software Vault — not a hardware wallet or cold wallet.</Alert>
-        {expired && <Alert severity="error">This request has expired.</Alert>}
-        {error && <Alert severity="error" role="alert">{error}</Alert>}
+        {expired && <Alert severity="error">{t("approvalRequestExpired")}</Alert>}
+        {error && <Alert severity="error" role="alert">{t(error)}</Alert>}
       </section>
 
       <footer>
-        <Button fullWidth variant="outlined" color="inherit" type="button" onClick={reject} disabled={busy}>Reject</Button>
+        <Button fullWidth variant="outlined" color="inherit" type="button" onClick={reject} disabled={busy}>{t("approvalReject")}</Button>
         <Button
           fullWidth
           variant="contained"
@@ -190,7 +226,7 @@ const App = () => {
           onClick={() => void approve()}
           disabled={busy || !password || expired || (approval.type === "connect" && selected.length === 0)}
         >
-          {busy ? "Verifying…" : "Approve"}
+          {busy ? t("approvalVerifying") : t("approvalApprove")}
         </Button>
       </footer>
     </main>
