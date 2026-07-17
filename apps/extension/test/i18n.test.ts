@@ -10,5 +10,7 @@ describe("popup localization", () => {
 
     await i18n.changeLanguage("ja");
     expect(i18n.t("addAccount")).toBe("アカウントを追加");
+    expect(i18n.t("theme")).toBe("テーマ");
+    expect(i18n.t("darkTheme")).toBe("ダークテーマ");
   });
 });

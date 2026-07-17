@@ -1,6 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { useTranslation } from "react-i18next";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
+import LinearProgress from "@mui/material/LinearProgress";
+import TextField from "@mui/material/TextField";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import DarkModeOutlined from "@mui/icons-material/DarkModeOutlined";
+import LightModeOutlined from "@mui/icons-material/LightModeOutlined";
+import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
+import VisibilityOffOutlined from "@mui/icons-material/VisibilityOffOutlined";
 import { deriveSharedAccount, generateMnemonic } from "@mosaic-lynx/chain-symbol";
 import {
   decryptVault,
@@ -14,6 +30,7 @@ import {
   type VaultContents,
 } from "../vault.js";
 import { MAINNET_SIGNING_ENABLED } from "../release-capabilities.js";
+import { AppThemeProvider, setAppThemeMode } from "../ui/theme.js";
 import "./i18n.js";
 import "./styles.css";
 
@@ -21,6 +38,9 @@ type CreateMode = "new" | "import";
 type OnboardingStep = "welcome" | "method" | "details" | "import" | "import-review" | "backup" | "confirm" | "complete";
 type Language = ExtensionStore["settings"]["language"];
 type HomeView = "home" | "menu" | "profiles" | "accounts" | "connections";
+type ConfirmationAction =
+  | { readonly kind: "account"; readonly name: string }
+  | { readonly kind: "connection"; readonly grant: PermissionGrant };
 
 const DEBUG_SKIP_BACKUP_CONFIRMATION = !MAINNET_SIGNING_ENABLED;
 
@@ -40,31 +60,37 @@ const PasswordField = ({ label, value, onChange, revealLabel, autoFocus, autoCom
   const reveal = (): void => setRevealed(true);
   const conceal = (): void => setRevealed(false);
   return (
-    <label className="field">
-      <span>{label}</span>
-      <span className="password-input">
-        <input
-          autoFocus={autoFocus}
-          type={revealed ? "text" : "password"}
-          autoComplete={autoComplete}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-        />
-        <button
-          type="button"
-          className={revealed ? "reveal-button revealing" : "reveal-button"}
-          aria-label={revealLabel}
-          aria-pressed={revealed}
-          onPointerDown={reveal}
-          onPointerUp={conceal}
-          onPointerCancel={conceal}
-          onPointerLeave={conceal}
-          onKeyDown={(event) => { if (event.key === " " || event.key === "Enter") reveal(); }}
-          onKeyUp={conceal}
-          onBlur={conceal}
-        >{revealed ? "●" : "◉"}</button>
-      </span>
-    </label>
+    <TextField
+      className="field mui-field"
+      fullWidth
+      label={label}
+      autoFocus={autoFocus}
+      type={revealed ? "text" : "password"}
+      autoComplete={autoComplete}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      slotProps={{
+        input: {
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                edge="end"
+                type="button"
+                aria-label={revealLabel}
+                aria-pressed={revealed}
+                onPointerDown={reveal}
+                onPointerUp={conceal}
+                onPointerCancel={conceal}
+                onPointerLeave={conceal}
+                onKeyDown={(event) => { if (event.key === " " || event.key === "Enter") reveal(); }}
+                onKeyUp={conceal}
+                onBlur={conceal}
+              >{revealed ? <VisibilityOffOutlined /> : <VisibilityOutlined />}</IconButton>
+            </InputAdornment>
+          ),
+        },
+      }}
+    />
   );
 };
 
@@ -89,6 +115,7 @@ const App = () => {
   const [accountPassword, setAccountPassword] = useState("");
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [notice, setNotice] = useState("");
+  const [confirmationAction, setConfirmationAction] = useState<ConfirmationAction>();
   const language = store?.settings.language ?? "en";
   const { t, i18n } = useTranslation();
 
@@ -98,6 +125,10 @@ const App = () => {
     document.documentElement.lang = language;
     if (i18n.language !== language) void i18n.changeLanguage(language);
   }, [i18n, language]);
+
+  useEffect(() => {
+    if (store) setAppThemeMode(store.settings.theme);
+  }, [store?.settings.theme]);
 
   const updateSettings = async (settings: Partial<ExtensionStore["settings"]>): Promise<void> => {
     if (!store) return;
@@ -326,7 +357,6 @@ const App = () => {
       setError(t("lastAccountCannotBeDeleted"));
       return;
     }
-    if (!window.confirm(t("confirmDeleteAccount", { name: activeAccount.name }))) return;
     const now = new Date().toISOString();
     const permissions = store.permissions
       .map((grant) => grant.profileId === active.id && grant.accountIds.includes(activeAccount.id)
@@ -350,7 +380,7 @@ const App = () => {
   };
 
   const deleteConnection = async (grant: PermissionGrant): Promise<void> => {
-    if (!store || !window.confirm(t("confirmDeleteConnection", { origin: grant.origin }))) return;
+    if (!store) return;
     const next: ExtensionStore = {
       ...store,
       permissions: store.permissions.filter((item) => !(item.origin === grant.origin
@@ -440,11 +470,12 @@ const App = () => {
     const header = (title: string, body: string) => (
       <header className="flow-header">
         <div className="brand-row"><h1>MosaicLynx</h1>{flowStep && <span className="step-count">{flowStep} / 4</span>}</div>
+        {flowStep && <LinearProgress className="flow-progress" variant="determinate" value={(flowStep / 4) * 100} />}
         <h2>{title}</h2>
         <p>{body}</p>
       </header>
     );
-    const backButton = (onClick: () => void) => <button type="button" onClick={onClick}>{t("back")}</button>;
+    const backButton = (onClick: () => void) => <Button variant="outlined" color="inherit" type="button" onClick={onClick}>{t("back")}</Button>;
 
     return (
       <main className="app-shell onboarding">
@@ -563,6 +594,39 @@ const App = () => {
   const scope = { chain: store.settings.activeChain, network: profile.network } as const;
   const connections = store.permissions.filter((grant) => grant.profileId === profile.id);
   const profileAccounts = store.accounts.filter((item) => item.profileId === profile.id);
+  const confirmationDialog = (
+    <Dialog
+      open={Boolean(confirmationAction)}
+      onClose={() => setConfirmationAction(undefined)}
+      aria-labelledby="confirmation-dialog-title"
+    >
+      <DialogTitle id="confirmation-dialog-title">{t("confirmAction")}</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          {confirmationAction?.kind === "account"
+            ? t("confirmDeleteAccount", { name: confirmationAction.name })
+            : confirmationAction?.kind === "connection"
+              ? t("confirmDeleteConnection", { origin: confirmationAction.grant.origin })
+              : ""}
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setConfirmationAction(undefined)}>{t("cancel")}</Button>
+        <Button
+          color="error"
+          variant="contained"
+          onClick={() => {
+            const action = confirmationAction;
+            setConfirmationAction(undefined);
+            if (action?.kind === "account") void deleteAccount();
+            if (action?.kind === "connection") void deleteConnection(action.grant);
+          }}
+        >
+          {t("delete")}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
   const pageHeader = (title: string, backTo: HomeView = "menu") => (
     <header className="page-header">
       <button className="icon-button" type="button" aria-label={t("back")} onClick={() => openView(backTo)}>←</button>
@@ -582,6 +646,18 @@ const App = () => {
         <section className="menu-settings">
           <p className="section-label">{t("settings").toUpperCase()}</p>
           <label className="setting-row"><span>{t("language")}</span><select value={language} onChange={(event) => void updateSettings({ language: event.target.value as Language })}><option value="ja">日本語</option><option value="en">English</option></select></label>
+          <div className="setting-row"><span>{t("theme")}</span>
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              value={store.settings.theme}
+              onChange={(_, value: ExtensionStore["settings"]["theme"] | null) => { if (value) void updateSettings({ theme: value }); }}
+              aria-label={t("theme")}
+            >
+              <ToggleButton value="light" aria-label={t("lightTheme")}><LightModeOutlined fontSize="small" /></ToggleButton>
+              <ToggleButton value="dark" aria-label={t("darkTheme")}><DarkModeOutlined fontSize="small" /></ToggleButton>
+            </ToggleButtonGroup>
+          </div>
           <p className="assurance"><strong>{t("softwareVault")}</strong><br />{t("assurance")}</p>
         </section>
       </main>
@@ -639,7 +715,7 @@ const App = () => {
             <label className="field"><span>{t("accountName")}</span><input value={accountNameDraft} onChange={(event) => setAccountNameDraft(event.target.value)} /></label>
             {error && <p className="form-error" role="alert">{error}</p>}
             {notice && <p className="form-notice" role="status">{notice}</p>}
-            <div className="button-row"><button className="danger-button" onClick={() => void deleteAccount()}>{t("deleteAccount")}</button><button className="primary" onClick={() => void renameAccount()}>{t("rename")}</button></div>
+            <div className="button-row"><button className="danger-button" onClick={() => account && setConfirmationAction({ kind: "account", name: account.name })}>{t("deleteAccount")}</button><button className="primary" onClick={() => void renameAccount()}>{t("rename")}</button></div>
           </section>
         )}
         {!showAddAccount && (
@@ -647,6 +723,7 @@ const App = () => {
             <button className="primary wide" onClick={() => { setAccountNameDraft(`Account ${profile.nextAccountIndex + 1}`); setShowAddAccount(true); setNotice(""); }}>{t("addAccount")}</button>
           </footer>
         )}
+        {confirmationDialog}
       </main>
     );
   }
@@ -658,9 +735,10 @@ const App = () => {
         {notice && <p className="form-notice" role="status">{notice}</p>}
         <section className="connections-list">
           {connections.length
-            ? connections.map((grant) => <div className="connection" key={`${grant.origin}-${grant.chain}`}><span>{grant.origin}<small>{grant.chain} {grant.network} · {t("connectedAccountCount", { count: grant.accountIds.length })}</small></span><button className="danger-button" onClick={() => void deleteConnection(grant)}>{t("deleteConnection")}</button></div>)
+            ? connections.map((grant) => <div className="connection" key={`${grant.origin}-${grant.chain}`}><span>{grant.origin}<small>{grant.chain} {grant.network} · {t("connectedAccountCount", { count: grant.accountIds.length })}</small></span><button className="danger-button" onClick={() => setConfirmationAction({ kind: "connection", grant })}>{t("deleteConnection")}</button></div>)
             : <p className="empty-state">{t("noConnections")}</p>}
         </section>
+        {confirmationDialog}
       </main>
     );
   }
@@ -672,10 +750,10 @@ const App = () => {
         <div className="profile-summary"><span>{profile.name}</span><span className={`network-pill ${profile.network}`}>{profile.network.toUpperCase()}</span></div>
       </header>
       <section className="home-account-section">
-        <div className="tabs">
-          <button className={scope.chain === "symbol" ? "selected" : ""} onClick={() => void updateSettings({ activeChain: "symbol" })}>Symbol</button>
-          <button className={scope.chain === "nem" ? "selected" : ""} onClick={() => void updateSettings({ activeChain: "nem" })}>NEM</button>
-        </div>
+        <ToggleButtonGroup className="tabs" exclusive fullWidth value={scope.chain} aria-label="Chain">
+          <ToggleButton value="symbol" onClick={() => void updateSettings({ activeChain: "symbol" })}>Symbol</ToggleButton>
+          <ToggleButton value="nem" onClick={() => void updateSettings({ activeChain: "nem" })}>NEM</ToggleButton>
+        </ToggleButtonGroup>
         <label className="field account-select"><span>{t("account")}</span><select value={profile.defaultAccountId} onChange={(event) => void selectAccount(event.target.value)}>{profileAccounts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
         <div className="address-card">
           <span>{scope.chain.toUpperCase()} {t("address")}</span>
@@ -687,4 +765,4 @@ const App = () => {
   );
 };
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(<AppThemeProvider><App /></AppThemeProvider>);

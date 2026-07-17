@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import Checkbox from "@mui/material/Checkbox";
+import Chip from "@mui/material/Chip";
+import TextField from "@mui/material/TextField";
 import { NemChainAdapter } from "@mosaic-lynx/chain-nem";
 import { deriveSharedAccount, SymbolChainAdapter } from "@mosaic-lynx/chain-symbol";
 import { createStructuredMessage, structuredMessageDigest } from "@mosaic-lynx/core";
@@ -8,6 +14,7 @@ import { NemFacade } from "@nemnesia/symbol-sdk/nem";
 import { SymbolFacade } from "@nemnesia/symbol-sdk/symbol";
 import type { ApprovalRequest, ApprovalResolution } from "./types.js";
 import { decryptVault, loadStore, type VaultContents } from "../vault.js";
+import { AppThemeProvider, setAppThemeMode } from "../ui/theme.js";
 import "../popup/styles.css";
 
 const id = new URLSearchParams(location.search).get("id") ?? "";
@@ -46,6 +53,10 @@ const App = () => {
       setApproval(value);
       if (value?.type === "connect") setSelected([value.account.id]);
     });
+  }, []);
+
+  useEffect(() => {
+    void loadStore().then((store) => setAppThemeMode(store.settings.theme));
   }, []);
 
   const expired = useMemo(() => approval ? Date.parse(approval.expiresAt) <= Date.now() : false, [approval]);
@@ -116,27 +127,26 @@ const App = () => {
 
   return (
     <main className="app-shell approval-shell">
-      <header>
-        <p className="eyebrow">{approval.type.toUpperCase()} APPROVAL</p>
-        <h1>MosaicLynx</h1>
+      <header className="approval-header">
+        <div className="approval-brand-row"><h1>MosaicLynx</h1><Chip size="small" color={approval.scope.network === "mainnet" ? "error" : "secondary"} label={approval.scope.network.toUpperCase()} /></div>
+        <p className="eyebrow">{approval.type.toUpperCase()} APPROVAL · {approval.scope.chain.toUpperCase()}</p>
         <p className="origin"><strong>{approval.origin}</strong><br /><span>{approval.originAscii}</span></p>
       </header>
 
-      <section aria-label="Request summary">
+      <Card component="section" variant="outlined" className="approval-summary" aria-label="Request summary">
         {approval.summary.map((item) => (
           <div className="summary-row" key={item.label}>
             <span>{item.label}</span><strong>{item.value}</strong>
           </div>
         ))}
-      </section>
+      </Card>
 
       {approval.type === "connect" && (
         <section>
           <p className="section-label">ACCOUNTS TO SHARE</p>
           {approval.availableAccounts.map((account) => (
             <label className="account-choice" key={account.id}>
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={selected.includes(account.id)}
                 onChange={(event) => setSelected(event.target.checked
                   ? [...selected, account.id]
@@ -149,41 +159,42 @@ const App = () => {
       )}
 
       {approval.type === "transaction" && (
-        <section className="warning-panel">
+        <Alert severity="warning" variant="outlined">
           <strong>Chain state is not checked</strong>
           <p>Balances, restrictions, metadata, and announce status are external to this offline signing check.</p>
           <details><summary>Technical details</summary><code>{approval.payload}</code></details>
-        </section>
+        </Alert>
       )}
 
-      <section>
-        <label className="field">
-          <span>Profile password</span>
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            disabled={busy}
-          />
-        </label>
-        <p className="assurance">Software Vault — not a hardware wallet or cold wallet.</p>
-        {error && <p className="form-error" role="alert">{error}</p>}
+      <section className="approval-auth">
+        <TextField
+          fullWidth
+          label="Profile password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          disabled={busy}
+        />
+        <Alert severity="info" icon={false}>Software Vault — not a hardware wallet or cold wallet.</Alert>
+        {expired && <Alert severity="error">This request has expired.</Alert>}
+        {error && <Alert severity="error" role="alert">{error}</Alert>}
       </section>
 
       <footer>
-        <button type="button" onClick={reject} disabled={busy}>Reject</button>
-        <button
-          className="primary"
+        <Button fullWidth variant="outlined" color="inherit" type="button" onClick={reject} disabled={busy}>Reject</Button>
+        <Button
+          fullWidth
+          variant="contained"
           type="button"
           onClick={() => void approve()}
           disabled={busy || !password || expired || (approval.type === "connect" && selected.length === 0)}
         >
           {busy ? "Verifying…" : "Approve"}
-        </button>
+        </Button>
       </footer>
     </main>
   );
 };
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(<AppThemeProvider><App /></AppThemeProvider>);
