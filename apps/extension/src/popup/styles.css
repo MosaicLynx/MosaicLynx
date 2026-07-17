@@ -1008,23 +1008,6 @@ details code {
   margin-top: 11px;
 }
 
-.network-pill {
-  border-radius: 999px;
-  font-family: ui-monospace, monospace;
-  font-size: 9px;
-  padding: 4px 7px;
-}
-
-.network-pill.testnet {
-  background: #253c67;
-  color: #fff;
-}
-
-.network-pill.mainnet {
-  background: #762c19;
-  color: #fff;
-}
-
 .home-account-section {
   border: 0;
   display: flex;
@@ -1037,54 +1020,71 @@ details code {
   margin-bottom: 14px;
 }
 
-.address-card {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--app-primary) 88%, #062b27),
-    color-mix(in srgb, var(--app-primary) 64%, #172554)
-  );
-  border-radius: 16px;
-  box-shadow: var(--app-shadow);
-  color: var(--app-primary-contrast);
-  padding: 22px 18px;
+.home-identity-card.MuiCard-root {
+  background: var(--app-paper);
+  border-color: var(--app-divider);
+  border-radius: 14px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
 }
 
-.address-card > span {
-  color: color-mix(in srgb, var(--app-primary-contrast) 75%, transparent);
-  display: block;
-  font-family: ui-monospace, monospace;
-  font-size: 10px;
-  margin-bottom: 10px;
+.identity-row {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
 }
 
-.address-card code {
+.identity-row > span,
+.identity-public-key > span {
+  color: var(--app-muted);
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+
+.identity-row .MuiButton-root {
+  flex: 0 0 auto;
+  min-height: 32px;
+}
+
+.identity-address,
+.identity-public-key code {
   display: block;
   font-family: ui-monospace, monospace;
+  overflow-wrap: anywhere;
+}
+
+.identity-address {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.035em;
   line-height: 1.5;
-  overflow-wrap: anywhere;
 }
 
-.public-key-details {
-  border-bottom: 1px solid var(--app-divider);
-  color: var(--app-muted);
-  font-family: ui-monospace, monospace;
-  font-size: 10px;
-  margin-top: 13px;
-  padding: 0 2px 12px;
+.identity-public-key {
+  border-top: 1px solid var(--app-divider);
+  padding-top: 14px;
 }
 
-.public-key-details span {
+.identity-public-key > span {
   display: block;
   margin-bottom: 6px;
 }
 
-.public-key-details code {
-  display: block;
+.identity-public-key code {
   font-size: 10px;
-  overflow-wrap: anywhere;
+}
+
+.visually-hidden {
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 
 @media (max-height: 640px) {

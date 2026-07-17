@@ -4,6 +4,8 @@ import LightModeOutlined from '@mui/icons-material/LightModeOutlined';
 import VisibilityOffOutlined from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
 import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import Chip from '@mui/material/Chip';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -128,6 +130,7 @@ const App = () => {
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [notice, setNotice] = useState('');
   const [confirmationAction, setConfirmationAction] = useState<ConfirmationAction>();
+  const [copiedAddress, setCopiedAddress] = useState(false);
   const language = store?.settings.language ?? 'en';
   const { t, i18n } = useTranslation();
 
@@ -143,6 +146,12 @@ const App = () => {
   useEffect(() => {
     if (store) setAppThemeMode(store.settings.theme);
   }, [store?.settings.theme]);
+
+  useEffect(() => {
+    if (!copiedAddress) return;
+    const timeout = window.setTimeout(() => setCopiedAddress(false), 2000);
+    return () => window.clearTimeout(timeout);
+  }, [copiedAddress]);
 
   const updateSettings = async (settings: Partial<ExtensionStore['settings']>): Promise<void> => {
     if (!store) return;
@@ -846,6 +855,8 @@ const App = () => {
   }
 
   const scope = { chain: store.settings.activeChain, network: profile.network } as const;
+  const activeAddress = account?.identities[scope.chain].address;
+  const activePublicKey = account?.identities[scope.chain].publicKey;
   const connections = store.permissions.filter((grant) => grant.profileId === profile.id);
   const profileAccounts = store.accounts.filter((item) => item.profileId === profile.id);
   const confirmationDialog = (
@@ -1167,7 +1178,11 @@ const App = () => {
         </div>
         <div className="profile-summary">
           <span>{profile.name}</span>
-          <span className={`network-pill ${profile.network}`}>{profile.network.toUpperCase()}</span>
+          <Chip
+            size="small"
+            color={profile.network === 'mainnet' ? 'error' : 'secondary'}
+            label={profile.network.toUpperCase()}
+          />
         </div>
       </header>
       <section className="home-account-section">
@@ -1189,16 +1204,35 @@ const App = () => {
             ))}
           </select>
         </label>
-        <div className="address-card">
-          <span>
-            {scope.chain.toUpperCase()} {t('address')}
+        <Card component="section" variant="outlined" className="home-identity-card">
+          <div className="identity-row">
+            <span>{`${scope.chain.toUpperCase()} ${t('address')}`}</span>
+            {activeAddress && (
+              <Button
+                size="small"
+                variant="outlined"
+                type="button"
+                onClick={() => {
+                  setCopiedAddress(false);
+                  void navigator.clipboard
+                    .writeText(activeAddress)
+                    .then(() => setCopiedAddress(true))
+                    .catch(() => setCopiedAddress(false));
+                }}
+              >
+                {copiedAddress ? t('addressCopied') : t('copyAddress')}
+              </Button>
+            )}
+          </div>
+          <code className="identity-address">{activeAddress}</code>
+          <div className="identity-public-key">
+            <span>{t('publicKey')}</span>
+            <code>{activePublicKey}</code>
+          </div>
+          <span className="visually-hidden" role="status" aria-live="polite">
+            {copiedAddress ? t('addressCopied') : ''}
           </span>
-          <code>{account?.identities[scope.chain].address}</code>
-        </div>
-        <div className="public-key-details">
-          <span>{t('publicKey')}</span>
-          <code>{account?.identities[scope.chain].publicKey}</code>
-        </div>
+        </Card>
       </section>
     </main>
   );

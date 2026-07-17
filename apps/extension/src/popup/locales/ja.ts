@@ -69,6 +69,8 @@ export const ja = {
   lightTheme: 'ライトテーマ',
   darkTheme: 'ダークテーマ',
   address: 'アドレス',
+  copyAddress: 'コピー',
+  addressCopied: 'コピーしました',
   publicKey: '公開鍵',
   account: 'アカウント',
   accountCount: '{{count}} アカウント',

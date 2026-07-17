@@ -69,6 +69,8 @@ export const en = {
   lightTheme: 'Light theme',
   darkTheme: 'Dark theme',
   address: 'Address',
+  copyAddress: 'Copy',
+  addressCopied: 'Copied',
   publicKey: 'Public key',
   account: 'Account',
   accountCount: '{{count}} accounts',
