@@ -1,6 +1,13 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  test: {
+    alias: {
+      // Unit tests run before workspace packages are built, so resolve the
+      // contract package to its TypeScript source instead of its dist export.
+      '@mosaiclynx/provider-api': new URL('../provider-api/src/index.ts', import.meta.url).pathname,
+    },
+  },
   build: {
     emptyOutDir: false,
     sourcemap: true,
