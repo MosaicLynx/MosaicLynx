@@ -408,7 +408,8 @@ Relay による session ID、direction、expiry、暗号文の差し替えは AE
 - token は256-bit CSPRNG値とし、Relay は `SHA-256(token)` だけを保存して constant-time 比較する。
 - response に `Cache-Control: no-store` と `Referrer-Policy: no-referrer` を付ける。
 - browser API は credential なしの CORS を許可し、許可 method / header を必要最小限にする。cookie を許可しない。
-- Relay は session ごとに decoded transaction 256 KiB、暗号化 HTTP body 512 KiBを上限とし、IP と時間窓ごとの作成数・総 byte 数を rate limit する。
+- SDKとAppはdecoded transactionを256 KiB以下に制限し、Relayは暗号文を復号できないためこの値を直接検査しない。Relayとreverse proxyは暗号化HTTP bodyをraw byteで512 KiB以下に制限する。
+- RelayはIPと1分の時間窓ごとの作成数・総byte数をrate limitする。自己ホストMVPの既定値は10件/分かつ4 MiB/分とし、無効な作成要求も加算する。値は運用設定で変更できるが、既存sessionの取得、response、ACK、cancelへ作成用limitを適用しない。
 - error response は request body、token、session の存在を推測できる詳細を返さない。
 
 ### 9.2 Session の作成
@@ -432,7 +433,7 @@ interface CreateHandoffRequest {
 
 MosaicLynx SDKがsession ID、両tokenとtoken hashを生成するため、request暗号化とRelay登録を一回のrequestで行える。RelayはIDの形式、一意性、期限、body size、algorithmとenvelopeの外形だけを検証し、暗号文を復号しない。
 
-成功時は`201 Created`とsession ID、確定したexpiryだけを返す。RelayはMosaicLynx SDKが指定したexpiryを変更してはならず、受理できない場合はsessionを作成せず拒否する。IDが既存の場合は新しいIDで最初からやり直し、既存sessionを更新しない。
+成功時は`201 Created`と`{ protocol, sessionId, expiresAt }`だけを返す。RelayはMosaicLynx SDKが指定したexpiryを変更してはならず、受理できない場合はsessionを作成せず拒否する。IDが既存の場合は`409 Conflict`とし、新しいIDで最初からやり直して既存sessionを更新しない。schemaまたはexpiry不正は`400 Bad Request`、body超過は`413 Content Too Large`、rate limitは`429 Too Many Requests`とする。
 
 ### 9.3 App による要求取得
 
@@ -441,7 +442,7 @@ GET /v1/handoffs/{sessionId}/request
 Authorization: Bearer {appToken}
 ```
 
-成功時は request envelope、protocol、session ID、expiry を返す。同じ App token による期限内の再取得は冪等とする。存在しない、token 不一致、cancelled、expired は外部から区別しにくい共通 error とする。
+成功時は`200 OK`でrequest envelope、protocol、session ID、expiryを返す。同じApp tokenによる期限内の再取得は冪等とする。存在しない、token不一致、cancelled、expiredは同じ`404 Not Found`と共通error bodyを返す。
 
 ### 9.4 App による応答登録
 
@@ -452,7 +453,7 @@ If-None-Match: *
 Content-Type: application/json
 ```
 
-body は `EncryptedRelayEnvelope` とする。`pending → response_available` の compare-and-set に成功した最初の一回だけを受理する。同じ暗号文の再送は冪等成功としてよいが、異なる暗号文、`response_available` 後の上書き、cancel / expiry 後の登録を拒否する。
+bodyは`EncryptedRelayEnvelope`とする。`pending → response_available`のcompare-and-setに成功した最初の一回だけを`204 No Content`で受理する。同じenvelope値の再送は`204`、異なる暗号文による二重応答は`409 Conflict`、token不一致、cancel / expiry後は共通`404 Not Found`とする。
 
 ### 9.5 Web による応答待機
 
@@ -461,7 +462,7 @@ GET /v1/handoffs/{sessionId}/response?wait=25
 Authorization: Bearer {webToken}
 ```
 
-Relayは最大25秒のlong pollingを許可する。応答がなければ`204 No Content`、あればresponse envelopeを返す。MosaicLynx SDKはpage visibilityとnetwork状態を考慮し、即時再接続ループを避け、1秒から最大5秒までbackoffする。expiryを超えてpollingしない。
+Relayは`wait`の整数値0〜25を受け付け、最大25秒のlong pollingを許可する。応答がなければ`204 No Content`、あれば`200 OK`でresponse envelopeを返す。不正なquery、token不一致、cancel / expiry後は共通`404 Not Found`とする。MosaicLynx SDKはpage visibilityとnetwork状態を考慮し、即時再接続ループを避け、1秒から最大5秒までbackoffする。expiryを超えてpollingしない。
 
 ### 9.6 ACK と cancel
 
@@ -473,7 +474,7 @@ DELETE /v1/handoffs/{sessionId}
 Authorization: Bearer {webToken}
 ```
 
-MosaicLynx SDKはresponseの復号と全検証に成功した後だけACKする。ACKは`response_available → consumed`へ遷移し、Relayはsession dataを直ちにpurgeする。`DELETE`は未完了sessionを`cancelled`としてpurgeする。ACK / cancelは同じtokenに対して冪等とする。
+MosaicLynx SDKはresponseの復号と全検証に成功した後だけACKする。ACKは`response_available → consumed`へ遷移し、Relayはsession dataを直ちにpurgeする。`DELETE`は未完了sessionを`cancelled`としてpurgeする。ACK / cancelは外形が妥当な要求へ常に`204 No Content`を返すが、正しいWeb tokenの場合だけ状態を変更する。これによりpurge後の再試行を冪等にし、sessionの存在やtoken一致をresponseから判別させない。
 
 ### 9.7 状態遷移と削除
 
@@ -489,6 +490,10 @@ response_available ─────────→ expired
 - 終端遷移時に request / response 暗号文、token hash、session metadata を active storage から削除する。
 - 非同期 purge のために tombstone が必要な場合、session ID の keyed hash、終端状態、削除期限だけを最大24時間保持できる。token hash、暗号文、Origin、request ID は tombstone に含めない。
 - 暗号文を backup、analytics、APM payload、application log に含めない。
+
+自己ホストMVPはNode.js Relayと専用の非永続Redisを使用する。session状態遷移はRedis Lua script、long polling通知はRedis Pub/Sub、expiryはRedisのabsolute TTLで実装する。Redis keyにはraw session IDまたはIPを含めず、server secretでdomain-separated HMAC化する。RDB、AOF、volume、backupを無効にし、RedisまたはRelay再起動で進行中sessionを失った場合は復旧せず安全側のtimeout / 共通errorとする。ACK / cancelは暗号文、token hash、session metadataを同じatomic処理で削除する。
+
+全API responseは`Cache-Control: no-store`、`Referrer-Policy: no-referrer`、HSTS、`X-Content-Type-Options: nosniff`を返す。CORSは`Access-Control-Allow-Origin: *`、credentialなしとし、methodおよび`Authorization`、`Content-Type`、`If-None-Match`だけを許可する。4xx / 5xx bodyはstatusによらず`{ "error": "RELAY_REQUEST_REJECTED" }`へ統一し、request loggingを無効にする。
 
 ## 10. Error の抽象化
 

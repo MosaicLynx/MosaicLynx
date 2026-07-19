@@ -61,6 +61,7 @@ Relay は信頼しない transport とし、transaction、署名結果、session
 ```text
 apps/
 ├── extension/             Chrome 固有の Background / Content / In-page / UI
+├── relay/                 E2E暗号文の短期保管、capability、TTL、CAS、long polling
 └── mobile/                将来の React Native / Expo host、App Link、承認 UI
 
 packages/

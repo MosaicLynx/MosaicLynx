@@ -23,6 +23,10 @@ pnpm --filter @mosaiclynx/test-dapp dev
 
 表示された `http://127.0.0.1:5173` を開き、拡張機能に接続して recipient、amount、message を入力します。テストページは署名済み payload を表示しますが、ネットワークへの announce は行いません。
 
+### Relay
+
+自己ホスト型Mobile Relayは`apps/relay`にあります。Node.js、Redis、Docker Composeによる起動方法とreverse proxy要件は[Relay README](./apps/relay/README.md)を参照してください。通常のunit testはRedis不要で、実Redis integration testだけを専用commandで実行します。
+
 ## MosaicLynx SDK
 
 ```ts

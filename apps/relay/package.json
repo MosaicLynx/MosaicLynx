@@ -1,0 +1,21 @@
+{
+  "name": "@mosaiclynx/relay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --exclude test/redis.integration.test.ts",
+    "test:integration": "vitest run test/redis.integration.test.ts"
+  },
+  "dependencies": {
+    "@redis/client": "^6.1.0",
+    "fastify": "^5.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0"
+  }
+}

@@ -8,6 +8,7 @@
     "build:extension": "pnpm --filter @mosaiclynx/extension build",
     "test:unit": "pnpm test",
     "test:integration": "pnpm build",
+    "test:relay:integration": "pnpm --filter @mosaiclynx/relay test:integration",
     "test:e2e": "pnpm --filter @mosaiclynx/extension test",
     "evidence:collect": "pnpm --filter @mosaiclynx/release-evidence build && node tools/evidence/index.mjs collect",
     "evidence:manifest": "pnpm --filter @mosaiclynx/release-evidence build && node tools/evidence/index.mjs manifest",
