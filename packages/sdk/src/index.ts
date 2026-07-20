@@ -5,6 +5,7 @@ import {
   type SignedTransaction,
   isSupportedApiVersion,
 } from '@mosaiclynx/provider-api';
+import { RELAY_ORIGIN, RELAY_PROTOCOL } from '@mosaiclynx/relay-protocol';
 
 import { canonicalize } from './canonical.js';
 import {
@@ -85,8 +86,7 @@ declare global {
 }
 
 const SDK_VERSION = '1.0.0';
-const RELAY_ORIGIN = 'https://relay.mosaiclynx.app';
-const PROTOCOL = 'mosaiclynx.relay.v1' as const;
+const PROTOCOL = RELAY_PROTOCOL;
 
 const publicMessage: Record<MosaicLynxSDKErrorCode, string> = {
   USER_REJECTED: 'The signing request was rejected.',
@@ -243,7 +243,7 @@ const getOriginProof = async (
     initiatorOrigin: origin,
     chain: params.chain,
     network: 'mainnet',
-    payloadHash: hex(await sha256(validateHexPayload(params.payload))),
+    payloadHash: hex(sha256(validateHexPayload(params.payload))),
     expiresAt,
   } as const;
   try {
@@ -339,7 +339,7 @@ const signWithMobileRelay = async (params: MosaicLynxSignTransactionParams): Pro
       createdAt,
       expiresAt,
     } as const;
-    const requestDigest = hex(await sha256(utf8(canonicalize(request))));
+    const requestDigest = hex(sha256(utf8(canonicalize(request))));
     const keys = await deriveRelayKeys(sessionSecret, sessionId);
     const aad = (direction: 'request' | 'response') => ({ protocol: PROTOCOL, sessionId, direction, expiresAt });
     const encrypted = await encryptJson(keys.requestKey, request, aad('request'));
@@ -351,8 +351,8 @@ const signWithMobileRelay = async (params: MosaicLynxSignTransactionParams): Pro
         sessionId,
         requestId,
         expiresAt,
-        appTokenHash: hex(await sha256(appTokenBytes)),
-        webTokenHash: hex(await sha256(webTokenBytes)),
+        appTokenHash: hex(sha256(appTokenBytes)),
+        webTokenHash: hex(sha256(webTokenBytes)),
         request: encrypted,
       }),
     });

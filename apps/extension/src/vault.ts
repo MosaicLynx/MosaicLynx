@@ -1,4 +1,15 @@
-import type { AccountSource, ChainIdentity, NetworkKind } from '@mosaiclynx/core';
+import { NemChainAdapter } from '@mosaiclynx/chain-nem';
+import { SymbolChainAdapter, deriveSharedAccount } from '@mosaiclynx/chain-symbol';
+import {
+  type AccountSource,
+  type ChainIdentity,
+  type PermissionGrant as CorePermissionGrant,
+  type NetworkKind,
+  type Profile,
+  createChainScope,
+} from '@mosaiclynx/core';
+import { exportProfileBackup, importProfileBackup, serializeProfileBackup } from '@mosaiclynx/profile-backup';
+import { webCryptoDriver } from '@mosaiclynx/relay-protocol';
 import { argon2idAsync } from '@noble/hashes/argon2.js';
 
 export const LEGACY_STORAGE_KEY = 'mosaicLynxStoreV1';
@@ -338,4 +349,112 @@ export const saveStore = async (store: ExtensionStore): Promise<void> => {
     [STORAGE_KEYS.usedMessageNonces]: store.usedMessageNonces,
   });
   await chrome.storage.local.remove(LEGACY_STORAGE_KEY);
+};
+
+const identitiesForPrivateKey = (privateKey: string): PublicAccount['identities'] => {
+  const symbol = new SymbolChainAdapter().importAccount('testnet', privateKey);
+  const nem = new NemChainAdapter().importAccount('testnet', privateKey);
+  return {
+    symbol: { address: symbol.address, publicKey: symbol.publicKey },
+    nem: { address: nem.address, publicKey: nem.publicKey },
+  };
+};
+
+const identitiesEqual = (left: PublicAccount['identities'], right: PublicAccount['identities']): boolean =>
+  (['symbol', 'nem'] as const).every(
+    (chain) =>
+      left[chain].address === right[chain].address &&
+      left[chain].publicKey.toUpperCase() === right[chain].publicKey.toUpperCase()
+  );
+
+export const exportExtensionProfileBackup = async (
+  store: ExtensionStore,
+  profileId: string,
+  password: string
+): Promise<string> => {
+  const publicProfile = store.profiles.find((profile) => profile.id === profileId);
+  const vault = store.vaults.find((item) => item.profileId === profileId);
+  const accounts = store.accounts.filter((account) => account.profileId === profileId);
+  if (!publicProfile || !vault || !accounts.length) throw new Error('Profile not found.');
+  if (publicProfile.network !== 'testnet') throw new Error('Only Testnet backups are available in this build.');
+  const contents = await decryptVault(vault, password);
+  const profile: Profile = {
+    ...publicProfile,
+    accountIds: accounts.map((account) => account.id),
+    vaultRef: `vault:${profileId}`,
+  };
+  const permissions: CorePermissionGrant[] = store.permissions
+    .filter((grant) => grant.profileId === profileId)
+    .map((grant) => ({
+      origin: grant.origin,
+      profileId,
+      scope: createChainScope(grant.chain, grant.network),
+      accountIds: grant.accountIds,
+      revision: grant.revision,
+      createdAt: grant.createdAt,
+      updatedAt: grant.updatedAt,
+    }));
+  return serializeProfileBackup(
+    await exportProfileBackup(webCryptoDriver, { profile, accounts, permissions, vault: contents }, password)
+  );
+};
+
+export const importExtensionProfileBackup = async (
+  store: ExtensionStore,
+  serialized: string,
+  password: string
+): Promise<ExtensionStore> => {
+  const restored = await importProfileBackup(webCryptoDriver, serialized, password);
+  const profileId = crypto.randomUUID();
+  const accountIds = new Map(restored.accounts.map((account) => [account.id, crypto.randomUUID()]));
+  for (const account of restored.accounts) {
+    const identities =
+      account.source.kind === 'mnemonicDerived'
+        ? deriveSharedAccount('testnet', restored.vault.mnemonic ?? '', account.source.accountIndex).identities
+        : identitiesForPrivateKey(restored.vault.importedPrivateKeys[account.id] ?? '');
+    if (!identitiesEqual(account.identities, identities)) throw new Error('Backup account identity mismatch.');
+  }
+  const now = new Date().toISOString();
+  const accounts: PublicAccount[] = restored.accounts.map((account) => {
+    const id = accountIds.get(account.id)!;
+    const source: AccountSource =
+      account.source.kind === 'mnemonicDerived'
+        ? { ...account.source, secretRef: `vault:${profileId}:mnemonic:${account.source.accountIndex}` }
+        : { ...account.source, secretRef: `vault:${profileId}:private:${id}` };
+    return { ...account, id, profileId, source, revision: 1, createdAt: now, updatedAt: now };
+  });
+  const profile: PublicProfile = {
+    id: profileId,
+    name: `${restored.profile.name} (restored)`,
+    network: 'testnet' as const,
+    defaultAccountId: accountIds.get(restored.profile.defaultAccountId)!,
+    nextAccountIndex: restored.profile.nextAccountIndex,
+    revision: 1,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const importedPrivateKeys = Object.fromEntries(
+    Object.entries(restored.vault.importedPrivateKeys).map(([id, key]) => [accountIds.get(id)!, key])
+  );
+  const vault = await encryptVault(profileId, password, { ...restored.vault, importedPrivateKeys });
+  const permissions: PermissionGrant[] = restored.permissions
+    .map((grant) => ({
+      origin: grant.origin,
+      profileId,
+      chain: grant.scope.chain,
+      network: 'testnet' as const,
+      accountIds: grant.accountIds.map((id) => accountIds.get(id)!).filter(Boolean),
+      revision: 1,
+      createdAt: now,
+      updatedAt: now,
+    }))
+    .filter((grant) => grant.accountIds.length);
+  return {
+    ...store,
+    profiles: [...store.profiles, profile],
+    accounts: [...store.accounts, ...accounts],
+    vaults: [...store.vaults, vault],
+    permissions: [...store.permissions, ...permissions],
+    settings: { ...store.settings, activeProfileId: profileId },
+  };
 };

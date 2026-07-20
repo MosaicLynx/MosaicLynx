@@ -927,6 +927,14 @@ details code {
   padding: 12px;
 }
 
+.backup-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
 .edit-panel > button.wide {
   width: 100%;
 }

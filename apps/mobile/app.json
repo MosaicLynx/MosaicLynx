@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "MosaicLynx Testnet",
+    "slug": "mosaiclynx-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "mosaiclynx-testnet",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "runtimeVersion": "0.1.0",
+    "updates": { "enabled": false, "checkAutomatically": "NEVER" },
+    "ios": {
+      "bundleIdentifier": "app.mosaiclynx.mobile",
+      "deploymentTarget": "16.4",
+      "supportsTablet": true,
+      "associatedDomains": ["applinks:link.mosaiclynx.app"]
+    },
+    "android": {
+      "package": "app.mosaiclynx.mobile",
+      "minSdkVersion": 28,
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [{ "scheme": "https", "host": "link.mosaiclynx.app", "pathPrefix": "/v1/handoff/" }],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      ["expo-build-properties", { "ios": { "deploymentTarget": "16.4" }, "android": { "minSdkVersion": 28 } }]
+    ],
+    "experiments": { "typedRoutes": true },
+    "extra": { "mainnetEnabled": false }
+  }
+}

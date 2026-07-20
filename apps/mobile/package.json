@@ -1,0 +1,43 @@
+{
+  "name": "@mosaiclynx/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "native:prebuild": "expo prebuild",
+    "build": "expo export --platform android --output-dir dist/android && expo export --platform ios --output-dir dist/ios",
+    "typecheck": "pnpm --filter @mosaiclynx/core build && pnpm --filter @mosaiclynx/chain-symbol build && pnpm --filter @mosaiclynx/chain-nem build && pnpm --filter @mosaiclynx/relay-protocol build && pnpm --filter @mosaiclynx/profile-backup build && tsc --noEmit -p tsconfig.json",
+    "test": "pnpm --filter @mosaiclynx/relay-protocol build && vitest run"
+  },
+  "dependencies": {
+    "@mosaiclynx/chain-nem": "workspace:*",
+    "@mosaiclynx/chain-symbol": "workspace:*",
+    "@mosaiclynx/core": "workspace:*",
+    "@mosaiclynx/profile-backup": "workspace:*",
+    "@mosaiclynx/relay-protocol": "workspace:*",
+    "@nemnesia/symbol-sdk": "3.3.2-pure.2",
+    "@noble/hashes": "2.2.0",
+    "expo": "~57.0.1",
+    "expo-build-properties": "~57.0.0",
+    "expo-crypto": "~57.0.1",
+    "expo-document-picker": "~57.0.0",
+    "expo-file-system": "~57.0.0",
+    "expo-linking": "~57.0.0",
+    "expo-router": "~57.0.4",
+    "expo-sharing": "~57.0.0",
+    "expo-sqlite": "~57.0.0",
+    "expo-status-bar": "~57.0.0",
+    "expo-system-ui": "~57.0.0",
+    "react": "19.2.3",
+    "react-native": "0.86.0",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "4.25.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "babel-preset-expo": "~57.0.0"
+  }
+}

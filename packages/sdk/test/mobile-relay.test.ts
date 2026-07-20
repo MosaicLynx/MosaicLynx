@@ -103,7 +103,7 @@ describe('MosaicLynx SDK mobile Relay transport', () => {
           aad
         );
         const request = logicalRequest as { readonly requestId: string };
-        const requestDigest = hex(await sha256(utf8(canonicalize(logicalRequest))));
+        const requestDigest = hex(sha256(utf8(canonicalize(logicalRequest))));
 
         const signature = fixture.signer.signTransaction(fixture.transaction);
         fixture.transaction.signature = new models.Signature(signature.bytes);

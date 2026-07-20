@@ -15,6 +15,7 @@
     "evidence:sign": "pnpm --filter @mosaiclynx/release-evidence build && node tools/evidence/index.mjs sign",
     "evidence:verify": "pnpm --filter @mosaiclynx/release-evidence build && node tools/evidence/index.mjs verify",
     "evidence:gate": "pnpm --filter @mosaiclynx/release-evidence build && node tools/evidence/index.mjs gate",
+    "evidence:mobile": "node tools/mobile/evidence.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",

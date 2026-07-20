@@ -21,6 +21,13 @@ export interface TransactionInspection {
   readonly version: number;
   readonly signerPublicKey: string;
   readonly recipients: readonly string[];
+  readonly fee: string;
+  readonly transfers: readonly {
+    readonly signerPublicKey: string;
+    readonly recipient: string;
+    readonly assets: readonly { readonly id: string; readonly amount: string }[];
+    readonly messageHex: string;
+  }[];
   readonly warnings: readonly string[];
   readonly externalStateUnverified: readonly string[];
   readonly canonicalPayload: string;

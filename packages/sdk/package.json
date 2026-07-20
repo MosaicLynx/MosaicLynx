@@ -12,14 +12,15 @@
   },
   "dependencies": {
     "@mosaiclynx/provider-api": "workspace:*",
+    "@mosaiclynx/relay-protocol": "workspace:*",
     "@nemnesia/symbol-sdk": "3.3.2-pure.2"
   },
   "devDependencies": {
     "vite": "^7.2.6"
   },
   "scripts": {
-    "build": "pnpm --filter @mosaiclynx/provider-api build && tsc -p tsconfig.json && vite build",
-    "typecheck": "pnpm --filter @mosaiclynx/provider-api build && tsc --noEmit -p tsconfig.json",
-    "test": "vitest run"
+    "build": "pnpm --filter @mosaiclynx/provider-api build && pnpm --filter @mosaiclynx/relay-protocol build && tsc -p tsconfig.json && vite build",
+    "typecheck": "pnpm --filter @mosaiclynx/provider-api build && pnpm --filter @mosaiclynx/relay-protocol build && tsc --noEmit -p tsconfig.json",
+    "test": "pnpm --filter @mosaiclynx/relay-protocol build && vitest run"
   }
 }

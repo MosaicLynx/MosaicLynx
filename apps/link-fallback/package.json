@@ -1,0 +1,10 @@
+{
+  "name": "@mosaiclynx/link-fallback",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/verify.mjs",
+    "typecheck": "node scripts/verify.mjs",
+    "test": "node --test test/fallback.test.mjs"
+  }
+}

@@ -10,6 +10,8 @@
     "@mosaiclynx/chain-symbol": "workspace:*",
     "@mosaiclynx/core": "workspace:*",
     "@mosaiclynx/provider-api": "workspace:*",
+    "@mosaiclynx/profile-backup": "workspace:*",
+    "@mosaiclynx/relay-protocol": "workspace:*",
     "@mui/icons-material": "^9.2.0",
     "@mui/material": "^9.2.0",
     "@nemnesia/symbol-sdk": "3.3.2-pure.2",
@@ -29,7 +31,7 @@
   },
   "scripts": {
     "build": "pnpm --filter @mosaiclynx/release-evidence build && node ../../tools/evidence/embed.mjs && vite build",
-    "typecheck": "pnpm --filter @mosaiclynx/core build && pnpm --filter @mosaiclynx/provider-api build && pnpm --filter @mosaiclynx/chain-symbol build && pnpm --filter @mosaiclynx/chain-nem build && tsc --noEmit -p tsconfig.json",
+    "typecheck": "pnpm --filter @mosaiclynx/core build && pnpm --filter @mosaiclynx/provider-api build && pnpm --filter @mosaiclynx/chain-symbol build && pnpm --filter @mosaiclynx/chain-nem build && pnpm --filter @mosaiclynx/profile-backup build && tsc --noEmit -p tsconfig.json",
     "test": "vitest run --passWithNoTests"
   }
 }

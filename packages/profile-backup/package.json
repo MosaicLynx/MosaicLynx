@@ -1,0 +1,24 @@
+{
+  "name": "@mosaiclynx/profile-backup",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@mosaiclynx/core": "workspace:*",
+    "@mosaiclynx/relay-protocol": "workspace:*",
+    "@noble/hashes": "2.2.0"
+  },
+  "scripts": {
+    "build": "pnpm --filter @mosaiclynx/core build && pnpm --filter @mosaiclynx/relay-protocol build && tsc -p tsconfig.json",
+    "typecheck": "pnpm --filter @mosaiclynx/core build && pnpm --filter @mosaiclynx/relay-protocol build && tsc --noEmit -p tsconfig.json",
+    "test": "pnpm --filter @mosaiclynx/relay-protocol build && vitest run"
+  }
+}

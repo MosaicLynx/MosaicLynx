@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["${APPLE_TEAM_ID}.app.mosaiclynx.mobile"],
+        "components": [{ "/": "/v1/handoff/*", "comment": "MosaicLynx Relay handoff" }]
+      }
+    ]
+  }
+}

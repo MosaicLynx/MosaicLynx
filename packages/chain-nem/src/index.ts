@@ -50,6 +50,26 @@ const assertTransfer = (transaction: AnyNemTransfer, network: ConnectionScope['n
   return recipient;
 };
 
+const transferDetails = (
+  transaction: AnyNemTransfer,
+  network: ConnectionScope['network']
+): TransactionInspection['transfers'][number] => {
+  const recipient = assertTransfer(transaction, network);
+  const mosaics =
+    'mosaics' in transaction
+      ? (transaction.mosaics as Array<{ mosaicId: { toString(): string }; amount: { value: bigint } }>).map(
+          (mosaic) => ({ id: mosaic.mosaicId.toString(), amount: mosaic.amount.value.toString() })
+        )
+      : [];
+  const message = transaction.message as { message?: Uint8Array } | undefined;
+  return {
+    signerPublicKey: transaction.signerPublicKey.toString().toUpperCase(),
+    recipient,
+    assets: mosaics.length ? mosaics : [{ id: 'nem:xem', amount: transaction.amount.value.toString() }],
+    messageHex: message?.message ? utils.uint8ToHex(message.message) : '',
+  };
+};
+
 const inspect = (
   network: ConnectionScope['network'],
   payload: string
@@ -65,10 +85,13 @@ const inspect = (
   if (transaction.network.value !== networkIdentifier(network)) throw new Error('NETWORK_MISMATCH');
   const signer = transaction.signerPublicKey.toString().toUpperCase();
   const recipients: string[] = [];
+  const transfers: TransactionInspection['transfers'][number][] = [];
   let schema: string;
   if (transaction instanceof models.TransferTransactionV1 || transaction instanceof models.TransferTransactionV2) {
     schema = transaction instanceof models.TransferTransactionV1 ? 'TransferTransactionV1' : 'TransferTransactionV2';
-    recipients.push(assertTransfer(transaction, network));
+    const transfer = transferDetails(transaction, network);
+    recipients.push(transfer.recipient);
+    transfers.push(transfer);
   } else if (transaction instanceof models.MultisigTransactionV1) {
     schema = 'MultisigTransactionV1';
     if (transaction.cosignatures.length !== 0)
@@ -79,7 +102,9 @@ const inspect = (
       !(inner instanceof models.NonVerifiableTransferTransactionV2)
     )
       throw new Error('UNSUPPORTED_TRANSACTION: NEM multisig inner transaction must be Transfer v1/v2');
-    recipients.push(assertTransfer(inner, network));
+    const transfer = transferDetails(inner, network);
+    recipients.push(transfer.recipient);
+    transfers.push(transfer);
   } else if (transaction instanceof models.CosignatureV1) {
     throw new Error('UNSUPPORTED_TRANSACTION: a NEM cosignature requires its complete parent multisig payload');
   } else {
@@ -96,6 +121,8 @@ const inspect = (
       version: transaction.version,
       signerPublicKey: signer,
       recipients,
+      fee: transaction.fee.value.toString(),
+      transfers,
       warnings: [],
       externalStateUnverified: ['chain state', 'mosaic metadata', 'balance', 'multisig membership'],
       canonicalPayload: utils.uint8ToHex(bytes),

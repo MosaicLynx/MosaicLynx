@@ -13,3 +13,41 @@ jobs:
       - run: pnpm test
       - run: pnpm typecheck
       - run: pnpm build:extension
+      - run: pnpm --filter @mosaiclynx/mobile build
+      - run: pnpm evidence:mobile
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mobile-testnet-js-evidence
+          path: |
+            apps/mobile/dist
+            .artifacts/mobile
+
+  android-native-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.13.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @mosaiclynx/mobile native:prebuild -- --platform android --no-install
+      - run: ./gradlew bundleRelease
+        working-directory: apps/mobile/android
+
+  ios-native-build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.13.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @mosaiclynx/mobile native:prebuild -- --platform ios --no-install
+      - run: pod install
+        working-directory: apps/mobile/ios
+      - run: xcodebuild -workspace MosaicLynxTestnet.xcworkspace -scheme MosaicLynxTestnet -configuration Release -sdk iphonesimulator CODE_SIGNING_ALLOWED=NO build
+        working-directory: apps/mobile/ios

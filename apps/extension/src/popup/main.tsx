@@ -32,6 +32,8 @@ import {
   decryptVault,
   deleteProfileFromStore,
   encryptVault,
+  exportExtensionProfileBackup,
+  importExtensionProfileBackup,
   isProfileDeletionConfirmed,
   loadStore,
   saveStore,
@@ -135,6 +137,8 @@ const App = () => {
   const [profileNameDraft, setProfileNameDraft] = useState('');
   const [accountNameDraft, setAccountNameDraft] = useState('');
   const [accountPassword, setAccountPassword] = useState('');
+  const [backupPassword, setBackupPassword] = useState('');
+  const [backupFile, setBackupFile] = useState<File>();
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [notice, setNotice] = useState('');
   const [confirmationAction, setConfirmationAction] = useState<ConfirmationAction>();
@@ -167,6 +171,48 @@ const App = () => {
     const next = { ...store, settings: { ...store.settings, ...settings } };
     await saveStore(next);
     setStore(next);
+  };
+
+  const exportEncryptedBackup = async (): Promise<void> => {
+    if (!store) return;
+    const activeProfile =
+      store.profiles.find((item) => item.id === store.settings.activeProfileId) ?? store.profiles[0];
+    if (!activeProfile) return;
+    setBusy(true);
+    setError('');
+    try {
+      const serialized = await exportExtensionProfileBackup(store, activeProfile.id, backupPassword);
+      const url = URL.createObjectURL(new Blob([serialized], { type: 'application/json' }));
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `mosaiclynx-${activeProfile.id}-${Date.now()}.mlxbackup`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setNotice(t('backupExported'));
+      setBackupPassword('');
+    } catch {
+      setError(t('backupFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const importEncryptedBackup = async (): Promise<void> => {
+    if (!store || !backupFile) return;
+    setBusy(true);
+    setError('');
+    try {
+      const next = await importExtensionProfileBackup(store, await backupFile.text(), backupPassword);
+      await saveStore(next);
+      setStore(next);
+      setBackupFile(undefined);
+      setBackupPassword('');
+      setNotice(t('backupImported'));
+    } catch {
+      setError(t('backupFailed'));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const resetForm = (): void => {
@@ -1054,6 +1100,40 @@ const App = () => {
           <button className="primary wide" onClick={() => void renameProfile()}>
             {t('rename')}
           </button>
+          {profile.network === 'testnet' && (
+            <section className="backup-actions">
+              <PasswordField
+                label={t('backupPassword')}
+                value={backupPassword}
+                onChange={setBackupPassword}
+                revealLabel={t('revealPassword')}
+                autoComplete="current-password"
+              />
+              <button
+                className="wide"
+                disabled={busy || backupPassword.length < 12}
+                onClick={() => void exportEncryptedBackup()}
+              >
+                {t('exportEncryptedBackup')}
+              </button>
+              <label className="field">
+                <span>{t('importEncryptedBackup')}</span>
+                <input
+                  type="file"
+                  accept=".mlxbackup,application/json"
+                  onChange={(event) => setBackupFile(event.target.files?.[0])}
+                />
+              </label>
+              <button
+                className="wide"
+                disabled={busy || !backupFile || backupPassword.length < 12}
+                onClick={() => void importEncryptedBackup()}
+              >
+                {t('importEncryptedBackup')}
+              </button>
+              <small>{t('testnetBackupOnly')}</small>
+            </section>
+          )}
           <button
             className="danger-button wide"
             disabled={store.profiles.length <= 1}

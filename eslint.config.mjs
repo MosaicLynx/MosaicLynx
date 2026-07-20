@@ -18,6 +18,27 @@ export default tseslint.config(
     },
   },
   {
+    files: ['apps/link-fallback/{scripts,test}/**/*.mjs'],
+    languageOptions: { globals: { URL: 'readonly' } },
+  },
+  {
+    files: ['apps/link-fallback/public/**/*.js'],
+    languageOptions: {
+      globals: {
+        document: 'readonly',
+        URLSearchParams: 'readonly',
+        window: 'readonly',
+      },
+    },
+  },
+  {
+    files: ['apps/mobile/*.config.js'],
+    languageOptions: {
+      globals: { __dirname: 'readonly', module: 'readonly', require: 'readonly' },
+    },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
+  {
     files: ['**/*.{ts,tsx}'],
     rules: {
       'no-undef': 'off',

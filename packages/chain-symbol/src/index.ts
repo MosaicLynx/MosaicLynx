@@ -27,7 +27,7 @@ const networkIdentifier = (network: ConnectionScope['network']): number => (netw
 const assertTransfer = (
   transaction: models.TransferTransactionV1 | models.EmbeddedTransferTransactionV1,
   network: ConnectionScope['network']
-): string => {
+): TransactionInspection['transfers'][number] => {
   if (
     transaction.version !== 1 ||
     transaction.type.value !== 16724 ||
@@ -43,7 +43,14 @@ const assertTransfer = (
       throw new Error('INVALID_TRANSACTION: mosaic aliases, duplicates or non-canonical ordering are not allowed');
     previous = id;
   }
-  return recipient.toString();
+  return {
+    signerPublicKey: transaction.signerPublicKey.toString().toUpperCase(),
+    recipient: recipient.toString(),
+    assets: (transaction.mosaics as Array<{ mosaicId: { value: bigint }; amount: { value: bigint } }>).map(
+      (mosaic) => ({ id: mosaic.mosaicId.value.toString(), amount: mosaic.amount.value.toString() })
+    ),
+    messageHex: utils.uint8ToHex(transaction.message),
+  };
 };
 
 const inspect = (
@@ -61,10 +68,13 @@ const inspect = (
   if (transaction.network.value !== networkIdentifier(network)) throw new Error('NETWORK_MISMATCH');
   const signer = transaction.signerPublicKey.toString().toUpperCase();
   const recipients: string[] = [];
+  const transfers: TransactionInspection['transfers'][number][] = [];
   let schema: string;
   if (transaction instanceof models.TransferTransactionV1) {
     schema = 'TransferTransactionV1';
-    recipients.push(assertTransfer(transaction, network));
+    const transfer = assertTransfer(transaction, network);
+    recipients.push(transfer.recipient);
+    transfers.push(transfer);
   } else if (
     transaction instanceof models.AggregateCompleteTransactionV2 ||
     transaction instanceof models.AggregateBondedTransactionV2
@@ -78,7 +88,9 @@ const inspect = (
     for (const embedded of transaction.transactions) {
       if (!(embedded instanceof models.EmbeddedTransferTransactionV1))
         throw new Error('UNSUPPORTED_TRANSACTION: aggregate contains a non-transfer transaction');
-      recipients.push(assertTransfer(embedded, network));
+      const transfer = assertTransfer(embedded, network);
+      recipients.push(transfer.recipient);
+      transfers.push(transfer);
     }
     const calculated = SymbolFacade.hashEmbeddedTransactions(transaction.transactions);
     if (calculated.toString() !== transaction.transactionsHash.toString())
@@ -107,6 +119,8 @@ const inspect = (
       version: transaction.version,
       signerPublicKey: signer,
       recipients,
+      fee: transaction.fee.value.toString(),
+      transfers,
       warnings: [],
       externalStateUnverified: ['chain state', 'mosaic metadata', 'balance'],
       canonicalPayload: utils.uint8ToHex(bytes),
