@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash, createPrivateKey, sign } from 'node:crypto';
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
-import { canonicalize, evaluateMainnetCapability, manifestSigningPayload } from '../../packages/release-evidence/dist/index.js';
+import { evaluateMainnetCapability, manifestSigningPayload } from '../../packages/release-evidence/dist/index.js';
 
 const root = resolve(import.meta.dirname, '../..');
 const args = process.argv.slice(2);
