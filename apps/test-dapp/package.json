@@ -12,7 +12,7 @@
     "vite": "^7.2.6"
   },
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
+    "dev": "vite --host",
     "build": "vite build",
     "typecheck": "pnpm --filter @mosaiclynx/sdk build && tsc --noEmit -p tsconfig.json",
     "test": "vitest run"

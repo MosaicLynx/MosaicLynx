@@ -28,6 +28,7 @@ import { useTranslation } from 'react-i18next';
 
 import { activeChainForEnabledChains } from '../profile-state.js';
 import { MAINNET_SIGNING_ENABLED } from '../release-capabilities.js';
+import { revokeTrustedPage, trustedPagesForProfile } from '../trusted-pages.js';
 import { AppThemeProvider, setAppThemeMode } from '../ui/theme.js';
 import {
   DuplicateMnemonicProfileError,
@@ -51,11 +52,12 @@ import './styles.css';
 type CreateMode = 'new' | 'import';
 type OnboardingStep = 'welcome' | 'method' | 'details' | 'import' | 'import-review' | 'backup' | 'confirm' | 'complete';
 type Language = ExtensionStore['settings']['language'];
-type HomeView = 'home' | 'menu' | 'profiles' | 'accounts' | 'backup' | 'restore';
+type HomeView = 'home' | 'menu' | 'profiles' | 'accounts' | 'connections' | 'backup' | 'restore';
 type ProfileChain = 'symbol' | 'nem';
 type AccountAddMode = 'choice' | 'hd' | 'privateKey';
 type ConfirmationAction =
   | { readonly kind: 'account'; readonly name: string }
+  | { readonly kind: 'trustedPage'; readonly origin: string }
   | {
       readonly kind: 'profile';
       readonly profile: PublicProfile;
@@ -161,6 +163,30 @@ const App = () => {
 
   useEffect(() => {
     void loadStore().then(setStore);
+  }, []);
+
+  useEffect(() => {
+    const port = chrome.runtime.connect({ name: 'mosaiclynx:side-panel' });
+    let active = true;
+    const register = (windowId: number | undefined): void => {
+      if (active && windowId !== undefined)
+        port.postMessage({ kind: 'mosaiclynx:side-panel:ready', windowId });
+    };
+    void chrome.windows.getCurrent().then((window) => register(window.id));
+    const heartbeat = window.setInterval(() => {
+      void chrome.windows.getCurrent().then((window) => register(window.id));
+    }, 20_000);
+    const presentApproval = (message: unknown): void => {
+      const request = message as { readonly kind?: unknown; readonly id?: unknown };
+      if (request.kind !== 'mosaiclynx:approval:present' || typeof request.id !== 'string') return;
+      window.location.assign(chrome.runtime.getURL(`src/approval/index.html?id=${encodeURIComponent(request.id)}`));
+    };
+    port.onMessage.addListener(presentApproval);
+    return () => {
+      active = false;
+      window.clearInterval(heartbeat);
+      port.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -507,6 +533,16 @@ const App = () => {
     setProfileChainsDraft(nextActive?.enabledChains ?? []);
     setProfileDeletionName('');
     setNotice(t('profileDeleted'));
+  };
+
+  const deleteTrustedPage = async (origin: string): Promise<void> => {
+    if (!store) return;
+    const active = store.profiles.find((item) => item.id === store.settings.activeProfileId);
+    if (!active) return;
+    const next = revokeTrustedPage(store, active.id, origin);
+    await saveStore(next);
+    setStore(next);
+    setNotice(t('trustedPageRevoked'));
   };
 
   const deleteAccount = async (): Promise<void> => {
@@ -1187,6 +1223,7 @@ const App = () => {
   const activeAddress = account?.identities[scope.chain].address;
   const activePublicKey = account?.identities[scope.chain].publicKey;
   const profileAccounts = store.accounts.filter((item) => item.profileId === profile.id && item.status !== 'excluded');
+  const trustedPages = trustedPagesForProfile(store.permissions, profile.id);
   const profileDraftDirty =
     profileNameDraft.trim() !== profile.name ||
     profileChainsDraft.length !== profile.enabledChains.length ||
@@ -1219,12 +1256,14 @@ const App = () => {
         <DialogContentText>
           {confirmationAction?.kind === 'account'
             ? t('confirmDeleteAccount', { name: confirmationAction.name })
-            : confirmationAction?.kind === 'profile'
-              ? t('confirmDeleteProfile', {
-                  name: confirmationAction.profile.name,
-                  accountCount: confirmationAction.accountCount,
-                })
-              : ''}
+            : confirmationAction?.kind === 'trustedPage'
+              ? t('confirmRevokeTrustedPage', { origin: confirmationAction.origin })
+              : confirmationAction?.kind === 'profile'
+                ? t('confirmDeleteProfile', {
+                    name: confirmationAction.profile.name,
+                    accountCount: confirmationAction.accountCount,
+                  })
+                : ''}
         </DialogContentText>
         {confirmationAction?.kind === 'profile' && (
           <TextField
@@ -1260,6 +1299,7 @@ const App = () => {
             const action = confirmationAction;
             closeConfirmationDialog();
             if (action?.kind === 'account') void deleteAccount();
+            if (action?.kind === 'trustedPage') void deleteTrustedPage(action.origin);
             if (action?.kind === 'profile') void deleteProfile(action.profile.id, profileDeletionName);
           }}
         >
@@ -1300,6 +1340,13 @@ const App = () => {
       <main key="menu" className={`app-shell management-shell theme-${store.settings.theme}`}>
         {pageHeader(t('menu'), 'home')}
         <section className="menu-list">
+          <button className="menu-item" onClick={() => openView('profiles')}>
+            <span>
+              <strong>{t('profileManagement')}</strong>
+              <small>{t('profileCount', { count: store.profiles.length })}</small>
+            </span>
+            <b>›</b>
+          </button>
           <button className="menu-item" onClick={() => openView('accounts')}>
             <span>
               <strong>{t('accountManagement')}</strong>
@@ -1307,10 +1354,10 @@ const App = () => {
             </span>
             <b>›</b>
           </button>
-          <button className="menu-item" onClick={() => openView('profiles')}>
+          <button className="menu-item" onClick={() => openView('connections')}>
             <span>
-              <strong>{t('profileManagement')}</strong>
-              <small>{t('profileCount', { count: store.profiles.length })}</small>
+              <strong>{t('trustedPages')}</strong>
+              <small>{t('trustedPageCount', { count: trustedPages.length })}</small>
             </span>
             <b>›</b>
           </button>
@@ -1656,6 +1703,46 @@ const App = () => {
             </button>
           </footer>
         )}
+        {confirmationDialog}
+      </main>
+    );
+  }
+
+  if (homeView === 'connections') {
+    return (
+      <main key="connections" className={`app-shell management-shell theme-${store.settings.theme}`}>
+        {pageHeader(t('trustedPages'))}
+        <p className="page-description">{t('trustedPagesBody')}</p>
+        {notice && (
+          <p className="form-notice" role="status">
+            {notice}
+          </p>
+        )}
+        <section className="management-list trusted-page-list">
+          {trustedPages.length ? (
+            trustedPages.map((page) => (
+              <div className="trusted-page-item" key={page.origin}>
+                <span>
+                  <strong>{page.origin}</strong>
+                  <small>
+                    {page.grants
+                      .map((grant) => `${grant.chain.toUpperCase()} ${grant.network.toUpperCase()}`)
+                      .join(' / ')}{' '}
+                    · {t('trustedPageAccountCount', { count: page.accountCount })}
+                  </small>
+                </span>
+                <button
+                  className="danger-button"
+                  onClick={() => setConfirmationAction({ kind: 'trustedPage', origin: page.origin })}
+                >
+                  {t('revokeTrustedPage')}
+                </button>
+              </div>
+            ))
+          ) : (
+            <p className="empty-state">{t('noTrustedPages')}</p>
+          )}
+        </section>
         {confirmationDialog}
       </main>
     );

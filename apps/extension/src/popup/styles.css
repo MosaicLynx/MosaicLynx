@@ -852,6 +852,44 @@ details code {
   border-bottom: 0;
 }
 
+.trusted-page-item {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  min-height: 58px;
+  padding: 12px 14px;
+}
+
+.management-shell .trusted-page-item {
+  border-bottom: 1px solid var(--app-divider);
+}
+
+.management-shell .trusted-page-item:last-child {
+  border-bottom: 0;
+}
+
+.trusted-page-item > span {
+  min-width: 0;
+}
+
+.trusted-page-item strong,
+.trusted-page-item small {
+  display: block;
+}
+
+.trusted-page-item small {
+  color: var(--app-muted);
+  font-family: ui-monospace, monospace;
+  font-size: 9px;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.trusted-page-item .danger-button {
+  flex: 0 0 auto;
+}
+
 .menu-item span,
 .menu-item strong,
 .menu-item small,

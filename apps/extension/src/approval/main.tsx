@@ -30,6 +30,14 @@ const approvalTypeKey = {
   message: 'approvalTypeMessage',
 } as const;
 
+const isSidePanel = async (): Promise<boolean> => {
+  const contexts = await chrome.runtime.getContexts({
+    contextTypes: ['SIDE_PANEL'],
+    documentUrls: [location.href],
+  });
+  return contexts.length > 0;
+};
+
 class ApprovalError extends Error {
   constructor(readonly translationKey: TranslationKey) {
     super(translationKey);
@@ -102,6 +110,10 @@ const App = () => {
 
   const resolve = async (resolution: ApprovalResolution): Promise<void> => {
     await chrome.runtime.sendMessage({ kind: 'mosaiclynx:approval:resolve', id, resolution });
+    if (await isSidePanel()) {
+      window.location.replace(chrome.runtime.getURL('src/popup/index.html'));
+      return;
+    }
     window.close();
   };
 

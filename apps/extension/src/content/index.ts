@@ -4,24 +4,57 @@ const requestEvent = 'mosaiclynx:request';
 const responseEvent = 'mosaiclynx:response';
 const providerEvent = 'mosaiclynx:event';
 
+/**
+ * A content script can remain in a tab after its extension has been reloaded.
+ * Any subsequent chrome.runtime access then throws "Extension context
+ * invalidated". Keep that browser lifecycle error out of the page console and
+ * return an actionable provider error instead.
+ */
+const withExtensionContext = <T>(action: () => T): T | undefined => {
+  try {
+    return action();
+  } catch {
+    return undefined;
+  }
+};
+
+const respondContextInvalidated = (id: string): void => {
+  window.dispatchEvent(
+    new CustomEvent(responseEvent, {
+      detail: {
+        id,
+        error: {
+          code: 'CONTEXT_CHANGED',
+          message: 'MosaicLynx was reloaded. Reload this page and try again.',
+        },
+      },
+    })
+  );
+};
+
 // MAIN-world declarative content scripts are the primary installation path.
 // Keep a compiled script-tag fallback for Chrome variants or policies that do
 // not execute the manifest `world: MAIN` entry.
 document.documentElement.dataset.mosaicLynxBridge = 'ready';
-const script = document.createElement('script');
-script.type = 'module';
-script.src = chrome.runtime.getURL(inpageScript);
-script.dataset.mosaicLynx = 'inpage';
-script.addEventListener('load', () => script.remove(), { once: true });
-script.addEventListener(
-  'error',
-  () => {
-    document.documentElement.dataset.mosaicLynxInjection = 'failed';
-    script.remove();
-  },
-  { once: true }
-);
-(document.head ?? document.documentElement).append(script);
+const inpageUrl = withExtensionContext(() => chrome.runtime.getURL(inpageScript));
+if (!inpageUrl) {
+  document.documentElement.dataset.mosaicLynxInjection = 'failed';
+} else {
+  const script = document.createElement('script');
+  script.type = 'module';
+  script.src = inpageUrl;
+  script.dataset.mosaicLynx = 'inpage';
+  script.addEventListener('load', () => script.remove(), { once: true });
+  script.addEventListener(
+    'error',
+    () => {
+      document.documentElement.dataset.mosaicLynxInjection = 'failed';
+      script.remove();
+    },
+    { once: true }
+  );
+  (document.head ?? document.documentElement).append(script);
+}
 
 window.addEventListener(requestEvent, (event: Event) => {
   const request = (event as CustomEvent<{ readonly id: string; readonly request: unknown }>).detail;
@@ -47,16 +80,22 @@ window.addEventListener(requestEvent, (event: Event) => {
     return;
   }
 
-  void chrome.runtime
-    .sendMessage({
+  const response = withExtensionContext(() =>
+    chrome.runtime.sendMessage({
       kind: 'mosaiclynx:request',
       origin: window.location.origin,
       request: request.request,
     })
-    .then((response: unknown) => {
+  );
+  if (!response) {
+    respondContextInvalidated(request.id);
+    return;
+  }
+  void response
+    .then((result: unknown) => {
       window.dispatchEvent(
         new CustomEvent(responseEvent, {
-          detail: { id: request.id, ...(response as object) },
+          detail: { id: request.id, ...(result as object) },
         })
       );
     })
@@ -69,8 +108,10 @@ window.addEventListener(requestEvent, (event: Event) => {
     });
 });
 
-chrome.runtime.onMessage.addListener((message: unknown) => {
-  const event = message as { readonly kind?: string; readonly event?: string; readonly payload?: unknown };
-  if (event.kind !== providerEvent || !event.event) return;
-  window.dispatchEvent(new CustomEvent(providerEvent, { detail: { event: event.event, payload: event.payload } }));
-});
+withExtensionContext(() =>
+  chrome.runtime.onMessage.addListener((message: unknown) => {
+    const event = message as { readonly kind?: string; readonly event?: string; readonly payload?: unknown };
+    if (event.kind !== providerEvent || !event.event) return;
+    window.dispatchEvent(new CustomEvent(providerEvent, { detail: { event: event.event, payload: event.payload } }));
+  })
+);

@@ -46,6 +46,7 @@ interface PendingApproval {
 
 const adapters = { symbol: new SymbolChainAdapter(), nem: new NemChainAdapter() } as const;
 const approvals = new Map<string, PendingApproval>();
+const sidePanelPorts = new Map<number, chrome.runtime.Port>();
 const homePanelPath = 'src/popup/index.html';
 let nonceMutex: Promise<void> = Promise.resolve();
 
@@ -169,16 +170,26 @@ const emit = async (origin: string, event: 'accountsChanged' | 'disconnect', pay
   );
 };
 
+const sidePanelForTab = async (tabId: number): Promise<chrome.runtime.Port | undefined> => {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    return sidePanelPorts.get(tab.windowId);
+  } catch {
+    return undefined;
+  }
+};
+
 const requestApproval = async (
   request: NewApprovalRequest,
   tabId?: number,
   preparedMessage?: { readonly accountId: string; readonly nonceHash: string }
 ): Promise<ApprovalResolution> => {
   if (approvals.size >= 50) return providerError('RESOURCE_LIMIT', 'Too many approval requests are pending.');
-  if (request.type === 'connect') {
-    if (tabId === undefined) return providerError('INTERNAL_ERROR', 'The connection request has no browser tab.');
+  if (request.type === 'connect' && tabId === undefined)
+    return providerError('INTERNAL_ERROR', 'The connection request has no browser tab.');
+  if (tabId !== undefined) {
     if ([...approvals.values()].some((pending) => pending.sidePanelTabId === tabId))
-      return providerError('RESOURCE_LIMIT', 'Another connection approval is already open in this tab.');
+      return providerError('RESOURCE_LIMIT', 'Another approval is already open in this tab.');
   }
   const id = crypto.randomUUID();
   const now = Date.now();
@@ -200,19 +211,8 @@ const requestApproval = async (
         : {}),
     });
   });
-  try {
-    if (request.type === 'connect') {
-      const sidePanelTabId = tabId!;
-      const pending = approvals.get(id);
-      if (pending) pending.sidePanelTabId = sidePanelTabId;
-      await chrome.sidePanel.setOptions({
-        tabId: sidePanelTabId,
-        path: `src/approval/index.html?id=${encodeURIComponent(id)}`,
-        enabled: true,
-      });
-      await chrome.sidePanel.open({ tabId: sidePanelTabId });
-      return result;
-    }
+
+  const openApprovalWindow = async (): Promise<void> => {
     const window = await chrome.windows.create({
       url: chrome.runtime.getURL(`src/approval/index.html?id=${encodeURIComponent(id)}`),
       type: 'popup',
@@ -222,6 +222,38 @@ const requestApproval = async (
     if (window.id === undefined) throw new Error('missing window id');
     const pending = approvals.get(id);
     if (pending) pending.windowId = window.id;
+  };
+
+  let sidePanel = tabId === undefined ? undefined : await sidePanelForTab(tabId);
+  if (sidePanel && tabId !== undefined) {
+    const sidePanelTabId = tabId;
+    // Tell the already-visible panel to navigate itself. A dedicated Port ties
+    // the request to this browser window and avoids mistaking a closed panel
+    // for an open one.
+    try {
+      sidePanel.postMessage({ kind: 'mosaiclynx:approval:present', id });
+    } catch {
+      sidePanel = undefined;
+    }
+    if (sidePanel) {
+      const pending = approvals.get(id);
+      if (pending) pending.sidePanelTabId = sidePanelTabId;
+      try {
+        await chrome.sidePanel.setOptions({
+          tabId: sidePanelTabId,
+          path: `src/approval/index.html?id=${encodeURIComponent(id)}`,
+          enabled: true,
+        });
+      } catch {
+        finishApproval(id, { approved: false });
+        return providerError('INTERNAL_ERROR', 'Approval panel could not be created.');
+      }
+      return result;
+    }
+  }
+
+  try {
+    await openApprovalWindow();
   } catch {
     finishApproval(id, { approved: false });
     return providerError('INTERNAL_ERROR', 'Approval window could not be created.');
@@ -451,7 +483,7 @@ const handleConnect = async (origin: string, params: unknown, tabId: number): Pr
   return validIds.map((id) => projectAccount(currentProfile, accountById(current, currentProfile, id), params));
 };
 
-const handleTransaction = async (origin: string, params: unknown): Promise<SignedTransaction> => {
+const handleTransaction = async (origin: string, params: unknown, tabId: number): Promise<SignedTransaction> => {
   const input = params as { chain?: unknown; network?: unknown; payload?: unknown; accountId?: unknown } | undefined;
   const scope = { chain: input?.chain, network: input?.network };
   if (!isScope(scope) || typeof input?.payload !== 'string')
@@ -487,18 +519,21 @@ const handleTransaction = async (origin: string, params: unknown): Promise<Signe
     if (error instanceof AccountSelectionError) return providerError(error.code, error.message);
     throw error;
   }
-  const resolution = await requestApproval({
-    type: 'transaction',
-    origin,
-    originAscii: originAscii(origin),
-    scope,
-    profile,
-    vaultRevision: vaultRevisionFor(store, profile.id),
-    permissionRevision: permission.revision,
-    account,
-    payload: input.payload,
-    inspection,
-  });
+  const resolution = await requestApproval(
+    {
+      type: 'transaction',
+      origin,
+      originAscii: originAscii(origin),
+      scope,
+      profile,
+      vaultRevision: vaultRevisionFor(store, profile.id),
+      permissionRevision: permission.revision,
+      account,
+      payload: input.payload,
+      inspection,
+    },
+    tabId
+  );
   if (!resolution.approved) {
     if (resolution.error) return providerError(resolution.error.code, resolution.error.message);
     return providerError('USER_REJECTED', 'The signing request was rejected.');
@@ -527,7 +562,7 @@ const handleTransaction = async (origin: string, params: unknown): Promise<Signe
   return resolution.signedTransaction;
 };
 
-const handleMessage = async (origin: string, params: unknown): Promise<SignedMessage> => {
+const handleMessage = async (origin: string, params: unknown, tabId: number): Promise<SignedMessage> => {
   const input = params as SignMessageParams | undefined;
   if (!input || !isScope(input)) return providerError('INVALID_PARAMS', 'Structured message parameters are invalid.');
   if (input.accountId !== undefined && typeof input.accountId !== 'string')
@@ -581,7 +616,7 @@ const handleMessage = async (origin: string, params: unknown): Promise<SignedMes
       availableAccounts,
       messageParams: input,
     },
-    undefined,
+    tabId,
     preparedMessage
   );
   if (!resolution.approved) {
@@ -660,14 +695,28 @@ const handleRequest = async (origin: string, request: RpcRequest, tabId: number)
       return accounts.find((account) => account.id === profile.defaultAccountId) ?? accounts[0];
     }
     case 'sign_transaction':
-      return handleTransaction(origin, request.params);
+      return handleTransaction(origin, request.params, tabId);
     case 'sign_message':
-      return handleMessage(origin, request.params);
+      return handleMessage(origin, request.params, tabId);
   }
 };
 
 void chrome.storage.local.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' });
 void chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' });
+
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== 'mosaiclynx:side-panel' || !port.sender || !isTrustedExtensionPage(port.sender)) return;
+  let windowId: number | undefined;
+  port.onMessage.addListener((message: unknown) => {
+    const registration = message as { readonly kind?: unknown; readonly windowId?: unknown };
+    if (registration.kind !== 'mosaiclynx:side-panel:ready' || typeof registration.windowId !== 'number') return;
+    windowId = registration.windowId;
+    sidePanelPorts.set(windowId, port);
+  });
+  port.onDisconnect.addListener(() => {
+    if (windowId !== undefined && sidePanelPorts.get(windowId) === port) sidePanelPorts.delete(windowId);
+  });
+});
 
 chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) => {
   const envelope = message as
