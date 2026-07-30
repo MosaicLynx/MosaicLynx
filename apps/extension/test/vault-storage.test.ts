@@ -1,10 +1,14 @@
+import { deriveSharedAccount, generateMnemonic } from '@mosaiclynx/chain-symbol';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  DuplicateMnemonicProfileError,
   type ExtensionStore,
   LEGACY_STORAGE_KEY,
   STORAGE_KEYS,
+  assertUniqueMnemonicProfile,
   deleteProfileFromStore,
+  findProfileByMnemonic,
   isProfileDeletionConfirmed,
   loadStore,
 } from '../src/vault.js';
@@ -166,5 +170,79 @@ describe('profile deletion', () => {
     const singleProfileStore = { ...store, profiles: [store.profiles[0]!] };
 
     expect(() => deleteProfileFromStore(singleProfileStore, 'profile-1')).toThrow('last profile');
+  });
+});
+
+describe('mnemonic profile uniqueness', () => {
+  const mnemonic = generateMnemonic();
+  const identities = deriveSharedAccount('mainnet', mnemonic, 0).identities;
+  const profile = {
+    id: 'profile-root',
+    name: 'Existing profile',
+    network: 'mainnet' as const,
+    enabledChains: ['symbol', 'nem'] as const,
+    defaultAccountId: 'account-root',
+    nextAccountIndex: 1,
+    hdAccountIds: [] as readonly string[],
+    revision: 1,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  };
+  const store = {
+    schemaVersion: 2,
+    profiles: [profile],
+    accounts: [
+      {
+        id: 'account-root',
+        profileId: profile.id,
+        name: 'Excluded root',
+        identities,
+        source: {
+          kind: 'mnemonicDerived' as const,
+          secretRef: 'vault:profile-root:mnemonic:0',
+          accountIndex: 0,
+          derivationPath: "44'/4343'/0'/0'/0'",
+        },
+        status: 'excluded' as const,
+        excludedAt: '2026-01-02T00:00:00.000Z',
+        revision: 2,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-02T00:00:00.000Z',
+      },
+    ],
+    vaults: [],
+    permissions: [],
+    usedMessageNonces: [],
+    settings: {
+      activeProfileId: profile.id,
+      activeChain: 'symbol' as const,
+      language: 'ja' as const,
+      theme: 'light' as const,
+      autoLockMinutes: 15,
+    },
+  } satisfies ExtensionStore;
+
+  it('detects the same root public keys across networks and excluded HD accounts', () => {
+    expect(findProfileByMnemonic(store, mnemonic)).toBe(profile);
+    expect(() => assertUniqueMnemonicProfile(store, mnemonic)).toThrow(DuplicateMnemonicProfileError);
+    expect(() => assertUniqueMnemonicProfile(store, mnemonic)).toThrow('already exists');
+  });
+
+  it('does not treat a different root or an imported private key as a duplicate mnemonic', () => {
+    const importedStore: ExtensionStore = {
+      ...store,
+      accounts: [
+        {
+          ...store.accounts[0]!,
+          source: {
+            kind: 'importedPrivateKey',
+            secretRef: 'vault:profile-root:private:account-root',
+          },
+        },
+      ],
+    };
+
+    expect(findProfileByMnemonic(store, generateMnemonic())).toBeUndefined();
+    expect(findProfileByMnemonic(importedStore, mnemonic)).toBeUndefined();
   });
 });

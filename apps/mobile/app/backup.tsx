@@ -1,4 +1,3 @@
-import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import { useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
@@ -13,7 +12,6 @@ export default function Backup() {
   const router = useRouter();
   const t = useT();
   const exportPassword = useRef('');
-  const importPassword = useRef('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const profile =
@@ -42,30 +40,6 @@ export default function Backup() {
       setBusy(false);
     }
   };
-  const importFile = async () => {
-    setBusy(true);
-    setMessage('');
-    let temporary: File | undefined;
-    try {
-      const picked = await DocumentPicker.getDocumentAsync({ type: 'application/json', copyToCacheDirectory: true });
-      if (picked.canceled) return;
-      temporary = new File(picked.assets[0]!.uri);
-      await store.importBackup(await temporary.text(), importPassword.current);
-      importPassword.current = '';
-      setMessage(t('backupImported'));
-      router.replace('/unlock');
-    } catch {
-      setMessage(t('backupImportFailed'));
-    } finally {
-      importPassword.current = '';
-      try {
-        temporary?.delete();
-      } catch {
-        /* Cache cleanup is best effort. */
-      }
-      setBusy(false);
-    }
-  };
   return (
     <Screen title={t('backup')}>
       <TestnetBanner text={t('testnet')} />
@@ -81,20 +55,6 @@ export default function Backup() {
         />
         <Button disabled={busy} onPress={() => void exportFile()}>
           {busy ? t('busy') : t('export')}
-        </Button>
-      </Card>
-      <Card>
-        <Body>{t('import')}</Body>
-        <Body muted>{t('backupImportInfo')}</Body>
-        <Field
-          placeholder={t('backupPassword')}
-          secureTextEntry
-          onChangeText={(value) => {
-            importPassword.current = value;
-          }}
-        />
-        <Button disabled={busy} onPress={() => void importFile()}>
-          {busy ? t('busy') : t('import')}
         </Button>
       </Card>
       {message ? <Body>{message}</Body> : null}

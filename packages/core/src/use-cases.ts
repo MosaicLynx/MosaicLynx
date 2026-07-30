@@ -27,17 +27,28 @@ export class ProfileService {
     network: NetworkKind,
     name: string,
     initialAccountId: string,
-    vaultRef: string
+    vaultRef: string,
+    enabledChains: readonly ('symbol' | 'nem')[] = ['symbol', 'nem']
   ): Promise<Profile> {
     const normalizedName = name.trim();
-    if (!normalizedName || !initialAccountId || !vaultRef || (network !== 'mainnet' && network !== 'testnet'))
+    const normalizedChains = [...new Set(enabledChains)];
+    if (
+      !normalizedName ||
+      !initialAccountId ||
+      !vaultRef ||
+      (network !== 'mainnet' && network !== 'testnet') ||
+      normalizedChains.length === 0 ||
+      normalizedChains.some((chain) => chain !== 'symbol' && chain !== 'nem')
+    )
       throw new MosaicLynxError('INVALID_PARAMS', 'Profile fields are invalid.');
     const now = this.clock.now().toISOString();
     const profile: Profile = {
       id: this.ids.next(),
       network,
+      enabledChains: normalizedChains,
       name: normalizedName,
       accountIds: [initialAccountId],
+      hdAccountIds: [initialAccountId],
       defaultAccountId: initialAccountId,
       nextAccountIndex: 1,
       vaultRef,
@@ -79,10 +90,12 @@ export class AccountService {
         'Account derivation index is outside the profile allocation.'
       );
     await this.accounts.save(account);
-    if (!profile.accountIds.includes(account.id)) {
+    if (!profile.accountIds.includes(account.id) && account.status === 'active') {
       const updated: Profile = {
         ...profile,
         accountIds: [...profile.accountIds, account.id],
+        hdAccountIds:
+          account.source.kind === 'mnemonicDerived' ? [...profile.hdAccountIds, account.id] : profile.hdAccountIds,
         revision: profile.revision + 1,
         updatedAt: this.clock?.now().toISOString() ?? account.updatedAt,
       };
@@ -109,12 +122,16 @@ export class AccountService {
     if (!profile) throw new MosaicLynxError('PROFILE_NOT_FOUND', 'Profile was not found.');
     if (!profile.accountIds.includes(accountId))
       throw new MosaicLynxError('ACCOUNT_NOT_FOUND', 'Account was not found.');
-    if (profile.accountIds.length === 1)
+    const account = await this.accounts.getById(accountId);
+    if (!account || account.profileId !== profileId)
+      throw new MosaicLynxError('ACCOUNT_NOT_FOUND', 'Account was not found.');
+    if (account.source.kind === 'mnemonicDerived' && profile.hdAccountIds.length === 1)
       throw new MosaicLynxError('LAST_ACCOUNT', 'The last account cannot be deleted.');
     const accountIds = profile.accountIds.filter((id) => id !== accountId);
     await this.profiles.save({
       ...profile,
       accountIds,
+      hdAccountIds: profile.hdAccountIds.filter((id) => id !== accountId),
       defaultAccountId: profile.defaultAccountId === accountId ? accountIds[0]! : profile.defaultAccountId,
       revision: profile.revision + 1,
       updatedAt: this.clock?.now().toISOString() ?? profile.updatedAt,

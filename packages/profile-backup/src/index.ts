@@ -16,6 +16,7 @@ export interface ProfileBackupPlaintext {
   readonly permissions: readonly PermissionGrant[];
   readonly vault: {
     readonly mnemonic?: string;
+    readonly hdPrivateKeys: Readonly<Record<string, string>>;
     readonly importedPrivateKeys: Readonly<Record<string, string>>;
   };
 }
@@ -111,7 +112,11 @@ export const exportProfileBackup = async (
     },
   };
   const key = await keyFor(password, salt);
-  const plaintextBytes = utf8(canonicalize(plaintext));
+  const normalizedPlaintext: ProfileBackupPlaintext = {
+    ...plaintext,
+    vault: { ...plaintext.vault, hdPrivateKeys: plaintext.vault.hdPrivateKeys ?? {} },
+  };
+  const plaintextBytes = utf8(canonicalize(normalizedPlaintext));
   try {
     const ciphertextAndTag = await driver.encryptAesGcm(key, plaintextBytes, nonce, aadFor(header));
     return {
@@ -166,7 +171,11 @@ export const importProfileBackup = async (
       base64UrlDecode(envelope.cipher.nonce, 12),
       aadFor(header)
     );
-    const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(plaintext)) as ProfileBackupPlaintext;
+    const decoded = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(plaintext)) as ProfileBackupPlaintext;
+    const value: ProfileBackupPlaintext = {
+      ...decoded,
+      vault: { ...decoded.vault, hdPrivateKeys: decoded.vault.hdPrivateKeys ?? {} },
+    };
     validatePlaintext(value);
     if (value.profile.id !== envelope.sourceProfileId)
       throw new TypeError('Backup Profile ID does not match its envelope.');

@@ -110,7 +110,7 @@ const decryptContents = async (envelope: MobileVaultEnvelope, key: Uint8Array): 
   try {
     const contents = JSON.parse(decoder.decode(decrypted)) as VaultContents;
     if (!contents.importedPrivateKeys || typeof contents.importedPrivateKeys !== 'object') throw new Error();
-    return contents;
+    return { ...contents, hdPrivateKeys: contents.hdPrivateKeys ?? {} };
   } finally {
     decrypted.fill(0);
   }
@@ -118,6 +118,7 @@ const decryptContents = async (envelope: MobileVaultEnvelope, key: Uint8Array): 
 
 export const destroyVaultContents = (contents: VaultContents): void => {
   delete contents.mnemonic;
+  for (const accountId of Object.keys(contents.hdPrivateKeys)) delete contents.hdPrivateKeys[accountId];
   for (const accountId of Object.keys(contents.importedPrivateKeys)) delete contents.importedPrivateKeys[accountId];
 };
 

@@ -1,5 +1,5 @@
 import { NemChainAdapter } from '@mosaiclynx/chain-nem';
-import { SymbolChainAdapter, deriveSharedAccount } from '@mosaiclynx/chain-symbol';
+import { SymbolChainAdapter } from '@mosaiclynx/chain-symbol';
 import { createStructuredMessage, structuredMessageDigest } from '@mosaiclynx/core';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -36,20 +36,12 @@ class ApprovalError extends Error {
   }
 }
 
-const privateKeyFor = (profile: PublicProfile, account: PublicAccount, vault: VaultContents): string => {
+const privateKeyFor = (_profile: PublicProfile, account: PublicAccount, vault: VaultContents): string => {
   const source = account.source;
   let privateKey: string;
   if (source.kind === 'mnemonicDerived') {
-    if (!vault.mnemonic) throw new ApprovalError('approvalRequestFailed');
-    const material = deriveSharedAccount(profile.network, vault.mnemonic, source.accountIndex);
-    if (material.derivationPath !== source.derivationPath) throw new ApprovalError('approvalRequestFailed');
-    privateKey = material.privateKey;
-    for (const chain of ['symbol', 'nem'] as const) {
-      const expected = account.identities[chain];
-      const actual = material.identities[chain];
-      if (expected.address !== actual.address || expected.publicKey !== actual.publicKey)
-        throw new ApprovalError('approvalRequestFailed');
-    }
+    privateKey = vault.hdPrivateKeys[account.id] ?? '';
+    if (!privateKey) throw new ApprovalError('approvalRequestFailed');
   } else {
     privateKey = vault.importedPrivateKeys[account.id] ?? '';
     if (!privateKey) throw new ApprovalError('approvalRequestFailed');

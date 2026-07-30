@@ -1,13 +1,12 @@
-import { NemChainAdapter } from '@mosaiclynx/chain-nem';
-import { SymbolChainAdapter, deriveSharedAccount } from '@mosaiclynx/chain-symbol';
+import { deriveSharedAccount } from '@mosaiclynx/chain-symbol';
 import type { Account, PermissionGrant } from '@mosaiclynx/core';
 import { exportProfileBackup, importProfileBackup, serializeProfileBackup } from '@mosaiclynx/profile-backup';
 import type { RelaySigningRequest, SignedTransaction } from '@mosaiclynx/relay-protocol';
-import { PrivateKey } from '@nemnesia/symbol-sdk';
 import { randomUUID } from 'expo-crypto';
 import { type ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
+import { identitiesForPrivateKey } from './account-identities';
 import { mobileCryptoDriver } from './crypto';
 import type { MobilePersistedState, MobileProfile, MobileVaultEnvelope, VaultContents } from './model';
 import type { MobileVaultPort } from './ports';
@@ -23,19 +22,6 @@ import {
   updateUnlockedVault,
 } from './vault';
 
-const symbol = new SymbolChainAdapter();
-const nem = new NemChainAdapter();
-
-const privateKeyIdentities = (privateKey: string) => {
-  new PrivateKey(privateKey);
-  const symbolAccount = symbol.importAccount('testnet', privateKey);
-  const nemAccount = nem.importAccount('testnet', privateKey);
-  return {
-    symbol: { address: symbolAccount.address, publicKey: symbolAccount.publicKey },
-    nem: { address: nemAccount.address, publicKey: nemAccount.publicKey },
-  };
-};
-
 const sameIdentity = (left: Account['identities'], right: Account['identities']): boolean =>
   (['symbol', 'nem'] as const).every(
     (chain) =>
@@ -47,13 +33,20 @@ interface StoreApi extends MobileVaultPort {
   readonly ready: boolean;
   readonly state: MobilePersistedState | undefined;
   readonly unlockedProfileIds: ReadonlySet<string>;
-  createProfile(input: { name: string; password: string; passwordHint?: string; mnemonic: string }): Promise<string>;
+  createProfile(input: {
+    name: string;
+    password: string;
+    passwordHint?: string;
+    mnemonic: string;
+    enabledChains?: readonly ('symbol' | 'nem')[];
+  }): Promise<string>;
   touch(): void;
   selectProfile(profileId: string): Promise<void>;
   selectChain(chain: 'symbol' | 'nem'): Promise<void>;
   selectAccount(profileId: string, accountId: string): Promise<void>;
   addDerivedAccount(profileId: string, name: string): Promise<void>;
   importPrivateKey(profileId: string, name: string, privateKey: string): Promise<void>;
+  restoreHdAccount(profileId: string, accountId: string): Promise<void>;
   renameAccount(accountId: string, name: string): Promise<void>;
   deleteAccount(profileId: string, accountId: string): Promise<void>;
   exportBackup(profileId: string, password: string): Promise<string>;
@@ -104,8 +97,16 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
   );
 
   const createProfile = useCallback(
-    async (input: { name: string; password: string; passwordHint?: string; mnemonic: string }) => {
+    async (input: {
+      name: string;
+      password: string;
+      passwordHint?: string;
+      mnemonic: string;
+      enabledChains?: readonly ('symbol' | 'nem')[];
+    }) => {
       if (!state || !input.name.trim()) throw new Error('INVALID_PROFILE');
+      const enabledChains: ('symbol' | 'nem')[] = [...new Set(input.enabledChains ?? (['symbol', 'nem'] as const))];
+      if (!enabledChains.length) throw new Error('INVALID_PROFILE');
       const profileId = randomUUID();
       const accountId = randomUUID();
       const now = new Date().toISOString();
@@ -121,6 +122,7 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
           accountIndex: 0,
           derivationPath: material.derivationPath,
         },
+        status: 'active',
         revision: 1,
         createdAt: now,
         updatedAt: now,
@@ -128,8 +130,10 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
       const profile: MobileProfile = {
         id: profileId,
         network: 'testnet',
+        enabledChains,
         name: input.name.trim(),
         accountIds: [accountId],
+        hdAccountIds: [accountId],
         defaultAccountId: accountId,
         nextAccountIndex: 1,
         vaultRef: `vault:${profileId}`,
@@ -140,6 +144,7 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
       };
       const vault = await createVault(profileId, input.password, {
         mnemonic: input.mnemonic.trim().replace(/\s+/g, ' '),
+        hdPrivateKeys: { [accountId]: material.privateKey },
         importedPrivateKeys: {},
       });
       await commit({
@@ -147,7 +152,7 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
         profiles: [...state.profiles, profile],
         accounts: [...state.accounts, account],
         vaults: [...state.vaults, vault],
-        settings: { ...state.settings, activeProfileId: profileId },
+        settings: { ...state.settings, activeProfileId: profileId, activeChain: enabledChains[0]! },
       });
       return profileId;
     },
@@ -177,8 +182,19 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
 
   const selectProfile = useCallback(
     async (profileId: string) => {
-      if (!state || !state.profiles.some((profile) => profile.id === profileId)) throw new Error('PROFILE_NOT_FOUND');
-      await commit({ ...state, settings: { ...state.settings, activeProfileId: profileId } });
+      if (!state) throw new Error('PROFILE_NOT_FOUND');
+      const profile = state.profiles.find((item) => item.id === profileId);
+      if (!profile) throw new Error('PROFILE_NOT_FOUND');
+      await commit({
+        ...state,
+        settings: {
+          ...state.settings,
+          activeProfileId: profileId,
+          activeChain: profile.enabledChains.includes(state.settings.activeChain)
+            ? state.settings.activeChain
+            : profile.enabledChains[0]!,
+        },
+      });
     },
     [commit, state]
   );
@@ -186,6 +202,8 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
   const selectChain = useCallback(
     async (chain: 'symbol' | 'nem') => {
       if (!state) return;
+      const profile = state.profiles.find((item) => item.id === state.settings.activeProfileId) ?? state.profiles[0];
+      if (!profile || !profile.enabledChains.includes(chain)) throw new Error('CHAIN_DISABLED');
       await commit({ ...state, settings: { ...state.settings, activeChain: chain } });
     },
     [commit, state]
@@ -193,7 +211,12 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
 
   const selectAccount = useCallback(
     async (profileId: string, accountId: string) => {
-      if (!state || !state.accounts.some((account) => account.id === accountId && account.profileId === profileId))
+      if (
+        !state ||
+        !state.accounts.some(
+          (account) => account.id === accountId && account.profileId === profileId && account.status === 'active'
+        )
+      )
         throw new Error('ACCOUNT_NOT_FOUND');
       const now = new Date().toISOString();
       await commit({
@@ -216,46 +239,52 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
       const envelope = state.vaults.find((item) => item.profileId === profileId);
       if (!profile || !session || !envelope) throw new Error('VAULT_LOCKED');
       const contents = await readUnlockedVault(envelope, session);
-      let material: ReturnType<typeof deriveSharedAccount>;
       try {
         if (!contents.mnemonic) throw new Error('SECRET_NOT_FOUND');
-        material = deriveSharedAccount('testnet', contents.mnemonic, profile.nextAccountIndex);
+        const material = deriveSharedAccount('testnet', contents.mnemonic, profile.nextAccountIndex);
+        const id = randomUUID();
+        const now = new Date().toISOString();
+        const account: Account = {
+          id,
+          profileId,
+          name: name.trim(),
+          identities: material.identities,
+          source: {
+            kind: 'mnemonicDerived',
+            secretRef: `vault:${profileId}:mnemonic:${profile.nextAccountIndex}`,
+            accountIndex: profile.nextAccountIndex,
+            derivationPath: material.derivationPath,
+          },
+          status: 'active',
+          revision: 1,
+          createdAt: now,
+          updatedAt: now,
+        };
+        const vault = await updateUnlockedVault(envelope, session, {
+          ...contents,
+          hdPrivateKeys: { ...contents.hdPrivateKeys, [id]: material.privateKey },
+        });
+        await commit({
+          ...state,
+          accounts: [...state.accounts, account],
+          vaults: state.vaults.map((item) => (item.profileId === profileId ? vault : item)),
+          profiles: state.profiles.map((item) =>
+            item.id === profileId
+              ? {
+                  ...item,
+                  accountIds: [...item.accountIds, id],
+                  hdAccountIds: [...item.hdAccountIds, id],
+                  defaultAccountId: id,
+                  nextAccountIndex: item.nextAccountIndex + 1,
+                  revision: item.revision + 1,
+                  updatedAt: now,
+                }
+              : item
+          ),
+        });
       } finally {
         destroyVaultContents(contents);
       }
-      const id = randomUUID();
-      const now = new Date().toISOString();
-      const account: Account = {
-        id,
-        profileId,
-        name: name.trim(),
-        identities: material.identities,
-        source: {
-          kind: 'mnemonicDerived',
-          secretRef: `vault:${profileId}:mnemonic:${profile.nextAccountIndex}`,
-          accountIndex: profile.nextAccountIndex,
-          derivationPath: material.derivationPath,
-        },
-        revision: 1,
-        createdAt: now,
-        updatedAt: now,
-      };
-      await commit({
-        ...state,
-        accounts: [...state.accounts, account],
-        profiles: state.profiles.map((item) =>
-          item.id === profileId
-            ? {
-                ...item,
-                accountIds: [...item.accountIds, id],
-                defaultAccountId: id,
-                nextAccountIndex: item.nextAccountIndex + 1,
-                revision: item.revision + 1,
-                updatedAt: now,
-              }
-            : item
-        ),
-      });
     },
     [commit, state]
   );
@@ -268,6 +297,12 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
       const envelope = state.vaults.find((item) => item.profileId === profileId);
       if (!profile || !session || !envelope) throw new Error('VAULT_LOCKED');
       const normalized = privateKey.trim().toUpperCase();
+      let identities: Account['identities'];
+      try {
+        identities = identitiesForPrivateKey(normalized);
+      } catch {
+        throw new Error('INVALID_PRIVATE_KEY');
+      }
       const id = randomUUID();
       const now = new Date().toISOString();
       const currentContents = await readUnlockedVault(envelope, session);
@@ -286,8 +321,9 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
         id,
         profileId,
         name: name.trim(),
-        identities: privateKeyIdentities(normalized),
+        identities,
         source: { kind: 'importedPrivateKey', secretRef: `vault:${profileId}:private:${id}` },
+        status: 'active',
         revision: 1,
         createdAt: now,
         updatedAt: now,
@@ -328,13 +364,62 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
     [commit, state]
   );
 
+  const restoreHdAccount = useCallback(
+    async (profileId: string, accountId: string) => {
+      if (!state) throw new Error('NOT_READY');
+      const profile = state.profiles.find((item) => item.id === profileId);
+      const account = state.accounts.find((item) => item.id === accountId && item.profileId === profileId);
+      const session = sessions.current.get(profileId);
+      const envelope = state.vaults.find((item) => item.profileId === profileId);
+      if (!profile || !account || account.source.kind !== 'mnemonicDerived' || account.status !== 'excluded')
+        throw new Error('ACCOUNT_NOT_FOUND');
+      if (!session || !envelope) throw new Error('VAULT_LOCKED');
+      const contents = await readUnlockedVault(envelope, session);
+      try {
+        if (!contents.mnemonic) throw new Error('SECRET_NOT_FOUND');
+        const material = deriveSharedAccount('testnet', contents.mnemonic, account.source.accountIndex);
+        if (!sameIdentity(account.identities, material.identities)) throw new Error('ACCOUNT_IDENTITY_MISMATCH');
+        const vault = await updateUnlockedVault(envelope, session, {
+          ...contents,
+          hdPrivateKeys: { ...contents.hdPrivateKeys, [accountId]: material.privateKey },
+        });
+        const now = new Date().toISOString();
+        await commit({
+          ...state,
+          vaults: state.vaults.map((item) => (item.profileId === profileId ? vault : item)),
+          accounts: state.accounts.map((item) => {
+            if (item.id !== accountId) return item;
+            const { excludedAt: _excludedAt, ...restored } = item;
+            return { ...restored, status: 'active' as const, revision: item.revision + 1, updatedAt: now };
+          }),
+          profiles: state.profiles.map((item) =>
+            item.id === profileId
+              ? {
+                  ...item,
+                  accountIds: [...item.accountIds, accountId],
+                  hdAccountIds: [...item.hdAccountIds, accountId],
+                  revision: item.revision + 1,
+                  updatedAt: now,
+                }
+              : item
+          ),
+        });
+      } finally {
+        destroyVaultContents(contents);
+      }
+    },
+    [commit, state]
+  );
+
   const deleteAccount = useCallback(
     async (profileId: string, accountId: string) => {
       if (!state) return;
       const profile = state.profiles.find((item) => item.id === profileId);
-      if (!profile || profile.accountIds.length <= 1) throw new Error('LAST_ACCOUNT');
+      if (!profile) throw new Error('PROFILE_NOT_FOUND');
       const account = state.accounts.find((item) => item.id === accountId && item.profileId === profileId);
       if (!account) throw new Error('ACCOUNT_NOT_FOUND');
+      if (account.source.kind === 'mnemonicDerived' && profile.hdAccountIds.length <= 1)
+        throw new Error('LAST_ACCOUNT');
       let vaults = state.vaults;
       if (account.source.kind === 'importedPrivateKey') {
         const session = sessions.current.get(profileId);
@@ -353,12 +438,37 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
         }
         vaults = state.vaults.map((item) => (item.profileId === profileId ? vault : item));
       }
+      if (account.source.kind === 'mnemonicDerived') {
+        const session = sessions.current.get(profileId);
+        const envelope = state.vaults.find((item) => item.profileId === profileId);
+        if (!session || !envelope) throw new Error('VAULT_LOCKED');
+        const currentContents = await readUnlockedVault(envelope, session);
+        const hdPrivateKeys = { ...currentContents.hdPrivateKeys };
+        delete hdPrivateKeys[accountId];
+        const contents = { ...currentContents, hdPrivateKeys };
+        let vault: MobileVaultEnvelope;
+        try {
+          vault = await updateUnlockedVault(envelope, session, contents);
+        } finally {
+          destroyVaultContents(currentContents);
+          destroyVaultContents(contents);
+        }
+        vaults = state.vaults.map((item) => (item.profileId === profileId ? vault : item));
+      }
       const remaining = profile.accountIds.filter((id) => id !== accountId);
       const now = new Date().toISOString();
       await commit({
         ...state,
         vaults,
-        accounts: state.accounts.filter((item) => item.id !== accountId),
+        accounts: state.accounts
+          .map((item) =>
+            item.id === accountId && item.source.kind === 'mnemonicDerived'
+              ? { ...item, status: 'excluded', excludedAt: now, revision: item.revision + 1, updatedAt: now }
+              : item.id === accountId
+                ? undefined
+                : item
+          )
+          .filter((item): item is Account => Boolean(item)),
         permissions: state.permissions
           .map((grant) => ({ ...grant, accountIds: grant.accountIds.filter((id) => id !== accountId) }))
           .filter((grant) => grant.accountIds.length),
@@ -367,6 +477,7 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
             ? {
                 ...item,
                 accountIds: remaining,
+                hdAccountIds: item.hdAccountIds.filter((id) => id !== accountId),
                 defaultAccountId: item.defaultAccountId === accountId ? remaining[0]! : item.defaultAccountId,
                 revision: item.revision + 1,
                 updatedAt: now,
@@ -384,14 +495,17 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
       const session = sessions.current.get(profileId);
       const envelope = state.vaults.find((item) => item.profileId === profileId);
       const account = state.accounts.find((item) => item.id === accountId && item.profileId === profileId);
-      if (!session || !envelope || !account) throw new Error('VAULT_LOCKED');
+      const profile = state.profiles.find((item) => item.id === profileId);
+      if (!session || !envelope || !account || !profile) throw new Error('VAULT_LOCKED');
+      if (account.status !== 'active' || !profile.enabledChains.includes(request.chain))
+        throw new Error('CHAIN_DISABLED');
       const contents = await readUnlockedVault(envelope, session);
       let privateKey = '';
       try {
         if (account.source.kind === 'importedPrivateKey') {
           privateKey = contents.importedPrivateKeys[account.id] ?? '';
-        } else if (contents.mnemonic) {
-          privateKey = deriveSharedAccount('testnet', contents.mnemonic, account.source.accountIndex).privateKey;
+        } else {
+          privateKey = contents.hdPrivateKeys[account.id] ?? '';
         }
         if (!privateKey) throw new Error('SECRET_NOT_FOUND');
         return signTestnetRequest(request, privateKey);
@@ -436,12 +550,16 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
       if (!state) throw new Error('NOT_READY');
       const restored = await importProfileBackup(mobileCryptoDriver, serialized, password);
       const newProfileId = randomUUID();
+      const restoredEnabledChains = restored.profile.enabledChains ?? (['symbol', 'nem'] as const);
+      const restoredHdAccountIds =
+        restored.profile.hdAccountIds ??
+        restored.accounts.filter((account) => account.source.kind === 'mnemonicDerived').map((account) => account.id);
       const accountIds = new Map(restored.accounts.map((account) => [account.id, randomUUID()]));
       for (const account of restored.accounts) {
         const expected =
           account.source.kind === 'mnemonicDerived'
             ? deriveSharedAccount('testnet', restored.vault.mnemonic ?? '', account.source.accountIndex).identities
-            : privateKeyIdentities(restored.vault.importedPrivateKeys[account.id] ?? '');
+            : identitiesForPrivateKey(restored.vault.importedPrivateKeys[account.id] ?? '');
         if (!sameIdentity(account.identities, expected)) throw new Error('BACKUP_IDENTITY_MISMATCH');
       }
       const now = new Date().toISOString();
@@ -450,13 +568,27 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
         const source =
           account.source.kind === 'mnemonicDerived'
             ? { ...account.source, secretRef: `vault:${newProfileId}:mnemonic:${account.source.accountIndex}` }
-            : { ...account.source, secretRef: `vault:${newProfileId}:private:${id}` };
-        return { ...account, id, profileId: newProfileId, source, revision: 1, createdAt: now, updatedAt: now };
+            : {
+                kind: 'importedPrivateKey' as const,
+                secretRef: `vault:${newProfileId}:private:${id}`,
+              };
+        return {
+          ...account,
+          id,
+          profileId: newProfileId,
+          source,
+          status: account.status ?? 'active',
+          revision: 1,
+          createdAt: now,
+          updatedAt: now,
+        };
       });
       const profile: MobileProfile = {
         ...restored.profile,
         id: newProfileId,
+        enabledChains: restoredEnabledChains,
         accountIds: restored.profile.accountIds.map((id) => accountIds.get(id)!),
+        hdAccountIds: restoredHdAccountIds.map((id) => accountIds.get(id)!).filter(Boolean),
         defaultAccountId: accountIds.get(restored.profile.defaultAccountId)!,
         vaultRef: `vault:${newProfileId}`,
         name: `${restored.profile.name} (restored)`,
@@ -467,7 +599,14 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
       const importedPrivateKeys = Object.fromEntries(
         Object.entries(restored.vault.importedPrivateKeys).map(([id, key]) => [accountIds.get(id)!, key])
       );
-      const vault = await createVault(newProfileId, password, { ...restored.vault, importedPrivateKeys });
+      const hdPrivateKeys = Object.fromEntries(
+        Object.entries(restored.vault.hdPrivateKeys ?? {}).map(([id, key]) => [accountIds.get(id)!, key])
+      );
+      const vault = await createVault(newProfileId, password, {
+        ...restored.vault,
+        hdPrivateKeys,
+        importedPrivateKeys,
+      });
       const permissions: PermissionGrant[] = restored.permissions
         .map((grant) => ({
           ...grant,
@@ -484,7 +623,7 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
         accounts: [...state.accounts, ...accounts],
         vaults: [...state.vaults, vault],
         permissions: [...state.permissions, ...permissions],
-        settings: { ...state.settings, activeProfileId: newProfileId },
+        settings: { ...state.settings, activeProfileId: newProfileId, activeChain: restoredEnabledChains[0]! },
       });
       return newProfileId;
     },
@@ -519,6 +658,7 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
       selectAccount,
       addDerivedAccount,
       importPrivateKey,
+      restoreHdAccount,
       renameAccount,
       deleteAccount,
       signRelayRequest,
@@ -540,6 +680,7 @@ export const MobileStoreProvider = ({ children }: { readonly children: ReactNode
       selectAccount,
       addDerivedAccount,
       importPrivateKey,
+      restoreHdAccount,
       renameAccount,
       deleteAccount,
       signRelayRequest,

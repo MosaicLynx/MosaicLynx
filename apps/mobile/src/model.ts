@@ -6,6 +6,7 @@ export interface MobileProfile extends Profile {
 
 export interface VaultContents {
   mnemonic?: string;
+  hdPrivateKeys: Record<string, string>;
   importedPrivateKeys: Record<string, string>;
 }
 

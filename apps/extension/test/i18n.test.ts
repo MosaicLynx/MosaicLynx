@@ -17,6 +17,13 @@ describe('popup localization', () => {
     expect(i18n.t('darkTheme')).toBe('ダークテーマ');
     expect(i18n.t('copyAddress')).toBe('コピー');
     expect(i18n.t('addressCopied')).toBe('コピーしました');
+    expect(i18n.t('saveProfile')).toBe('プロファイルを保存');
+    expect(i18n.t('backupAndRestore')).toBe('バックアップと復元');
+    expect(i18n.t('mnemonicAlreadyRestored', { name: '既存' })).toBe(
+      'このニーモニックはプロファイル「既存」で使用されています。'
+    );
+    expect(i18n.t('skipVerification')).toBe('確認をスキップ');
+    expect(i18n.t('createWithoutVerification')).toBe('確認せずに作成');
     expect(i18n.t('approvalChainStateUnverifiedTitle')).toBe('チェーン状態は未照合です');
     expect(i18n.t('approvalReject')).toBe('拒否');
   });
@@ -26,6 +33,13 @@ describe('popup localization', () => {
     expect(i18n.t('approvalProfilePassword')).toBe('Profile password');
     expect(i18n.t('copyAddress')).toBe('Copy');
     expect(i18n.t('addressCopied')).toBe('Copied');
+    expect(i18n.t('saveProfile')).toBe('Save profile');
+    expect(i18n.t('backupAndRestore')).toBe('Backup and restore');
+    expect(i18n.t('mnemonicAlreadyRestored', { name: 'Existing' })).toBe(
+      'This mnemonic is already used by the “Existing” profile.'
+    );
+    expect(i18n.t('skipVerification')).toBe('Skip verification');
+    expect(i18n.t('createWithoutVerification')).toBe('Create without verification');
     expect(i18n.t('approvalChainStateUnverifiedTitle')).toBe('Chain state is not checked');
   });
 });

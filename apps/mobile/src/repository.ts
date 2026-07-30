@@ -1,6 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
 import { type MobilePersistedState, emptyMobileState } from './model';
+import { normalizeMobileState } from './state';
 
 const DB_NAME = 'mosaiclynx-testnet.db';
 const STATE_KEY = 'mobile-state-v1';
@@ -21,7 +22,7 @@ export class MobileRepository {
       await this.db()
     ).getFirstAsync<{ value: string }>('SELECT value FROM app_state WHERE key = ?', STATE_KEY);
     if (!row) return emptyMobileState(language);
-    const state = JSON.parse(row.value) as MobilePersistedState;
+    const state = normalizeMobileState(JSON.parse(row.value) as MobilePersistedState);
     if (
       state.schemaVersion !== 1 ||
       !Array.isArray(state.profiles) ||

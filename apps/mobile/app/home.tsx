@@ -40,8 +40,11 @@ export default function Home() {
       <Card>
         <Body muted>{t('chain')}</Body>
         <Row>
-          <Button onPress={() => void store.selectChain('symbol')}>Symbol</Button>
-          <Button onPress={() => void store.selectChain('nem')}>NEM</Button>
+          {profile.enabledChains.map((enabledChain) => (
+            <Button key={enabledChain} onPress={() => void store.selectChain(enabledChain)}>
+              {enabledChain === 'symbol' ? 'Symbol' : 'NEM'}
+            </Button>
+          ))}
         </Row>
       </Card>
       <Card>
@@ -49,7 +52,7 @@ export default function Home() {
         <Body>{account.name}</Body>
         <Row>
           {state.accounts
-            .filter((item) => item.profileId === profile.id)
+            .filter((item) => item.profileId === profile.id && item.status === 'active')
             .map((item) => (
               <LinkButton key={item.id} onPress={() => void store.selectAccount(profile.id, item.id)}>
                 {item.name}
@@ -63,8 +66,6 @@ export default function Home() {
       </Card>
       <Card>
         <LinkButton onPress={() => router.push('/accounts')}>{t('accounts')}</LinkButton>
-        <LinkButton onPress={() => router.push('/backup')}>{t('backup')}</LinkButton>
-        <LinkButton onPress={() => router.push('/connections')}>{t('connections')}</LinkButton>
         <LinkButton onPress={() => router.push('/settings')}>{t('settings')}</LinkButton>
       </Card>
       <Button

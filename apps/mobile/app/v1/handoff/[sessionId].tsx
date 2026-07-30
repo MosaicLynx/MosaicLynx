@@ -4,12 +4,29 @@ import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 
 import { useT } from '../../../src/i18n';
+import type { MobilePersistedState } from '../../../src/model';
 import { unverifiedOriginDisplay } from '../../../src/ports';
 import type { PendingHandoff } from '../../../src/relay';
 import { abandonHandoff, completeSignedHandoff, failHandoff, openHandoff } from '../../../src/relay';
 import { inspectTestnetRequest } from '../../../src/signing';
 import { useMobileStore } from '../../../src/store';
 import { Body, Button, Card, Field, LinkButton, Screen, TestnetBanner } from '../../../src/ui';
+
+const matchingAccounts = (
+  state: MobilePersistedState | undefined,
+  request: PendingHandoff['request'],
+  signerPublicKey: string
+) =>
+  state?.accounts.filter((account) => {
+    const profile = state.profiles.find((item) => item.id === account.profileId);
+    return (
+      account.status === 'active' &&
+      profile?.enabledChains.includes(request.chain) &&
+      account.identities[request.chain].publicKey.toUpperCase() === signerPublicKey.toUpperCase() &&
+      (!request.expectedSignerPublicKey ||
+        account.identities[request.chain].publicKey.toUpperCase() === request.expectedSignerPublicKey)
+    );
+  }) ?? [];
 
 export default function HandoffApproval() {
   const rawUrl = Linking.useURL();
@@ -36,15 +53,7 @@ export default function HandoffApproval() {
           abandonHandoff(handle);
           return;
         }
-        const matching =
-          store.state?.accounts.filter(
-            (account) =>
-              account.identities[value.request.chain].publicKey.toUpperCase() ===
-                parsed.signerPublicKey.toUpperCase() &&
-              (!value.request.expectedSignerPublicKey ||
-                account.identities[value.request.chain].publicKey.toUpperCase() ===
-                  value.request.expectedSignerPublicKey)
-          ) ?? [];
+        const matching = matchingAccounts(store.state, value.request, parsed.signerPublicKey);
         setPending(value);
         setInspection(parsed);
         setSelectedAccountId(matching[0]?.id ?? '');
@@ -71,13 +80,7 @@ export default function HandoffApproval() {
   }, [rawUrl]);
 
   const accounts =
-    pending && inspection
-      ? (store.state?.accounts.filter(
-          (account) =>
-            account.identities[pending.request.chain].publicKey.toUpperCase() ===
-            inspection.signerPublicKey.toUpperCase()
-        ) ?? [])
-      : [];
+    pending && inspection ? matchingAccounts(store.state, pending.request, inspection.signerPublicKey) : [];
   const selected = accounts.find((account) => account.id === selectedAccountId);
   const profile = selected ? store.state?.profiles.find((item) => item.id === selected.profileId) : undefined;
   const displayedOrigin = pending ? unverifiedOriginDisplay.format(pending.request.initiatorOrigin) : undefined;

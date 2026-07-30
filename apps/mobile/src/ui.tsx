@@ -87,6 +87,15 @@ export const Body = ({
   );
 };
 
+export const Address = ({ children }: { readonly children: ReactNode }) => {
+  const colors = usePalette();
+  return (
+    <Text selectable style={[styles.address, { color: colors.text }]}>
+      {children}
+    </Text>
+  );
+};
+
 export const Field = (props: TextInputProps) => {
   const colors = usePalette();
   return (
@@ -148,6 +157,7 @@ export const styles = StyleSheet.create({
   bannerText: { fontSize: 14, fontWeight: '800', letterSpacing: 0.4 },
   card: { borderWidth: 1, borderRadius: 14, padding: 16, gap: 10 },
   body: { fontSize: 16, lineHeight: 23 },
+  address: { fontSize: 19, lineHeight: 27, fontVariant: ['tabular-nums'] },
   field: { borderWidth: 1, borderRadius: 10, minHeight: 50, paddingHorizontal: 12, fontSize: 16 },
   button: {
     minHeight: 50,

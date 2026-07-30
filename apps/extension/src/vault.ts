@@ -31,6 +31,8 @@ export interface PublicAccount {
   readonly name: string;
   readonly identities: Readonly<Record<'symbol' | 'nem', ChainIdentity>>;
   readonly source: AccountSource;
+  readonly status: 'active' | 'excluded';
+  readonly excludedAt?: string;
   readonly revision: number;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -40,8 +42,10 @@ export interface PublicProfile {
   readonly id: string;
   readonly name: string;
   readonly network: NetworkKind;
+  readonly enabledChains: readonly ('symbol' | 'nem')[];
   readonly defaultAccountId: string;
   readonly nextAccountIndex: number;
+  readonly hdAccountIds: readonly string[];
   readonly revision: number;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -61,6 +65,7 @@ export interface PermissionGrant {
 
 export interface VaultContents {
   readonly mnemonic?: string;
+  readonly hdPrivateKeys: Readonly<Record<string, string>>;
   readonly importedPrivateKeys: Readonly<Record<string, string>>;
 }
 
@@ -106,6 +111,39 @@ export interface ExtensionStore {
     readonly autoLockMinutes: number;
   };
 }
+
+export class DuplicateMnemonicProfileError extends Error {
+  public constructor(public readonly profileName: string) {
+    super('A profile derived from this mnemonic already exists.');
+    this.name = 'DuplicateMnemonicProfileError';
+  }
+}
+
+const rootPublicKeysEqual = (left: PublicAccount['identities'], right: PublicAccount['identities']): boolean =>
+  (['symbol', 'nem'] as const).every(
+    (chain) => left[chain].publicKey.toUpperCase() === right[chain].publicKey.toUpperCase()
+  );
+
+export const findProfileByMnemonic = (store: ExtensionStore, mnemonic: string): PublicProfile | undefined => {
+  const roots: Readonly<Record<NetworkKind, PublicAccount['identities']>> = {
+    mainnet: deriveSharedAccount('mainnet', mnemonic, 0).identities,
+    testnet: deriveSharedAccount('testnet', mnemonic, 0).identities,
+  };
+  return store.profiles.find((profile) =>
+    store.accounts.some(
+      (account) =>
+        account.profileId === profile.id &&
+        account.source.kind === 'mnemonicDerived' &&
+        account.source.accountIndex === 0 &&
+        rootPublicKeysEqual(account.identities, roots[profile.network])
+    )
+  );
+};
+
+export const assertUniqueMnemonicProfile = (store: ExtensionStore, mnemonic: string): void => {
+  const profile = findProfileByMnemonic(store, mnemonic);
+  if (profile) throw new DuplicateMnemonicProfileError(profile.name);
+};
 
 export const emptyStore = (): ExtensionStore => ({
   schemaVersion: STORE_SCHEMA_VERSION,
@@ -283,7 +321,7 @@ export const decryptVault = async (envelope: VaultEnvelope, password: string): P
     const contents = JSON.parse(decoder.decode(decrypted)) as VaultContents;
     if (typeof contents !== 'object' || !contents.importedPrivateKeys) throw new Error('Invalid vault contents.');
     await chrome.storage.session.remove(keyName);
-    return contents;
+    return { ...contents, hdPrivateKeys: contents.hdPrivateKeys ?? {} };
   } catch {
     const failures = attempts.failures + 1;
     const delaySeconds = failures >= 5 ? Math.min(60, 2 ** (failures - 5)) : 0;
@@ -308,7 +346,13 @@ interface LegacyExtensionStore extends Omit<ExtensionStore, 'schemaVersion' | 'p
 
 const migrateLegacyStore = (legacy: LegacyExtensionStore): ExtensionStore => ({
   schemaVersion: STORE_SCHEMA_VERSION,
-  profiles: legacy.profiles.map(({ accounts: _accounts, ...profile }) => profile),
+  profiles: legacy.profiles.map(({ accounts, ...profile }) => ({
+    ...profile,
+    enabledChains: profile.enabledChains ?? ['symbol', 'nem'],
+    hdAccountIds:
+      profile.hdAccountIds ??
+      accounts.filter((account) => account.source.kind === 'mnemonicDerived').map((account) => account.id),
+  })),
   accounts: legacy.profiles.flatMap((profile) => profile.accounts),
   vaults: legacy.vaults ?? [],
   permissions: legacy.permissions ?? [],
@@ -323,8 +367,21 @@ export const loadStore = async (): Promise<ExtensionStore> => {
   if (meta?.schemaVersion === STORE_SCHEMA_VERSION) {
     return {
       schemaVersion: STORE_SCHEMA_VERSION,
-      profiles: (stored[STORAGE_KEYS.profiles] as readonly PublicProfile[] | undefined) ?? [],
-      accounts: (stored[STORAGE_KEYS.accounts] as readonly PublicAccount[] | undefined) ?? [],
+      profiles: ((stored[STORAGE_KEYS.profiles] as readonly PublicProfile[] | undefined) ?? []).map((profile) => ({
+        ...profile,
+        enabledChains: profile.enabledChains ?? ['symbol', 'nem'],
+        hdAccountIds: profile.hdAccountIds ?? [],
+      })),
+      accounts: ((stored[STORAGE_KEYS.accounts] as readonly PublicAccount[] | undefined) ?? []).map((account) => ({
+        ...account,
+        source:
+          account.source.kind === 'importedPrivateKey'
+            ? {
+                kind: 'importedPrivateKey' as const,
+                secretRef: account.source.secretRef,
+              }
+            : account.source,
+      })),
       vaults: (stored[STORAGE_KEYS.vaults] as readonly VaultEnvelope[] | undefined) ?? [],
       permissions: (stored[STORAGE_KEYS.permissions] as readonly PermissionGrant[] | undefined) ?? [],
       usedMessageNonces:
@@ -414,21 +471,43 @@ export const importExtensionProfileBackup = async (
         : identitiesForPrivateKey(restored.vault.importedPrivateKeys[account.id] ?? '');
     if (!identitiesEqual(account.identities, identities)) throw new Error('Backup account identity mismatch.');
   }
+  if (restored.vault.mnemonic) {
+    assertUniqueMnemonicProfile(store, restored.vault.mnemonic);
+  }
   const now = new Date().toISOString();
   const accounts: PublicAccount[] = restored.accounts.map((account) => {
     const id = accountIds.get(account.id)!;
     const source: AccountSource =
       account.source.kind === 'mnemonicDerived'
         ? { ...account.source, secretRef: `vault:${profileId}:mnemonic:${account.source.accountIndex}` }
-        : { ...account.source, secretRef: `vault:${profileId}:private:${id}` };
-    return { ...account, id, profileId, source, revision: 1, createdAt: now, updatedAt: now };
+        : {
+            kind: 'importedPrivateKey' as const,
+            secretRef: `vault:${profileId}:private:${id}`,
+          };
+    return {
+      ...account,
+      id,
+      profileId,
+      source,
+      status: account.status ?? 'active',
+      revision: 1,
+      createdAt: now,
+      updatedAt: now,
+    };
   });
   const profile: PublicProfile = {
     id: profileId,
     name: `${restored.profile.name} (restored)`,
     network: 'testnet' as const,
+    enabledChains: restored.profile.enabledChains ?? ['symbol', 'nem'],
     defaultAccountId: accountIds.get(restored.profile.defaultAccountId)!,
     nextAccountIndex: restored.profile.nextAccountIndex,
+    hdAccountIds: (
+      restored.profile.hdAccountIds ??
+      restored.accounts.filter((account) => account.source.kind === 'mnemonicDerived').map((account) => account.id)
+    )
+      .map((id) => accountIds.get(id)!)
+      .filter(Boolean),
     revision: 1,
     createdAt: now,
     updatedAt: now,
@@ -436,7 +515,10 @@ export const importExtensionProfileBackup = async (
   const importedPrivateKeys = Object.fromEntries(
     Object.entries(restored.vault.importedPrivateKeys).map(([id, key]) => [accountIds.get(id)!, key])
   );
-  const vault = await encryptVault(profileId, password, { ...restored.vault, importedPrivateKeys });
+  const hdPrivateKeys = Object.fromEntries(
+    Object.entries(restored.vault.hdPrivateKeys ?? {}).map(([id, key]) => [accountIds.get(id)!, key])
+  );
+  const vault = await encryptVault(profileId, password, { ...restored.vault, hdPrivateKeys, importedPrivateKeys });
   const permissions: PermissionGrant[] = restored.permissions
     .map((grant) => ({
       origin: grant.origin,

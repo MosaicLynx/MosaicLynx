@@ -27,6 +27,10 @@ export default function Settings() {
         </Row>
       </Card>
       <Card>
+        <LinkButton onPress={() => router.push('/backup')}>{t('backup')}</LinkButton>
+        <LinkButton onPress={() => router.push('/restore')}>{t('restoreBackup')}</LinkButton>
+      </Card>
+      <Card>
         <Body>{t('version')}</Body>
         <Body muted>{t('capabilityDisabled')}</Body>
       </Card>

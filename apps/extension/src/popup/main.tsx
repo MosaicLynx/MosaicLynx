@@ -1,22 +1,27 @@
+import { NemChainAdapter } from '@mosaiclynx/chain-nem';
 import { deriveSharedAccount, generateMnemonic } from '@mosaiclynx/chain-symbol';
+import { SymbolChainAdapter } from '@mosaiclynx/chain-symbol';
 import DarkModeOutlined from '@mui/icons-material/DarkModeOutlined';
 import LightModeOutlined from '@mui/icons-material/LightModeOutlined';
 import VisibilityOffOutlined from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
+import Checkbox from '@mui/material/Checkbox';
 import Chip from '@mui/material/Chip';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import LinearProgress from '@mui/material/LinearProgress';
 import TextField from '@mui/material/TextField';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import { PrivateKey } from '@nemnesia/symbol-sdk';
 import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useTranslation } from 'react-i18next';
@@ -24,11 +29,12 @@ import { useTranslation } from 'react-i18next';
 import { MAINNET_SIGNING_ENABLED } from '../release-capabilities.js';
 import { AppThemeProvider, setAppThemeMode } from '../ui/theme.js';
 import {
+  DuplicateMnemonicProfileError,
   type ExtensionStore,
-  type PermissionGrant,
   type PublicAccount,
   type PublicProfile,
   type VaultContents,
+  assertUniqueMnemonicProfile,
   decryptVault,
   deleteProfileFromStore,
   encryptVault,
@@ -44,18 +50,18 @@ import './styles.css';
 type CreateMode = 'new' | 'import';
 type OnboardingStep = 'welcome' | 'method' | 'details' | 'import' | 'import-review' | 'backup' | 'confirm' | 'complete';
 type Language = ExtensionStore['settings']['language'];
-type HomeView = 'home' | 'menu' | 'profiles' | 'accounts' | 'connections';
+type HomeView = 'home' | 'menu' | 'profiles' | 'accounts' | 'backup' | 'restore';
+type ProfileChain = 'symbol' | 'nem';
+type AccountAddMode = 'choice' | 'hd' | 'privateKey';
 type ConfirmationAction =
   | { readonly kind: 'account'; readonly name: string }
-  | { readonly kind: 'connection'; readonly grant: PermissionGrant }
   | {
       readonly kind: 'profile';
       readonly profile: PublicProfile;
       readonly accountCount: number;
-      readonly connectionCount: number;
     };
 
-const DEBUG_SKIP_BACKUP_CONFIRMATION = !MAINNET_SIGNING_ENABLED;
+const PROFILE_CHAINS: readonly ProfileChain[] = ['symbol', 'nem'];
 
 const normalizeMnemonic = (value: string): string => value.trim().toLowerCase().split(/\s+/).join(' ');
 
@@ -125,21 +131,26 @@ const App = () => {
   const [mode, setMode] = useState<CreateMode>('new');
   const [name, setName] = useState('');
   const [network, setNetwork] = useState<'mainnet' | 'testnet'>('testnet');
+  const [enabledChains, setEnabledChains] = useState<readonly ('symbol' | 'nem')[]>(['symbol', 'nem']);
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [hint, setHint] = useState('');
   const [mnemonic, setMnemonic] = useState('');
   const [selectedWordIds, setSelectedWordIds] = useState<readonly number[]>([]);
+  const [showSkipVerificationDialog, setShowSkipVerificationDialog] = useState(false);
   const [importPreview, setImportPreview] = useState<ReturnType<typeof deriveSharedAccount>>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [homeView, setHomeView] = useState<HomeView>('home');
   const [profileNameDraft, setProfileNameDraft] = useState('');
+  const [profileChainsDraft, setProfileChainsDraft] = useState<readonly ProfileChain[]>([]);
+  const [pendingProfileId, setPendingProfileId] = useState<string>();
   const [accountNameDraft, setAccountNameDraft] = useState('');
   const [accountPassword, setAccountPassword] = useState('');
   const [backupPassword, setBackupPassword] = useState('');
   const [backupFile, setBackupFile] = useState<File>();
-  const [showAddAccount, setShowAddAccount] = useState(false);
+  const [accountAddMode, setAccountAddMode] = useState<AccountAddMode>();
+  const [importPrivateKey, setImportPrivateKey] = useState('');
   const [notice, setNotice] = useState('');
   const [confirmationAction, setConfirmationAction] = useState<ConfirmationAction>();
   const [profileDeletionName, setProfileDeletionName] = useState('');
@@ -208,8 +219,12 @@ const App = () => {
       setBackupFile(undefined);
       setBackupPassword('');
       setNotice(t('backupImported'));
-    } catch {
-      setError(t('backupFailed'));
+    } catch (cause) {
+      setError(
+        cause instanceof DuplicateMnemonicProfileError
+          ? t('mnemonicAlreadyRestored', { name: cause.profileName })
+          : t('backupFailed')
+      );
     } finally {
       setBusy(false);
     }
@@ -219,11 +234,13 @@ const App = () => {
     setMode('new');
     setName('');
     setNetwork('testnet');
+    setEnabledChains(['symbol', 'nem']);
     setPassword('');
     setConfirmation('');
     setHint('');
     setMnemonic('');
     setSelectedWordIds([]);
+    setShowSkipVerificationDialog(false);
     setImportPreview(undefined);
     setError('');
   };
@@ -236,6 +253,7 @@ const App = () => {
 
   const validateDetails = (): void => {
     if (!name.trim()) throw new Error(t('requiredName'));
+    if (!enabledChains.length) throw new Error('Select at least one chain.');
     if (password.length < 12) throw new Error(t('shortPassword'));
     if (password !== confirmation) throw new Error(t('mismatchPassword'));
   };
@@ -257,16 +275,22 @@ const App = () => {
   };
 
   const reviewImport = (): void => {
+    if (!store) return;
     setError('');
     try {
       const normalized = normalizeMnemonic(mnemonic);
       if (normalized.split(' ').length !== 24) throw new Error(t('invalidMnemonic'));
       const material = deriveSharedAccount(network, normalized, 0);
+      assertUniqueMnemonicProfile(store, normalized);
       setMnemonic(normalized);
       setImportPreview(material);
       setStep('import-review');
-    } catch {
-      setError(t('invalidMnemonic'));
+    } catch (cause) {
+      setError(
+        cause instanceof DuplicateMnemonicProfileError
+          ? t('mnemonicAlreadyRestored', { name: cause.profileName })
+          : t('invalidMnemonic')
+      );
     }
   };
 
@@ -282,9 +306,10 @@ const App = () => {
         const confirmed = selectedWordIds.map((id) => normalized.split(' ')[id]).join(' ');
         if (confirmed !== normalized) throw new Error(t('wrongOrder'));
       }
+      const material = deriveSharedAccount(network, normalized, 0);
+      assertUniqueMnemonicProfile(store, normalized);
       const profileId = crypto.randomUUID();
       const accountId = crypto.randomUUID();
-      const material = deriveSharedAccount(network, normalized, 0);
       const now = new Date().toISOString();
       const account: PublicAccount = {
         id: accountId,
@@ -297,6 +322,7 @@ const App = () => {
           accountIndex: 0,
           derivationPath: material.derivationPath,
         },
+        status: 'active',
         revision: 1,
         createdAt: now,
         updatedAt: now,
@@ -305,14 +331,20 @@ const App = () => {
         id: profileId,
         name: name.trim(),
         network,
+        enabledChains,
         defaultAccountId: accountId,
         nextAccountIndex: 1,
+        hdAccountIds: [accountId],
         revision: 1,
         createdAt: now,
         updatedAt: now,
         ...(hint.trim() ? { passwordHint: hint.trim() } : {}),
       };
-      const vault = await encryptVault(profileId, password, { mnemonic: normalized, importedPrivateKeys: {} });
+      const vault = await encryptVault(profileId, password, {
+        mnemonic: normalized,
+        hdPrivateKeys: { [accountId]: material.privateKey },
+        importedPrivateKeys: {},
+      });
       const next: ExtensionStore = {
         ...store,
         profiles: [...store.profiles, profile],
@@ -329,7 +361,13 @@ const App = () => {
       setImportPreview(undefined);
       setStep('complete');
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t('invalidMnemonic'));
+      setError(
+        cause instanceof DuplicateMnemonicProfileError
+          ? t('mnemonicAlreadyRestored', { name: cause.profileName })
+          : cause instanceof Error
+            ? cause.message
+            : t('invalidMnemonic')
+      );
     } finally {
       setBusy(false);
     }
@@ -339,11 +377,12 @@ const App = () => {
     setHomeView(view);
     setError('');
     setNotice('');
-    setShowAddAccount(false);
+    setAccountAddMode(undefined);
     setAccountPassword('');
     if (view === 'profiles' && store) {
       const active = store.profiles.find((item) => item.id === store.settings.activeProfileId);
       setProfileNameDraft(active?.name ?? '');
+      setProfileChainsDraft(active?.enabledChains ?? []);
     }
     if (view === 'accounts' && store) {
       const active = store.profiles.find((item) => item.id === store.settings.activeProfileId);
@@ -356,10 +395,11 @@ const App = () => {
     if (!store) return;
     const selected = store.profiles.find((item) => item.id === profileId);
     setProfileNameDraft(selected?.name ?? '');
+    setProfileChainsDraft(selected?.enabledChains ?? []);
     await updateSettings({ activeProfileId: profileId });
   };
 
-  const renameProfile = async (): Promise<void> => {
+  const saveProfile = async (): Promise<void> => {
     if (!store) return;
     const active = store.profiles.find((item) => item.id === store.settings.activeProfileId);
     if (!active) return;
@@ -369,19 +409,37 @@ const App = () => {
       setError(t('requiredName'));
       return;
     }
+    if (!profileChainsDraft.length) {
+      setError(t('selectProfileChain'));
+      return;
+    }
+    const enabledChains = [...new Set(profileChainsDraft)];
     const now = new Date().toISOString();
     const next: ExtensionStore = {
       ...store,
       profiles: store.profiles.map((item) =>
         item.id === active.id
-          ? { ...item, name: profileNameDraft.trim(), revision: item.revision + 1, updatedAt: now }
+          ? {
+              ...item,
+              name: profileNameDraft.trim(),
+              enabledChains,
+              revision: item.revision + 1,
+              updatedAt: now,
+            }
           : item
       ),
+      settings: {
+        ...store.settings,
+        activeChain: enabledChains.includes(store.settings.activeChain)
+          ? store.settings.activeChain
+          : enabledChains[0]!,
+      },
     };
     await saveStore(next);
     setStore(next);
     setProfileNameDraft(profileNameDraft.trim());
-    setNotice(t('renamed'));
+    setProfileChainsDraft(enabledChains);
+    setNotice(t('profileSaved'));
   };
 
   const selectAccount = async (accountId: string): Promise<void> => {
@@ -440,6 +498,7 @@ const App = () => {
     setStore(next);
     const nextActive = next.profiles.find((item) => item.id === next.settings.activeProfileId);
     setProfileNameDraft(nextActive?.name ?? '');
+    setProfileChainsDraft(nextActive?.enabledChains ?? []);
     setProfileDeletionName('');
     setNotice(t('profileDeleted'));
   };
@@ -451,63 +510,77 @@ const App = () => {
       (item) => item.profileId === active?.id && item.id === active?.defaultAccountId
     );
     const remainingAccounts = store.accounts.filter(
-      (item) => item.profileId === active?.id && item.id !== activeAccount?.id
+      (item) => item.profileId === active?.id && item.id !== activeAccount?.id && item.status !== 'excluded'
     );
     if (!active || !activeAccount) return;
     setError('');
     setNotice('');
-    if (!remainingAccounts.length) {
+    if (activeAccount.source.kind === 'mnemonicDerived' && active.hdAccountIds.length <= 1) {
       setError(t('lastAccountCannotBeDeleted'));
       return;
     }
-    const now = new Date().toISOString();
-    const permissions = store.permissions
-      .map((grant) =>
-        grant.profileId === active.id && grant.accountIds.includes(activeAccount.id)
-          ? {
-              ...grant,
-              accountIds: grant.accountIds.filter((id) => id !== activeAccount.id),
-              revision: grant.revision + 1,
-              updatedAt: now,
-            }
-          : grant
-      )
-      .filter((grant) => grant.accountIds.length > 0);
-    const nextDefaultAccount = remainingAccounts[0]!;
-    const next: ExtensionStore = {
-      ...store,
-      accounts: store.accounts.filter((item) => item.id !== activeAccount.id),
-      profiles: store.profiles.map((item) =>
-        item.id === active.id
-          ? { ...item, defaultAccountId: nextDefaultAccount.id, revision: item.revision + 1, updatedAt: now }
-          : item
-      ),
-      permissions,
-      usedMessageNonces: store.usedMessageNonces.filter((entry) => entry.accountId !== activeAccount.id),
-    };
-    await saveStore(next);
-    setStore(next);
-    setAccountNameDraft(nextDefaultAccount.name);
-    setNotice(t('accountDeleted'));
-  };
-
-  const deleteConnection = async (grant: PermissionGrant): Promise<void> => {
-    if (!store) return;
-    const next: ExtensionStore = {
-      ...store,
-      permissions: store.permissions.filter(
-        (item) =>
-          !(
-            item.origin === grant.origin &&
-            item.profileId === grant.profileId &&
-            item.chain === grant.chain &&
-            item.network === grant.network
+    const envelope = store.vaults.find((item) => item.profileId === active.id);
+    if (!envelope) return;
+    try {
+      const contents = await decryptVault(envelope, accountPassword);
+      const importedPrivateKeys = { ...contents.importedPrivateKeys };
+      const hdPrivateKeys = { ...contents.hdPrivateKeys };
+      if (activeAccount.source.kind === 'mnemonicDerived') delete hdPrivateKeys[activeAccount.id];
+      else delete importedPrivateKeys[activeAccount.id];
+      const vault = await encryptVault(
+        active.id,
+        accountPassword,
+        { ...contents, hdPrivateKeys, importedPrivateKeys },
+        envelope.revision + 1
+      );
+      const now = new Date().toISOString();
+      const permissions = store.permissions
+        .map((grant) =>
+          grant.profileId === active.id && grant.accountIds.includes(activeAccount.id)
+            ? {
+                ...grant,
+                accountIds: grant.accountIds.filter((id) => id !== activeAccount.id),
+                revision: grant.revision + 1,
+                updatedAt: now,
+              }
+            : grant
+        )
+        .filter((grant) => grant.accountIds.length > 0);
+      const nextDefaultAccount = remainingAccounts[0]!;
+      const next: ExtensionStore = {
+        ...store,
+        accounts: store.accounts
+          .map((item) =>
+            item.id === activeAccount.id && item.source.kind === 'mnemonicDerived'
+              ? { ...item, status: 'excluded' as const, excludedAt: now, revision: item.revision + 1, updatedAt: now }
+              : item.id === activeAccount.id
+                ? undefined
+                : item
           )
-      ),
-    };
-    await saveStore(next);
-    setStore(next);
-    setNotice(t('connectionDeleted'));
+          .filter((item): item is PublicAccount => Boolean(item)),
+        vaults: store.vaults.map((item) => (item.profileId === active.id ? vault : item)),
+        profiles: store.profiles.map((item) =>
+          item.id === active.id
+            ? {
+                ...item,
+                hdAccountIds: item.hdAccountIds.filter((id) => id !== activeAccount.id),
+                defaultAccountId: nextDefaultAccount.id,
+                revision: item.revision + 1,
+                updatedAt: now,
+              }
+            : item
+        ),
+        permissions,
+        usedMessageNonces: store.usedMessageNonces.filter((entry) => entry.accountId !== activeAccount.id),
+      };
+      await saveStore(next);
+      setStore(next);
+      setAccountNameDraft(nextDefaultAccount.name);
+      setAccountPassword('');
+      setNotice(t('accountDeleted'));
+    } catch {
+      setError(t('unlockFailed'));
+    }
   };
 
   const addDerivedAccount = async (): Promise<void> => {
@@ -541,19 +614,28 @@ const App = () => {
           accountIndex: active.nextAccountIndex,
           derivationPath: material.derivationPath,
         },
+        status: 'active',
         revision: 1,
         createdAt: now,
         updatedAt: now,
       };
+      const vault = await encryptVault(
+        active.id,
+        accountPassword,
+        { ...contents, hdPrivateKeys: { ...contents.hdPrivateKeys, [accountId]: material.privateKey } },
+        envelope.revision + 1
+      );
       const next: ExtensionStore = {
         ...store,
         accounts: [...store.accounts, newAccount],
+        vaults: store.vaults.map((item) => (item.profileId === active.id ? vault : item)),
         profiles: store.profiles.map((item) =>
           item.id === active.id
             ? {
                 ...item,
                 defaultAccountId: accountId,
                 nextAccountIndex: item.nextAccountIndex + 1,
+                hdAccountIds: [...item.hdAccountIds, accountId],
                 revision: item.revision + 1,
                 updatedAt: now,
               }
@@ -564,12 +646,132 @@ const App = () => {
       setStore(next);
       setAccountNameDraft(newAccount.name);
       setAccountPassword('');
-      setShowAddAccount(false);
+      setAccountAddMode(undefined);
       setNotice(t('accountAdded'));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t('mnemonicUnavailable'));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const addImportedAccount = async (): Promise<void> => {
+    if (!store) return;
+    const active = store.profiles.find((item) => item.id === store.settings.activeProfileId);
+    const envelope = store.vaults.find((item) => item.profileId === active?.id);
+    if (!accountNameDraft.trim()) {
+      setError(t('requiredAccountName'));
+      return;
+    }
+    if (!active || !envelope) return;
+    setBusy(true);
+    setError('');
+    try {
+      const key = importPrivateKey.trim().toUpperCase();
+      let symbol;
+      let nem;
+      try {
+        new PrivateKey(key);
+        symbol = new SymbolChainAdapter().importAccount(active.network, key);
+        nem = new NemChainAdapter().importAccount(active.network, key);
+      } catch {
+        throw new Error(t('invalidPrivateKey'));
+      }
+      let contents: VaultContents;
+      try {
+        contents = await decryptVault(envelope, accountPassword);
+      } catch {
+        throw new Error(t('unlockFailed'));
+      }
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const account: PublicAccount = {
+        id,
+        profileId: active.id,
+        name: accountNameDraft.trim(),
+        identities: {
+          symbol: { address: symbol.address, publicKey: symbol.publicKey },
+          nem: { address: nem.address, publicKey: nem.publicKey },
+        },
+        source: { kind: 'importedPrivateKey', secretRef: `vault:${active.id}:private:${id}` },
+        status: 'active',
+        revision: 1,
+        createdAt: now,
+        updatedAt: now,
+      };
+      const vault = await encryptVault(
+        active.id,
+        accountPassword,
+        { ...contents, importedPrivateKeys: { ...contents.importedPrivateKeys, [id]: key } },
+        envelope.revision + 1
+      );
+      const next: ExtensionStore = {
+        ...store,
+        accounts: [...store.accounts, account],
+        vaults: store.vaults.map((item) => (item.profileId === active.id ? vault : item)),
+        profiles: store.profiles.map((item) =>
+          item.id === active.id ? { ...item, defaultAccountId: id, revision: item.revision + 1, updatedAt: now } : item
+        ),
+      };
+      await saveStore(next);
+      setStore(next);
+      setImportPrivateKey('');
+      setAccountPassword('');
+      setAccountAddMode(undefined);
+      setNotice(t('accountAdded'));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t('unlockFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const restoreHdAccount = async (accountId: string): Promise<void> => {
+    if (!store) return;
+    const profile = store.profiles.find((item) => item.id === store.settings.activeProfileId);
+    const account = store.accounts.find((item) => item.id === accountId && item.profileId === profile?.id);
+    const envelope = store.vaults.find((item) => item.profileId === profile?.id);
+    if (!profile || !account || account.source.kind !== 'mnemonicDerived' || account.status !== 'excluded' || !envelope)
+      return;
+    try {
+      const contents = await decryptVault(envelope, accountPassword);
+      if (!contents.mnemonic) throw new Error('SECRET_NOT_FOUND');
+      const material = deriveSharedAccount(profile.network, contents.mnemonic, account.source.accountIndex);
+      if (
+        (['symbol', 'nem'] as const).some(
+          (chain) =>
+            material.identities[chain].address !== account.identities[chain].address ||
+            material.identities[chain].publicKey !== account.identities[chain].publicKey
+        )
+      )
+        throw new Error('ACCOUNT_IDENTITY_MISMATCH');
+      const vault = await encryptVault(
+        profile.id,
+        accountPassword,
+        { ...contents, hdPrivateKeys: { ...contents.hdPrivateKeys, [account.id]: material.privateKey } },
+        envelope.revision + 1
+      );
+      const now = new Date().toISOString();
+      const next: ExtensionStore = {
+        ...store,
+        vaults: store.vaults.map((item) => (item.profileId === profile.id ? vault : item)),
+        accounts: store.accounts.map((item) => {
+          if (item.id !== account.id) return item;
+          const { excludedAt: _excludedAt, ...restored } = item;
+          return { ...restored, status: 'active' as const, revision: item.revision + 1, updatedAt: now };
+        }),
+        profiles: store.profiles.map((item) =>
+          item.id === profile.id
+            ? { ...item, hdAccountIds: [...item.hdAccountIds, account.id], revision: item.revision + 1, updatedAt: now }
+            : item
+        ),
+      };
+      await saveStore(next);
+      setStore(next);
+      setAccountPassword('');
+      setNotice('HD account restored.');
+    } catch {
+      setError(t('unlockFailed'));
     }
   };
 
@@ -692,6 +894,27 @@ const App = () => {
                 <span>{t('profileName')}</span>
                 <input autoFocus value={name} onChange={(event) => setName(event.target.value)} />
               </label>
+              <fieldset className="field full-field profile-chain-options">
+                <legend>{t('chains')}</legend>
+                {PROFILE_CHAINS.map((chain) => (
+                  <FormControlLabel
+                    key={chain}
+                    control={
+                      <Checkbox
+                        checked={enabledChains.includes(chain)}
+                        disabled={enabledChains.length === 1 && enabledChains.includes(chain)}
+                        onChange={() =>
+                          setEnabledChains((current) =>
+                            current.includes(chain) ? current.filter((item) => item !== chain) : [...current, chain]
+                          )
+                        }
+                        size="small"
+                      />
+                    }
+                    label={chain === 'symbol' ? 'Symbol' : 'NEM'}
+                  />
+                ))}
+              </fieldset>
               <label className="field">
                 <span>{t('network')}</span>
                 <select value={network} onChange={(event) => setNetwork(event.target.value as typeof network)}>
@@ -846,12 +1069,16 @@ const App = () => {
                 </span>
               </div>
               <ol className="selected-words">
-                {selectedWordIds.map((id, index) => (
-                  <li key={id}>
-                    {candidates.find((candidate) => candidate.id === id)?.word}
-                    <small>{index + 1}</small>
-                  </li>
-                ))}
+                {Array.from({ length: 24 }, (_, index) => {
+                  const id = selectedWordIds[index];
+                  const word = id === undefined ? undefined : candidates.find((candidate) => candidate.id === id)?.word;
+                  return (
+                    <li className={word ? undefined : 'empty-word-slot'} key={id ?? `empty-${index}`}>
+                      {word}
+                      <small>{index + 1}</small>
+                    </li>
+                  );
+                })}
               </ol>
               <span className="candidate-label">{t('candidates')}</span>
               <div className="word-candidates">
@@ -876,16 +1103,15 @@ const App = () => {
                 setError('');
                 setStep('backup');
               })}
-              {DEBUG_SKIP_BACKUP_CONFIRMATION && (
-                <button
-                  className="debug-button"
-                  disabled={busy}
-                  title={t('debugOnly')}
-                  onClick={() => void createProfile(true)}
-                >
-                  {t('skipDebug')}
-                </button>
-              )}
+              <Button
+                className="skip-verification-button"
+                color="warning"
+                disabled={busy}
+                onClick={() => setShowSkipVerificationDialog(true)}
+                variant="text"
+              >
+                {t('skipVerification')}
+              </Button>
               <button
                 className="primary"
                 disabled={busy || selectedWordIds.length !== 24}
@@ -918,15 +1144,62 @@ const App = () => {
             </footer>
           </>
         )}
+        <Dialog
+          open={showSkipVerificationDialog}
+          onClose={() => {
+            if (!busy) setShowSkipVerificationDialog(false);
+          }}
+          aria-labelledby="skip-verification-dialog-title"
+        >
+          <DialogTitle id="skip-verification-dialog-title">{t('skipVerificationTitle')}</DialogTitle>
+          <DialogContent>
+            <DialogContentText>{t('skipVerificationBody')}</DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button disabled={busy} onClick={() => setShowSkipVerificationDialog(false)}>
+              {t('back')}
+            </Button>
+            <Button
+              color="warning"
+              disabled={busy}
+              onClick={() => {
+                setShowSkipVerificationDialog(false);
+                void createProfile(true);
+              }}
+              variant="contained"
+            >
+              {busy ? t('creating') : t('createWithoutVerification')}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </main>
     );
   }
 
-  const scope = { chain: store.settings.activeChain, network: profile.network } as const;
+  const activeChain = profile.enabledChains.includes(store.settings.activeChain)
+    ? store.settings.activeChain
+    : profile.enabledChains[0]!;
+  const scope = { chain: activeChain, network: profile.network } as const;
   const activeAddress = account?.identities[scope.chain].address;
   const activePublicKey = account?.identities[scope.chain].publicKey;
-  const connections = store.permissions.filter((grant) => grant.profileId === profile.id);
-  const profileAccounts = store.accounts.filter((item) => item.profileId === profile.id);
+  const profileAccounts = store.accounts.filter((item) => item.profileId === profile.id && item.status !== 'excluded');
+  const profileDraftDirty =
+    profileNameDraft.trim() !== profile.name ||
+    profileChainsDraft.length !== profile.enabledChains.length ||
+    profileChainsDraft.some((chain) => !profile.enabledChains.includes(chain));
+  const requestProfileSelection = (profileId: string): void => {
+    if (profileId === profile.id) return;
+    if (profileDraftDirty) {
+      setPendingProfileId(profileId);
+      return;
+    }
+    void selectProfile(profileId);
+  };
+  const discardProfileChanges = (): void => {
+    const profileId = pendingProfileId;
+    setPendingProfileId(undefined);
+    if (profileId) void selectProfile(profileId);
+  };
   const closeConfirmationDialog = (): void => {
     setConfirmationAction(undefined);
     setProfileDeletionName('');
@@ -942,15 +1215,12 @@ const App = () => {
         <DialogContentText>
           {confirmationAction?.kind === 'account'
             ? t('confirmDeleteAccount', { name: confirmationAction.name })
-            : confirmationAction?.kind === 'connection'
-              ? t('confirmDeleteConnection', { origin: confirmationAction.grant.origin })
-              : confirmationAction?.kind === 'profile'
-                ? t('confirmDeleteProfile', {
-                    name: confirmationAction.profile.name,
-                    accountCount: confirmationAction.accountCount,
-                    connectionCount: confirmationAction.connectionCount,
-                  })
-                : ''}
+            : confirmationAction?.kind === 'profile'
+              ? t('confirmDeleteProfile', {
+                  name: confirmationAction.profile.name,
+                  accountCount: confirmationAction.accountCount,
+                })
+              : ''}
         </DialogContentText>
         {confirmationAction?.kind === 'profile' && (
           <TextField
@@ -962,6 +1232,15 @@ const App = () => {
             onChange={(event) => setProfileDeletionName(event.target.value)}
           />
         )}
+        {confirmationAction?.kind === 'account' && (
+          <PasswordField
+            label={t('password')}
+            value={accountPassword}
+            onChange={setAccountPassword}
+            revealLabel={t('revealPassword')}
+            autoComplete="current-password"
+          />
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={closeConfirmationDialog}>{t('cancel')}</Button>
@@ -969,18 +1248,36 @@ const App = () => {
           color="error"
           variant="contained"
           disabled={
-            confirmationAction?.kind === 'profile' &&
-            !isProfileDeletionConfirmed(store, confirmationAction.profile.id, profileDeletionName)
+            (confirmationAction?.kind === 'profile' &&
+              !isProfileDeletionConfirmed(store, confirmationAction.profile.id, profileDeletionName)) ||
+            (confirmationAction?.kind === 'account' && !accountPassword)
           }
           onClick={() => {
             const action = confirmationAction;
             closeConfirmationDialog();
             if (action?.kind === 'account') void deleteAccount();
-            if (action?.kind === 'connection') void deleteConnection(action.grant);
             if (action?.kind === 'profile') void deleteProfile(action.profile.id, profileDeletionName);
           }}
         >
           {t('delete')}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+  const profileSwitchDialog = (
+    <Dialog
+      open={Boolean(pendingProfileId)}
+      onClose={() => setPendingProfileId(undefined)}
+      aria-labelledby="profile-switch-dialog-title"
+    >
+      <DialogTitle id="profile-switch-dialog-title">{t('unsavedProfileChangesTitle')}</DialogTitle>
+      <DialogContent>
+        <DialogContentText>{t('unsavedProfileChangesBody')}</DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setPendingProfileId(undefined)}>{t('keepEditing')}</Button>
+        <Button color="warning" variant="contained" onClick={discardProfileChanges}>
+          {t('discardChanges')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -996,7 +1293,7 @@ const App = () => {
 
   if (homeView === 'menu') {
     return (
-      <main className={`app-shell management-shell theme-${store.settings.theme}`}>
+      <main key="menu" className={`app-shell management-shell theme-${store.settings.theme}`}>
         {pageHeader(t('menu'), 'home')}
         <section className="menu-list">
           <button className="menu-item" onClick={() => openView('accounts')}>
@@ -1013,13 +1310,24 @@ const App = () => {
             </span>
             <b>›</b>
           </button>
-          <button className="menu-item" onClick={() => openView('connections')}>
-            <span>
-              <strong>{t('connectionManagement')}</strong>
-              <small>{connections.length || t('noConnections')}</small>
-            </span>
-            <b>›</b>
-          </button>
+          {profile.network === 'testnet' && (
+            <>
+              <button className="menu-item" onClick={() => openView('backup')}>
+                <span>
+                  <strong>{t('exportEncryptedBackup')}</strong>
+                  <small>{t('testnetBackupOnly')}</small>
+                </span>
+                <b>›</b>
+              </button>
+              <button className="menu-item" onClick={() => openView('restore')}>
+                <span>
+                  <strong>{t('importEncryptedBackup')}</strong>
+                  <small>{t('testnetBackupOnly')}</small>
+                </span>
+                <b>›</b>
+              </button>
+            </>
+          )}
         </section>
         <section className="menu-settings">
           <p className="section-label">{t('settings').toUpperCase()}</p>
@@ -1064,7 +1372,7 @@ const App = () => {
 
   if (homeView === 'profiles') {
     return (
-      <main className={`app-shell management-shell theme-${store.settings.theme}`}>
+      <main key="profiles" className={`app-shell management-shell theme-${store.settings.theme}`}>
         {pageHeader(t('profileManagement'))}
         <p className="page-description">{t('profileManagementBody')}</p>
         <section className="management-list">
@@ -1072,7 +1380,7 @@ const App = () => {
             <button
               className={item.id === profile.id ? 'management-item active-item' : 'management-item'}
               key={item.id}
-              onClick={() => void selectProfile(item.id)}
+              onClick={() => requestProfileSelection(item.id)}
             >
               <span>
                 <strong>{item.name}</strong>
@@ -1087,6 +1395,27 @@ const App = () => {
             <span>{t('profileName')}</span>
             <input value={profileNameDraft} onChange={(event) => setProfileNameDraft(event.target.value)} />
           </label>
+          <fieldset className="field full-field profile-chain-options">
+            <legend>{t('chains')}</legend>
+            {PROFILE_CHAINS.map((chain) => (
+              <FormControlLabel
+                key={chain}
+                control={
+                  <Checkbox
+                    checked={profileChainsDraft.includes(chain)}
+                    disabled={profileChainsDraft.length === 1 && profileChainsDraft.includes(chain)}
+                    onChange={() =>
+                      setProfileChainsDraft((current) =>
+                        current.includes(chain) ? current.filter((item) => item !== chain) : [...current, chain]
+                      )
+                    }
+                    size="small"
+                  />
+                }
+                label={chain === 'symbol' ? 'Symbol' : 'NEM'}
+              />
+            ))}
+          </fieldset>
           {error && (
             <p className="form-error" role="alert">
               {error}
@@ -1097,43 +1426,9 @@ const App = () => {
               {notice}
             </p>
           )}
-          <button className="primary wide" onClick={() => void renameProfile()}>
-            {t('rename')}
-          </button>
-          {profile.network === 'testnet' && (
-            <section className="backup-actions">
-              <PasswordField
-                label={t('backupPassword')}
-                value={backupPassword}
-                onChange={setBackupPassword}
-                revealLabel={t('revealPassword')}
-                autoComplete="current-password"
-              />
-              <button
-                className="wide"
-                disabled={busy || backupPassword.length < 12}
-                onClick={() => void exportEncryptedBackup()}
-              >
-                {t('exportEncryptedBackup')}
-              </button>
-              <label className="field">
-                <span>{t('importEncryptedBackup')}</span>
-                <input
-                  type="file"
-                  accept=".mlxbackup,application/json"
-                  onChange={(event) => setBackupFile(event.target.files?.[0])}
-                />
-              </label>
-              <button
-                className="wide"
-                disabled={busy || !backupFile || backupPassword.length < 12}
-                onClick={() => void importEncryptedBackup()}
-              >
-                {t('importEncryptedBackup')}
-              </button>
-              <small>{t('testnetBackupOnly')}</small>
-            </section>
-          )}
+          <Button className="profile-save-button" fullWidth onClick={() => void saveProfile()} variant="contained">
+            {t('saveProfile')}
+          </Button>
           <button
             className="danger-button wide"
             disabled={store.profiles.length <= 1}
@@ -1142,7 +1437,6 @@ const App = () => {
                 kind: 'profile',
                 profile,
                 accountCount: profileAccounts.length,
-                connectionCount: connections.length,
               })
             }
           >
@@ -1163,48 +1457,115 @@ const App = () => {
           </button>
         </footer>
         {confirmationDialog}
+        {profileSwitchDialog}
       </main>
     );
   }
 
   if (homeView === 'accounts') {
+    const addAccountTitle =
+      accountAddMode === 'hd'
+        ? t('addHdAccount')
+        : accountAddMode === 'privateKey'
+          ? t('importPrivateKey')
+          : t('addAccount');
     return (
-      <main className={`app-shell management-shell theme-${store.settings.theme}`}>
-        {pageHeader(t('accountManagement'))}
-        <p className="page-description">{t('accountManagementBody')}</p>
-        <section className="management-list account-list">
-          {profileAccounts.map((item) => (
-            <button
-              className={item.id === profile.defaultAccountId ? 'management-item active-item' : 'management-item'}
-              key={item.id}
-              onClick={() => void selectAccount(item.id)}
-            >
-              <span>
-                <strong>{item.name}</strong>
-                <small>{item.identities[scope.chain].address}</small>
-              </span>
-              {item.id === profile.defaultAccountId && <b>{t('active')}</b>}
-            </button>
-          ))}
-        </section>
-        {showAddAccount ? (
+      <main key="accounts" className={`app-shell management-shell theme-${store.settings.theme}`}>
+        {pageHeader(accountAddMode ? addAccountTitle : t('accountManagement'), accountAddMode ? 'accounts' : 'menu')}
+        <p className="page-description">{accountAddMode ? t('chooseAccountType') : t('accountManagementBody')}</p>
+        {!accountAddMode && (
+          <section className="management-list account-list">
+            {profileAccounts.map((item) => (
+              <button
+                className={item.id === profile.defaultAccountId ? 'management-item active-item' : 'management-item'}
+                key={item.id}
+                onClick={() => void selectAccount(item.id)}
+              >
+                <span>
+                  <strong>{item.name}</strong>
+                  <small className="account-address">{item.identities[scope.chain].address}</small>
+                </span>
+                {item.id === profile.defaultAccountId && <b>{t('active')}</b>}
+              </button>
+            ))}
+          </section>
+        )}
+        {accountAddMode ? (
           <section className="edit-panel add-account-panel">
-            <p>{t('addAccountBody')}</p>
-            <label className="field">
-              <span>{t('accountName')}</span>
-              <input autoFocus value={accountNameDraft} onChange={(event) => setAccountNameDraft(event.target.value)} />
-            </label>
-            <PasswordField
-              label={t('password')}
-              value={accountPassword}
-              onChange={setAccountPassword}
-              revealLabel={t('revealPassword')}
-              autoComplete="current-password"
-            />
-            {profile.passwordHint && (
-              <small className="password-hint">
-                {t('hint')}: {profile.passwordHint}
-              </small>
+            {accountAddMode === 'choice' && (
+              <>
+                <p>{t('chooseAccountType')}</p>
+                <button className="primary wide" onClick={() => setAccountAddMode('hd')}>
+                  {t('addHdAccount')}
+                </button>
+                <button className="wide" onClick={() => setAccountAddMode('privateKey')}>
+                  {t('importPrivateKey')}
+                </button>
+              </>
+            )}
+            {accountAddMode === 'hd' && (
+              <>
+                <p>{t('addAccountBody')}</p>
+                <label className="field">
+                  <span>{t('accountName')}</span>
+                  <input
+                    autoFocus
+                    value={accountNameDraft}
+                    onChange={(event) => setAccountNameDraft(event.target.value)}
+                  />
+                </label>
+                <PasswordField
+                  label={t('password')}
+                  value={accountPassword}
+                  onChange={setAccountPassword}
+                  revealLabel={t('revealPassword')}
+                  autoComplete="current-password"
+                />
+                {profile.passwordHint && (
+                  <small className="password-hint">
+                    {t('hint')}: {profile.passwordHint}
+                  </small>
+                )}
+                <button className="primary wide" disabled={busy} onClick={() => void addDerivedAccount()}>
+                  {busy ? t('adding') : t('addHdAccount')}
+                </button>
+              </>
+            )}
+            {accountAddMode === 'privateKey' && (
+              <>
+                <p>{t('privateKeyAccountBody')}</p>
+                <small className="password-hint">
+                  {t('chains')}: {profile.enabledChains.map((chain) => chain.toUpperCase()).join(' / ')}
+                </small>
+                <label className="field">
+                  <span>{t('accountName')}</span>
+                  <input
+                    autoFocus
+                    value={accountNameDraft}
+                    onChange={(event) => setAccountNameDraft(event.target.value)}
+                  />
+                </label>
+                <PasswordField
+                  label={t('privateKey')}
+                  value={importPrivateKey}
+                  onChange={setImportPrivateKey}
+                  revealLabel={t('revealPassword')}
+                />
+                <PasswordField
+                  label={t('password')}
+                  value={accountPassword}
+                  onChange={setAccountPassword}
+                  revealLabel={t('revealPassword')}
+                  autoComplete="current-password"
+                />
+                <button
+                  className="primary wide"
+                  disabled={busy || !accountNameDraft.trim() || !importPrivateKey.trim()}
+                  onClick={() => void addImportedAccount()}
+                >
+                  {busy ? t('adding') : t('importPrivateKey')}
+                </button>
+              </>
             )}
             {error && (
               <p className="form-error" role="alert">
@@ -1214,16 +1575,14 @@ const App = () => {
             <div className="button-row">
               <button
                 onClick={() => {
-                  setShowAddAccount(false);
+                  setAccountAddMode(undefined);
                   setAccountNameDraft(account?.name ?? '');
                   setAccountPassword('');
+                  setImportPrivateKey('');
                   setError('');
                 }}
               >
                 {t('cancel')}
-              </button>
-              <button className="primary" disabled={busy} onClick={() => void addDerivedAccount()}>
-                {busy ? t('adding') : t('addAccount')}
               </button>
             </div>
           </section>
@@ -1256,13 +1615,38 @@ const App = () => {
             </div>
           </section>
         )}
-        {!showAddAccount && (
+        {!accountAddMode &&
+          store.accounts.some((item) => item.profileId === profile.id && item.status === 'excluded') && (
+            <section className="edit-panel add-account-panel">
+              <p>{t('excludedHdAccounts')}</p>
+              <PasswordField
+                label={t('password')}
+                value={accountPassword}
+                onChange={setAccountPassword}
+                revealLabel={t('revealPassword')}
+                autoComplete="current-password"
+              />
+              {store.accounts
+                .filter((item) => item.profileId === profile.id && item.status === 'excluded')
+                .map((item) => (
+                  <button
+                    key={item.id}
+                    className="wide"
+                    disabled={busy || !accountPassword}
+                    onClick={() => void restoreHdAccount(item.id)}
+                  >
+                    {t('restoreHdAccount', { name: item.name })}
+                  </button>
+                ))}
+            </section>
+          )}
+        {!accountAddMode && (
           <footer className="management-footer">
             <button
               className="primary wide"
               onClick={() => {
                 setAccountNameDraft(`Account ${profile.nextAccountIndex + 1}`);
-                setShowAddAccount(true);
+                setAccountAddMode('choice');
                 setNotice('');
               }}
             >
@@ -1275,35 +1659,82 @@ const App = () => {
     );
   }
 
-  if (homeView === 'connections') {
+  if (homeView === 'backup') {
     return (
-      <main className={`app-shell management-shell theme-${store.settings.theme}`}>
-        {pageHeader(t('connectionManagement'))}
-        {notice && (
-          <p className="form-notice" role="status">
-            {notice}
-          </p>
-        )}
-        <section className="connections-list">
-          {connections.length ? (
-            connections.map((grant) => (
-              <div className="connection" key={`${grant.origin}-${grant.chain}`}>
-                <span>
-                  {grant.origin}
-                  <small>
-                    {grant.chain} {grant.network} · {t('connectedAccountCount', { count: grant.accountIds.length })}
-                  </small>
-                </span>
-                <button className="danger-button" onClick={() => setConfirmationAction({ kind: 'connection', grant })}>
-                  {t('deleteConnection')}
-                </button>
-              </div>
-            ))
-          ) : (
-            <p className="empty-state">{t('noConnections')}</p>
+      <main key="backup" className={`app-shell management-shell theme-${store.settings.theme}`}>
+        {pageHeader(t('exportEncryptedBackup'))}
+        <p className="page-description">{t('testnetBackupOnly')}</p>
+        <section className="edit-panel backup-settings">
+          <PasswordField
+            label={t('backupPassword')}
+            value={backupPassword}
+            onChange={setBackupPassword}
+            revealLabel={t('revealPassword')}
+            autoComplete="current-password"
+          />
+          <Button
+            fullWidth
+            disabled={busy || backupPassword.length < 12}
+            onClick={() => void exportEncryptedBackup()}
+            variant="contained"
+          >
+            {t('exportEncryptedBackup')}
+          </Button>
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+          {notice && (
+            <p className="form-notice" role="status">
+              {notice}
+            </p>
           )}
         </section>
-        {confirmationDialog}
+      </main>
+    );
+  }
+
+  if (homeView === 'restore') {
+    return (
+      <main key="restore" className={`app-shell management-shell theme-${store.settings.theme}`}>
+        {pageHeader(t('importEncryptedBackup'))}
+        <p className="page-description">{t('testnetBackupOnly')}</p>
+        <section className="edit-panel backup-settings">
+          <label className="field">
+            <span>{t('importEncryptedBackup')}</span>
+            <input
+              type="file"
+              accept=".mlxbackup,application/json"
+              onChange={(event) => setBackupFile(event.target.files?.[0])}
+            />
+          </label>
+          <PasswordField
+            label={t('backupPassword')}
+            value={backupPassword}
+            onChange={setBackupPassword}
+            revealLabel={t('revealPassword')}
+            autoComplete="current-password"
+          />
+          <Button
+            fullWidth
+            disabled={busy || !backupFile || backupPassword.length < 12}
+            onClick={() => void importEncryptedBackup()}
+            variant="contained"
+          >
+            {t('importEncryptedBackup')}
+          </Button>
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+          {notice && (
+            <p className="form-notice" role="status">
+              {notice}
+            </p>
+          )}
+        </section>
       </main>
     );
   }
@@ -1330,12 +1761,16 @@ const App = () => {
       </header>
       <section className="home-account-section">
         <ToggleButtonGroup className="tabs" exclusive fullWidth value={scope.chain} aria-label="Chain">
-          <ToggleButton value="symbol" onClick={() => void updateSettings({ activeChain: 'symbol' })}>
-            Symbol
-          </ToggleButton>
-          <ToggleButton value="nem" onClick={() => void updateSettings({ activeChain: 'nem' })}>
-            NEM
-          </ToggleButton>
+          {profile.enabledChains.includes('symbol') && (
+            <ToggleButton value="symbol" onClick={() => void updateSettings({ activeChain: 'symbol' })}>
+              Symbol
+            </ToggleButton>
+          )}
+          {profile.enabledChains.includes('nem') && (
+            <ToggleButton value="nem" onClick={() => void updateSettings({ activeChain: 'nem' })}>
+              NEM
+            </ToggleButton>
+          )}
         </ToggleButtonGroup>
         <label className="field account-select">
           <span>{t('account')}</span>
