@@ -12,6 +12,8 @@ import { exportProfileBackup, importProfileBackup, serializeProfileBackup } from
 import { webCryptoDriver } from '@mosaiclynx/relay-protocol';
 import { argon2idAsync } from '@noble/hashes/argon2.js';
 
+import { activeChainForEnabledChains } from './profile-state.js';
+
 export const LEGACY_STORAGE_KEY = 'mosaicLynxStoreV1';
 export const STORE_SCHEMA_VERSION = 2;
 export const VAULT_SCHEMA_VERSION = 1;
@@ -124,24 +126,27 @@ const rootPublicKeysEqual = (left: PublicAccount['identities'], right: PublicAcc
     (chain) => left[chain].publicKey.toUpperCase() === right[chain].publicKey.toUpperCase()
   );
 
-export const findProfileByMnemonic = (store: ExtensionStore, mnemonic: string): PublicProfile | undefined => {
-  const roots: Readonly<Record<NetworkKind, PublicAccount['identities']>> = {
-    mainnet: deriveSharedAccount('mainnet', mnemonic, 0).identities,
-    testnet: deriveSharedAccount('testnet', mnemonic, 0).identities,
-  };
-  return store.profiles.find((profile) =>
-    store.accounts.some(
-      (account) =>
-        account.profileId === profile.id &&
-        account.source.kind === 'mnemonicDerived' &&
-        account.source.accountIndex === 0 &&
-        rootPublicKeysEqual(account.identities, roots[profile.network])
-    )
+export const findProfileByMnemonic = (
+  store: ExtensionStore,
+  mnemonic: string,
+  network: NetworkKind
+): PublicProfile | undefined => {
+  const root = deriveSharedAccount(network, mnemonic, 0).identities;
+  return store.profiles.find(
+    (profile) =>
+      profile.network === network &&
+      store.accounts.some(
+        (account) =>
+          account.profileId === profile.id &&
+          account.source.kind === 'mnemonicDerived' &&
+          account.source.accountIndex === 0 &&
+          rootPublicKeysEqual(account.identities, root)
+      )
   );
 };
 
-export const assertUniqueMnemonicProfile = (store: ExtensionStore, mnemonic: string): void => {
-  const profile = findProfileByMnemonic(store, mnemonic);
+export const assertUniqueMnemonicProfile = (store: ExtensionStore, mnemonic: string, network: NetworkKind): void => {
+  const profile = findProfileByMnemonic(store, mnemonic, network);
   if (profile) throw new DuplicateMnemonicProfileError(profile.name);
 };
 
@@ -176,6 +181,8 @@ export const deleteProfileFromStore = (store: ExtensionStore, profileId: string)
 
   const profiles = store.profiles.filter((profile) => profile.id !== profileId);
 
+  const nextActiveProfile = profiles.find((profile) => profile.id === store.settings.activeProfileId) ?? profiles[0]!;
+
   return {
     ...store,
     profiles,
@@ -183,10 +190,11 @@ export const deleteProfileFromStore = (store: ExtensionStore, profileId: string)
     vaults: store.vaults.filter((vault) => vault.profileId !== profileId),
     permissions: store.permissions.filter((grant) => grant.profileId !== profileId),
     usedMessageNonces: store.usedMessageNonces.filter((entry) => entry.profileId !== profileId),
-    settings:
-      store.settings.activeProfileId === profileId
-        ? { ...store.settings, activeProfileId: profiles[0]!.id }
-        : store.settings,
+    settings: {
+      ...store.settings,
+      activeProfileId: nextActiveProfile.id,
+      activeChain: activeChainForEnabledChains(nextActiveProfile.enabledChains, store.settings.activeChain),
+    },
   };
 };
 
@@ -472,7 +480,7 @@ export const importExtensionProfileBackup = async (
     if (!identitiesEqual(account.identities, identities)) throw new Error('Backup account identity mismatch.');
   }
   if (restored.vault.mnemonic) {
-    assertUniqueMnemonicProfile(store, restored.vault.mnemonic);
+    assertUniqueMnemonicProfile(store, restored.vault.mnemonic, restored.profile.network);
   }
   const now = new Date().toISOString();
   const accounts: PublicAccount[] = restored.accounts.map((account) => {
@@ -537,6 +545,10 @@ export const importExtensionProfileBackup = async (
     accounts: [...store.accounts, ...accounts],
     vaults: [...store.vaults, vault],
     permissions: [...store.permissions, ...permissions],
-    settings: { ...store.settings, activeProfileId: profileId },
+    settings: {
+      ...store.settings,
+      activeProfileId: profileId,
+      activeChain: activeChainForEnabledChains(profile.enabledChains, store.settings.activeChain),
+    },
   };
 };

@@ -107,8 +107,10 @@ describe('profile deletion', () => {
         id: 'profile-1',
         name: 'Delete me',
         network: 'testnet',
+        enabledChains: ['symbol'],
         defaultAccountId: 'account-1',
         nextAccountIndex: 1,
+        hdAccountIds: ['account-1'],
         revision: 1,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
@@ -117,8 +119,10 @@ describe('profile deletion', () => {
         id: 'profile-2',
         name: 'Keep me',
         network: 'mainnet',
+        enabledChains: ['nem'],
         defaultAccountId: 'account-2',
         nextAccountIndex: 1,
+        hdAccountIds: ['account-2'],
         revision: 1,
         createdAt: '2026-01-01T00:00:00.000Z',
         updatedAt: '2026-01-01T00:00:00.000Z',
@@ -164,6 +168,7 @@ describe('profile deletion', () => {
     expect(next.permissions.map((grant) => grant.profileId)).toEqual(['profile-2']);
     expect(next.usedMessageNonces.map((entry) => entry.profileId)).toEqual(['profile-2']);
     expect(next.settings.activeProfileId).toBe('profile-2');
+    expect(next.settings.activeChain).toBe('nem');
   });
 
   it('does not allow the last profile to be deleted', () => {
@@ -222,10 +227,15 @@ describe('mnemonic profile uniqueness', () => {
     },
   } satisfies ExtensionStore;
 
-  it('detects the same root public keys across networks and excluded HD accounts', () => {
-    expect(findProfileByMnemonic(store, mnemonic)).toBe(profile);
-    expect(() => assertUniqueMnemonicProfile(store, mnemonic)).toThrow(DuplicateMnemonicProfileError);
-    expect(() => assertUniqueMnemonicProfile(store, mnemonic)).toThrow('already exists');
+  it('detects the same root public keys for the same network, including excluded HD accounts', () => {
+    expect(findProfileByMnemonic(store, mnemonic, 'mainnet')).toBe(profile);
+    expect(() => assertUniqueMnemonicProfile(store, mnemonic, 'mainnet')).toThrow(DuplicateMnemonicProfileError);
+    expect(() => assertUniqueMnemonicProfile(store, mnemonic, 'mainnet')).toThrow('already exists');
+  });
+
+  it('allows the same mnemonic in a profile for another network', () => {
+    expect(findProfileByMnemonic(store, mnemonic, 'testnet')).toBeUndefined();
+    expect(() => assertUniqueMnemonicProfile(store, mnemonic, 'testnet')).not.toThrow();
   });
 
   it('does not treat a different root or an imported private key as a duplicate mnemonic', () => {
@@ -242,7 +252,7 @@ describe('mnemonic profile uniqueness', () => {
       ],
     };
 
-    expect(findProfileByMnemonic(store, generateMnemonic())).toBeUndefined();
-    expect(findProfileByMnemonic(importedStore, mnemonic)).toBeUndefined();
+    expect(findProfileByMnemonic(store, generateMnemonic(), 'mainnet')).toBeUndefined();
+    expect(findProfileByMnemonic(importedStore, mnemonic, 'mainnet')).toBeUndefined();
   });
 });

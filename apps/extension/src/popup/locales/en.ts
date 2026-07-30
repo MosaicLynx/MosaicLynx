@@ -100,6 +100,7 @@ export const en = {
   invalidPrivateKey: 'The private key is invalid. Enter a 64-character hexadecimal key.',
   excludedHdAccounts: 'Excluded HD accounts',
   restoreHdAccount: 'Restore {{name}}',
+  hdAccountRestored: 'HD account restored.',
   accountName: 'Account name',
   addAccountBody: 'Derive the next account from your backed-up mnemonic. Enter the profile password to confirm.',
   adding: 'Adding…',

@@ -24,6 +24,7 @@ describe('popup localization', () => {
     );
     expect(i18n.t('skipVerification')).toBe('確認をスキップ');
     expect(i18n.t('createWithoutVerification')).toBe('確認せずに作成');
+    expect(i18n.t('hdAccountRestored')).toBe('HDアカウントを復活しました。');
     expect(i18n.t('approvalChainStateUnverifiedTitle')).toBe('チェーン状態は未照合です');
     expect(i18n.t('approvalReject')).toBe('拒否');
   });
@@ -40,6 +41,7 @@ describe('popup localization', () => {
     );
     expect(i18n.t('skipVerification')).toBe('Skip verification');
     expect(i18n.t('createWithoutVerification')).toBe('Create without verification');
+    expect(i18n.t('hdAccountRestored')).toBe('HD account restored.');
     expect(i18n.t('approvalChainStateUnverifiedTitle')).toBe('Chain state is not checked');
   });
 });

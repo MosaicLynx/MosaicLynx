@@ -101,6 +101,7 @@ export const ja = {
   invalidPrivateKey: '秘密鍵が正しくありません。64桁の16進数を入力してください。',
   excludedHdAccounts: '除外済みHDアカウント',
   restoreHdAccount: '{{name}} を復活',
+  hdAccountRestored: 'HDアカウントを復活しました。',
   accountName: 'アカウント名',
   addAccountBody:
     'バックアップ済みのニーモニックから次のアカウントを派生します。確認のためプロファイルのパスワードを入力してください。',

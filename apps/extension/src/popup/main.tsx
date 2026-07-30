@@ -26,6 +26,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useTranslation } from 'react-i18next';
 
+import { activeChainForEnabledChains } from '../profile-state.js';
 import { MAINNET_SIGNING_ENABLED } from '../release-capabilities.js';
 import { AppThemeProvider, setAppThemeMode } from '../ui/theme.js';
 import {
@@ -253,7 +254,7 @@ const App = () => {
 
   const validateDetails = (): void => {
     if (!name.trim()) throw new Error(t('requiredName'));
-    if (!enabledChains.length) throw new Error('Select at least one chain.');
+    if (!enabledChains.length) throw new Error(t('selectProfileChain'));
     if (password.length < 12) throw new Error(t('shortPassword'));
     if (password !== confirmation) throw new Error(t('mismatchPassword'));
   };
@@ -281,7 +282,7 @@ const App = () => {
       const normalized = normalizeMnemonic(mnemonic);
       if (normalized.split(' ').length !== 24) throw new Error(t('invalidMnemonic'));
       const material = deriveSharedAccount(network, normalized, 0);
-      assertUniqueMnemonicProfile(store, normalized);
+      assertUniqueMnemonicProfile(store, normalized, network);
       setMnemonic(normalized);
       setImportPreview(material);
       setStep('import-review');
@@ -307,7 +308,7 @@ const App = () => {
         if (confirmed !== normalized) throw new Error(t('wrongOrder'));
       }
       const material = deriveSharedAccount(network, normalized, 0);
-      assertUniqueMnemonicProfile(store, normalized);
+      assertUniqueMnemonicProfile(store, normalized, network);
       const profileId = crypto.randomUUID();
       const accountId = crypto.randomUUID();
       const now = new Date().toISOString();
@@ -394,9 +395,13 @@ const App = () => {
   const selectProfile = async (profileId: string): Promise<void> => {
     if (!store) return;
     const selected = store.profiles.find((item) => item.id === profileId);
+    if (!selected) return;
     setProfileNameDraft(selected?.name ?? '');
     setProfileChainsDraft(selected?.enabledChains ?? []);
-    await updateSettings({ activeProfileId: profileId });
+    await updateSettings({
+      activeProfileId: profileId,
+      activeChain: activeChainForEnabledChains(selected.enabledChains, store.settings.activeChain),
+    });
   };
 
   const saveProfile = async (): Promise<void> => {
@@ -430,10 +435,11 @@ const App = () => {
       ),
       settings: {
         ...store.settings,
-        activeChain: enabledChains.includes(store.settings.activeChain)
-          ? store.settings.activeChain
-          : enabledChains[0]!,
+        activeChain: activeChainForEnabledChains(enabledChains, store.settings.activeChain),
       },
+      permissions: store.permissions.filter(
+        (grant) => grant.profileId !== active.id || enabledChains.includes(grant.chain)
+      ),
     };
     await saveStore(next);
     setStore(next);
@@ -769,7 +775,7 @@ const App = () => {
       await saveStore(next);
       setStore(next);
       setAccountPassword('');
-      setNotice('HD account restored.');
+      setNotice(t('hdAccountRestored'));
     } catch {
       setError(t('unlockFailed'));
     }
@@ -1176,9 +1182,7 @@ const App = () => {
     );
   }
 
-  const activeChain = profile.enabledChains.includes(store.settings.activeChain)
-    ? store.settings.activeChain
-    : profile.enabledChains[0]!;
+  const activeChain = activeChainForEnabledChains(profile.enabledChains, store.settings.activeChain);
   const scope = { chain: activeChain, network: profile.network } as const;
   const activeAddress = account?.identities[scope.chain].address;
   const activePublicKey = account?.identities[scope.chain].publicKey;
@@ -1311,23 +1315,21 @@ const App = () => {
             <b>›</b>
           </button>
           {profile.network === 'testnet' && (
-            <>
-              <button className="menu-item" onClick={() => openView('backup')}>
-                <span>
-                  <strong>{t('exportEncryptedBackup')}</strong>
-                  <small>{t('testnetBackupOnly')}</small>
-                </span>
-                <b>›</b>
-              </button>
-              <button className="menu-item" onClick={() => openView('restore')}>
-                <span>
-                  <strong>{t('importEncryptedBackup')}</strong>
-                  <small>{t('testnetBackupOnly')}</small>
-                </span>
-                <b>›</b>
-              </button>
-            </>
+            <button className="menu-item" onClick={() => openView('backup')}>
+              <span>
+                <strong>{t('exportEncryptedBackup')}</strong>
+                <small>{t('testnetBackupOnly')}</small>
+              </span>
+              <b>›</b>
+            </button>
           )}
+          <button className="menu-item" onClick={() => openView('restore')}>
+            <span>
+              <strong>{t('importEncryptedBackup')}</strong>
+              <small>{t('testnetBackupOnly')}</small>
+            </span>
+            <b>›</b>
+          </button>
         </section>
         <section className="menu-settings">
           <p className="section-label">{t('settings').toUpperCase()}</p>
@@ -1560,7 +1562,7 @@ const App = () => {
                 />
                 <button
                   className="primary wide"
-                  disabled={busy || !accountNameDraft.trim() || !importPrivateKey.trim()}
+                  disabled={busy || !accountNameDraft.trim()}
                   onClick={() => void addImportedAccount()}
                 >
                   {busy ? t('adding') : t('importPrivateKey')}

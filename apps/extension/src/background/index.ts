@@ -24,6 +24,7 @@ import {
   saveStore,
 } from '../vault.js';
 import { AccountSelectionError, messageAccountCandidates, transactionAccount } from './account-selection.js';
+import { isActiveAccountForProfile, isEnabledProfileScope } from './profile-eligibility.js';
 
 interface BridgeRequest {
   readonly kind: 'mosaiclynx:request';
@@ -94,14 +95,19 @@ const activeProfile = (store: ExtensionStore, network?: MosaicScope['network']):
 };
 
 const accountsForProfile = (store: ExtensionStore, profileId: string): readonly PublicAccount[] =>
-  store.accounts.filter((account) => account.profileId === profileId);
+  store.accounts.filter((account) => isActiveAccountForProfile(account, profileId));
+
+const assertEnabledScope = (profile: PublicProfile, scope: MosaicScope): void => {
+  if (!isEnabledProfileScope(profile, scope))
+    providerError('UNSUPPORTED_CHAIN', 'This chain is disabled for the active profile.');
+};
 
 const vaultRevisionFor = (store: ExtensionStore, profileId: string): number =>
   store.vaults.find((vault) => vault.profileId === profileId)?.revision ??
   providerError('VAULT_LOCKED', 'The active profile vault is unavailable.');
 
 const accountById = (store: ExtensionStore, profile: PublicProfile, accountId: string): PublicAccount => {
-  const account = store.accounts.find((item) => item.profileId === profile.id && item.id === accountId);
+  const account = accountsForProfile(store, profile.id).find((item) => item.id === accountId);
   if (!account) return providerError('ACCOUNT_NOT_FOUND', 'The account is unavailable.');
   return account;
 };
@@ -136,7 +142,7 @@ const permittedAccounts = (
   permission: PermissionGrant
 ): readonly PublicAccount[] =>
   permission.accountIds
-    .map((id) => store.accounts.find((account) => account.profileId === profile.id && account.id === id))
+    .map((id) => accountsForProfile(store, profile.id).find((account) => account.id === id))
     .filter((account): account is PublicAccount => Boolean(account));
 
 const requirePermission = (
@@ -397,6 +403,7 @@ const handleConnect = async (origin: string, params: unknown, tabId: number): Pr
   if (!isScope(params)) return providerError('INVALID_PARAMS', 'connect() requires chain and network.');
   const store = await loadStore();
   const profile = activeProfile(store, params.network);
+  assertEnabledScope(profile, params);
   const existing = permissionFor(store, origin, profile.id, params);
   if (existing)
     return permittedAccounts(store, profile, existing).map((account) => projectAccount(profile, account, params));
@@ -455,6 +462,7 @@ const handleTransaction = async (origin: string, params: unknown): Promise<Signe
     return providerError('UNSUPPORTED_CHAIN', 'Mainnet signing is disabled because release evidence is not installed.');
   const store = await loadStore();
   const profile = activeProfile(store, scope.network);
+  assertEnabledScope(profile, scope);
   const permission = requirePermission(store, origin, profile, scope);
   let inspection;
   try {
@@ -528,6 +536,7 @@ const handleMessage = async (origin: string, params: unknown): Promise<SignedMes
     return providerError('UNSUPPORTED_CHAIN', 'Mainnet signing is disabled because release evidence is not installed.');
   const store = await loadStore();
   const profile = activeProfile(store, input.network);
+  assertEnabledScope(profile, input);
   const permission = requirePermission(store, origin, profile, input);
   let availableAccounts: readonly PublicAccount[];
   try {
@@ -634,7 +643,10 @@ const handleRequest = async (origin: string, request: RpcRequest, tabId: number)
       const store = await loadStore();
       const profile = activeProfile(store);
       return store.permissions
-        .filter((grant) => grant.origin === origin && grant.profileId === profile.id)
+        .filter(
+          (grant) =>
+            grant.origin === origin && grant.profileId === profile.id && profile.enabledChains.includes(grant.chain)
+        )
         .flatMap((grant) =>
           permittedAccounts(store, profile, grant).map((account) =>
             projectAccount(profile, account, { chain: grant.chain, network: grant.network })

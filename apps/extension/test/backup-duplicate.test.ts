@@ -3,11 +3,7 @@ import type { ProfileBackupPlaintext } from '@mosaiclynx/profile-backup';
 import { importProfileBackup } from '@mosaiclynx/profile-backup';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  DuplicateMnemonicProfileError,
-  type ExtensionStore,
-  importExtensionProfileBackup,
-} from '../src/vault.js';
+import { DuplicateMnemonicProfileError, type ExtensionStore, importExtensionProfileBackup } from '../src/vault.js';
 
 vi.mock('@mosaiclynx/profile-backup', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@mosaiclynx/profile-backup')>();
@@ -21,7 +17,7 @@ afterEach(() => {
 describe('extension backup mnemonic uniqueness', () => {
   it('rejects a backup whose mnemonic root already belongs to another profile', async () => {
     const mnemonic = generateMnemonic();
-    const existingMaterial = deriveSharedAccount('mainnet', mnemonic, 0);
+    const existingMaterial = deriveSharedAccount('testnet', mnemonic, 0);
     const restoredMaterial = deriveSharedAccount('testnet', mnemonic, 0);
     const now = '2026-07-30T00:00:00.000Z';
     const restored: ProfileBackupPlaintext = {
@@ -70,7 +66,7 @@ describe('extension backup mnemonic uniqueness', () => {
         {
           id: 'existing-profile',
           name: 'Existing profile',
-          network: 'mainnet',
+          network: 'testnet',
           enabledChains: ['symbol', 'nem'],
           defaultAccountId: 'existing-account',
           nextAccountIndex: 1,
