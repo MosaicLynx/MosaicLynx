@@ -10,7 +10,7 @@
 - [スマホアプリ要件](./mobile-app.md)
 - [Relay 要件](./relay.md)
 
-本書は、API、データ形式、暗号アルゴリズム、クラス、画面レイアウト、状態遷移、実装ライブラリを確定しない。既存仕様書は要求の根拠または具体化候補として参照し、コンセプトと整合しない記述は未決事項または下流整合事項として扱う。
+本書は、API、データ形式、暗号アルゴリズム、クラス、画面レイアウト、状態遷移、実装ライブラリを確定しない。既存仕様書は下流の具体化先または整合確認資料として参照し、コンセプトと整合しない記述は未決事項または下流整合事項として扱う。
 
 ### 1.1 要求の表記
 
@@ -95,11 +95,13 @@ MosaicLynx / Application は、アプリケーション上の Profile、Account 
 
 ## 5. 共通機能要求
 
+要求見出しの括弧内は主な適用主体を示す。各要求の `根拠:` は上位の価値・判断・契約、`下流:` は既存または後続の具体化先、`参考:` は補助資料を示す。これは完全な traceability matrix ではなく、主要要求を上流根拠と必要な下流資料へ追跡するための最小限の記録である。
+
 ### CR-001 署名要求の受付（Signer / End-to-End）
 
 **MUST** 対象範囲内の dApp から署名要求を受け付け、利用者が判断する Signer の確認領域へ渡さなければならない。
 
-根拠: コンセプト 3、6.1、8。参考: `docs/specifications/product-spec.md` 2、5、12。
+根拠: コンセプト 3、6.1、8。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/specifications/web-transaction-handoff-spec.md`。
 
 ### CR-002 署名対象の確認（Signer）
 
@@ -109,7 +111,7 @@ MosaicLynx / Application は、アプリケーション上の Profile、Account 
 
 具体的な表示項目、transaction type ごとの表示、raw data の表現は後続仕様で決定する。表示できない情報を利用者の自己責任で補完させてはならない。
 
-根拠: コンセプト 3、4、6.2、11。参考: `docs/specifications/product-spec.md` 3、12。
+根拠: コンセプト 3、4、6.2、11。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/specifications/product-spec.md` の署名確認仕様。
 
 ### CR-003 明示的な承認または拒否（Signer）
 
@@ -117,13 +119,15 @@ MosaicLynx / Application は、アプリケーション上の Profile、Account 
 
 根拠: コンセプト 3、4、6.3、11。
 
+下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`。
+
 ### CR-004 blind signing の禁止（Signer）
 
 **MUST** Signer が理解・確認できない要求、対象範囲外の要求、検証できない要求を署名してはならない。警告を表示するだけで未解析の要求を許可してはならない。
 
 拒否、判断不能、対象外、検証失敗の場合は、署名結果を返さず安全に終了する。
 
-根拠: コンセプト 3、8、10、11、13。参考: `_snwc/README.md` の「Blind signing の防止」、`docs/specifications/product-spec.md` 3、12.3。
+根拠: コンセプト 3、8、10、11、13。参考: `_snwc/README.md` の「Blind signing の防止」。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/specifications/product-spec.md` の署名可否仕様。
 
 ### CR-005 チェーンとネットワークの区別（Signer / End-to-End）
 
@@ -131,7 +135,9 @@ MosaicLynx / Application は、アプリケーション上の Profile、Account 
 
 具体的な transaction schema、署名 byte 列、鍵導出、network constant は `docs/specifications/chain-compatibility-spec.md` および後続仕様で管理する。
 
-根拠: コンセプト 8、11、12。参考: `docs/specifications/chain-compatibility-spec.md`。
+根拠: コンセプト 8、11、12。
+
+下流: `docs/specifications/chain-compatibility-spec.md`、`docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`。
 
 ### CR-006 署名結果の検証可能性（End-to-End / dApp）
 
@@ -139,7 +145,7 @@ MosaicLynx / Application は、アプリケーション上の Profile、Account 
 
 結果の具体的な型、データ形式、エラー表現は後続仕様で決定する。MosaicLynx は dApp に代わって announce してはならない。
 
-根拠: コンセプト 6.4、7、9、11、13、14。参考: `docs/specifications/web-transaction-handoff-spec.md` 2、6。
+根拠: コンセプト 6.4、7、9、11、13、14。下流: `docs/specifications/web-transaction-handoff-spec.md`、`docs/requirements/relay.md`。
 
 ### CR-007 共通の署名接点と署名操作
 
@@ -166,7 +172,7 @@ dApp は、Browser Extension、Android、iOS の提供形態または transport 
 
 API 名、関数名、引数、payload、transport、result type、error code および fallback の具体形式は後続仕様へ委ねる。利用者拒否、未対応 operation / format、検証不能その他の安全側失敗を、別の署名操作の成功として返してはならない。
 
-根拠: コンセプト 2、3、4、5、7、8。参考: `docs/specifications/product-spec.md` 2、3、5、12、`docs/specifications/web-transaction-handoff-spec.md` 1、2。
+根拠: コンセプト 2、3、4、5、7、8。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/specifications/product-spec.md`、`docs/specifications/web-transaction-handoff-spec.md`。message signing の既存仕様との差異は後続整合事項として扱う。
 
 ### CR-008 秘密情報の分離
 
@@ -174,7 +180,7 @@ API 名、関数名、引数、payload、transport、result type、error code �
 
 秘密情報の保存、復号、鍵導出および raw byte signing は `symbol-nem-wallet-core` の契約を正本とする。MosaicLynx 側で wallet-core 内部の鍵管理、Wallet Store、秘密情報を使用する暗号処理、raw signing を再実装してはならない。Profile 全体の backup / restore や backup 形式は本書で確定せず、MosaicLynx v1 の共通 MUST ともしない。
 
-根拠: コンセプト 4、7、9、11、13。参考: `_snwc/README.md`、`docs/specifications/profile-account-spec.md`。
+根拠: コンセプト 4、7、9、11、13。参考: `_snwc/README.md`。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/specifications/profile-account-spec.md` の責任範囲整合。
 
 ### CR-009 利用者が管理する Account（Signer）
 
@@ -182,13 +188,13 @@ API 名、関数名、引数、payload、transport、result type、error code �
 
 接続許可の識別単位、公開情報の具体的な契約、Account の表示方法は後続仕様で決定する。
 
-根拠: コンセプト 5、7、11、13。参考: `docs/specifications/product-spec.md` 3、11。
+根拠: コンセプト 5、7、11、13。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/specifications/product-spec.md` の接続許可仕様。
 
 ### CR-010 共通の安全側失敗（Signer / End-to-End）
 
 **MUST** 認証、対象確認、チェーン・ネットワーク整合性、署名対象検証、署名結果検証のいずれかに失敗した場合、署名結果を返さず安全側に終了しなければならない。
 
-根拠: コンセプト 3、8、11、13、14。参考: `docs/specifications/product-spec.md` 3、12、`docs/specifications/web-transaction-handoff-spec.md` 7、13。
+根拠: コンセプト 3、8、11、13、14。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/specifications/web-transaction-handoff-spec.md`。
 
 ### CR-011 Platform 間の責任境界維持
 
@@ -200,13 +206,17 @@ API 名、関数名、引数、payload、transport、result type、error code �
 
 機能や操作が完全に同一でない場合でも、Signer と Relay の適用主体を混同せず、共通の安全要求を満たす範囲でプラットフォーム差異を認める。Relay 固有の受け入れ条件は `docs/requirements/relay.md` に定める。
 
-根拠: コンセプト 1、6.5、9、11、12、14。コンセプトレビュー CS-003。
+根拠: コンセプト 1、6.5、9、11、12、14。
+
+下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`。参考: `docs/reviews/concept/concept-sheet-review-001.md`。
 
 ### CR-012 共通の失敗結果
 
 **MUST** 拒否、未対応 operation / format、要求元・許可範囲不一致、要求内容不一致、期限切れ、replay / duplicate 等による拒否、Chain / Network / Account 不一致、解析・表示不能、検証失敗、認証失敗、利用不能、wallet-core 失敗など、署名を完了できない場合に、署名結果を成功または別の署名操作の成功として返してはならない。dApp が成功とこれらの失敗を区別して安全に処理できる結果を返し、秘密情報や過剰な内部情報を含めてはならない。
 
 失敗の分類、公開エラーコード、再試行条件は後続仕様で決定する。
+
+根拠: `CR-001`、`CR-006`、`CR-010`、`CR-011` およびコンセプト 8、14。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/specifications/web-transaction-handoff-spec.md`。
 
 ### CR-013 Application と wallet-core の責任境界
 
@@ -216,11 +226,15 @@ API 名、関数名、引数、payload、transport、result type、error code �
 
 wallet-core の API、Binding、FFI、WASM / Native、React Native 連携、既存実装からの移行手順および error mapping の具体方式は後続設計へ委ねる。
 
+根拠: コンセプト 9、13。参考（外部コンポーネント契約）: `_snwc/docs/requirements/requirements.md`、`_snwc/docs/specifications/specification.md`、`_snwc/docs/decisions/binding-implementation.md`。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`。
+
 ### CR-014 Profile 全体 backup / restore の共通要件外化
 
 **MUST NOT** Profile 全体の backup / restore、export / import、Profile ID の重複判定、merge / overwrite、migration、backup password または backup の保存方法を、MosaicLynx v1 の共通 MUST または共通完了条件として扱ってはならない。
 
 将来 Profile backup 機能を扱う場合の Application と wallet-core の責任分担、Wallet Store の扱い、復元範囲および具体方式は、その機能を対象とする後続の要件・仕様で決定する。既存仕様書に記載された Profile 全体 backup / restore は、現時点の MosaicLynx v1 共通要求へ自動的に取り込まない。
+
+根拠: `CR-013`、`FUTURE-001` およびコンセプト 10。下流: `docs/specifications/profile-account-spec.md` は将来機能または再検討対象として整合させる。
 
 ## 6. 共通の非機能・セキュリティ要求
 
@@ -228,11 +242,13 @@ wallet-core の API、Binding、FFI、WASM / Native、React Native 連携、既�
 
 **MUST** dApp、Web ページ、Relay、ネットワーク、Provider、Mobile アプリ、wallet-core Binding など外部境界から受け取る入力を、検証前に信頼してはならない。
 
+根拠: コンセプト 13。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`。
+
 ### CR-NFR-002 秘密情報を不要に複製・出力しない
 
 **MUST** 秘密情報をログ、例外、warning、診断情報、URL、Web ページ、Relay、外部通信または継続保存領域へ不要に含めてはならない。プラットフォーム側の一時的な入力仲介が発生する場合も、継続保存・公開主体になってはならない。
 
-根拠: コンセプト 9、13。参考: `AGENTS.md`、`_snwc/README.md`、`_snwc/docs/decisions/binding-implementation.md`。
+根拠: コンセプト 9、13。参考（外部コンポーネント契約）: `_snwc/docs/requirements/requirements.md`、`_snwc/docs/specifications/specification.md`、`_snwc/docs/decisions/binding-implementation.md`、`_snwc/README.md`。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`。
 
 ### CR-NFR-003 署名前の再確認（Signer）
 
@@ -240,7 +256,7 @@ wallet-core の API、Binding、FFI、WASM / Native、React Native 連携、既�
 
 具体的な revision、digest、request ID、timeout、状態遷移は後続仕様で決定する。
 
-根拠: コンセプト 6.2、6.3、11、13。参考: `_snwc/README.md` の「表示対象と署名対象の同一性」、`docs/specifications/product-spec.md` 12。
+根拠: コンセプト 6.2、6.3、11、13。参考: `_snwc/README.md` の「表示対象と署名対象の同一性」。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/specifications/product-spec.md` の署名確認仕様。
 
 ### CR-NFR-004 wallet-core の失敗を安全に扱う
 
@@ -248,9 +264,13 @@ wallet-core の API、Binding、FFI、WASM / Native、React Native 連携、既�
 
 wallet-core の stable error code、warning、Binding 契約の詳細は wallet-core 側の正本に従う。
 
+根拠: `CR-013`、コンセプト 9、13。参考（外部コンポーネント契約）: `_snwc/docs/requirements/requirements.md`、`_snwc/docs/specifications/specification.md`、`_snwc/docs/decisions/binding-implementation.md`。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`。
+
 ### CR-NFR-005 Symbol / NEM の相互運用性
 
 **MUST** Symbol と NEM の導出、address、transaction、署名処理を暗黙に共通化してはならない。対応範囲内の要求と結果は、対象チェーンの承認済み仕様・固定 vector・wallet-core 契約に従わなければならない。
+
+根拠: コンセプト 8、11、12。下流: `docs/specifications/chain-compatibility-spec.md`、`docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`。
 
 ### CR-NFR-006 Mainnet の公開制御
 
@@ -274,7 +294,7 @@ Mainnet release policy に関する資料は、次の役割で相互補完的に
 
 具体的な evidence 項目、policy parameter、検証手順および実装方式は、これらの承認済み資料と後続の release / security operation で管理する。
 
-根拠: コンセプト 12、14、15。参考: `docs/adr/0001-mainnet-evidence-lite.md`、`docs/evidence/evidence-policy.json`、`docs/release/mainnet-release-evidence.md`。
+根拠: コンセプト 12、14、15。決定: `docs/adr/0001-mainnet-evidence-lite.md`。下流: `docs/evidence/evidence-policy.json`、`docs/release/mainnet-release-evidence.md`。
 
 ### CR-NFR-007 利用者判断可能性（Signer）
 
@@ -282,11 +302,15 @@ Mainnet release policy に関する資料は、次の役割で相互補完的に
 
 表示レイアウト、文言、支援技術、表示の詳細粒度はプラットフォーム要件・利用者検証・後続仕様で決定する。
 
+根拠: コンセプト 3、4、6.2、6.3、11。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/specifications/product-spec.md` の署名確認仕様。
+
 ### CR-NFR-008 要求元と許可範囲の対応（Signer / End-to-End）
 
 **MUST** Signer は、署名要求が許可した要求元、現在有効な接続、現在有効な署名セッションまたは許可された権限範囲のうち、適用されるコンテキストと対応していることを確認できなければならない。対応を確認できない要求は署名してはならない。
 
 すべての dApp に暗号学的な本人認証を必須化することは本要求に含めない。Browser Extension の Origin・Provider connection、Mobile / Relay の handoff session などの具体方式は後続仕様で決定する。Relay はこの対応関係を独自に解釈・承認せず、別の要求元・セッション・権限範囲へ置換してはならない。
+
+根拠: コンセプト 3、4、5、11、13。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/specifications/web-transaction-handoff-spec.md`。
 
 ### CR-NFR-009 要求内容の完全性と承認対象の一致（Signer / End-to-End）
 
@@ -294,11 +318,15 @@ Mainnet release policy に関する資料は、次の役割で相互補完的に
 
 具体的な digest、request ID、署名、MAC その他の方式は後続仕様へ委ねる。Relay では `RR-003`、`RR-005` および `RR-007` と整合させる。
 
+根拠: コンセプト 3、6.2、6.3、11、13。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`。
+
 ### CR-NFR-010 要求の鮮度（Signer / End-to-End）
 
 **MUST** Signer は、期限切れ、失効済みまたは現在の署名処理として有効でない要求を署名してはならない。Relay の復旧や再配送によって、無効な要求を有効な要求として扱ってはならない。
 
 具体的な TTL、期限値、失効条件および timestamp の形式は後続仕様へ委ねる。Relay では `RR-004` および `RR-006` と整合させる。
+
+根拠: コンセプト 3、6.3、11。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`。
 
 ### CR-NFR-011 Replay・重複・遅延配送の拒否（Signer / End-to-End）
 
@@ -306,11 +334,15 @@ Mainnet release policy に関する資料は、次の役割で相互補完的に
 
 具体的な nonce、request ID、保存方式および状態管理方式は後続仕様へ委ねる。Relay では `RR-006` および `RR-007` と整合させる。
 
+根拠: コンセプト 3、6.3、11、13。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`。
+
 ### CR-NFR-012 署名結果と元要求の対応（End-to-End / dApp）
 
 **MUST** 署名結果は、元の署名要求、署名者、Account、Chain および Network に対応していることを確認できなければならない。dApp は受け取った署名結果を独立して検証し、Relay または Provider が成功を返したことだけを署名結果の正当性の根拠としてはならない。
 
 具体的な結果形式、対応付け方式および error code は後続仕様へ委ねる。Relay では `RR-002`、`RR-005` および `RR-007` と整合させる。
+
+根拠: コンセプト 6.4、7、9、11、13。下流: `docs/requirements/relay.md`、`docs/specifications/web-transaction-handoff-spec.md`、各 platform の署名結果受け入れ条件。
 
 ## 7. 共通の対象外
 
@@ -423,3 +455,5 @@ MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の
 - `_snwc/docs/specifications/specification.md`
 - `_snwc/docs/decisions/binding-implementation.md`
 - `docs/reviews/concept/concept-sheet-review-001.md`
+
+`AGENTS.md` と `.agents/project-context.md` は、作業手順および repository context の参考資料であり、本書の製品要求そのものの根拠ではない。
