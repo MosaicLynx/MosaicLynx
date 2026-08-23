@@ -63,6 +63,46 @@ export interface SignedTransaction {
   readonly signerPublicKey: string;
 }
 
+/** Symbol の Aggregate Transaction に対する連署要求。 */
+export interface SymbolCosignTransactionParams extends MosaicScope {
+  readonly chain: 'symbol';
+  /** 署名済みの完全な Aggregate Transaction payload。 */
+  readonly parentPayload: string;
+  /** true の場合はネットワーク送信用の Detached Cosignature を返す。 */
+  readonly detached: boolean;
+  readonly accountId?: string;
+}
+
+/** NEM の Multisig Transaction に対する連署要求。 */
+export interface NemCosignTransactionParams extends MosaicScope {
+  readonly chain: 'nem';
+  /** 未署名の CosignatureV1 payload。 */
+  readonly payload: string;
+  /** 参照先となる署名済みの完全な MultisigTransactionV1 payload。 */
+  readonly parentPayload: string;
+  readonly accountId?: string;
+}
+
+export type CosignTransactionParams = SymbolCosignTransactionParams | NemCosignTransactionParams;
+
+export interface SymbolCosignature {
+  readonly chain: 'symbol';
+  readonly parentHash: string;
+  readonly signature: string;
+  readonly signerPublicKey: string;
+  readonly detached: boolean;
+  readonly payload: string;
+}
+
+export interface NemCosignature {
+  readonly chain: 'nem';
+  readonly payload: string;
+  readonly hash: string;
+  readonly signerPublicKey: string;
+}
+
+export type MosaicLynxCosignature = SymbolCosignature | NemCosignature;
+
 export interface ProviderEventMap {
   accountsChanged: readonly MosaicAccount[];
   disconnect: undefined;
@@ -78,9 +118,10 @@ export interface MosaicLynxProvider {
   connect(params: ConnectParams): Promise<readonly MosaicAccount[]>;
   disconnect(): Promise<void>;
   getAccounts(): Promise<readonly MosaicAccount[]>;
-  getActiveAccount(): Promise<MosaicAccount | undefined>;
+  getActiveAccount(scope: MosaicScope): Promise<MosaicAccount | undefined>;
   signMessage(params: SignMessageParams): Promise<SignedMessage>;
   signTransaction(params: SignTransactionParams): Promise<SignedTransaction>;
+  cosignTransaction(params: CosignTransactionParams): Promise<MosaicLynxCosignature>;
   on<T extends ProviderEventName>(event: T, listener: ProviderEventListener<T>): void;
   removeListener<T extends ProviderEventName>(event: T, listener: ProviderEventListener<T>): void;
 }
@@ -98,7 +139,8 @@ export type RpcMethod =
   | 'account_list'
   | 'account_getActive'
   | 'sign_message'
-  | 'sign_transaction';
+  | 'sign_transaction'
+  | 'cosign_transaction';
 
 export interface RpcRequest {
   readonly method: RpcMethod;
@@ -156,8 +198,8 @@ export class RpcMosaicLynxProvider implements MosaicLynxProvider {
     return this.executor.request({ method: 'account_list' });
   }
 
-  public getActiveAccount(): Promise<MosaicAccount | undefined> {
-    return this.executor.request({ method: 'account_getActive' });
+  public getActiveAccount(scope: MosaicScope): Promise<MosaicAccount | undefined> {
+    return this.executor.request({ method: 'account_getActive', params: scope });
   }
 
   public signMessage(params: SignMessageParams): Promise<SignedMessage> {
@@ -166,6 +208,10 @@ export class RpcMosaicLynxProvider implements MosaicLynxProvider {
 
   public signTransaction(params: SignTransactionParams): Promise<SignedTransaction> {
     return this.executor.request({ method: 'sign_transaction', params });
+  }
+
+  public cosignTransaction(params: CosignTransactionParams): Promise<MosaicLynxCosignature> {
+    return this.executor.request({ method: 'cosign_transaction', params });
   }
 
   public on<T extends ProviderEventName>(event: T, listener: ProviderEventListener<T>): void {

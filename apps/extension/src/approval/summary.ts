@@ -27,7 +27,7 @@ export const approvalSummary = (
       value: `${account.name}\n${account.identities[approval.scope.chain].address}`,
     });
 
-  if (approval.type === 'transaction') {
+  if (approval.type === 'transaction' || approval.type === 'cosignature') {
     rows.push(
       { label: 'approvalTransaction', value: approval.inspection.schema },
       { label: 'approvalRecipients', value: approval.inspection.recipients.join('\n') || t('approvalNone') },

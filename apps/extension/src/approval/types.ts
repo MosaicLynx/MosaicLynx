@@ -1,5 +1,6 @@
 import type {
   MosaicAccount,
+  MosaicLynxCosignature,
   MosaicScope,
   SignMessageParams,
   SignedMessage,
@@ -46,7 +47,17 @@ export interface MessageApproval extends ApprovalBase {
   readonly messageParams: SignMessageParams;
 }
 
-export type ApprovalRequest = ConnectApproval | TransactionApproval | MessageApproval;
+export interface CosignatureApproval extends ApprovalBase {
+  readonly type: 'cosignature';
+  readonly permissionRevision: number;
+  readonly account: PublicAccount;
+  readonly parentPayload: string;
+  readonly payload?: string;
+  readonly detached?: boolean;
+  readonly inspection: TransactionApproval['inspection'];
+}
+
+export type ApprovalRequest = ConnectApproval | TransactionApproval | MessageApproval | CosignatureApproval;
 
 export type NewApprovalRequest = ApprovalRequest extends infer Request
   ? Request extends ApprovalRequest
@@ -58,6 +69,7 @@ export type ApprovalResolution =
   | { readonly approved: false; readonly error?: { readonly code: string; readonly message: string } }
   | { readonly approved: true; readonly accountIds: readonly string[] }
   | { readonly approved: true; readonly signedTransaction: SignedTransaction }
+  | { readonly approved: true; readonly cosignature: MosaicLynxCosignature }
   | {
       readonly approved: true;
       readonly accountId: string;

@@ -68,10 +68,15 @@ window.addEventListener(requestEvent, (event: Event) => {
     'account_getActive',
     'sign_message',
     'sign_transaction',
+    'cosign_transaction',
   ]);
   if (typeof rpc.method !== 'string' || !methods.has(rpc.method)) return;
   const payload = (rpc.params as { readonly payload?: unknown } | undefined)?.payload;
-  if (typeof payload === 'string' && payload.length > 512 * 1024) {
+  const parentPayload = (rpc.params as { readonly parentPayload?: unknown } | undefined)?.parentPayload;
+  if (
+    (typeof payload === 'string' && payload.length > 512 * 1024) ||
+    (typeof parentPayload === 'string' && parentPayload.length > 512 * 1024)
+  ) {
     window.dispatchEvent(
       new CustomEvent(responseEvent, {
         detail: { id: request.id, error: { code: 'INVALID_PARAMS', message: 'Payload exceeds 256 KiB.' } },

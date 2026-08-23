@@ -85,7 +85,13 @@ export const createStructuredMessage = (
   const message: StructuredMessage = {
     domain: 'mosaiclynx.message.v1',
     origin: canonicalOrigin,
-    ...input,
+    chain: input.chain,
+    network: input.network,
+    purpose: input.purpose,
+    nonce: input.nonce,
+    issuedAt: input.issuedAt,
+    expiresAt: input.expiresAt,
+    payload: input.payload,
   };
   const body = encoder.encode(canonicalize(message));
   const signingBytes = new Uint8Array(PREFIX.length + body.length);

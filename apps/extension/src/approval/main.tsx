@@ -27,14 +27,15 @@ const adapters = { symbol: new SymbolChainAdapter(), nem: new NemChainAdapter() 
 const approvalTypeKey = {
   connect: 'approvalTypeConnect',
   transaction: 'approvalTypeTransaction',
+  cosignature: 'approvalTypeTransaction',
   message: 'approvalTypeMessage',
 } as const;
 
 const isSidePanel = async (): Promise<boolean> => {
   const contexts = await chrome.runtime.getContexts({
-    contextTypes: ['SIDE_PANEL'],
+    contextTypes: ['SIDE_PANEL' as chrome.runtime.ContextType],
     documentUrls: [location.href],
-  });
+  } as chrome.runtime.ContextFilter);
   return contexts.length > 0;
 };
 
@@ -141,7 +142,7 @@ const App = () => {
         await resolve({ approved: true, accountIds: selected });
         return;
       }
-      if (approval.type === 'transaction') {
+      if (approval.type === 'transaction' || approval.type === 'cosignature') {
         const preparation = (await chrome.runtime.sendMessage({
           kind: 'mosaiclynx:approval:prepare-transaction',
           id,
@@ -151,12 +152,31 @@ const App = () => {
             preparation.error?.code === 'CONTEXT_CHANGED' ? 'approvalProfileChanged' : 'approvalRequestFailed'
           );
         privateKey = privateKeyFor(approval.profile, approval.account, contents);
-        const signedTransaction = adapters[approval.scope.chain].signTransaction(
-          approval.scope.network,
-          approval.payload,
-          privateKey
-        );
-        await resolve({ approved: true, signedTransaction });
+        if (approval.type === 'transaction') {
+          const signedTransaction = adapters[approval.scope.chain].signTransaction(
+            approval.scope.network,
+            approval.payload,
+            privateKey
+          );
+          await resolve({ approved: true, signedTransaction });
+        } else if (approval.scope.chain === 'symbol') {
+          const result = adapters.symbol.cosignTransaction(
+            approval.scope.network,
+            approval.parentPayload,
+            privateKey,
+            approval.detached ?? false
+          );
+          await resolve({ approved: true, cosignature: { chain: 'symbol', ...result } });
+        } else {
+          if (!approval.payload) throw new ApprovalError('approvalRequestFailed');
+          const result = adapters.nem.cosignTransaction(
+            approval.scope.network,
+            approval.payload,
+            approval.parentPayload,
+            privateKey
+          );
+          await resolve({ approved: true, cosignature: { chain: 'nem', ...result } });
+        }
         return;
       }
       if (approval.type === 'message') {
@@ -293,13 +313,13 @@ const App = () => {
         </section>
       )}
 
-      {approval.type === 'transaction' && (
+      {(approval.type === 'transaction' || approval.type === 'cosignature') && (
         <Alert severity="warning" variant="outlined">
           <strong>{t('approvalChainStateUnverifiedTitle')}</strong>
           <p>{t('approvalChainStateUnverifiedBody')}</p>
           <details>
             <summary>{t('approvalTechnicalDetails')}</summary>
-            <code>{approval.payload}</code>
+            <code>{approval.type === 'transaction' ? approval.payload : approval.parentPayload}</code>
           </details>
         </Alert>
       )}

@@ -29,7 +29,6 @@ v1のrelease単位は次のとおりとする。
 ### 2.2 v1 の対象外
 
 - メッセージ署名
-- MosaicLynx SDKが公開するアカウント接続・一覧・切断API
 - PC の Web ページから QR code でスマートフォンへ渡すフロー
 - dApp による transport の強制指定
 - 任意リレー、自己ホストリレー、リレー URL の上書き
@@ -87,6 +86,13 @@ interface MosaicLynxSignTransactionParams {
   expectedSignerPublicKey?: string;
 }
 
+interface MosaicLynxActiveAccount {
+  chain: MosaicLynxChain;
+  network: MosaicLynxNetwork;
+  address: string;
+  publicKey: string;
+}
+
 interface SignedTransaction {
   payload: string;
   hash: string;
@@ -98,7 +104,16 @@ interface MosaicLynxSDK {
 
   isAvailable(): Promise<boolean>;
 
+  connect(scope: MosaicLynxScope): Promise<MosaicLynxActiveAccount>;
+  isConnected(scope: MosaicLynxScope): Promise<boolean>;
+  getActiveAccount(scope: MosaicLynxScope): MosaicLynxActiveAccount | undefined;
+  refreshActiveAccount(scope: MosaicLynxScope): Promise<MosaicLynxActiveAccount | undefined>;
+
+  disconnect(): Promise<void>;
+
   signTransaction(params: MosaicLynxSignTransactionParams): Promise<SignedTransaction>;
+  signData(params: MosaicLynxSignDataParams): Promise<SignedData>;
+  cosignTransaction(params: MosaicLynxCosignTransactionParams): Promise<MosaicLynxCosignature>;
 }
 
 interface MosaicLynxSDKOptions {
@@ -118,12 +133,15 @@ import { createMosaicLynxSDK } from '@mosaiclynx/sdk';
 
 const mosaicLynx = createMosaicLynxSDK();
 
+const account = await mosaicLynx.connect({ chain: 'symbol', network: 'mainnet' });
+const payload = createTransaction({ signerPublicKey: account.publicKey });
+
 button.addEventListener('click', async () => {
   const signedTransaction = await mosaicLynx.signTransaction({
     chain: 'symbol',
     network: 'mainnet',
     payload,
-    expectedSignerPublicKey,
+    expectedSignerPublicKey: account.publicKey,
   });
 
   await announce(signedTransaction.payload);
@@ -137,6 +155,10 @@ button.addEventListener('click', async () => {
 - `payload`はsymbol-sdkが生成したlowercase / uppercaseいずれかの偶数長hexadecimalを受け付け、内部検証前に大文字小文字以外を変換しない。decoded byte lengthは256 KiB以下とする。
 - `expectedSignerPublicKey` は任意とする。指定された場合は chain の形式へ正規化した後、実際の signer public key との完全一致を必須とする。不一致は `SIGNER_MISMATCH` とし、署名結果を返さない。
 - `expectedSignerPublicKey` がない場合、Extension は接続許可されたアクティブアカウント、Mobile App は承認画面でユーザーが選択したアカウントを使用する。
+- `connect()`は指定scopeのアクティブAccount公開Identityだけを返す。内部account IDとprofile IDは返さない。
+- `isConnected()`は承認UIを開かず、Extensionの現在値またはOrigin単位で保存したMobile公開Identityを確認する。
+- `disconnect()`は現在のOriginに対する全scopeの許可を削除する。MobileではApp側の削除完了後にだけWeb側cacheを削除する。
+- 未接続scopeからの署名要求は`NOT_CONNECTED`とし、`signTransaction()`による暗黙接続は行わない。
 - 同一MosaicLynx SDK instanceの同時要求は許可するが、各要求は独立したrequest IDとRelay sessionを持つ。MosaicLynx SDKは応答をrequest IDで分離する。
 - `signTransaction()` は App Link を開く可能性があるため、click / tap などの user activation を持つ同期的な event handler から呼び始める。事前の非同期処理で user activation を消費してから呼ぶことを対応対象としない。
 
@@ -151,11 +173,11 @@ button.addEventListener('click', async () => {
 
 ## 6. Transport の自動選択
 
-MosaicLynx SDKは`signTransaction()`ごとに次の順序でtransportを選択する。
+MosaicLynx SDKは接続、更新、切断、各署名ごとに次の順序でtransportを選択する。`isConnected()`と`getActiveAccount()`はUIを開かない。
 
 1. `window.mosaicLynx` の存在、必要メソッド、Provider API major version `2` を検証する。
 2. 対応 Provider があれば必ず Extension Adapter を選択する。
-3. Provider がなく、対応 mobile browser と判定できれば Mobile Relay Adapter を選択する。
+3. Providerがなく、Mobile Relay機能フラグが有効な対応mobile browserならMobile Relay Adapterを選択する。本番v1.0.0では受信アプリ公開まで無効とする。
 4. Provider がない desktop browser、非対応 browser、必要 Web API がない環境では `UNAVAILABLE` を返す。
 
 `window.mosaicLynx` が存在するが API major version が非対応の場合は downgrade fallback を行わず `UNAVAILABLE` を返す。非対応 Provider がある状態を「Provider がない」とみなして Mobile Relay を選択してはならない。
@@ -168,14 +190,14 @@ MosaicLynx SDKは`signTransaction()`ごとに次の順序でtransportを選択�
 - transaction、chain、network、signer の検証に失敗した。
 - App Link を開けなかった、または要求が timeout した。
 
-再試行は新しい user activation から `signTransaction()` を呼び、新しい request ID、secret、token と再承認を生成する。
+再試行は新しい user activation から対象APIを呼び、新しい request ID、secret、token と再承認を生成する。
 
 ### 6.1 Extension Adapter
 
 Extension Adapterは次の処理をMosaicLynx SDK内部で行う。
 
-1. `getAccounts()` で要求 scope に対する接続済みアカウントを確認する。
-2. 接続済みアカウントがない場合は `connect({ chain, network })` を呼ぶ。
+1. SDKの接続、active account更新、切断をProviderへ委譲し、公開Identityへ射影する。
+2. 署名時に`getAccounts()`で要求scopeの接続済みアカウントを確認し、存在しなければ`NOT_CONNECTED`を返す。
 3. `expectedSignerPublicKey` がある場合、許可済みアカウントから一致する `accountId` を特定する。一致しなければ `SIGNER_MISMATCH` とする。
 4. Provider の `signTransaction({ chain, network, payload, accountId })` を呼ぶ。
 5. 結果payloadを固定版symbol-sdkのSymbol / NEM TransactionFactoryでdeserializeし、Facadeの`verifyTransaction()` / `hashTransaction()`でsigner、signature、hash、元要求との対応を検証して共通`SignedTransaction`を返す。
@@ -184,7 +206,7 @@ Extension Adapterは次の処理をMosaicLynx SDK内部で行う。
 
 ### 6.2 Mobile Relay Adapter
 
-Mobile Relay Adapterは、session生成、暗号化、Relay登録、App Link起動、応答待機、復号、結果検証、ACK / cancelをMosaicLynx SDK内部で行う。dAppへ中間状態やRelay credentialを公開しない。
+Mobile Relay Adapterは`connect`、`refreshActiveAccount`、`disconnect`、`signTransaction`、`signData`、`cosignTransaction`のsession生成、暗号化、Relay登録、App Link起動、応答待機、復号、結果検証、ACK / cancelをSDK内部で行う。公開Identity cacheは表示専用とし、署名時の認可は将来のApp側永続Permissionを正とする。
 
 ## 7. Mobile Relay protocol
 
@@ -200,19 +222,81 @@ interface OriginProof {
   signature: string; // paddingなしbase64url
 }
 
-interface RelaySigningRequest {
+interface RelayRequestBase {
   protocol: 'mosaiclynx.relay.v1';
-  operation: 'signTransaction';
   requestId: string;
   initiatorOrigin: string;
-  originProof?: OriginProof;
-  chain: 'symbol' | 'nem';
-  network: 'mainnet' | 'testnet';
-  payload: string;
-  expectedSignerPublicKey?: string;
   createdAt: string;
   expiresAt: string;
 }
+
+interface RelayConnectRequest extends RelayRequestBase {
+  operation: 'connect';
+  chain: 'symbol' | 'nem';
+  network: 'mainnet' | 'testnet';
+  originProof?: OriginProof;
+}
+
+interface RelayRefreshActiveAccountRequest extends RelayRequestBase {
+  operation: 'refreshActiveAccount';
+  chain: 'symbol' | 'nem';
+  network: 'mainnet' | 'testnet';
+  originProof?: OriginProof;
+}
+
+interface RelaySigningRequest extends RelayRequestBase {
+  operation: 'signTransaction';
+  chain: 'symbol' | 'nem';
+  network: 'mainnet' | 'testnet';
+  originProof?: OriginProof;
+  payload: string;
+  expectedSignerPublicKey?: string;
+}
+
+interface RelayDisconnectRequest extends RelayRequestBase {
+  operation: 'disconnect';
+}
+
+interface RelayDataSigningRequest extends RelayRequestBase {
+  operation: 'signData';
+  chain: 'symbol' | 'nem';
+  network: 'mainnet' | 'testnet';
+  purpose: string;
+  nonce: string;
+  issuedAt: string;
+  messageExpiresAt: string;
+  payload: { encoding: 'utf8' | 'hex'; value: string };
+  expectedSignerPublicKey?: string;
+  originProof?: OriginProof;
+}
+
+type RelayCosignRequest =
+  | (RelayRequestBase & {
+      operation: 'cosignTransaction';
+      chain: 'symbol';
+      network: MosaicLynxNetwork;
+      parentPayload: string;
+      detached: boolean;
+      expectedSignerPublicKey?: string;
+      originProof?: OriginProof;
+    })
+  | (RelayRequestBase & {
+      operation: 'cosignTransaction';
+      chain: 'nem';
+      network: MosaicLynxNetwork;
+      payload: string;
+      parentPayload: string;
+      expectedSignerPublicKey?: string;
+      originProof?: OriginProof;
+    });
+
+type RelayRequest =
+  | RelayConnectRequest
+  | RelayRefreshActiveAccountRequest
+  | RelaySigningRequest
+  | RelayDataSigningRequest
+  | RelayCosignRequest
+  | RelayDisconnectRequest;
 ```
 
 Mobile Mainnet要求では`originProof`を必須とする。Mainnetの`initiatorOrigin`はpublic DNSへ解決するHTTPS・既定port 443に限定する。MosaicLynx SDKはrequestId生成後、同一Originの`POST /.well-known/mosaiclynx/sign-request`へ次のJCS objectを`Content-Type: application/json`、`credentials: "omit"`、`redirect: "error"`、`cache: "no-store"`で送る。
@@ -220,11 +304,12 @@ Mobile Mainnet要求では`originProof`を必須とする。Mainnetの`initiator
 ```ts
 interface OriginProofInput {
   version: 'mosaiclynx.origin.v1';
+  operation: 'connect' | 'refreshActiveAccount' | 'signTransaction' | 'signData' | 'cosignTransaction';
   requestId: string;
   initiatorOrigin: string;
   chain: 'symbol' | 'nem';
   network: 'mainnet';
-  payloadHash: string; // SHA-256(decoded transaction bytes), lowercase hex
+  payloadHash?: string; // signTransactionだけ。SHA-256(decoded transaction bytes), lowercase hex
   expiresAt: string;
 }
 ```
@@ -254,14 +339,29 @@ manifestの`origin`完全一致、key ID、algorithm、有効期間、statusを�
 - `initiatorOrigin`はMosaicLynx SDK自身が`window.location.origin`から取得し、dApp引数では上書きできない。
 - 日時は UTC の RFC 3339、秒精度、fraction なしとする。
 - `expiresAt` は `createdAt` の5分後とし、Relay と App は延長しない。
-- `requestDigest` は `SHA-256(JCS(RelaySigningRequest))` の lowercase hexadecimal とする。
+- `requestDigest` は `SHA-256(JCS(RelayRequest))` の lowercase hexadecimal とする。
 
 ### 7.2 論理応答
 
 Mobile App は成功、拒否、検証失敗をいずれも暗号化した response envelope として返す。Relay の session state からユーザーの判断結果を識別できないようにする。
 
 ```ts
-type RelaySigningResponse =
+type RelayResponse =
+  | {
+      protocol: 'mosaiclynx.relay.v1';
+      requestId: string;
+      requestDigest: string;
+      outcome: 'connected';
+      account: MosaicLynxActiveAccount;
+      completedAt: string;
+    }
+  | {
+      protocol: 'mosaiclynx.relay.v1';
+      requestId: string;
+      requestDigest: string;
+      outcome: 'disconnected';
+      completedAt: string;
+    }
   | {
       protocol: 'mosaiclynx.relay.v1';
       requestId: string;
@@ -286,14 +386,14 @@ type RelaySigningResponse =
 
 ```text
 dApp
-  → MosaicLynxSDK.signTransaction(params)
+  → MosaicLynxSDK.connect / signTransaction / disconnect
   → MosaicLynx SDK が requestId / sessionId / secret / tokens を生成
-  → RelaySigningRequest を canonicalize、digest、暗号化
+  → RelayRequest を canonicalize、digest、暗号化
   → Relay に暗号文を登録
   → verified App Link で MosaicLynx App を起動
-  → App が暗号文を取得、復号、全 transaction を解析
-  → App で account 選択、unlock、明示承認
-  → App が署名または拒否結果を暗号化して Relay へ登録
+  → App が暗号文を取得、復号、operation別に検証
+  → App で接続Account選択、署名内容確認、または切断を明示承認
+  → App が接続・署名・切断または拒否結果を暗号化して Relay へ登録
   → 元ページの MosaicLynx SDK が response を取得、復号、整合性を検証
   → MosaicLynx SDK が ACK 後に SignedTransaction または共通 error を返す
   → dApp が必要に応じて announce
@@ -501,6 +601,7 @@ response_available ─────────→ expired
 type MosaicLynxSDKErrorCode =
   | 'USER_REJECTED'
   | 'UNAVAILABLE'
+  | 'NOT_CONNECTED'
   | 'APP_NOT_INSTALLED'
   | 'VAULT_LOCKED'
   | 'REQUEST_EXPIRED'
@@ -525,6 +626,7 @@ MosaicLynx SDKはtransport固有errorを次の共通規則で正規化する。
 | -------------------------------------------------------- | ------------------------------------- |
 | 接続または署名をユーザーが拒否                           | `USER_REJECTED`                       |
 | 対応 transport がない                                    | `UNAVAILABLE`                         |
+| 対象scopeへ接続されていない                              | `NOT_CONNECTED`                       |
 | OS が未導入を確定、または管理 fallback page が通知       | `APP_NOT_INSTALLED`                   |
 | 未導入を確定できず TTL 到達                              | `REQUEST_EXPIRED`                     |
 | Vault がロックされ、フロー内で解除されなかった           | `VAULT_LOCKED`                        |
@@ -589,7 +691,8 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 - Provider がない対応 mobile browser だけが Mobile Relay を選択する。
 - Provider がない desktop / 非対応環境は `UNAVAILABLE` を返す。
 - 拒否、失敗、timeout 後に transport を切り替えない。
-- 未接続 Extension は接続承認後に署名承認へ進む。
+- 接続、接続確認、active account更新、切断が両transportで同じ公開Identity契約を持つ。
+- 未接続の署名要求は両transportで`NOT_CONNECTED`になる。
 - `expectedSignerPublicKey` が両 transport で同じ意味を持つ。
 - Provider / Relay固有errorが共通MosaicLynx SDK errorへ変換される。
 - diagnostics が既定無効で、allowlist 外の情報を通知しない。
@@ -630,8 +733,7 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 
 将来の protocol では、既存 v1 の意味を変更せず、新しい operation または major protocol を追加する。
 
-- 構造化メッセージ署名
-- アカウント接続と公開 Identity の取得
+- React Native CLIによるMobile Relay受信アプリと承認UI
 - PC とスマートフォン間の QR handoff
 - transparency logまたは第三者認証を伴うdApp key directory（v1の同一Originwell-known方式を置換せず追加する）
 - 組織向け policy / 二者承認 / hardware signer

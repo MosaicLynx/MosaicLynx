@@ -157,24 +157,287 @@ export const isEncryptedRelayEnvelope = (value: unknown): value is EncryptedRela
   typeof value.nonce === 'string' &&
   typeof value.ciphertextAndTag === 'string';
 
-export interface RelaySigningRequest {
-  readonly protocol: typeof RELAY_PROTOCOL;
-  readonly operation: 'signTransaction';
-  readonly requestId: string;
-  readonly initiatorOrigin: string;
+export interface RelayPublicAccount {
   readonly chain: 'symbol' | 'nem';
   readonly network: 'mainnet' | 'testnet';
-  readonly payload: string;
-  readonly expectedSignerPublicKey?: string;
+  readonly address: string;
+  readonly publicKey: string;
+}
+
+export interface RelayOriginProof {
+  readonly version: 'mosaiclynx.origin.v1';
+  readonly keyId: string;
+  readonly algorithm: 'Ed25519';
+  readonly signature: string;
+}
+
+interface RelayRequestBase {
+  readonly protocol: typeof RELAY_PROTOCOL;
+  readonly requestId: string;
+  readonly initiatorOrigin: string;
   readonly createdAt: string;
   readonly expiresAt: string;
 }
 
+export interface RelayConnectRequest extends RelayRequestBase {
+  readonly operation: 'connect';
+  readonly chain: 'symbol' | 'nem';
+  readonly network: 'mainnet' | 'testnet';
+  readonly originProof?: RelayOriginProof;
+}
+
+export interface RelayRefreshActiveAccountRequest extends RelayRequestBase {
+  readonly operation: 'refreshActiveAccount';
+  readonly chain: 'symbol' | 'nem';
+  readonly network: 'mainnet' | 'testnet';
+  readonly originProof?: RelayOriginProof;
+}
+
+export interface RelaySigningRequest extends RelayRequestBase {
+  readonly operation: 'signTransaction';
+  readonly chain: 'symbol' | 'nem';
+  readonly network: 'mainnet' | 'testnet';
+  readonly payload: string;
+  readonly expectedSignerPublicKey?: string;
+  readonly originProof?: RelayOriginProof;
+}
+
+export interface RelayDisconnectRequest extends RelayRequestBase {
+  readonly operation: 'disconnect';
+}
+
+export interface RelayDataSigningRequest extends RelayRequestBase {
+  readonly operation: 'signData';
+  readonly chain: 'symbol' | 'nem';
+  readonly network: 'mainnet' | 'testnet';
+  readonly purpose: string;
+  readonly nonce: string;
+  readonly issuedAt: string;
+  readonly messageExpiresAt: string;
+  readonly payload: { readonly encoding: 'utf8' | 'hex'; readonly value: string };
+  readonly expectedSignerPublicKey?: string;
+  readonly originProof?: RelayOriginProof;
+}
+
+export type RelayCosignRequest =
+  | (RelayRequestBase & {
+      readonly operation: 'cosignTransaction';
+      readonly chain: 'symbol';
+      readonly network: 'mainnet' | 'testnet';
+      readonly parentPayload: string;
+      readonly detached: boolean;
+      readonly expectedSignerPublicKey?: string;
+      readonly originProof?: RelayOriginProof;
+    })
+  | (RelayRequestBase & {
+      readonly operation: 'cosignTransaction';
+      readonly chain: 'nem';
+      readonly network: 'mainnet' | 'testnet';
+      readonly payload: string;
+      readonly parentPayload: string;
+      readonly expectedSignerPublicKey?: string;
+      readonly originProof?: RelayOriginProof;
+    });
+
+export type RelayRequest =
+  | RelayConnectRequest
+  | RelayRefreshActiveAccountRequest
+  | RelaySigningRequest
+  | RelayDataSigningRequest
+  | RelayCosignRequest
+  | RelayDisconnectRequest;
+
 const rfc3339Seconds = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 
-export const parseRelaySigningRequest = (value: unknown, now = Date.now()): RelaySigningRequest => {
+const parseOriginProof = (value: unknown): RelayOriginProof | undefined => {
+  if (value === undefined) return undefined;
   if (
     !isRecord(value) ||
+    !exactKeys(value, ['version', 'keyId', 'algorithm', 'signature']) ||
+    value.version !== 'mosaiclynx.origin.v1' ||
+    value.algorithm !== 'Ed25519' ||
+    typeof value.keyId !== 'string' ||
+    !value.keyId ||
+    typeof value.signature !== 'string' ||
+    !/^[A-Za-z0-9_-]+$/.test(value.signature)
+  )
+    throw new TypeError('Invalid Origin Proof.');
+  return value as unknown as RelayOriginProof;
+};
+
+const parseRequestBase = (value: Record<string, unknown>, now: number): Omit<RelayRequestBase, 'protocol'> => {
+  if (typeof value.requestId !== 'string') throw new TypeError('Invalid request ID.');
+  base64UrlDecode(value.requestId, 16);
+  if (typeof value.initiatorOrigin !== 'string' || new URL(value.initiatorOrigin).origin !== value.initiatorOrigin)
+    throw new TypeError('Invalid initiator Origin.');
+  if (
+    typeof value.createdAt !== 'string' ||
+    typeof value.expiresAt !== 'string' ||
+    !rfc3339Seconds.test(value.createdAt) ||
+    !rfc3339Seconds.test(value.expiresAt)
+  )
+    throw new TypeError('Invalid Relay timestamps.');
+  const created = Date.parse(value.createdAt);
+  const expires = Date.parse(value.expiresAt);
+  if (!Number.isFinite(created) || !Number.isFinite(expires) || expires !== created + 300_000 || now > expires)
+    throw new TypeError('Relay request expired.');
+  return {
+    requestId: value.requestId,
+    initiatorOrigin: value.initiatorOrigin,
+    createdAt: value.createdAt,
+    expiresAt: value.expiresAt,
+  };
+};
+
+export const parseRelayRequest = (value: unknown, now = Date.now()): RelayRequest => {
+  const operations = new Set([
+    'connect',
+    'refreshActiveAccount',
+    'disconnect',
+    'signTransaction',
+    'signData',
+    'cosignTransaction',
+  ]);
+  if (
+    !isRecord(value) ||
+    value.protocol !== RELAY_PROTOCOL ||
+    typeof value.operation !== 'string' ||
+    !operations.has(value.operation)
+  )
+    throw new TypeError('Invalid Relay request schema.');
+  const base = parseRequestBase(value, now);
+  if (value.operation === 'disconnect') {
+    if (!exactKeys(value, ['protocol', 'operation', 'requestId', 'initiatorOrigin', 'createdAt', 'expiresAt']))
+      throw new TypeError('Invalid Relay disconnect request schema.');
+    return { protocol: RELAY_PROTOCOL, operation: 'disconnect', ...base };
+  }
+  if (value.chain !== 'symbol' && value.chain !== 'nem') throw new TypeError('Invalid chain.');
+  if (value.network !== 'mainnet' && value.network !== 'testnet') throw new TypeError('Invalid network.');
+  if (value.operation === 'connect' || value.operation === 'refreshActiveAccount') {
+    if (
+      !exactKeys(
+        value,
+        ['protocol', 'operation', 'requestId', 'initiatorOrigin', 'chain', 'network', 'createdAt', 'expiresAt'],
+        ['originProof']
+      )
+    )
+      throw new TypeError('Invalid Relay account request schema.');
+    const originProof = parseOriginProof(value.originProof);
+    return {
+      protocol: RELAY_PROTOCOL,
+      operation: value.operation,
+      ...base,
+      chain: value.chain,
+      network: value.network,
+      ...(originProof ? { originProof } : {}),
+    };
+  }
+  const validateHexPayload = (payload: unknown): payload is string =>
+    typeof payload === 'string' && /^(?:[0-9a-fA-F]{2})+$/.test(payload) && payload.length / 2 <= MAX_TRANSACTION_BYTES;
+  const optionalSigner = (): string | undefined => {
+    if (
+      value.expectedSignerPublicKey !== undefined &&
+      (typeof value.expectedSignerPublicKey !== 'string' || !/^[0-9a-fA-F]{64}$/.test(value.expectedSignerPublicKey))
+    )
+      throw new TypeError('Invalid expected signer.');
+    return typeof value.expectedSignerPublicKey === 'string' ? value.expectedSignerPublicKey.toUpperCase() : undefined;
+  };
+  if (value.operation === 'signData') {
+    if (
+      !exactKeys(
+        value,
+        [
+          'protocol',
+          'operation',
+          'requestId',
+          'initiatorOrigin',
+          'chain',
+          'network',
+          'purpose',
+          'nonce',
+          'issuedAt',
+          'messageExpiresAt',
+          'payload',
+          'createdAt',
+          'expiresAt',
+        ],
+        ['expectedSignerPublicKey', 'originProof']
+      ) ||
+      typeof value.purpose !== 'string' ||
+      typeof value.nonce !== 'string' ||
+      typeof value.issuedAt !== 'string' ||
+      typeof value.messageExpiresAt !== 'string' ||
+      !isRecord(value.payload) ||
+      !exactKeys(value.payload, ['encoding', 'value']) ||
+      (value.payload.encoding !== 'utf8' && value.payload.encoding !== 'hex') ||
+      typeof value.payload.value !== 'string'
+    )
+      throw new TypeError('Invalid Relay data signing request schema.');
+    const signer = optionalSigner();
+    const originProof = parseOriginProof(value.originProof);
+    return {
+      protocol: RELAY_PROTOCOL,
+      operation: 'signData',
+      ...base,
+      chain: value.chain,
+      network: value.network,
+      purpose: value.purpose,
+      nonce: value.nonce,
+      issuedAt: value.issuedAt,
+      messageExpiresAt: value.messageExpiresAt,
+      payload: { encoding: value.payload.encoding, value: value.payload.value },
+      ...(signer ? { expectedSignerPublicKey: signer } : {}),
+      ...(originProof ? { originProof } : {}),
+    };
+  }
+  if (value.operation === 'cosignTransaction') {
+    const commonRequired = [
+      'protocol',
+      'operation',
+      'requestId',
+      'initiatorOrigin',
+      'chain',
+      'network',
+      'parentPayload',
+      'createdAt',
+      'expiresAt',
+    ];
+    const required = value.chain === 'nem' ? [...commonRequired, 'payload'] : [...commonRequired, 'detached'];
+    if (
+      !exactKeys(value, required, ['expectedSignerPublicKey', 'originProof']) ||
+      !validateHexPayload(value.parentPayload) ||
+      (value.chain === 'nem' && !validateHexPayload(value.payload)) ||
+      (value.chain === 'symbol' && typeof value.detached !== 'boolean')
+    )
+      throw new TypeError('Invalid Relay cosignature request schema.');
+    const signer = optionalSigner();
+    const originProof = parseOriginProof(value.originProof);
+    return value.chain === 'symbol'
+      ? {
+          protocol: RELAY_PROTOCOL,
+          operation: 'cosignTransaction',
+          ...base,
+          chain: 'symbol',
+          network: value.network,
+          parentPayload: value.parentPayload,
+          detached: value.detached as boolean,
+          ...(signer ? { expectedSignerPublicKey: signer } : {}),
+          ...(originProof ? { originProof } : {}),
+        }
+      : {
+          protocol: RELAY_PROTOCOL,
+          operation: 'cosignTransaction',
+          ...base,
+          chain: 'nem',
+          network: value.network,
+          payload: value.payload as string,
+          parentPayload: value.parentPayload,
+          ...(signer ? { expectedSignerPublicKey: signer } : {}),
+          ...(originProof ? { originProof } : {}),
+        };
+  }
+  if (
+    value.operation !== 'signTransaction' ||
     !exactKeys(
       value,
       [
@@ -189,53 +452,28 @@ export const parseRelaySigningRequest = (value: unknown, now = Date.now()): Rela
         'expiresAt',
       ],
       ['expectedSignerPublicKey', 'originProof']
-    )
+    ) ||
+    !validateHexPayload(value.payload)
   )
-    throw new TypeError('Invalid Relay signing request schema.');
-  if (value.protocol !== RELAY_PROTOCOL || value.operation !== 'signTransaction')
-    throw new TypeError('Unsupported Relay operation.');
-  if (typeof value.requestId !== 'string') throw new TypeError('Invalid request ID.');
-  base64UrlDecode(value.requestId, 16);
-  if (typeof value.initiatorOrigin !== 'string' || new URL(value.initiatorOrigin).origin !== value.initiatorOrigin)
-    throw new TypeError('Invalid initiator Origin.');
-  if (value.chain !== 'symbol' && value.chain !== 'nem') throw new TypeError('Invalid chain.');
-  if (value.network !== 'mainnet' && value.network !== 'testnet') throw new TypeError('Invalid network.');
-  if (
-    typeof value.payload !== 'string' ||
-    !/^(?:[0-9a-fA-F]{2})+$/.test(value.payload) ||
-    value.payload.length / 2 > MAX_TRANSACTION_BYTES
-  )
-    throw new TypeError('Invalid transaction payload.');
-  if (
-    value.expectedSignerPublicKey !== undefined &&
-    (typeof value.expectedSignerPublicKey !== 'string' || !/^[0-9a-fA-F]{64}$/.test(value.expectedSignerPublicKey))
-  )
-    throw new TypeError('Invalid expected signer.');
-  if (
-    typeof value.createdAt !== 'string' ||
-    typeof value.expiresAt !== 'string' ||
-    !rfc3339Seconds.test(value.createdAt) ||
-    !rfc3339Seconds.test(value.expiresAt)
-  )
-    throw new TypeError('Invalid Relay timestamps.');
-  const created = Date.parse(value.createdAt);
-  const expires = Date.parse(value.expiresAt);
-  if (!Number.isFinite(created) || !Number.isFinite(expires) || expires !== created + 300_000 || now > expires)
-    throw new TypeError('Relay signing request expired.');
+    throw new TypeError('Invalid Relay transaction signing request schema.');
+  const signer = optionalSigner();
+  const originProof = parseOriginProof(value.originProof);
   return {
     protocol: RELAY_PROTOCOL,
     operation: 'signTransaction',
-    requestId: value.requestId,
-    initiatorOrigin: value.initiatorOrigin,
+    ...base,
     chain: value.chain,
     network: value.network,
     payload: value.payload,
-    ...(typeof value.expectedSignerPublicKey === 'string'
-      ? { expectedSignerPublicKey: value.expectedSignerPublicKey.toUpperCase() }
-      : {}),
-    createdAt: value.createdAt,
-    expiresAt: value.expiresAt,
+    ...(signer ? { expectedSignerPublicKey: signer } : {}),
+    ...(originProof ? { originProof } : {}),
   };
+};
+
+export const parseRelaySigningRequest = (value: unknown, now = Date.now()): RelaySigningRequest => {
+  const request = parseRelayRequest(value, now);
+  if (request.operation !== 'signTransaction') throw new TypeError('Unsupported Relay operation.');
+  return request;
 };
 
 export interface ParsedAppLink {
@@ -266,7 +504,7 @@ export const parseAppLink = (rawUrl: string): ParsedAppLink => {
   return { sessionId, sessionSecret, appToken };
 };
 
-export const relayRequestDigest = (request: RelaySigningRequest): string => hex(sha256(utf8(canonicalize(request))));
+export const relayRequestDigest = (request: RelayRequest): string => hex(sha256(utf8(canonicalize(request))));
 
 export interface SignedTransaction {
   readonly payload: string;
@@ -274,7 +512,58 @@ export interface SignedTransaction {
   readonly signerPublicKey: string;
 }
 
-export type RelaySigningResponse =
+export interface RelaySignedData {
+  readonly signature: string;
+  readonly signerPublicKey: string;
+  readonly signingDigest: string;
+  readonly message: {
+    readonly domain: 'mosaiclynx.message.v1';
+    readonly origin: string;
+    readonly chain: 'symbol' | 'nem';
+    readonly network: 'mainnet' | 'testnet';
+    readonly purpose: string;
+    readonly nonce: string;
+    readonly issuedAt: string;
+    readonly expiresAt: string;
+    readonly payload: { readonly encoding: 'utf8' | 'hex'; readonly value: string };
+  };
+}
+
+export type RelayCosignature =
+  | {
+      readonly chain: 'symbol';
+      readonly parentHash: string;
+      readonly signature: string;
+      readonly signerPublicKey: string;
+      readonly detached: boolean;
+      readonly payload: string;
+    }
+  | { readonly chain: 'nem'; readonly payload: string; readonly hash: string; readonly signerPublicKey: string };
+
+export type RelayResponse =
+  | {
+      readonly protocol: typeof RELAY_PROTOCOL;
+      readonly requestId: string;
+      readonly requestDigest: string;
+      readonly outcome: 'connected';
+      readonly account: RelayPublicAccount;
+      readonly completedAt: string;
+    }
+  | {
+      readonly protocol: typeof RELAY_PROTOCOL;
+      readonly requestId: string;
+      readonly requestDigest: string;
+      readonly outcome: 'activeAccountRefreshed';
+      readonly account?: RelayPublicAccount;
+      readonly completedAt: string;
+    }
+  | {
+      readonly protocol: typeof RELAY_PROTOCOL;
+      readonly requestId: string;
+      readonly requestDigest: string;
+      readonly outcome: 'disconnected';
+      readonly completedAt: string;
+    }
   | {
       readonly protocol: typeof RELAY_PROTOCOL;
       readonly requestId: string;
@@ -287,7 +576,121 @@ export type RelaySigningResponse =
       readonly protocol: typeof RELAY_PROTOCOL;
       readonly requestId: string;
       readonly requestDigest: string;
+      readonly outcome: 'dataSigned';
+      readonly signedData: RelaySignedData;
+      readonly completedAt: string;
+    }
+  | {
+      readonly protocol: typeof RELAY_PROTOCOL;
+      readonly requestId: string;
+      readonly requestDigest: string;
+      readonly outcome: 'cosigned';
+      readonly cosignature: RelayCosignature;
+      readonly completedAt: string;
+    }
+  | {
+      readonly protocol: typeof RELAY_PROTOCOL;
+      readonly requestId: string;
+      readonly requestDigest: string;
       readonly outcome: 'rejected' | 'failed';
       readonly errorCode: string;
       readonly completedAt: string;
     };
+
+export type RelaySigningResponse = RelayResponse;
+
+/** Relayから復号した応答をoperation別の厳密schemaで検証します。 */
+export const parseRelayResponse = (value: unknown): RelayResponse => {
+  if (
+    !isRecord(value) ||
+    value.protocol !== RELAY_PROTOCOL ||
+    typeof value.requestId !== 'string' ||
+    typeof value.requestDigest !== 'string' ||
+    !/^[0-9a-f]{64}$/.test(value.requestDigest) ||
+    typeof value.completedAt !== 'string' ||
+    !rfc3339Seconds.test(value.completedAt) ||
+    typeof value.outcome !== 'string'
+  )
+    throw new TypeError('Invalid Relay response schema.');
+  base64UrlDecode(value.requestId, 16);
+  const common = ['protocol', 'requestId', 'requestDigest', 'outcome', 'completedAt'];
+  if (value.outcome === 'rejected' || value.outcome === 'failed') {
+    if (!exactKeys(value, [...common, 'errorCode']) || typeof value.errorCode !== 'string')
+      throw new TypeError('Invalid Relay failure response schema.');
+    return value as unknown as RelayResponse;
+  }
+  if (value.outcome === 'disconnected') {
+    if (!exactKeys(value, common)) throw new TypeError('Invalid Relay disconnect response schema.');
+    return value as unknown as RelayResponse;
+  }
+  if (value.outcome === 'connected' || value.outcome === 'activeAccountRefreshed') {
+    const required = value.outcome === 'connected' ? [...common, 'account'] : common;
+    if (!exactKeys(value, required, value.outcome === 'activeAccountRefreshed' ? ['account'] : []))
+      throw new TypeError('Invalid Relay account response schema.');
+    if (value.account !== undefined) {
+      if (
+        !isRecord(value.account) ||
+        !exactKeys(value.account, ['chain', 'network', 'address', 'publicKey']) ||
+        (value.account.chain !== 'symbol' && value.account.chain !== 'nem') ||
+        (value.account.network !== 'mainnet' && value.account.network !== 'testnet') ||
+        typeof value.account.address !== 'string' ||
+        typeof value.account.publicKey !== 'string' ||
+        !/^[0-9a-fA-F]{64}$/.test(value.account.publicKey)
+      )
+        throw new TypeError('Invalid Relay public account.');
+    }
+    return value as unknown as RelayResponse;
+  }
+  const resultKey =
+    value.outcome === 'signed'
+      ? 'signedTransaction'
+      : value.outcome === 'dataSigned'
+        ? 'signedData'
+        : value.outcome === 'cosigned'
+          ? 'cosignature'
+          : undefined;
+  if (!resultKey || !exactKeys(value, [...common, resultKey]) || !isRecord(value[resultKey]))
+    throw new TypeError('Invalid Relay signing response schema.');
+  const result = value[resultKey];
+  if (resultKey === 'signedTransaction') {
+    if (
+      !exactKeys(result, ['payload', 'hash', 'signerPublicKey']) ||
+      !validateResponseHex(result.payload) ||
+      typeof result.hash !== 'string' ||
+      !/^[0-9a-fA-F]{64}$/.test(result.hash) ||
+      typeof result.signerPublicKey !== 'string' ||
+      !/^[0-9a-fA-F]{64}$/.test(result.signerPublicKey)
+    )
+      throw new TypeError('Invalid Relay transaction response.');
+  } else if (resultKey === 'signedData') {
+    if (
+      !exactKeys(result, ['signature', 'signerPublicKey', 'signingDigest', 'message']) ||
+      typeof result.signature !== 'string' ||
+      !/^[0-9a-fA-F]{128}$/.test(result.signature) ||
+      typeof result.signerPublicKey !== 'string' ||
+      !/^[0-9a-fA-F]{64}$/.test(result.signerPublicKey) ||
+      typeof result.signingDigest !== 'string' ||
+      !/^[0-9a-f]{64}$/.test(result.signingDigest) ||
+      !isRecord(result.message)
+    )
+      throw new TypeError('Invalid Relay data response.');
+  } else {
+    if (
+      (result.chain !== 'symbol' && result.chain !== 'nem') ||
+      typeof result.signerPublicKey !== 'string' ||
+      !/^[0-9a-fA-F]{64}$/.test(result.signerPublicKey)
+    )
+      throw new TypeError('Invalid Relay cosignature response.');
+    const fields =
+      result.chain === 'symbol'
+        ? ['chain', 'parentHash', 'signature', 'signerPublicKey', 'detached', 'payload']
+        : ['chain', 'payload', 'hash', 'signerPublicKey'];
+    if (!exactKeys(result, fields) || !validateResponseHex(result.payload))
+      throw new TypeError('Invalid Relay cosignature response.');
+  }
+  return value as unknown as RelayResponse;
+};
+
+function validateResponseHex(value: unknown): value is string {
+  return typeof value === 'string' && /^(?:[0-9a-fA-F]{2})+$/.test(value) && value.length / 2 <= MAX_TRANSACTION_BYTES;
+}

@@ -7,6 +7,7 @@ import {
   encryptRelayJson,
   hex,
   parseAppLink,
+  parseRelayRequest,
   parseRelaySigningRequest,
   relayRequestDigest,
   webCryptoDriver,
@@ -58,10 +59,83 @@ describe('relay protocol', () => {
     expect(relayRequestDigest(request)).toMatch(/^[0-9a-f]{64}$/);
   });
 
+  it('parses connect and disconnect operations with exact schemas', () => {
+    const createdAt = '2026-07-20T00:00:00Z';
+    const common = {
+      protocol: 'mosaiclynx.relay.v1',
+      requestId: base64UrlEncode(new Uint8Array(16).fill(5)),
+      initiatorOrigin: 'https://dapp.example',
+      createdAt,
+      expiresAt: '2026-07-20T00:05:00Z',
+    } as const;
+    expect(
+      parseRelayRequest({ ...common, operation: 'connect', chain: 'nem', network: 'testnet' }, Date.parse(createdAt))
+    ).toMatchObject({ operation: 'connect', chain: 'nem', network: 'testnet' });
+    expect(parseRelayRequest({ ...common, operation: 'disconnect' }, Date.parse(createdAt))).toMatchObject({
+      operation: 'disconnect',
+    });
+    expect(() =>
+      parseRelayRequest({ ...common, operation: 'disconnect', chain: 'nem' }, Date.parse(createdAt))
+    ).toThrow('disconnect request schema');
+  });
+
   it('rejects unknown fragment fields', () => {
     const id = base64UrlEncode(new Uint8Array(16).fill(1));
     const secret = base64UrlEncode(new Uint8Array(32).fill(2));
     const token = base64UrlEncode(new Uint8Array(32).fill(3));
     expect(() => parseAppLink(`https://link.mosaiclynx.app/v1/handoff/${id}#s=${secret}&a=${token}&x=1`)).toThrow();
+  });
+
+  it('parses refresh, structured data, and chain-specific cosignature requests', () => {
+    const createdAt = '2026-07-20T00:00:00Z';
+    const common = {
+      protocol: 'mosaiclynx.relay.v1',
+      requestId: base64UrlEncode(new Uint8Array(16).fill(6)),
+      initiatorOrigin: 'https://dapp.example',
+      chain: 'symbol',
+      network: 'testnet',
+      createdAt,
+      expiresAt: '2026-07-20T00:05:00Z',
+    } as const;
+    expect(parseRelayRequest({ ...common, operation: 'refreshActiveAccount' }, Date.parse(createdAt))).toMatchObject({
+      operation: 'refreshActiveAccount',
+    });
+    expect(
+      parseRelayRequest(
+        {
+          ...common,
+          operation: 'signData',
+          purpose: 'login',
+          nonce: base64UrlEncode(new Uint8Array(24).fill(1)),
+          issuedAt: createdAt,
+          messageExpiresAt: '2026-07-20T00:05:00Z',
+          payload: { encoding: 'utf8', value: 'hello' },
+        },
+        Date.parse(createdAt)
+      )
+    ).toMatchObject({ operation: 'signData', purpose: 'login' });
+    expect(
+      parseRelayRequest(
+        {
+          ...common,
+          operation: 'cosignTransaction',
+          parentPayload: '00',
+          detached: true,
+        },
+        Date.parse(createdAt)
+      )
+    ).toMatchObject({ operation: 'cosignTransaction', chain: 'symbol', detached: true });
+    expect(() =>
+      parseRelayRequest(
+        {
+          ...common,
+          operation: 'cosignTransaction',
+          parentPayload: '00',
+          detached: true,
+          extra: true,
+        },
+        Date.parse(createdAt)
+      )
+    ).toThrow('cosignature request schema');
   });
 });

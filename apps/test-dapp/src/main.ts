@@ -1,14 +1,12 @@
-import type { MosaicAccount, MosaicLynxProvider } from '@mosaiclynx/provider-api';
-import { MosaicLynxSDKError, type SignedTransaction, createMosaicLynxSDK } from '@mosaiclynx/sdk';
+import {
+  type MosaicLynxActiveAccount,
+  MosaicLynxSDKError,
+  type SignedTransaction,
+  createMosaicLynxSDK,
+} from '@mosaiclynx/sdk';
 
 import './styles.css';
 import { type Chain, type Network, createTransferPayload } from './transaction.js';
-
-declare global {
-  interface Window {
-    mosaicLynx?: MosaicLynxProvider;
-  }
-}
 
 const byId = <T extends HTMLElement>(id: string): T => {
   const element = document.getElementById(id);
@@ -19,6 +17,7 @@ const byId = <T extends HTMLElement>(id: string): T => {
 const sdk = createMosaicLynxSDK();
 const providerStatus = byId<HTMLDivElement>('provider-status');
 const connectButton = byId<HTMLButtonElement>('connect');
+const disconnectButton = byId<HTMLButtonElement>('disconnect');
 const accountElement = byId<HTMLDivElement>('account');
 const form = byId<HTMLFormElement>('transfer-form');
 const networkSelect = byId<HTMLSelectElement>('network');
@@ -31,28 +30,14 @@ const copyButton = byId<HTMLButtonElement>('copy');
 const signButton = byId<HTMLButtonElement>('sign');
 
 let chain: Chain = 'symbol';
-let activeAccount: MosaicAccount | undefined;
+let activeAccount: MosaicLynxActiveAccount | undefined;
 let latestResult: SignedTransaction | undefined;
 
-const waitForProvider = async (timeoutMs = 2_000): Promise<MosaicLynxProvider | undefined> => {
-  if (window.mosaicLynx) return window.mosaicLynx;
-  return new Promise((resolve) => {
-    const finish = (): void => {
-      window.clearTimeout(timeout);
-      window.removeEventListener('mosaiclynx:ready', onReady);
-      resolve(window.mosaicLynx);
-    };
-    const onReady = (): void => finish();
-    const timeout = window.setTimeout(finish, timeoutMs);
-    window.addEventListener('mosaiclynx:ready', onReady, { once: true });
-  });
-};
-
 const scope = () => ({ chain, network: networkSelect.value as Network });
-const matchesScope = (account: MosaicAccount): boolean =>
-  account.scope.chain === chain && account.scope.network === networkSelect.value;
+const matchesScope = (account: MosaicLynxActiveAccount): boolean =>
+  account.chain === chain && account.network === networkSelect.value;
 
-const showAccount = (account?: MosaicAccount): void => {
+const showAccount = (account?: MosaicLynxActiveAccount): void => {
   activeAccount = account;
   accountElement.replaceChildren();
   if (!account) {
@@ -61,44 +46,31 @@ const showAccount = (account?: MosaicAccount): void => {
     return;
   }
   accountElement.className = 'account';
-  const name = document.createElement('strong');
   const address = document.createElement('span');
   const publicKey = document.createElement('code');
-  name.textContent = account.name;
   address.textContent = account.address;
   publicKey.textContent = account.publicKey;
-  accountElement.append(name, address, publicKey);
+  accountElement.append(address, publicKey);
 };
 
 const refreshAccounts = async (): Promise<void> => {
-  if (!window.mosaicLynx) return showAccount();
-  const accounts = await window.mosaicLynx.getAccounts();
-  showAccount(accounts.find(matchesScope));
+  showAccount(await sdk.refreshActiveAccount(scope()));
 };
 
 const setProviderStatus = async (): Promise<void> => {
-  await waitForProvider();
   const available = await sdk.isAvailable();
-  const provider = window.mosaicLynx;
-  const bridgeReady = document.documentElement.dataset.mosaicLynxBridge === 'ready';
-  const injectionFailed = document.documentElement.dataset.mosaicLynxInjection === 'failed';
-  let label = '拡張機能を検出';
-  if (!available && provider) label = `非対応のProvider API (${provider.apiVersion ?? 'unknown'})`;
-  else if (!available && !bridgeReady) label = 'Content script未実行（サイト権限を確認）';
-  else if (!available && injectionFailed) label = 'Providerの読み込みに失敗';
-  else if (!available) label = 'Providerが見つかりません（拡張機能エラーを確認）';
+  const label = available ? 'MosaicLynxを利用できます' : '対応するMosaicLynxが見つかりません';
   providerStatus.className = `status ${available ? 'ready' : 'missing'}`;
   providerStatus.replaceChildren(document.createElement('span'), label);
-  connectButton.disabled = !window.mosaicLynx;
-  if (window.mosaicLynx) await refreshAccounts();
+  connectButton.disabled = !available;
+  if (available) await refreshAccounts();
 };
 
-const connect = async (): Promise<MosaicAccount> => {
-  const provider = window.mosaicLynx;
-  if (!provider) throw new Error('MosaicLynx 拡張機能を検出できません。');
-  let account = (await provider.getAccounts()).find(matchesScope);
-  if (!account) account = (await provider.connect(scope())).find(matchesScope);
-  if (!account) throw new Error('選択した chain / network のアカウントが共有されませんでした。');
+const connect = async (): Promise<MosaicLynxActiveAccount> => {
+  const account = (await sdk.isConnected(scope()))
+    ? await sdk.refreshActiveAccount(scope())
+    : await sdk.connect(scope());
+  if (!account) throw new Error('選択した chain / network のアクティブアカウントが共有されませんでした。');
   showAccount(account);
   return account;
 };
@@ -116,7 +88,20 @@ connectButton.addEventListener('click', async () => {
     resultElement.className = 'result error';
     resultElement.textContent = friendlyError(error);
   } finally {
-    connectButton.disabled = !window.mosaicLynx;
+    connectButton.disabled = false;
+  }
+});
+
+disconnectButton.addEventListener('click', async () => {
+  disconnectButton.disabled = true;
+  try {
+    await sdk.disconnect();
+    showAccount();
+  } catch (error) {
+    resultElement.className = 'result error';
+    resultElement.textContent = friendlyError(error);
+  } finally {
+    disconnectButton.disabled = false;
   }
 });
 
@@ -141,7 +126,8 @@ form.addEventListener('submit', async (event) => {
   copyButton.disabled = true;
   latestResult = undefined;
   try {
-    const account = activeAccount && matchesScope(activeAccount) ? activeAccount : await connect();
+    const account = activeAccount && matchesScope(activeAccount) ? activeAccount : undefined;
+    if (!account) throw new MosaicLynxSDKError('NOT_CONNECTED', '先にMosaicLynxへ接続してください。');
     const params = {
       ...scope(),
       payload: createTransferPayload({
@@ -188,7 +174,4 @@ copyButton.addEventListener('click', async () => {
   }, 1400);
 });
 
-window.mosaicLynx?.on('accountsChanged', () => {
-  void refreshAccounts();
-});
 void setProviderStatus();

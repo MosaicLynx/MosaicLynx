@@ -4,7 +4,7 @@ import type {
   GeneratedAccountMaterial,
   TransactionInspection,
 } from '@mosaiclynx/core';
-import { PrivateKey, utils } from '@nemnesia/symbol-sdk';
+import { PrivateKey, PublicKey, utils } from '@nemnesia/symbol-sdk';
 import { NemFacade, TransactionFactory, models } from '@nemnesia/symbol-sdk/nem';
 
 const bytesFor = (payload: string): Uint8Array => {
@@ -173,6 +173,59 @@ export class NemChainAdapter implements ChainAdapterPort {
     return {
       payload: utils.uint8ToHex(transaction.serialize()),
       hash: facade.hashTransaction(transaction).toString(),
+      signerPublicKey: account.publicKey.toString(),
+    };
+  }
+
+  /** 完全な Multisig 親transactionを照合したうえで CosignatureV1 を署名します。 */
+  public cosignTransaction(
+    network: ConnectionScope['network'],
+    payload: string,
+    parentPayload: string,
+    privateKeyHex: string
+  ): { readonly payload: string; readonly hash: string; readonly signerPublicKey: string } {
+    const facade = new NemFacade(network);
+    const account = facade.createAccount(new PrivateKey(privateKeyHex));
+    const cosignatureBytes = bytesFor(payload);
+    const parentBytes = bytesFor(parentPayload);
+    let cosignature: models.Transaction;
+    let parent: models.Transaction;
+    try {
+      cosignature = TransactionFactory.deserialize(cosignatureBytes);
+      parent = TransactionFactory.deserialize(parentBytes);
+    } catch {
+      throw new Error('INVALID_TRANSACTION: NEM cosignature payload cannot be decoded');
+    }
+    if (!equal(cosignature.serialize(), cosignatureBytes) || !equal(parent.serialize(), parentBytes))
+      throw new Error('INVALID_TRANSACTION: NEM cosignature payload is not canonical');
+    if (!(cosignature instanceof models.CosignatureV1) || !(parent instanceof models.MultisigTransactionV1))
+      throw new Error('UNSUPPORTED_TRANSACTION: NEM cosignature requires CosignatureV1 and MultisigTransactionV1');
+    if (cosignature.network.value !== networkIdentifier(network) || parent.network.value !== networkIdentifier(network))
+      throw new Error('NETWORK_MISMATCH');
+    if (!cosignature.signature.bytes.every((byte) => byte === 0))
+      throw new Error('INVALID_TRANSACTION: NEM cosignature is already signed');
+    const signerPublicKey = account.publicKey.toString().toUpperCase();
+    if (cosignature.signerPublicKey.toString().toUpperCase() !== signerPublicKey)
+      throw new Error('INVALID_TRANSACTION: NEM cosignature signer mismatch');
+    if (parent.signature.bytes.every((byte) => byte === 0))
+      throw new Error('INVALID_TRANSACTION: NEM multisig parent must be signed');
+    if (!facade.verifyTransaction(parent, new models.Signature(parent.signature.bytes)))
+      throw new Error('INVALID_TRANSACTION: NEM multisig parent signature is invalid');
+    const parentHash = facade.hashTransaction(parent).toString().toUpperCase();
+    if (cosignature.otherTransactionHash.toString().toUpperCase() !== parentHash)
+      throw new Error('INVALID_TRANSACTION: NEM cosignature parent hash mismatch');
+    const multisigPublicKey = parent.innerTransaction.signerPublicKey.toString();
+    const multisigAddress = facade.createPublicAccount(new PublicKey(multisigPublicKey)).address.toString();
+    const requestedAddress = new TextDecoder('ascii', { fatal: true }).decode(cosignature.multisigAccountAddress.bytes);
+    if (requestedAddress !== multisigAddress)
+      throw new Error('INVALID_TRANSACTION: NEM multisig account address mismatch');
+    const signature = account.signTransaction(cosignature);
+    cosignature.signature = new models.Signature(signature.bytes);
+    if (!facade.verifyTransaction(cosignature, signature))
+      throw new Error('INTERNAL_ERROR: NEM cosignature verification failed');
+    return {
+      payload: utils.uint8ToHex(cosignature.serialize()),
+      hash: facade.hashTransaction(cosignature).toString(),
       signerPublicKey: account.publicKey.toString(),
     };
   }

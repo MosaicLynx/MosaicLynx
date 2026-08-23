@@ -208,6 +208,55 @@ export class SymbolChainAdapter implements ChainAdapterPort {
     };
   }
 
+  /**
+   * 署名済み Aggregate Transaction 全体を検証して連署します。
+   * 親ハッシュだけを受け取る経路は、確認画面で内容を検証できないため提供しません。
+   */
+  public cosignTransaction(
+    network: ConnectionScope['network'],
+    parentPayload: string,
+    privateKeyHex: string,
+    detached: boolean
+  ): {
+    readonly parentHash: string;
+    readonly signature: string;
+    readonly signerPublicKey: string;
+    readonly detached: boolean;
+    readonly payload: string;
+  } {
+    const facade = new SymbolFacade(network);
+    const account = facade.createAccount(new PrivateKey(privateKeyHex));
+    const { transaction } = inspect(network, parentPayload);
+    if (
+      !(transaction instanceof models.AggregateCompleteTransactionV2) &&
+      !(transaction instanceof models.AggregateBondedTransactionV2)
+    )
+      throw new Error('UNSUPPORTED_TRANSACTION: Symbol cosignature requires an Aggregate v2 parent');
+    if (transaction.signature.bytes.every((byte) => byte === 0))
+      throw new Error('INVALID_TRANSACTION: aggregate parent must be signed');
+    const parentSignature = new models.Signature(transaction.signature.bytes);
+    if (!facade.verifyTransaction(transaction, parentSignature))
+      throw new Error('INVALID_TRANSACTION: aggregate parent signature is invalid');
+    const signerPublicKey = account.publicKey.toString().toUpperCase();
+    if (transaction.signerPublicKey.toString().toUpperCase() === signerPublicKey)
+      throw new Error('INVALID_TRANSACTION: aggregate initiator cannot cosign its own transaction');
+    if (
+      (transaction.cosignatures as Array<{ signerPublicKey: { toString(): string } }>).some(
+        (cosignature) => cosignature.signerPublicKey.toString().toUpperCase() === signerPublicKey
+      )
+    )
+      throw new Error('INVALID_TRANSACTION: aggregate already contains this cosigner');
+    const parentHash = facade.hashTransaction(transaction).toString();
+    const cosignature = account.cosignTransaction(transaction, detached);
+    return {
+      parentHash,
+      signature: cosignature.signature.toString(),
+      signerPublicKey,
+      detached,
+      payload: utils.uint8ToHex(cosignature.serialize()),
+    };
+  }
+
   public verifySignedTransaction(
     network: ConnectionScope['network'],
     unsignedPayload: string,

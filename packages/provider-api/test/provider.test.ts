@@ -14,11 +14,13 @@ describe('Provider API v2', () => {
     const provider = new RpcMosaicLynxProvider(executor);
     await expect(provider.connect({ chain: 'symbol', network: 'testnet' })).resolves.toEqual([]);
     await expect(provider.getAccounts()).resolves.toEqual([]);
+    await expect(provider.getActiveAccount({ chain: 'symbol', network: 'testnet' })).resolves.toEqual([]);
     expect('unlock' in provider).toBe(false);
     expect('switchProfile' in provider).toBe(false);
     expect(requests).toEqual([
       { method: 'permissions_connect', params: { chain: 'symbol', network: 'testnet' } },
       { method: 'account_list' },
+      { method: 'account_getActive', params: { chain: 'symbol', network: 'testnet' } },
     ]);
     expect(provider.apiVersion).toBe('2.0.0');
     expect(isSupportedApiVersion('2.9.0')).toBe(true);

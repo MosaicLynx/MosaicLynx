@@ -64,4 +64,35 @@ describe('SymbolChainAdapter', () => {
     expect(adapter.verifySignedTransaction('testnet', payload, { ...signed, hash: '00'.repeat(32) })).toBe(false);
     expect(signed.signerPublicKey).toBe(signer.publicKey.toString());
   });
+
+  it('cosigns only a complete signed Aggregate v2 parent', () => {
+    const adapter = new SymbolChainAdapter();
+    const facade = new SymbolFacade('testnet');
+    const initiator = facade.createAccount(PrivateKey.random());
+    const cosigner = facade.createAccount(PrivateKey.random());
+    const recipient = facade.createAccount(PrivateKey.random());
+    const embedded = new models.EmbeddedTransferTransactionV1();
+    embedded.signerPublicKey = new models.PublicKey(cosigner.publicKey.bytes);
+    embedded.network = models.NetworkType.TESTNET;
+    embedded.recipientAddress = new models.UnresolvedAddress(recipient.address.bytes);
+    embedded.mosaics = [];
+    embedded.message = new Uint8Array();
+    const aggregate = new models.AggregateCompleteTransactionV2();
+    aggregate.signerPublicKey = new models.PublicKey(initiator.publicKey.bytes);
+    aggregate.network = models.NetworkType.TESTNET;
+    aggregate.fee = new models.Amount(0n);
+    aggregate.deadline = new models.Timestamp(1n);
+    aggregate.transactions = [embedded];
+    aggregate.transactionsHash = new models.Hash256(facade.static.hashEmbeddedTransactions([embedded]).bytes);
+    aggregate.cosignatures = [];
+    aggregate.signature = new models.Signature(initiator.signTransaction(aggregate).bytes);
+    const parentPayload = utils.uint8ToHex(aggregate.serialize());
+    const result = adapter.cosignTransaction('testnet', parentPayload, cosigner.keyPair.privateKey.toString(), true);
+    const decoded = models.DetachedCosignature.deserialize(utils.hexToUint8(result.payload));
+    expect(result.parentHash).toBe(facade.hashTransaction(aggregate).toString());
+    expect(decoded.signerPublicKey.toString()).toBe(cosigner.publicKey.toString());
+    expect(
+      new facade.static.Verifier(cosigner.publicKey).verify(facade.hashTransaction(aggregate).bytes, decoded.signature)
+    ).toBe(true);
+  });
 });

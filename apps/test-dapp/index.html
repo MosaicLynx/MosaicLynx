@@ -10,10 +10,10 @@
     <main class="shell">
       <header class="hero">
         <div>
-          <p class="eyebrow">MosaicLynx · extension test bench</p>
+          <p class="eyebrow">MosaicLynx · SDK test bench</p>
           <h1>Transfer Lab</h1>
           <p class="lede">
-            Symbol / NEM の未署名 Transfer を組み立て、拡張機能へ署名を依頼します。ネットワークへの announce
+            Symbol / NEM の未署名 Transfer を組み立て、MosaicLynxへ署名を依頼します。ネットワークへの announce
             は行いません。
           </p>
         </div>
@@ -25,7 +25,10 @@
           <p class="section-label">01 · Connection</p>
           <h2>署名アカウント</h2>
         </div>
-        <button id="connect" class="secondary" type="button">拡張機能に接続</button>
+        <div>
+          <button id="connect" class="secondary" type="button">MosaicLynxに接続</button>
+          <button id="disconnect" class="text-button" type="button">接続解除</button>
+        </div>
         <div id="account" class="account muted">まだ接続されていません</div>
       </section>
 

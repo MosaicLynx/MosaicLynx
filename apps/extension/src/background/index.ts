@@ -2,7 +2,9 @@ import { NemChainAdapter } from '@mosaiclynx/chain-nem';
 import { SymbolChainAdapter } from '@mosaiclynx/chain-symbol';
 import { createStructuredMessage, structuredMessageDigest } from '@mosaiclynx/core';
 import type {
+  CosignTransactionParams,
   MosaicAccount,
+  MosaicLynxCosignature,
   MosaicScope,
   RpcRequest,
   SignMessageParams,
@@ -405,7 +407,7 @@ const prepareMessageApproval = (id: string, accountId: string): Promise<string> 
 const prepareTransactionApproval = (id: string): Promise<void> => {
   const pending = approvals.get(id);
   const request = pending?.request;
-  if (!pending || pending.resolved || request?.type !== 'transaction')
+  if (!pending || pending.resolved || (request?.type !== 'transaction' && request?.type !== 'cosignature'))
     return Promise.reject({ code: 'CONTEXT_CHANGED', message: 'The transaction approval is no longer available.' });
   if (pending.transactionPreparation) return pending.transactionPreparation;
 
@@ -429,6 +431,24 @@ const prepareTransactionApproval = (id: string): Promise<void> => {
     pending.transactionPrepared = true;
   })();
   return pending.transactionPreparation;
+};
+
+const cosignatureAccount = (
+  accounts: readonly PublicAccount[],
+  profile: PublicProfile,
+  accountId: unknown
+): PublicAccount => {
+  if (typeof accountId === 'string') {
+    const account = accounts.find((candidate) => candidate.id === accountId);
+    if (!account) return providerError('ACCOUNT_NOT_FOUND', 'The account is outside this origin permission.');
+    return account;
+  }
+  return (
+    accounts.find((account) => account.id === profile.defaultAccountId) ??
+    (accounts.length === 1
+      ? accounts[0]!
+      : providerError('ACCOUNT_NOT_FOUND', 'Select an account before requesting a cosignature.'))
+  );
 };
 
 const handleConnect = async (origin: string, params: unknown, tabId: number): Promise<readonly MosaicAccount[]> => {
@@ -663,6 +683,66 @@ const handleMessage = async (origin: string, params: unknown, tabId: number): Pr
   return resolution.signedMessage;
 };
 
+const handleCosignature = async (origin: string, params: unknown, tabId: number): Promise<MosaicLynxCosignature> => {
+  const input = params as CosignTransactionParams | undefined;
+  if (!input || !isScope(input) || typeof input.parentPayload !== 'string')
+    return providerError('INVALID_PARAMS', 'Cosignature parameters are invalid.');
+  if (input.chain === 'nem' && typeof input.payload !== 'string')
+    return providerError('INVALID_PARAMS', 'NEM cosignature payload is required.');
+  if (input.accountId !== undefined && typeof input.accountId !== 'string')
+    return providerError('INVALID_PARAMS', 'accountId must be a string when provided.');
+  if (input.network === 'mainnet' && !MAINNET_SIGNING_ENABLED)
+    return providerError('UNSUPPORTED_CHAIN', 'Mainnet signing is disabled because release evidence is not installed.');
+  const store = await loadStore();
+  const profile = activeProfile(store, input.network);
+  assertEnabledScope(profile, input);
+  const permission = requirePermission(store, origin, profile, input);
+  const account = cosignatureAccount(permittedAccounts(store, profile, permission), profile, input.accountId);
+  let inspection;
+  try {
+    inspection = adapters[input.chain].inspectTransaction(input.network, input.parentPayload);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (message.startsWith('NETWORK_MISMATCH')) return providerError('NETWORK_MISMATCH', 'Network mismatch.');
+    if (message.startsWith('UNSUPPORTED_TRANSACTION'))
+      return providerError('UNSUPPORTED_TRANSACTION', 'The parent transaction is unsupported.');
+    return providerError('INVALID_TRANSACTION', 'The parent transaction failed strict validation.');
+  }
+  const resolution = await requestApproval(
+    {
+      type: 'cosignature',
+      origin,
+      originAscii: originAscii(origin),
+      scope: input,
+      profile,
+      vaultRevision: vaultRevisionFor(store, profile.id),
+      permissionRevision: permission.revision,
+      account,
+      parentPayload: input.parentPayload,
+      ...(input.chain === 'nem' ? { payload: input.payload } : { detached: input.detached }),
+      inspection,
+    },
+    tabId
+  );
+  if (!resolution.approved) return providerError('USER_REJECTED', 'The cosignature request was rejected.');
+  if (!('cosignature' in resolution) || resolution.cosignature.chain !== input.chain)
+    return providerError('INTERNAL_ERROR', 'The cosignature approval result is invalid.');
+  if (resolution.cosignature.signerPublicKey.toUpperCase() !== account.identities[input.chain].publicKey.toUpperCase())
+    return providerError('INTERNAL_ERROR', 'The cosignature signer does not match the approved account.');
+  const current = await loadStore();
+  const currentPermission = permissionFor(current, origin, profile.id, input);
+  const currentProfile = current.profiles.find((item) => item.id === profile.id);
+  const currentAccount = current.accounts.find((item) => item.id === account.id && item.profileId === profile.id);
+  if (
+    currentPermission?.revision !== permission.revision ||
+    currentProfile?.revision !== profile.revision ||
+    currentAccount?.revision !== account.revision ||
+    vaultRevisionFor(current, profile.id) !== vaultRevisionFor(store, profile.id)
+  )
+    return providerError('CONTEXT_CHANGED', 'Profile or permission changed during approval.');
+  return resolution.cosignature;
+};
+
 const handleRequest = async (origin: string, request: RpcRequest, tabId: number): Promise<unknown> => {
   switch (request.method) {
     case 'permissions_connect':
@@ -689,7 +769,11 @@ const handleRequest = async (origin: string, request: RpcRequest, tabId: number)
         );
     }
     case 'account_getActive': {
-      const accounts = (await handleRequest(origin, { method: 'account_list' }, tabId)) as readonly MosaicAccount[];
+      if (!isScope(request.params)) return providerError('INVALID_PARAMS', 'Active account scope is invalid.');
+      const scope = request.params;
+      const accounts = (
+        (await handleRequest(origin, { method: 'account_list' }, tabId)) as readonly MosaicAccount[]
+      ).filter((account) => account.scope.chain === scope.chain && account.scope.network === scope.network);
       const store = await loadStore();
       const profile = activeProfile(store);
       return accounts.find((account) => account.id === profile.defaultAccountId) ?? accounts[0];
@@ -698,6 +782,8 @@ const handleRequest = async (origin: string, request: RpcRequest, tabId: number)
       return handleTransaction(origin, request.params, tabId);
     case 'sign_message':
       return handleMessage(origin, request.params, tabId);
+    case 'cosign_transaction':
+      return handleCosignature(origin, request.params, tabId);
   }
 };
 
@@ -735,8 +821,9 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
       return;
     }
     const pending = approvals.get(envelope.id);
-    if ('signedTransaction' in envelope.resolution) {
-      if (pending?.request.type !== 'transaction' || !pending.transactionPrepared) {
+    if ('signedTransaction' in envelope.resolution || 'cosignature' in envelope.resolution) {
+      const expectedType = 'signedTransaction' in envelope.resolution ? 'transaction' : 'cosignature';
+      if (pending?.request.type !== expectedType || !pending.transactionPrepared) {
         finishApproval(envelope.id, {
           approved: false,
           error: { code: 'CONTEXT_CHANGED', message: 'The transaction approval was not prepared.' },

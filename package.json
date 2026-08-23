@@ -15,7 +15,6 @@
     "evidence:sign": "pnpm --filter @mosaiclynx/release-evidence build && node tools/evidence/index.mjs sign",
     "evidence:verify": "pnpm --filter @mosaiclynx/release-evidence build && node tools/evidence/index.mjs verify",
     "evidence:gate": "pnpm --filter @mosaiclynx/release-evidence build && node tools/evidence/index.mjs gate",
-    "evidence:mobile": "node tools/mobile/evidence.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
@@ -25,8 +24,9 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
+    "@types/node": "^24.13.3",
     "eslint": "^9.39.1",
-    "prettier": "^3.9.5",
+    "prettier": "^3.9.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.0",
     "vitest": "^4.0.16"
