@@ -100,4 +100,3 @@
 - `docs/adr/0001-mainnet-evidence-lite.md`
 - `docs/evidence/evidence-policy.json`
 - `docs/release/mainnet-release-evidence.md`
-
