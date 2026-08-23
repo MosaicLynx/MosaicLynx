@@ -57,11 +57,19 @@ MosaicLynx は、Symbol / NEM の dApp を利用する一般ユーザーが、�
 
 共通の安全な署名判断と責任境界は、各 milestone で維持する。各 milestone の外部要求、個別完了条件、次 milestone へ進む条件、依存関係は `OPEN-003` で決定する。実施順序は未決事項ではない。
 
+### Signer と Relay の適用主体
+
+- **Signer**: ブラウザ拡張機能、Android アプリ、iOS アプリ。署名対象の解析・確認、表示、Chain / Network / Account の確認、利用者の明示的な承認または拒否、blind signing の禁止、承認対象と実際の署名対象の一致確認、安全側失敗および署名処理を担う。
+- **Relay**: 署名要求・署名結果の受け渡し基盤。署名対象の意味解釈、表示、利用者の承認・拒否、blind signing 判定および署名を担わず、Signer の安全条件を迂回、代替または弱体化させないことを担う。詳細は [Relay 要件](./relay.md) に定める。
+- **End-to-End**: dApp、Signer、Relay を通る全体。要求元・許可範囲、要求内容、鮮度、再利用防止および署名結果の対応を確認でき、Relay の障害・侵害・重複・遅延が意図しない署名につながらないことを確認する。
+
+Relay milestone の完了条件は、Relay 自身が利用者判断や署名を実行することではなく、Relay 経由でも Signer の安全条件が迂回されず、要求・結果の受け渡し責任が成立することで判定する。
+
 ## 4. 共通の対象範囲
 
 ### 4.1 共通で提供する能力
 
-MosaicLynx は、プラットフォームにかかわらず、少なくとも次の能力を持たなければならない。
+MosaicLynx 全体は、プラットフォームにかかわらず、少なくとも次の能力を提供しなければならない。以下のうち、解析・表示・承認・拒否・署名を直接担うのは Signer であり、Relay はそれらを実行せず、受け渡しによって安全条件を迂回させない。
 
 - dApp からのメッセージまたはトランザクションの署名要求を受け付ける。
 - 利用者が署名対象、チェーン、ネットワーク、確認可能な影響を確認できるようにする。
@@ -86,13 +94,13 @@ MosaicLynx / Application は、アプリケーション上の Profile、Account 
 
 ## 5. 共通機能要求
 
-### CR-001 署名要求の受付
+### CR-001 署名要求の受付（Signer / End-to-End）
 
 **MUST** 対象範囲内の dApp から署名要求を受け付け、利用者が判断する Signer の確認領域へ渡さなければならない。
 
 根拠: コンセプト 3、6.1、8。参考: `docs/specifications/product-spec.md` 2、5、12。
 
-### CR-002 署名対象の確認
+### CR-002 署名対象の確認（Signer）
 
 **MUST** 利用者が少なくとも、署名対象、対象チェーン、対象ネットワーク、Signer が確認できる範囲の影響を確認できなければならない。
 
@@ -102,13 +110,13 @@ MosaicLynx / Application は、アプリケーション上の Profile、Account 
 
 根拠: コンセプト 3、4、6.2、11。参考: `docs/specifications/product-spec.md` 3、12。
 
-### CR-003 明示的な承認または拒否
+### CR-003 明示的な承認または拒否（Signer）
 
 **MUST** 署名要求ごとに、利用者が明示的に承認または拒否できなければならない。承認前に署名を開始してはならない。
 
 根拠: コンセプト 3、4、6.3、11。
 
-### CR-004 blind signing の禁止
+### CR-004 blind signing の禁止（Signer）
 
 **MUST** Signer が理解・確認できない要求、対象範囲外の要求、検証できない要求を署名してはならない。警告を表示するだけで未解析の要求を許可してはならない。
 
@@ -116,7 +124,7 @@ MosaicLynx / Application は、アプリケーション上の Profile、Account 
 
 根拠: コンセプト 3、8、10、11、13。参考: `_snwc/README.md` の「Blind signing の防止」、`docs/specifications/product-spec.md` 3、12.3。
 
-### CR-005 チェーンとネットワークの区別
+### CR-005 チェーンとネットワークの区別（Signer / End-to-End）
 
 **MUST** Symbol と NEM、Mainnet と Testnet をそれぞれ区別し、要求、Account、Profile、署名対象の整合性を確認しなければならない。
 
@@ -124,7 +132,7 @@ MosaicLynx / Application は、アプリケーション上の Profile、Account 
 
 根拠: コンセプト 8、11、12。参考: `docs/specifications/chain-compatibility-spec.md`。
 
-### CR-006 署名結果の検証可能性
+### CR-006 署名結果の検証可能性（End-to-End / dApp）
 
 **MUST** 署名結果が元の要求、対象チェーン、対象ネットワーク、署名者と対応していることを確認できる形で返さなければならない。dApp は受け取った署名結果を独立して確認し、必要なネットワーク処理を自ら行う。
 
@@ -148,7 +156,7 @@ MosaicLynx / Application は、アプリケーション上の Profile、Account 
 
 根拠: コンセプト 4、7、9、11、13。参考: `_snwc/README.md`、`docs/specifications/profile-account-spec.md`。
 
-### CR-009 利用者が管理する Account
+### CR-009 利用者が管理する Account（Signer）
 
 **MUST** 利用者が署名に用いる Account を確認・選択でき、dApp へ公開する Account の範囲を利用者の許可なしに拡大してはならない。
 
@@ -156,7 +164,7 @@ MosaicLynx / Application は、アプリケーション上の Profile、Account 
 
 根拠: コンセプト 5、7、11、13。参考: `docs/specifications/product-spec.md` 3、11。
 
-### CR-010 共通の安全側失敗
+### CR-010 共通の安全側失敗（Signer / End-to-End）
 
 **MUST** 認証、対象確認、チェーン・ネットワーク整合性、署名対象検証、署名結果検証のいずれかに失敗した場合、署名結果を返さず安全側に終了しなければならない。
 
@@ -164,9 +172,13 @@ MosaicLynx / Application は、アプリケーション上の Profile、Account 
 
 ### CR-011 Platform 間の責任境界維持
 
-**MUST** ブラウザ拡張機能、Android アプリ、iOS アプリ、Relay の各 milestone で、利用者の明示的な判断、秘密情報保護、blind signing の禁止、dApp の独立検証、announce 非対応の責任境界を維持しなければならない。
+**MUST** 主体ごとに次の責任境界を維持しなければならない。
 
-機能や操作が完全に同一でない場合でも、共通の安全要求を満たす範囲でプラットフォーム差異を認める。
+- Signer（ブラウザ拡張機能、Android、iOS）は、署名対象の解析・表示、Chain / Network / Account の確認、利用者の明示的な承認または拒否、blind signing の禁止、承認対象と署名対象の一致確認、安全側失敗および署名処理を担う。
+- Relay は、署名対象の意味解釈、表示、利用者の承認・拒否、blind signing 判定および署名を担わず、Signer の検証・承認・署名を迂回、代替または弱体化させない。
+- dApp は、署名結果を独立して検証し、必要なネットワーク処理を担う。MosaicLynx は dApp に代わって announce、ノード選択または継続的なネットワーク状態管理を行わない。
+
+機能や操作が完全に同一でない場合でも、Signer と Relay の適用主体を混同せず、共通の安全要求を満たす範囲でプラットフォーム差異を認める。Relay 固有の受け入れ条件は `docs/requirements/relay.md` に定める。
 
 根拠: コンセプト 1、6.5、9、11、12、14。コンセプトレビュー CS-003。
 
@@ -202,7 +214,7 @@ wallet-core の API、Binding、FFI、WASM / Native、React Native 連携、既�
 
 根拠: コンセプト 9、13。参考: `AGENTS.md`、`_snwc/README.md`、`_snwc/docs/decisions/binding-implementation.md`。
 
-### CR-NFR-003 署名前の再確認
+### CR-NFR-003 署名前の再確認（Signer）
 
 **MUST** 署名直前に、利用者が確認・承認した対象と、実際に署名へ渡す対象の対応を確認できなければならない。確認後に対象が変化した場合は署名してはならない。
 
@@ -226,11 +238,41 @@ wallet-core の stable error code、warning、Binding 契約の詳細は wallet-
 
 根拠: コンセプト 12、14、15。参考: `docs/adr/0001-mainnet-evidence-lite.md`、`docs/release/mainnet-release-evidence.md`。
 
-### CR-NFR-007 利用者判断可能性
+### CR-NFR-007 利用者判断可能性（Signer）
 
 **MUST** 署名確認の提示は、一般ユーザーが要求を理解・確認し、承認または拒否できるものでなければならない。Signer が確認できない内容を、ユーザーの自己責任だけで補完させてはならない。
 
 表示レイアウト、文言、支援技術、表示の詳細粒度はプラットフォーム要件・利用者検証・後続仕様で決定する。
+
+### CR-NFR-008 要求元と許可範囲の対応（Signer / End-to-End）
+
+**MUST** Signer は、署名要求が許可した要求元、現在有効な接続、現在有効な署名セッションまたは許可された権限範囲のうち、適用されるコンテキストと対応していることを確認できなければならない。対応を確認できない要求は署名してはならない。
+
+すべての dApp に暗号学的な本人認証を必須化することは本要求に含めない。Browser Extension の Origin・Provider connection、Mobile / Relay の handoff session などの具体方式は後続仕様で決定する。Relay はこの対応関係を独自に解釈・承認せず、別の要求元・セッション・権限範囲へ置換してはならない。
+
+### CR-NFR-009 要求内容の完全性と承認対象の一致（Signer / End-to-End）
+
+**MUST** 利用者が確認・承認した要求と、実際に署名する対象が一致していなければならない。要求の改ざん、差し替え、承認後の内容変更、別要求との取り違え、別 Account / Chain / Network への置換を検出または確認できない場合は署名してはならない。
+
+具体的な digest、request ID、署名、MAC その他の方式は後続仕様へ委ねる。Relay では `RR-003`、`RR-005` および `RR-007` と整合させる。
+
+### CR-NFR-010 要求の鮮度（Signer / End-to-End）
+
+**MUST** Signer は、期限切れ、失効済みまたは現在の署名処理として有効でない要求を署名してはならない。Relay の復旧や再配送によって、無効な要求を有効な要求として扱ってはならない。
+
+具体的な TTL、期限値、失効条件および timestamp の形式は後続仕様へ委ねる。Relay では `RR-004` および `RR-006` と整合させる。
+
+### CR-NFR-011 Replay・重複・遅延配送の拒否（Signer / End-to-End）
+
+**MUST** 古い要求の replay、使用済み要求の再利用、同一要求の重複配送、ネットワークまたは Relay による重複、遅延した要求の後着、過去セッションの要求の再出現によって、追加の署名が発生してはならない。
+
+具体的な nonce、request ID、保存方式および状態管理方式は後続仕様へ委ねる。Relay では `RR-006` および `RR-007` と整合させる。
+
+### CR-NFR-012 署名結果と元要求の対応（End-to-End / dApp）
+
+**MUST** 署名結果は、元の署名要求、署名者、Account、Chain および Network に対応していることを確認できなければならない。dApp は受け取った署名結果を独立して検証し、Relay または Provider が成功を返したことだけを署名結果の正当性の根拠としてはならない。
+
+具体的な結果形式、対応付け方式および error code は後続仕様へ委ねる。Relay では `RR-002`、`RR-005` および `RR-007` と整合させる。
 
 ## 7. 共通の対象外
 
@@ -250,16 +292,18 @@ MosaicLynx v1 の共通対象外は次のとおりとする。
 
 MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の分離、提供形態間の責任境界が確認できた状態を成功とする。本章は要件レベルの成功条件・受け入れ条件であり、個別テストケースや UI 仕様ではない。
 
-| ID        | 受け入れ可能な状態                                                                                                 |
-| --------- | ------------------------------------------------------------------------------------------------------------------ |
-| CR-AC-001 | 一般ユーザーが、署名対象、チェーン、ネットワーク、確認可能な影響を確認したうえで、要求ごとに承認または拒否できる。 |
-| CR-AC-002 | 理解できない、対象外、検証不能な要求が署名されず、署名結果を返さずに安全に終了する。                               |
-| CR-AC-003 | 秘密情報が dApp、Web ページ、Relay、ログ、例外、診断情報へ不要に公開されない。                                     |
-| CR-AC-004 | Symbol / NEM と Mainnet / Testnet の不一致が署名前に検出され、誤った対象へ署名されない。                           |
-| CR-AC-005 | dApp が署名結果を独立して確認でき、MosaicLynx が announce、ノード選択、継続的な状態管理を行わない。                |
-| CR-AC-006 | 4 milestone 全体で、明示的承認、安全側失敗、秘密情報保護、責任境界が維持される。                                   |
-| CR-AC-007 | wallet-core の失敗または Store / Binding の不整合時に署名が継続されず、秘密情報が漏えいしない。                    |
-| CR-AC-008 | Mainnet は必要な release gate を通過するまで有効化されない。                                                       |
+| ID        | 適用主体             | 受け入れ可能な状態                                                                                                                                |
+| --------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CR-AC-001 | Signer               | 一般ユーザーが、署名対象、チェーン、ネットワーク、確認可能な影響を確認したうえで、要求ごとに承認または拒否できる。                                |
+| CR-AC-002 | Signer               | 理解できない、対象外、検証不能な要求が署名されず、署名結果を返さずに安全に終了する。                                                              |
+| CR-AC-003 | 全体 / 責任境界      | 秘密情報が dApp、Web ページ、Relay、ログ、例外、診断情報へ不要に公開されない。                                                                    |
+| CR-AC-004 | Signer               | Symbol / NEM と Mainnet / Testnet の不一致が署名前に検出され、誤った対象へ署名されない。                                                          |
+| CR-AC-005 | End-to-End / dApp    | dApp が署名結果を独立して確認でき、MosaicLynx が announce、ノード選択、継続的な状態管理を行わない。                                               |
+| CR-AC-006 | Signer               | ブラウザ拡張機能、Android、iOS の各 Signer で、明示的承認、安全側失敗、blind signing 禁止、承認対象と署名対象の一致確認が維持される。             |
+| CR-AC-007 | Signer / wallet-core | wallet-core の失敗または Store / Binding の不整合時に署名が継続されず、秘密情報が漏えいしない。                                                   |
+| CR-AC-008 | Platform / Release   | Mainnet は必要な release gate を通過するまで有効化されない。                                                                                      |
+| CR-AC-009 | Relay                | Relay 自身が利用者判断・署名対象の表示・署名を実行せず、Relay 経由でも Signer の検証・承認・署名を迂回できない。                                  |
+| CR-AC-010 | End-to-End           | 要求元・許可範囲、要求内容、鮮度、replay / duplicate / late delivery および署名結果と元要求の対応を確認でき、失敗時に意図しない署名が発生しない。 |
 
 ## 9. 共通の未決事項
 
