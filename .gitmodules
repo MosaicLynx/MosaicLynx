@@ -7,3 +7,6 @@
 [submodule "_symbol"]
 	path = _symbol
 	url = https://github.com/symbol/symbol.git
+[submodule "_sns"]
+	path = _sns
+	url = https://github.com/nemnesia/symbol-nem-stack.git
