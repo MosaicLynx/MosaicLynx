@@ -4,7 +4,7 @@
 
 本書は、[MosaicLynx 共通要件](./requirements.md) に追加される Browser Extension 固有の要求を定める。共通要件で定めた署名対象の確認、明示的な承認・拒否、blind signing の禁止、秘密情報保護、Chain / Network の区別などは、必要な範囲を除き本書で重複して定義しない。
 
-本書の要求は、Concept Sheet、共通要件、承認済みプロジェクト制約、ブラウザプラットフォームの外部制約および `symbol-nem-wallet-core` の公開責任境界から導出する。仕様書、設計書、ADR、README、現行実装は要求の根拠としない。
+本書の要求は、Concept Sheet、共通要件、共通要件に明記された責任境界、ブラウザプラットフォームの外部制約および `symbol-nem-wallet-core` の公開責任境界から導出する。上流根拠を確認できず前回依頼で維持された要求は、Traceability の provenance / 状態で別に示す。仕様書、設計書、ADR、README、現行実装は要求の根拠としない。
 
 API、データ形式、画面レイアウト、Manifest、Storage key、内部通信、具体的な暗号・状態遷移・migration・rollback の方式は、後続の仕様・設計で定める。
 
@@ -116,22 +116,24 @@ wallet-core の内部形式および migration の実装方式を、本要件書
 
 要求の根拠は上流から BR-* へ向けて整理する。下流資料は、BR-* を具体化・検証するための引継ぎ先であり、要求の根拠ではない。
 
-| 要求   | 上流の根拠                                                                                                                                         |
-| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| BR-001 | Concept Sheet 1、6.5、12；共通要件 CR-011；承認済み制約（最初の提供形態）                                                                          |
-| BR-002 | Concept Sheet 6.2、6.3、11；共通要件 CR-002、CR-003、CR-004、CR-NFR-007；ブラウザの実行コンテキストに関する外部制約                                |
-| BR-003 | Concept Sheet 6.1、8、13；共通要件 CR-001、CR-NFR-001、CR-NFR-008                                                                                  |
-| BR-004 | Concept Sheet 5、11、13；共通要件 CR-005、CR-009、CR-NFR-008                                                                                       |
-| BR-005 | Concept Sheet 6.2、11；共通要件 CR-002、CR-005、CR-NFR-007                                                                                         |
-| BR-006 | Concept Sheet 4、9、13；共通要件 CR-008、CR-011、CR-NFR-001、CR-NFR-002                                                                            |
-| BR-007 | Concept Sheet 6.3、11、13；共通要件 CR-003、CR-010、CR-NFR-003、CR-NFR-009、CR-NFR-010、CR-NFR-011；ブラウザの実行コンテキストのライフサイクル制約 |
-| BR-008 | Concept Sheet 6.3、11；共通要件 CR-NFR-003、CR-NFR-008、CR-NFR-009、CR-NFR-010、CR-NFR-011；ブラウザの navigation / tab / frame コンテキスト制約   |
-| BR-009 | Concept Sheet 9、13；共通要件 CR-008、CR-013；承認済みプロジェクト制約；`symbol-nem-wallet-core` の公開責任境界                                    |
-| BR-010 | Concept Sheet 13；ブラウザプラットフォームの最小権限に関する外部セキュリティ制約                                                                   |
-| BR-011 | Concept Sheet 11、13；共通要件 CR-NFR-001、CR-NFR-002、CR-NFR-007；ブラウザプラットフォームのコード実行・コンテンツ保護に関する外部制約            |
-| BR-012 | Concept Sheet 11、13；共通要件 CR-010、CR-NFR-004；承認済みプロジェクト制約（拡張機能更新時の安全性）                                              |
-| BR-013 | Concept Sheet 12、14、15；共通要件 CR-NFR-006；承認済みプロジェクト制約（Mainnet release gate）                                                    |
-| BR-014 | Concept Sheet 13；共通要件 CR-013、CR-014；承認済みプロジェクト制約（Browser Extension milestone / release の Profile backup）                     |
+ブラウザプラットフォームの外部制約として、[Chrome content scripts / isolated worlds](https://developer.chrome.com/docs/extensions/reference/manifest/content-scripts)、[Extension service worker lifecycle](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle)、[Chrome extension security](https://developer.chrome.com/docs/extensions/develop/security-privacy/stay-secure)、[permissions](https://developer.chrome.com/docs/extensions/develop/concepts/declare-permissions)、[extension update lifecycle](https://developer.chrome.com/docs/extensions/develop/concepts/extensions-update-lifecycle) および [remote code guidance](https://developer.chrome.com/docs/webstore/cws-dashboard-privacy/) を参照する。これらは Browser Extension の実行コンテキスト、ライフサイクルおよび権限境界を支持するが、MosaicLynx 固有の製品判断を代替しない。
+
+| 要求   | 上流根拠                                                                                                                            | provenance / 状態                                                                                                                                                                                                                                          |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| BR-001 | Concept Sheet 1、6.5、12；共通要件 §3、CR-011                                                                                       | 上流根拠あり。Browser Extension が最初の milestone であり、Chrome を最初の提供形態とすることも Concept Sheet §12 に明記されている。                                                                                                                        |
+| BR-002 | Concept Sheet 6.2、6.3、11；共通要件 CR-002、CR-003、CR-004、CR-NFR-007；Chrome の実行コンテキスト制約                              | 上流根拠あり。Signer の確認・承認責任と Web ページから分離された確認領域の必要性から導出する。具体的な UI surface は未固定。                                                                                                                               |
+| BR-003 | Concept Sheet 6.1、8、13；共通要件 CR-001、CR-NFR-001、CR-NFR-008；Chrome のページ・拡張機能コンテキスト制約                        | 上流根拠あり。要求検証は共通要件、ブラウザコンテキストの取得・境界は外部制約に基づく。具体的な API / schema は下流。                                                                                                                                       |
+| BR-004 | Concept Sheet 5、11、13；共通要件 CR-005、CR-009、CR-NFR-008；Chrome のページ・frame コンテキスト制約                               | 上流根拠あり。許可範囲との対応は共通要件、Web Origin の検証に利用するブラウザコンテキストは外部制約に基づく。                                                                                                                                              |
+| BR-005 | Concept Sheet 6.2、11；共通要件 CR-002、CR-005、CR-NFR-007                                                                          | 上流根拠あり。確認対象の情報は共通要件から導出し、確認領域は BR-002 の責任境界に従う。表示レイアウトは下流。                                                                                                                                               |
+| BR-006 | Concept Sheet 4、9、13；共通要件 CR-008、CR-011、CR-NFR-001、CR-NFR-002；Chrome の isolated world 制約                              | 上流根拠あり。秘密情報の分離は共通要件、Web ページと拡張機能コンテキストの分離は外部制約および責任境界に基づく。                                                                                                                                           |
+| BR-007 | Concept Sheet 6.3、11、13；共通要件 CR-003、CR-010、CR-NFR-003、CR-NFR-009、CR-NFR-010、CR-NFR-011；Chrome の lifecycle 制約        | 上流根拠あり。承認の再利用防止は共通要件、実行コンテキストの停止・再生成は外部制約に基づく。具体的な状態保存方式は下流。                                                                                                                                   |
+| BR-008 | Concept Sheet 6.3、11；共通要件 CR-NFR-003、CR-NFR-008、CR-NFR-009、CR-NFR-010、CR-NFR-011；Chrome の navigation / tab / frame 制約 | 上流根拠あり。要求と承認の対応維持は共通要件、ブラウザコンテキストの変化は外部制約に基づく。受付範囲は `BR-OPEN-002`。                                                                                                                                     |
+| BR-009 | Concept Sheet 9、13；共通要件 CR-008、CR-013、共通要件 §2.3；`symbol-nem-wallet-core` 外部契約                                      | 上流根拠・外部契約あり。共通要件 §2.3 は wallet-core の採用と責任範囲を明示する。Profile backup の必須性は本行の根拠に含めない。                                                                                                                           |
+| BR-010 | Concept Sheet 13；Chrome の権限モデルと security guidance                                                                           | 外部資料による security guidance あり。最小権限の原則は確認できるが、現在の MUST 強度を Chrome が強制するとは主張しない。前回依頼で維持指定された既存要求であり、個別 permission の必須性・一覧と要求強度は正式判断が必要。                                |
+| BR-011 | Concept Sheet 11、13；共通要件 CR-NFR-001、CR-NFR-002、CR-NFR-007；Chrome のコード実行・コンテンツ保護制約                          | 上流根拠・外部制約あり。未検証入力を信頼しない共通原則と Chrome の XSS / remote code 対策に基づく。具体的な CSP 等は下流。                                                                                                                                 |
+| BR-012 | Concept Sheet 11、13；共通要件 CR-010、CR-NFR-003、CR-NFR-004、CR-NFR-009；Chrome の update lifecycle                               | 上流原則はあり。安全側終了・対象一致は上流要件、更新 lifecycle は外部制約から確認できるが、更新時の既存状態置換禁止・互換性確認までは直接導出できない。前回依頼で維持指定された既存要求であり、正式採用の判断が必要。                                      |
+| BR-013 | Concept Sheet 12、14、15；共通要件 CR-NFR-006                                                                                       | 上流根拠あり。Mainnet gate と gate 未達成時の無効化は Concept Sheet と共通要件に明記されている。                                                                                                                                                           |
+| BR-014 | Concept Sheet 13；共通要件 CR-013、CR-014；`symbol-nem-wallet-core` 外部契約                                                        | 秘密情報保護・責任境界・個別 platform での backup 許容は上流根拠あり。ただし Browser Extension milestone / release で backup export / import を必須提供する部分は上流根拠未確認で、前回依頼で維持指定された既存要求。正式採用・OPEN 化・削除の判断が必要。 |
 
 下流: 各 BR の API、schema、表示詳細、Manifest、Storage、内部通信、状態遷移、wallet-core 統合、backup format、migration、rollback、release operation は、要求を満たす後続仕様・設計で定める。
 
