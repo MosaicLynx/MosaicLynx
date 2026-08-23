@@ -236,7 +236,7 @@ Profile 全体の backup / restore、export / import、Profile ID の重複判�
 
 Browser Extension など個別 milestone / release でこれらの機能を提供することは妨げない。提供する場合の Application と wallet-core の責任分担、Wallet Store の扱い、復元範囲および具体方式は、その platform の要件・仕様で定める。Profile 全体の backup / restore を wallet-core の責任とすることは、本書で定義しない。
 
-根拠: `CR-013`、コンセプト 10。下流: `docs/requirements/browser-extension.md`、`docs/specifications/product-spec.md`、`docs/specifications/profile-account-spec.md`。
+根拠: `CR-013`、コンセプト 10。下流: `docs/requirements/browser-extension.md` の `BR-014`、`docs/specifications/product-spec.md`、`docs/specifications/profile-account-spec.md`。
 
 ## 6. 共通の非機能・セキュリティ要求
 

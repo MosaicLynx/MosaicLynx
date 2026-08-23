@@ -101,7 +101,7 @@ top-level frame 以外、sandbox、opaque origin、特殊 scheme 等をどの範
 
 Profile の管理、Account の表示・選択・関連付けおよび dApp 権限は Extension / Application の責任とする。`symbol-nem-wallet-core` の Wallet Store は opaque data として扱い、拡張機能側で内容を解釈・編集・再暗号化してはならない。鍵管理、秘密情報を使用する暗号処理および raw signing も wallet-core の責任とし、状態変更の保存、atomic な置換、破損・不整合時の扱いは wallet-core の契約と後続設計に従う。
 
-Profile と Wallet Store を同じ責任主体として扱ってはならない。Profile 全体の backup / restore は本書の共通 MUST とせず、その機能を提供する場合の責任分担と方式は後続の要件・仕様で決定する。
+Profile と Wallet Store を同じ責任主体として扱ってはならない。Profile 全体の backup / restore を共通要件に含めない扱いは `CR-014` に従い、Browser Extension での backup export / import は `BR-014` に定める。
 
 根拠: 共通要件 CR-008、CR-NFR-004。参考: `_snwc/README.md`、`_snwc/docs/specifications/wallet-store-format-v1.md`、`docs/architecture/architecture.md` 8。
 
@@ -129,6 +129,16 @@ Wallet Store の migration、旧版との互換性、更新失敗時の rollback
 
 共通の Mainnet 要求は `CR-NFR-006` と `OPEN-005` に従い、拡張ストア固有の審査・公開・更新条件は後続リリース設計で決定する。
 
+### BR-014 Profile backup export / import
+
+**MUST** Browser Extension の個別 milestone / release は、利用者が Profile の backup を export / import できる能力を提供しなければならない。
+
+本要求は Browser Extension 固有の要求であり、MosaicLynx v1 全体および全 Signer に共通する要求ではない。秘密情報の保護、Profile と Wallet Store の責任分担および wallet-core の利用は、共通要件 `CR-008`、`CR-013`、`CR-014` と wallet-core の契約に従わなければならない。
+
+backup format、保存方法、暗号方式、復元手順、merge / overwrite、migration などの具体方式は後続仕様で定める。
+
+根拠: 共通要件 `CR-014` および Extension MVP の既存対応範囲。下流: `docs/specifications/product-spec.md`、`docs/specifications/profile-account-spec.md`。
+
 ## 4. ブラウザ拡張機能の対象外
 
 - Web ページ内の dApp に秘密鍵、Mnemonic、Profile password を渡すこと。
@@ -140,15 +150,16 @@ Wallet Store の migration、旧版との互換性、更新失敗時の rollback
 
 ## 5. ブラウザ拡張機能の受け入れ条件
 
-| ID        | 受け入れ可能な状態                                                                                                 |
-| --------- | ------------------------------------------------------------------------------------------------------------------ |
-| BR-AC-001 | Web ページからの要求が、検証されたブラウザコンテキストと接続許可に対応付けられてから確認 UI に到達する。           |
-| BR-AC-002 | Web ページまたは content script から秘密情報、署名権限、Wallet Store を直接取得できない。                          |
-| BR-AC-003 | 利用者が拡張機能管理下の確認 UI で Origin、署名対象、Chain、Network、Account、影響を確認し、承認または拒否できる。 |
-| BR-AC-004 | ページ遷移、tab/frame、拡張機能実行領域の再起動などにより要求の対応が失われた場合、署名が自動継続されない。        |
-| BR-AC-005 | 未許可 Origin、対象不一致、検証失敗、未対応要求が署名されず、安全側に終了する。                                    |
-| BR-AC-006 | 拡張機能の更新、保存エラー、wallet-core の失敗時に、既存の秘密情報・Profile・署名責任境界が無断で変更されない。    |
-| BR-AC-007 | Mainnet gate 未達成の build が Mainnet 署名可能な状態で配布されない。                                              |
+| ID        | 受け入れ可能な状態                                                                                                                             |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| BR-AC-001 | Web ページからの要求が、検証されたブラウザコンテキストと接続許可に対応付けられてから確認 UI に到達する。                                       |
+| BR-AC-002 | Web ページまたは content script から秘密情報、署名権限、Wallet Store を直接取得できない。                                                      |
+| BR-AC-003 | 利用者が拡張機能管理下の確認 UI で Origin、署名対象、Chain、Network、Account、影響を確認し、承認または拒否できる。                             |
+| BR-AC-004 | ページ遷移、tab/frame、拡張機能実行領域の再起動などにより要求の対応が失われた場合、署名が自動継続されない。                                    |
+| BR-AC-005 | 未許可 Origin、対象不一致、検証失敗、未対応要求が署名されず、安全側に終了する。                                                                |
+| BR-AC-006 | 拡張機能の更新、保存エラー、wallet-core の失敗時に、既存の秘密情報・Profile・署名責任境界が無断で変更されない。                                |
+| BR-AC-007 | Mainnet gate 未達成の build が Mainnet 署名可能な状態で配布されない。                                                                          |
+| BR-AC-008 | Profile の backup export / import が利用でき、失敗時に既存の Profile、Wallet Store、署名可能状態が意図せず変更されず、秘密情報も公開されない。 |
 
 ## 6. ブラウザ固有の未決事項
 
