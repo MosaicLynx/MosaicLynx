@@ -2,7 +2,7 @@
   "name": "mosaiclynx",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@11.13.0",
+  "packageManager": "pnpm@11.22.0",
   "scripts": {
     "build": "pnpm -r build",
     "build:extension": "pnpm --filter @mosaiclynx/extension build",
