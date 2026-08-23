@@ -4,9 +4,9 @@
 
 本書は、MosaicLynx の Chrome Extension（Manifest V3）、Web ページ向け MosaicLynx SDK、将来の React Native / Expo アプリで共有できるアーキテクチャを定義する。
 
-プロダクト要件は [Product Specification](./product-spec.md) に定義する。
-Web ページから Extension または Mobile App へトランザクションを渡す仕様は [Web Transaction Handoff Specification](./web-transaction-handoff-spec.md) に定義する。
-鍵導出、network constant、transaction schema、署名 byte 列は [Chain Compatibility Specification](./chain-compatibility-spec.md) に定義する。
+プロダクト要件は [Product Specification](../specifications/product-spec.md) に定義する。
+Web ページから Extension または Mobile App へトランザクションを渡す仕様は [Web Transaction Handoff Specification](../specifications/web-transaction-handoff-spec.md) に定義する。
+鍵導出、network constant、transaction schema、署名 byte 列は [Chain Compatibility Specification](../specifications/chain-compatibility-spec.md) に定義する。
 
 ## 2. アーキテクチャ原則
 

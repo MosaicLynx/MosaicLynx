@@ -30,7 +30,7 @@ pnpm --filter @mosaiclynx/mobile build
 pnpm evidence:mobile
 ```
 
-アプリはSymbol / NEM Testnetの署名だけを行い、残高・履歴・node接続・transaction announceには対応しません。Mainnet capabilityとproduction OTA updateはbuild時に固定で無効です。Store公開前のdomain、署名証明書、実機試験については[Mobile release guide](./docs/mobile-store-release.md)を参照してください。
+アプリはSymbol / NEM Testnetの署名だけを行い、残高・履歴・node接続・transaction announceには対応しません。Mainnet capabilityとproduction OTA updateはbuild時に固定で無効です。Store公開前のdomain、署名証明書、実機試験については[Mobile release guide](./docs/mobile/mobile-store-release.md)を参照してください。
 
 ### Transfer テストページ
 
@@ -67,6 +67,6 @@ SDK は Provider API v2 の拡張機能を優先し、対応モバイル環境�
 - Vault は Argon2id（64 MiB、3 iterations、parallelism 1）と AES-256-GCM を使用します。
 - 秘密情報の復号と署名は、ユーザーが操作する承認ページ内でだけ行います。Service Worker と Web ページへパスワード／秘密鍵を渡しません。
 - transaction は固定版 `@nemnesia/symbol-sdk 3.3.2-pure.2` で decode、allowlist 検証、canonical 再シリアライズ、署名、署名後検証します。
-- Mainnet 署名は `docs/product-spec.md` 19章の release evidence が未導入のため、開発 build では fail-closed で無効です。
+- Mainnet 署名は `docs/specifications/product-spec.md` 19章の release evidence が未導入のため、開発 build では fail-closed で無効です。
 - Mobile Testnet版はMainnet要求／Mainnet backupを`UNAVAILABLE`相当で拒否し、network切替やfallbackを行いません。
 - Chrome Extension は Software Vault であり、ハードウェアウォレット、コールドウォレット、企業カストディ相当ではありません。

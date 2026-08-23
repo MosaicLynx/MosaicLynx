@@ -2,10 +2,7 @@ node_modules/
 .DS_Store
 .env
 *.log
-_*
 .venv/
-.agents
-.codex
 
 dist
 coverage

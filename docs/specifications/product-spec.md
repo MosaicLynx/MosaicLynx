@@ -4,7 +4,7 @@
 
 本書は、MosaicLynx の最初の提供形態である Chrome 拡張機能のプロダクト仕様を定義する。
 
-実装方式と責務分担は [Architecture](./architecture.md) に定義する。
+実装方式と責務分担は [Architecture](../architecture/architecture.md) に定義する。
 Web ページから Extension または Mobile App へトランザクションを渡す MosaicLynx SDK と Relay の仕様は [Web Transaction Handoff Specification](./web-transaction-handoff-spec.md) に定義する。
 鍵導出、対応 transaction schema、network constant、署名 byte 列の固定契約は [Chain Compatibility Specification](./chain-compatibility-spec.md) に定義する。
 
@@ -700,7 +700,7 @@ MVP は単独ユーザーによるローカル承認型であり、それだけ�
 
 ## 19. Mainnet release evidence
 
-> 初期の個人開発リリースでは、[ADR 0001](./adr/0001-mainnet-evidence-lite.md) と `docs/evidence-policy.json` を正本とするLite policyを適用する。以下の二名承認、再現build、監査、fuzz、key ceremonyの詳細要件はstrict policyへ移行する際の必須条件であり、Liteではmanifest上で `not-required` と明示する。Mainnetを無条件に有効化してよいことを意味しない。
+> 初期の個人開発リリースでは、[ADR 0001](../adr/0001-mainnet-evidence-lite.md) と `docs/evidence/evidence-policy.json` を正本とするLite policyを適用する。以下の二名承認、再現build、監査、fuzz、key ceremonyの詳細要件はstrict policyへ移行する際の必須条件であり、Liteではmanifest上で `not-required` と明示する。Mainnetを無条件に有効化してよいことを意味しない。
 
 Mainnet署名機能はExtensionとMobileで個別にgateし、次の証跡が一つでも欠落、期限切れ、hash不一致、未承認の場合はbuild時にMainnet capabilityを無効化する。Testnet合格、Store審査通過、開発者の自己申告を代替証跡にしない。release managerは次の正本をread-only artifact storeへ保存し、署名済み`evidence-manifest.json`から全fileのSHA-256を参照する。
 

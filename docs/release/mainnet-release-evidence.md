@@ -4,7 +4,7 @@ Mainnet capability is fail-closed for each platform. A build embeds `true` only 
 
 ## Lite policy
 
-`docs/evidence-policy.json` is the checked-in policy. Lite requires a clean tagged commit, a source archive, Extension artifact, lockfile, SBOM, Symbol SDK integrity, compatibility versions, successful unit/integration/E2E reports, and one release approval. Manifest and all required evidence expire after 30 days. Optional audit, reproducible-build, differential, and fuzz entries must be marked `not-required` when absent.
+`docs/evidence/evidence-policy.json` is the checked-in policy. Lite requires a clean tagged commit, a source archive, Extension artifact, lockfile, SBOM, Symbol SDK integrity, compatibility versions, successful unit/integration/E2E reports, and one release approval. Manifest and all required evidence expire after 30 days. Optional audit, reproducible-build, differential, and fuzz entries must be marked `not-required` when absent.
 
 The policy's `trustedKeys` maps key IDs to base64 DER/SPKI Ed25519 public keys. Private PKCS#8 PEM signing keys are intentionally never stored in this repository.
 
