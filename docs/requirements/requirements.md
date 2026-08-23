@@ -1,8 +1,8 @@
-# MosaicLynx 共通要件定義書（たたき台）
+# MosaicLynx 共通要件定義書
 
 ## 1. 文書の目的と位置付け
 
-本書は、[MosaicLynx Concept Sheet](../concept/concept-sheet.md) に基づき、ブラウザ拡張機能とスマホアプリのどちらにも適用する共通要求を整理するたたき台である。
+本書は、[MosaicLynx Concept Sheet](../concept/concept-sheet.md) に基づき、ブラウザ拡張機能とスマホアプリのどちらにも適用する共通要求を定める。
 
 プラットフォーム固有の要求は、次の文書へ分離する。
 
@@ -10,7 +10,7 @@
 - [スマホアプリ要件](./mobile-app.md)
 - [Relay 要件](./relay.md)
 
-本書は、API、データ形式、暗号アルゴリズム、クラス、画面レイアウト、状態遷移、実装ライブラリを確定しない。既存仕様書は下流の具体化先または整合確認資料として参照し、コンセプトと整合しない記述は未決事項または下流整合事項として扱う。
+本書は、API、データ形式、暗号アルゴリズム、クラス、画面レイアウト、状態遷移、実装ライブラリを確定しない。既存仕様書は下流の具体化先または整合確認資料として参照する。
 
 ### 1.1 要求の表記
 
@@ -42,7 +42,7 @@ MosaicLynx は、Symbol / NEM の dApp を利用する一般ユーザーが、�
 | 運用者                   | 提供環境、公開 build、リリースに必要な証跡を管理する関係者。                                    |
 | `symbol-nem-wallet-core` | 鍵管理、Wallet Store、秘密情報を使用する暗号処理、raw byte signing の正本となるコンポーネント。 |
 
-組織利用、カストディ利用、企業向け監査・統制は MosaicLynx v1 の第一対象ではない。将来の保証範囲は `FUTURE-001` として保留し、現在の要件定義や v1 完了の blocker としない。
+組織利用、カストディ利用、企業向け監査・統制は MosaicLynx v1 の第一対象ではない。将来の保証範囲は `FUTURE-001` として保留し、v1 の進行・完了を妨げない。
 
 ## 3. v1、milestone、release の共通境界
 
@@ -55,7 +55,7 @@ MosaicLynx は、Symbol / NEM の dApp を利用する一般ユーザーが、�
 
 実施順序は上記の順で固定し、Relay milestone の完了を MosaicLynx v1 全体の完了とする。各 milestone は個別の milestone / release 単位として扱える。`Extension MVP` などの個別 release 名称を MosaicLynx v1 全体と同義にしない。
 
-共通の安全な署名判断と責任境界は、各 milestone で維持する。各 milestone の外部要求、個別完了条件、次 milestone へ進む条件、依存関係は `OPEN-003` で決定する。実施順序は未決事項ではない。
+共通の安全な署名判断と責任境界は、各 milestone で維持する。各 milestone の外部要求、個別完了条件、次 milestone へ進む条件、依存関係は `OPEN-003` で定める。
 
 ### Signer と Relay の適用主体
 
@@ -69,7 +69,7 @@ Relay milestone の完了条件は、Relay 自身が利用者判断や署名を�
 
 ### 4.1 共通で提供する能力
 
-MosaicLynx 全体は、プラットフォームにかかわらず、少なくとも次の能力を提供しなければならない。以下のうち、解析・表示・承認・拒否・署名を直接担うのは Signer であり、Relay はそれらを実行せず、受け渡しによって安全条件を迂回させない。
+MosaicLynx 全体は、プラットフォームにかかわらず、少なくとも次の能力を提供しなければならない。各能力の主体と責任は第3節および CR-011 に従う。
 
 - dApp からのメッセージまたはトランザクションの署名要求を受け付ける。
 - transaction signing と message signing を、ブラウザ拡張機能、Android、iOS の各 Signer に共通する署名操作として提供する。
@@ -89,13 +89,13 @@ MosaicLynx 全体は、プラットフォームにかかわらず、少なくと
 - 秘密情報を利用できない状態では署名してはならない。
 - dApp へ公開する情報は利用者が許可した公開情報に限定し、秘密鍵や Mnemonic を公開してはならない。
 
-MosaicLynx / Application は、アプリケーション上の Profile、Account の表示・選択・関連付け、Chain / Network 設定、dApp 権限、UI、platform integration および wallet-core を利用する orchestration を担当する。`symbol-nem-wallet-core` は、鍵管理、Wallet Store、秘密情報を使用する暗号処理、raw byte signing を担当する。両者を同じ責任主体として扱ってはならない。
+MosaicLynx / Application と `symbol-nem-wallet-core` の責任境界は CR-013 に従い、両者を同じ責任主体として扱ってはならない。
 
 `symbol-nem-wallet-core` が Wallet Store 内部の Profile 単位で操作する場合も、それを MosaicLynx / Application の Profile 全体の管理責任とは扱わない。Profile 全体の backup / restore、export / import、migration、merge / overwrite および保存方法は、MosaicLynx v1 の共通 MUST または共通完了条件として確定しない。これらの責任分担と具体方式は、将来その機能を扱う段階で決定する。
 
 ## 5. 共通機能要求
 
-要求見出しの括弧内は主な適用主体を示す。各要求の `根拠:` は上位の価値・判断・契約、`下流:` は既存または後続の具体化先、`参考:` は補助資料を示す。これは完全な traceability matrix ではなく、主要要求を上流根拠と必要な下流資料へ追跡するための最小限の記録である。
+要求見出しの括弧内は主な適用主体を示し、各要求には必要に応じて `根拠:`、`下流:`、`参考:` を記載する。
 
 ### CR-001 署名要求の受付（Signer / End-to-End）
 
@@ -109,7 +109,7 @@ MosaicLynx / Application は、アプリケーション上の Profile、Account 
 
 トランザクションは、対応範囲内の全体を確認できるように解析し、資産移動、権限変更、その他の状態変更に関わる情報を確認できない場合は署名へ進めてはならない。
 
-具体的な表示項目、transaction type ごとの表示、raw data の表現は後続仕様で決定する。表示できない情報を利用者の自己責任で補完させてはならない。
+表示項目、transaction type ごとの表示および raw data の表現は後続仕様で定める。表示できない情報を利用者の自己責任で補完させてはならない。
 
 根拠: コンセプト 3、4、6.2、11。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/specifications/product-spec.md` の署名確認仕様。
 
@@ -133,7 +133,7 @@ MosaicLynx / Application は、アプリケーション上の Profile、Account 
 
 **MUST** Symbol と NEM、Mainnet と Testnet をそれぞれ区別し、要求、Account、Profile、署名対象の整合性を確認しなければならない。
 
-具体的な transaction schema、署名 byte 列、鍵導出、network constant は `docs/specifications/chain-compatibility-spec.md` および後続仕様で管理する。
+transaction schema、署名 byte 列、鍵導出、network constant は `docs/specifications/chain-compatibility-spec.md` および後続仕様で定める。
 
 根拠: コンセプト 8、11、12。
 
@@ -143,7 +143,7 @@ MosaicLynx / Application は、アプリケーション上の Profile、Account 
 
 **MUST** 署名結果が元の要求、対象チェーン、対象ネットワーク、署名者と対応していることを確認できる形で返さなければならない。dApp は受け取った署名結果を独立して確認し、必要なネットワーク処理を自ら行う。
 
-結果の具体的な型、データ形式、エラー表現は後続仕様で決定する。MosaicLynx は dApp に代わって announce してはならない。
+結果の型、データ形式、エラー表現は後続仕様で定める。MosaicLynx は dApp に代わって announce してはならない。
 
 根拠: コンセプト 6.4、7、9、11、13、14。下流: `docs/specifications/web-transaction-handoff-spec.md`、`docs/requirements/relay.md`。
 
@@ -168,11 +168,11 @@ dApp は、Browser Extension、Android、iOS の提供形態または transport 
 
 利用者が確認した message と実際に署名へ渡す内容が一致しなければならず、表示後に message が変更された場合は署名してはならない。Signer が安全に解釈できない message format、解釈不能・表示不能な message、対象外の message を、警告だけで署名させてはならない。raw bytes を利用者が理解できない状態のまま blind signing してはならず、raw bytes の羅列だけを表示して確認可能と扱ってはならない。
 
-対応する message format の範囲、表示・解釈の具体的な規則は後続の message signing / SSO / handoff 仕様で決定する。UTF-8、JSON、CBOR、schema、MIME type、prefix、domain separator、challenge、nonce、timestamp、canonicalization、encoding、SSO protocol、OAuth / OIDC その他の具体方式は本要求で確定しない。既存の `docs/specifications/web-transaction-handoff-spec.md` に message signing を対象外とする記述があるため、本要件で確定した v1 共通 MUST を優先し、仕様側は後続工程で整合させる。
+対応する message format の範囲、表示・解釈規則、format・encoding・canonicalization・認証用途 protocol の具体方式は、後続の message signing / SSO / handoff 仕様で定める。
 
-API 名、関数名、引数、payload、transport、result type、error code および fallback の具体形式は後続仕様へ委ねる。利用者拒否、未対応 operation / format、検証不能その他の安全側失敗を、別の署名操作の成功として返してはならない。
+API、payload、transport、result / error および fallback の具体方式は後続仕様で定める。利用者拒否、未対応 operation / format、検証不能その他の安全側失敗を、別の署名操作の成功として返してはならない。
 
-根拠: コンセプト 2、3、4、5、7、8。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/specifications/product-spec.md`、`docs/specifications/web-transaction-handoff-spec.md`。message signing の既存仕様との差異は後続整合事項として扱う。
+根拠: コンセプト 2、3、4、5、7、8。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/specifications/product-spec.md`、`docs/specifications/web-transaction-handoff-spec.md`。
 
 ### CR-008 秘密情報の分離
 
@@ -186,7 +186,7 @@ API 名、関数名、引数、payload、transport、result type、error code �
 
 **MUST** 利用者が署名に用いる Account を確認・選択でき、dApp へ公開する Account の範囲を利用者の許可なしに拡大してはならない。
 
-接続許可の識別単位、公開情報の具体的な契約、Account の表示方法は後続仕様で決定する。
+接続許可の識別単位、公開情報の契約、Account の表示方法は下流仕様で定める。
 
 根拠: コンセプト 5、7、11、13。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/specifications/product-spec.md` の接続許可仕様。
 
@@ -214,7 +214,7 @@ API 名、関数名、引数、payload、transport、result type、error code �
 
 **MUST** 拒否、未対応 operation / format、要求元・許可範囲不一致、要求内容不一致、期限切れ、replay / duplicate 等による拒否、Chain / Network / Account 不一致、解析・表示不能、検証失敗、認証失敗、利用不能、wallet-core 失敗など、署名を完了できない場合に、署名結果を成功または別の署名操作の成功として返してはならない。dApp が成功とこれらの失敗を区別して安全に処理できる結果を返し、秘密情報や過剰な内部情報を含めてはならない。
 
-失敗の分類、公開エラーコード、再試行条件は後続仕様で決定する。
+失敗の分類、公開エラーコード、再試行条件は後続仕様で定める。
 
 根拠: `CR-001`、`CR-006`、`CR-010`、`CR-011` およびコンセプト 8、14。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/specifications/web-transaction-handoff-spec.md`。
 
@@ -222,9 +222,9 @@ API 名、関数名、引数、payload、transport、result type、error code �
 
 **MUST** `symbol-nem-wallet-core` を、鍵管理、Wallet Store、秘密情報を使用する暗号処理および raw byte signing の正本として扱わなければならない。MosaicLynx / Application は、Profile、Account の表示・選択・関連付け、Chain / Network 設定、dApp 接続・権限、UI、利用者の承認・拒否、platform integration、Relay 連携および署名処理の orchestration を担当しなければならない。
 
-既存 TypeScript 実装のうち wallet-core と責任が重複する処理を正本として扱ってはならない。ただし、transaction / message の解析、Symbol / NEM の表示用変換、UI、dApp 接続・権限管理、platform 固有処理、Relay 連携その他の Application 層の処理は、wallet-core の責任外として MosaicLynx 側に残す。
+既存 TypeScript 実装のうち wallet-core と責任が重複する処理を正本として扱ってはならない。transaction / message の解析、Symbol / NEM の表示用変換、UI、dApp 接続・権限管理、platform 固有処理、Relay 連携その他の Application 層の処理は、wallet-core の責任外として MosaicLynx 側に残す。
 
-wallet-core の API、Binding、FFI、WASM / Native、React Native 連携、既存実装からの移行手順および error mapping の具体方式は後続設計へ委ねる。
+wallet-core の統合方式、Binding、FFI、WASM / Native、React Native 連携、移行手順および error mapping は後続設計で定める。
 
 根拠: コンセプト 9、13。参考（外部コンポーネント契約）: `_snwc/docs/requirements/requirements.md`、`_snwc/docs/specifications/specification.md`、`_snwc/docs/decisions/binding-implementation.md`。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`。
 
@@ -232,7 +232,7 @@ wallet-core の API、Binding、FFI、WASM / Native、React Native 連携、既�
 
 **MUST NOT** Profile 全体の backup / restore、export / import、Profile ID の重複判定、merge / overwrite、migration、backup password または backup の保存方法を、MosaicLynx v1 の共通 MUST または共通完了条件として扱ってはならない。
 
-将来 Profile backup 機能を扱う場合の Application と wallet-core の責任分担、Wallet Store の扱い、復元範囲および具体方式は、その機能を対象とする後続の要件・仕様で決定する。既存仕様書に記載された Profile 全体 backup / restore は、現時点の MosaicLynx v1 共通要求へ自動的に取り込まない。
+将来 Profile backup 機能を扱う場合の Application と wallet-core の責任分担、Wallet Store の扱い、復元範囲および具体方式は、その機能を対象とする要件・仕様で定める。Profile 全体 backup / restore は、本書の v1 共通要求へ含めない。
 
 根拠: `CR-013`、`FUTURE-001` およびコンセプト 10。下流: `docs/specifications/profile-account-spec.md` は将来機能または再検討対象として整合させる。
 
@@ -254,7 +254,7 @@ wallet-core の API、Binding、FFI、WASM / Native、React Native 連携、既�
 
 **MUST** 署名直前に、利用者が確認・承認した対象と、実際に署名へ渡す対象の対応を確認できなければならない。確認後に対象が変化した場合は署名してはならない。
 
-具体的な revision、digest、request ID、timeout、状態遷移は後続仕様で決定する。
+revision、digest、要求識別、timeout および状態遷移の具体方式は後続仕様で定める。
 
 根拠: コンセプト 6.2、6.3、11、13。参考: `_snwc/README.md` の「表示対象と署名対象の同一性」。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/specifications/product-spec.md` の署名確認仕様。
 
@@ -286,13 +286,13 @@ wallet-core の stable error code、warning、Binding 契約の詳細は wallet-
 
 gate 未達成または判定不能な状態で Mainnet を有効化してはならず、fail-open を許可してはならない。
 
-Mainnet release policy に関する資料は、次の役割で相互補完的に扱う。
+Mainnet release policy は、次の資料で管理する。
 
-- `docs/adr/0001-mainnet-evidence-lite.md`: 初期 Mainnet release で Lite gate を採用する意思決定、single-maintainer project における理由および strict policy への移行方針を記録する。すべての gate 項目を機械判定する単独の正本とはしない。
-- `docs/evidence/evidence-policy.json`: mode、required approvals、evidence age、trusted keys その他の evaluator が読む policy parameter を管理する。単体で Mainnet gate 全体の唯一の正本とはしない。
+- `docs/adr/0001-mainnet-evidence-lite.md`: 初期 Mainnet release で Lite gate を採用する意思決定、single-maintainer project における理由および strict policy への移行方針を記録する。
+- `docs/evidence/evidence-policy.json`: mode、required approvals、evidence age、trusted keys その他の evaluator が読む policy parameter を管理する。
 - `docs/release/mainnet-release-evidence.md`: 現在の release policy における evidence 要求、収集・署名・検証、fail-closed、recovery / key revocation および strict migration の operational reference とする。
 
-具体的な evidence 項目、policy parameter、検証手順および実装方式は、これらの承認済み資料と後続の release / security operation で管理する。
+evidence 項目、policy parameter、検証手順および実装方式は、これらの資料と後続の release / security operation で定める。
 
 根拠: コンセプト 12、14、15。決定: `docs/adr/0001-mainnet-evidence-lite.md`。下流: `docs/evidence/evidence-policy.json`、`docs/release/mainnet-release-evidence.md`。
 
@@ -300,7 +300,7 @@ Mainnet release policy に関する資料は、次の役割で相互補完的に
 
 **MUST** 署名確認の提示は、一般ユーザーが要求を理解・確認し、承認または拒否できるものでなければならない。Signer が確認できない内容を、ユーザーの自己責任だけで補完させてはならない。
 
-表示レイアウト、文言、支援技術、表示の詳細粒度はプラットフォーム要件・利用者検証・後続仕様で決定する。
+表示レイアウト、文言、支援技術および表示の詳細粒度は、プラットフォーム要件・利用者検証・後続仕様で定める。
 
 根拠: コンセプト 3、4、6.2、6.3、11。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/specifications/product-spec.md` の署名確認仕様。
 
@@ -308,7 +308,7 @@ Mainnet release policy に関する資料は、次の役割で相互補完的に
 
 **MUST** Signer は、署名要求が許可した要求元、現在有効な接続、現在有効な署名セッションまたは許可された権限範囲のうち、適用されるコンテキストと対応していることを確認できなければならない。対応を確認できない要求は署名してはならない。
 
-すべての dApp に暗号学的な本人認証を必須化することは本要求に含めない。Browser Extension の Origin・Provider connection、Mobile / Relay の handoff session などの具体方式は後続仕様で決定する。Relay はこの対応関係を独自に解釈・承認せず、別の要求元・セッション・権限範囲へ置換してはならない。
+すべての dApp に暗号学的な本人認証を必須化することは本要求に含めない。Browser Extension の Origin・Provider connection、Mobile / Relay の handoff session などの具体方式は後続仕様で定める。Relay はこの対応関係を独自に解釈・承認せず、別の要求元・セッション・権限範囲へ置換してはならない。
 
 根拠: コンセプト 3、4、5、11、13。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/specifications/web-transaction-handoff-spec.md`。
 
@@ -316,7 +316,7 @@ Mainnet release policy に関する資料は、次の役割で相互補完的に
 
 **MUST** 利用者が確認・承認した要求と、実際に署名する対象が一致していなければならない。要求の改ざん、差し替え、承認後の内容変更、別要求との取り違え、別 Account / Chain / Network への置換を検出または確認できない場合は署名してはならない。
 
-具体的な digest、request ID、署名、MAC その他の方式は後続仕様へ委ねる。Relay では `RR-003`、`RR-005` および `RR-007` と整合させる。
+完全性確認と要求識別の具体方式は後続仕様で定め、Relay では `RR-003`、`RR-005` および `RR-007` と整合させる。
 
 根拠: コンセプト 3、6.2、6.3、11、13。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`。
 
@@ -324,7 +324,7 @@ Mainnet release policy に関する資料は、次の役割で相互補完的に
 
 **MUST** Signer は、期限切れ、失効済みまたは現在の署名処理として有効でない要求を署名してはならない。Relay の復旧や再配送によって、無効な要求を有効な要求として扱ってはならない。
 
-具体的な TTL、期限値、失効条件および timestamp の形式は後続仕様へ委ねる。Relay では `RR-004` および `RR-006` と整合させる。
+鮮度管理の具体方式は後続仕様で定め、Relay では `RR-004` および `RR-006` と整合させる。
 
 根拠: コンセプト 3、6.3、11。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`。
 
@@ -332,7 +332,7 @@ Mainnet release policy に関する資料は、次の役割で相互補完的に
 
 **MUST** 古い要求の replay、使用済み要求の再利用、同一要求の重複配送、ネットワークまたは Relay による重複、遅延した要求の後着、過去セッションの要求の再出現によって、追加の署名が発生してはならない。
 
-具体的な nonce、request ID、保存方式および状態管理方式は後続仕様へ委ねる。Relay では `RR-006` および `RR-007` と整合させる。
+再利用防止・重複排除・状態管理の具体方式は後続仕様で定め、Relay では `RR-006` および `RR-007` と整合させる。
 
 根拠: コンセプト 3、6.3、11、13。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`。
 
@@ -340,7 +340,7 @@ Mainnet release policy に関する資料は、次の役割で相互補完的に
 
 **MUST** 署名結果は、元の署名要求、署名者、Account、Chain および Network に対応していることを確認できなければならない。dApp は受け取った署名結果を独立して検証し、Relay または Provider が成功を返したことだけを署名結果の正当性の根拠としてはならない。
 
-具体的な結果形式、対応付け方式および error code は後続仕様へ委ねる。Relay では `RR-002`、`RR-005` および `RR-007` と整合させる。
+結果の形式・対応付け・error の具体方式は後続仕様で定め、Relay では `RR-002`、`RR-005` および `RR-007` と整合させる。
 
 根拠: コンセプト 6.4、7、9、11、13。下流: `docs/requirements/relay.md`、`docs/specifications/web-transaction-handoff-spec.md`、各 platform の署名結果受け入れ条件。
 
@@ -360,7 +360,7 @@ MosaicLynx v1 の共通対象外は次のとおりとする。
 
 ## 8. 共通の成功条件・受け入れ条件
 
-MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の分離、提供形態間の責任境界が確認できた状態を成功とする。以下は主要な MUST と、適用主体、成功時に外部または責任境界から確認できる状態、拒否・失敗時の安全側結果を対応付ける最小限の traceability である。個別テストケース、テストデータ、証拠形式および UI 操作手順は後続工程で定義する。
+MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の分離、提供形態間の責任境界が確認できた状態を成功とする。主要な要求の受入条件を以下に示す。
 
 | 受入 ID   | 関連要求                                       | 適用主体                           | 成功時に確認できる状態                                                                                                                                                                               | 拒否・失敗時に確認できる安全側結果                                                                                                                        |
 | --------- | ---------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -387,13 +387,13 @@ MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の
 
 - 論点: 一般ユーザーが署名対象と秘密情報の境界を判断しにくいという課題が、どの場面でどの程度発生しているか。また、現在どのような手段で回避されているか。
 - 扱い: 既存手段、想定利用場面、課題仮説を可能な範囲で確認する。未確認部分は検証前の仮説として追跡し、必要に応じて要件定義中および初期 milestone でも検証する。未完了であることだけを理由に要件定義全体を停止しない。
-- 影響: 根拠不足の仮説を確定要求へ昇格させる前に、根拠状態を追跡する。
+- 引継ぎ: 課題仮説の検証結果を、要求の根拠と区別して扱う。
 
 ### OPEN-002：一般ユーザーが必要とする確認情報
 
 - 論点: 一般ユーザーが署名判断を完了するために、どの情報を確認できる必要があるか。
-- 扱い: 要件では署名対象、チェーン、ネットワーク、影響の確認を求める。表示項目、表示粒度、transaction type 別の内容は利用者検証と後続仕様で決定する。
-- 影響: `CR-002`、`CR-NFR-007`、`CR-AC-001` の具体化に影響する。
+- 扱い: 署名対象、チェーン、ネットワーク、影響の確認を求める。表示項目、表示粒度、transaction type 別の内容は利用者検証と後続仕様で定める。
+- 引継ぎ: `CR-002`、`CR-NFR-007`、`CR-AC-001` を具体化する。
 
 ### OPEN-003：4 milestone の個別完了条件
 
@@ -405,43 +405,37 @@ MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の
 
 - 確定済み: Mainnet release gate は存在し、初期 Mainnet release には ADR 0001 で Lite gate が採用されている。適用される current release policy / evidence policy に従い、gate 未達成または判定不能の場合は Mainnet を有効化しない。
 - 論点: 確定済みの gate を、将来の release approval の具体的運用、CI/CD への組み込み、evidence の保存・配布、policy evaluator の実装、checklist / runbook、strict policy への移行時期・手順、team 化後の approver 分離および policy 改訂へどう反映するか。
-- 扱い: 上記の運用・実装・将来改訂は後続の release / security operation で決定する。Mainnet gate の存在、適用 policy、fail-closed および Testnet-only 継続可能性は未決事項へ戻さない。
+- 引継ぎ: 上記の運用・実装・将来改訂は、後続の release / security operation で定める。
 
 ### FUTURE-001：組織向け監査・統制・カストディ保証の範囲
 
 - 現在の扱い: 組織利用、監査、統制、カストディ保証は MosaicLynx v1 の初期対象外とし、v1 の完了条件に含めない。
 - 将来の論点: 一般ユーザー向け提供の後、どこまで保証するか。
-- 扱い: 現在の要件定義や v1 の進行・完了を妨げず、将来の組織向け展開時に改めて判断する。具体的な機能、要件、設計、保証範囲は現在決定しない。
+- 扱い: v1 の進行・完了を妨げず、将来の組織向け展開時に改めて判断する。具体的な機能、要件、設計、保証範囲は定めない。
 
 ### CR-OPEN-001：wallet-core との具体的統合方式
 
 - 確定事項: `symbol-nem-wallet-core` は、鍵管理、Wallet Store、秘密情報を使用する暗号処理および raw byte signing の正本である。MosaicLynx / Application は Profile、表示・承認、dApp 接続・権限、platform integration、Relay 連携および orchestration を担当する。この責任境界自体は未決事項ではない。
 - 論点: 確定した責任境界を、各 platform から利用する具体的な API、Binding、FFI、WASM / Native、React Native 連携、既存 TypeScript 実装からの移行および error mapping へどう反映するか。
-- なぜ要件定義段階で決める必要があるか: 各 platform の署名実装へ進む前に、wallet-core の正本を二重実装せず、Application 層の処理だけを適切に接続する境界を設計へ引き継ぐ必要があるため。
-- 主な選択肢: wallet-core の既存 Binding を利用する、platform ごとの Binding を追加する、既存 TypeScript 実装から段階的に接続を移行する。具体的な採用方式は本書で決定しない。
-- 後続設計まで保留可能か: 具体的な統合方式、移行手順および error mapping は保留可能。ただし、wallet-core を正本とする責任境界を変更せずに設計する。
+- 下流への引継ぎ: 既存 Binding の利用、platform ごとの Binding の追加、既存 TypeScript 実装からの段階移行を含む具体的な統合方式、移行手順および error mapping は、wallet-core を正本とする責任境界を維持して設計で定める。
 
 ### CR-OPEN-002：wallet-core Binding と実行環境の責任境界
 
 - 論点: Browser Extension、iOS、Android から wallet-core を利用する Binding、秘密情報の一時的な受け渡し、OS保護機能との境界をどこに置くか。
-- なぜ要件定義段階で決める必要があるか: wallet-core の内部責任を上位アプリへ複製せず、各プラットフォームが秘密情報を継続保持・公開しないための受け入れ条件を明確にする必要がある。
-- 主な選択肢: wallet-core の既存 Native / WASM Binding を利用する、プラットフォームごとの Binding を追加する、Binding を含む配布境界を別途定める。具体的な方式は設計で決定する。
-- 後続設計まで保留可能か: Binding の具体方式は保留できる。各 platform の秘密情報ライフサイクルと失敗時の扱いは、当該 platform の詳細設計前に決定する。
+- 下流への引継ぎ: 既存 Native / WASM Binding の利用、platform ごとの Binding の追加、配布境界の設定を含む具体方式は設計で定める。各 platform の秘密情報ライフサイクルと失敗時の扱いは、当該 platform の詳細設計前に決定する。
 
 ## 10. 下流工程への引継ぎ
 
 1. `CR-OPEN-001` で、確定した責任境界に沿った wallet-core の具体的な統合方式を決定する。
 2. `CR-OPEN-002` で各 platform の Binding と秘密情報ライフサイクルの境界を決定する。
 3. Profile 全体の backup / restore は v1 共通要求へ取り込まず、将来その機能を扱う段階で Application と wallet-core の責任分担を決定する。
-4. `OPEN-001`、`OPEN-002`、`OPEN-003`、`OPEN-005` を各 platform 要件へ追跡する。`OPEN-005` は確定済みの Mainnet gate を前提に、残る release / security operation の詳細だけを扱う。実施順序は変更しない。
-5. 共通要求を満たすために必要な API、データ形式、parser の詳細、エラー、状態遷移、暗号方式、UI、テストを、承認後の仕様・設計で決定する。
+4. `OPEN-001`、`OPEN-002`、`OPEN-003`、`OPEN-005` を各 platform 要件へ引き継ぐ。`OPEN-005` は確定済みの Mainnet gate を前提に、release / security operation の詳細を扱う。
+5. 共通要求を満たすために必要な API、データ形式、parser、エラー、状態遷移、暗号方式、UI、テストの詳細を、後続の仕様・設計で定める。
 6. `FUTURE-001` は MosaicLynx v1 の要求・完了判定へ取り込まず、将来検討時まで保留する。
 
 ## 11. 参照資料
 
 - `docs/concept/concept-sheet.md`
-- `.agents/project-context.md`
-- `AGENTS.md`
 - `docs/specifications/product-spec.md`
 - `docs/specifications/web-transaction-handoff-spec.md`
 - `docs/specifications/chain-compatibility-spec.md`
@@ -454,6 +448,3 @@ MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の
 - `_snwc/docs/requirements/requirements.md`
 - `_snwc/docs/specifications/specification.md`
 - `_snwc/docs/decisions/binding-implementation.md`
-- `docs/reviews/concept/concept-sheet-review-001.md`
-
-`AGENTS.md` と `.agents/project-context.md` は、作業手順および repository context の参考資料であり、本書の製品要求そのものの根拠ではない。
