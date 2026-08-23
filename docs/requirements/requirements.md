@@ -10,12 +10,12 @@
 - [スマホアプリ要件](./mobile-app.md)
 - [Relay 要件](./relay.md)
 
-本書は、API、データ形式、暗号アルゴリズム、クラス、画面レイアウト、状態遷移、実装ライブラリを確定しない。既存仕様書は下流の具体化先または整合確認資料として参照する。
+本書は、MosaicLynx Application 側の API、データ形式、暗号アルゴリズム、クラス、画面レイアウト、状態遷移、Binding、FFI、WASM / Native、React Native 連携および実装方式を確定しない。承認済み外部コンポーネントである `symbol-nem-wallet-core` の責任範囲は CR-013 で定め、具体的な統合方式は後続設計で定める。既存仕様書は下流の具体化先または整合確認資料として参照する。
 
 ### 1.1 要求の表記
 
 - **MUST**: 対象範囲に含まれる場合、満たさなければならない要求。
-- **MUST NOT**: 対象範囲に含めてはならない要求または扱い。
+- **MUST NOT**: 対象範囲に含まれる主体が、指定された行為または状態を実行・成立させてはならない要求。共通要件への非包含は、対象範囲または対象外範囲で示す。
 - **SHOULD**: 原則として満たすべき重要な要求。満たせない場合は理由と影響を記録する。
 - **MAY**: v1 の成立条件ではないが、対象に含めることを妨げない事項。
 
@@ -91,7 +91,7 @@ MosaicLynx 全体は、プラットフォームにかかわらず、少なくと
 
 MosaicLynx / Application と `symbol-nem-wallet-core` の責任境界は CR-013 に従い、両者を同じ責任主体として扱ってはならない。
 
-`symbol-nem-wallet-core` が Wallet Store 内部の Profile 単位で操作する場合も、それを MosaicLynx / Application の Profile 全体の管理責任とは扱わない。Profile 全体の backup / restore、export / import、migration、merge / overwrite および保存方法は、MosaicLynx v1 の共通 MUST または共通完了条件として確定しない。これらの責任分担と具体方式は、将来その機能を扱う段階で決定する。
+`symbol-nem-wallet-core` が Wallet Store 内部の Profile 単位で操作する場合も、それを MosaicLynx / Application の Profile 全体の管理責任とは扱わない。Profile 全体の backup / restore、export / import、migration、merge / overwrite および保存方法の共通要件上の扱いは CR-014 に定める。
 
 ## 5. 共通機能要求
 
@@ -168,9 +168,11 @@ dApp は、Browser Extension、Android、iOS の提供形態または transport 
 
 利用者が確認した message と実際に署名へ渡す内容が一致しなければならず、表示後に message が変更された場合は署名してはならない。Signer が安全に解釈できない message format、解釈不能・表示不能な message、対象外の message を、警告だけで署名させてはならない。raw bytes を利用者が理解できない状態のまま blind signing してはならず、raw bytes の羅列だけを表示して確認可能と扱ってはならない。
 
-対応する message format の範囲、表示・解釈規則、format・encoding・canonicalization・認証用途 protocol の具体方式は、後続の message signing / SSO / handoff 仕様で定める。
+対応する message format の範囲、表示・解釈規則、format、encoding および canonicalization の具体方式は後続仕様で定める。
 
 API、payload、transport、result / error および fallback の具体方式は後続仕様で定める。利用者拒否、未対応 operation / format、検証不能その他の安全側失敗を、別の署名操作の成功として返してはならない。
+
+transaction handoff と message signing の具体的な接点は、既存の handoff 仕様を本要件に整合させる後続仕様で定める。
 
 根拠: コンセプト 2、3、4、5、7、8。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/specifications/product-spec.md`、`docs/specifications/web-transaction-handoff-spec.md`。
 
@@ -178,7 +180,7 @@ API、payload、transport、result / error および fallback の具体方式は
 
 **MUST** 秘密鍵、Mnemonic、Profile password、復号済み backup、署名に必要な秘密情報を、dApp、Web ページ、Relay、URL、ログ、例外、warning、診断情報、外部通信または継続保存領域へ不要に公開・保持してはならない。
 
-秘密情報の保存、復号、鍵導出および raw byte signing は `symbol-nem-wallet-core` の契約を正本とする。MosaicLynx 側で wallet-core 内部の鍵管理、Wallet Store、秘密情報を使用する暗号処理、raw signing を再実装してはならない。Profile 全体の backup / restore や backup 形式は本書で確定せず、MosaicLynx v1 の共通 MUST ともしない。
+秘密情報の保存、復号、鍵導出および raw byte signing は `symbol-nem-wallet-core` の契約を正本とする。MosaicLynx 側で wallet-core 内部の鍵管理、Wallet Store、秘密情報を使用する暗号処理、raw signing を再実装してはならない。Profile 全体の backup / restore と backup format は CR-014 に従い、MosaicLynx v1 全体の共通 MUST として扱わない。
 
 根拠: コンセプト 4、7、9、11、13。参考: `_snwc/README.md`。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/specifications/profile-account-spec.md` の責任範囲整合。
 
@@ -228,13 +230,13 @@ wallet-core の統合方式、Binding、FFI、WASM / Native、React Native 連�
 
 根拠: コンセプト 9、13。参考（外部コンポーネント契約）: `_snwc/docs/requirements/requirements.md`、`_snwc/docs/specifications/specification.md`、`_snwc/docs/decisions/binding-implementation.md`。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`。
 
-### CR-014 Profile 全体 backup / restore の共通要件外化
+### CR-014 Profile 全体 backup / restore の共通要件への非包含
 
-**MUST NOT** Profile 全体の backup / restore、export / import、Profile ID の重複判定、merge / overwrite、migration、backup password または backup の保存方法を、MosaicLynx v1 の共通 MUST または共通完了条件として扱ってはならない。
+Profile 全体の backup / restore、export / import、Profile ID の重複判定、merge / overwrite、migration、backup format、backup password または backup の保存方法を、MosaicLynx v1 全体および全 Signer に共通する MUST または共通完了条件として定義しない。
 
-将来 Profile backup 機能を扱う場合の Application と wallet-core の責任分担、Wallet Store の扱い、復元範囲および具体方式は、その機能を対象とする要件・仕様で定める。Profile 全体 backup / restore は、本書の v1 共通要求へ含めない。
+Browser Extension など個別 milestone / release でこれらの機能を提供することは妨げない。提供する場合の Application と wallet-core の責任分担、Wallet Store の扱い、復元範囲および具体方式は、その platform の要件・仕様で定める。Profile 全体の backup / restore を wallet-core の責任とすることは、本書で定義しない。
 
-根拠: `CR-013`、`FUTURE-001` およびコンセプト 10。下流: `docs/specifications/profile-account-spec.md` は将来機能または再検討対象として整合させる。
+根拠: `CR-013`、コンセプト 10。下流: `docs/requirements/browser-extension.md`、`docs/specifications/product-spec.md`、`docs/specifications/profile-account-spec.md`。
 
 ## 6. 共通の非機能・セキュリティ要求
 
@@ -355,7 +357,7 @@ MosaicLynx v1 の共通対象外は次のとおりとする。
 - MosaicLynx 自身による dApp の企画、開発、運営、利用者獲得。
 - 組織向け監査・統制・カストディ保証を v1 の第一対象または完了条件とすること。
 - ハードウェアウォレット、コールドウォレット、企業カストディと同等の保証を標榜すること。
-- Profile 全体の backup / restore を v1 の共通 MUST または共通完了条件とすること。
+- Profile 全体の backup / restore を v1 全体の共通能力または完了条件に含めること。個別 platform での提供は、その platform の要件・仕様で定める。
 - Relay による署名対象の意味解釈、署名、秘密情報の取り扱い、announce、長期保管。
 
 ## 8. 共通の成功条件・受け入れ条件
@@ -428,7 +430,7 @@ MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の
 
 1. `CR-OPEN-001` で、確定した責任境界に沿った wallet-core の具体的な統合方式を決定する。
 2. `CR-OPEN-002` で各 platform の Binding と秘密情報ライフサイクルの境界を決定する。
-3. Profile 全体の backup / restore は v1 共通要求へ取り込まず、将来その機能を扱う段階で Application と wallet-core の責任分担を決定する。
+3. Profile 全体の backup / restore は v1 共通要求へ含めず、個別 platform で提供する場合の Application と wallet-core の責任分担を、その platform の要件・仕様で定める。
 4. `OPEN-001`、`OPEN-002`、`OPEN-003`、`OPEN-005` を各 platform 要件へ引き継ぐ。`OPEN-005` は確定済みの Mainnet gate を前提に、release / security operation の詳細を扱う。
 5. 共通要求を満たすために必要な API、データ形式、parser、エラー、状態遷移、暗号方式、UI、テストの詳細を、後続の仕様・設計で定める。
 6. `FUTURE-001` は MosaicLynx v1 の要求・完了判定へ取り込まず、将来検討時まで保留する。
