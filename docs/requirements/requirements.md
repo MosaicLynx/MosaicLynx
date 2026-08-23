@@ -15,6 +15,7 @@
 ### 1.1 要求の表記
 
 - **MUST**: 対象範囲に含まれる場合、満たさなければならない要求。
+- **MUST NOT**: 対象範囲に含めてはならない要求または扱い。
 - **SHOULD**: 原則として満たすべき重要な要求。満たせない場合は理由と影響を記録する。
 - **MAY**: v1 の成立条件ではないが、対象に含めることを妨げない事項。
 
@@ -32,14 +33,14 @@ MosaicLynx は、Symbol / NEM の dApp を利用する一般ユーザーが、�
 
 ### 2.2 対象利用者と責任主体
 
-| 主体                     | 共通要件上の位置付け                                                                                      |
-| ------------------------ | --------------------------------------------------------------------------------------------------------- |
-| 一般ユーザー             | 第一対象。署名対象を確認し、承認または拒否する。                                                          |
-| dApp 開発者              | 主要な協力者。共通の署名接点を利用して、複数の提供形態で署名体験を提供する。                              |
-| dApp                     | 署名要求を発行し、署名結果を独立して確認し、必要なネットワーク処理を行う外部主体。                        |
-| Relay                    | 署名要求をスマホアプリへ受け渡す基盤。署名、意味解釈、秘密情報の取り扱い、announce は担わない。           |
-| 運用者                   | 提供環境、公開 build、リリースに必要な証跡を管理する関係者。                                              |
-| `symbol-nem-wallet-core` | 鍵管理、Wallet Store、raw byte への署名など、承認済み契約に含まれる低レベル責任を担う利用予定のコンポーネント。 |
+| 主体                     | 共通要件上の位置付け                                                                            |
+| ------------------------ | ----------------------------------------------------------------------------------------------- |
+| 一般ユーザー             | 第一対象。署名対象を確認し、承認または拒否する。                                                |
+| dApp 開発者              | 主要な協力者。共通の署名接点を利用して、複数の提供形態で署名体験を提供する。                    |
+| dApp                     | 署名要求を発行し、署名結果を独立して確認し、必要なネットワーク処理を行う外部主体。              |
+| Relay                    | 署名要求をスマホアプリへ受け渡す基盤。署名、意味解釈、秘密情報の取り扱い、announce は担わない。 |
+| 運用者                   | 提供環境、公開 build、リリースに必要な証跡を管理する関係者。                                    |
+| `symbol-nem-wallet-core` | 鍵管理、Wallet Store、秘密情報を使用する暗号処理、raw byte signing の正本となるコンポーネント。 |
 
 組織利用、カストディ利用、企業向け監査・統制は MosaicLynx v1 の第一対象ではない。将来の保証範囲は `FUTURE-001` として保留し、現在の要件定義や v1 完了の blocker としない。
 
@@ -78,7 +79,10 @@ MosaicLynx は、プラットフォームにかかわらず、少なくとも次
 - 利用者が署名に使用する Account を確認・選択できなければならない。
 - 秘密情報を利用できない状態では署名してはならない。
 - dApp へ公開する情報は利用者が許可した公開情報に限定し、秘密鍵や Mnemonic を公開してはならない。
-- Profile、Account、lock / unlock、backup / restore の具体的な操作と保存条件は、`symbol-nem-wallet-core` の契約および既存の Profile / Account 仕様と整合させる。
+
+MosaicLynx / Application は、アプリケーション上の Profile、Account の表示・選択・関連付け、Chain / Network 設定、dApp 権限、UI、platform integration および wallet-core を利用する orchestration を担当する。`symbol-nem-wallet-core` は、鍵管理、Wallet Store、秘密情報を使用する暗号処理、raw byte signing を担当する。両者を同じ責任主体として扱ってはならない。
+
+`symbol-nem-wallet-core` が Wallet Store 内部の Profile 単位で操作する場合も、それを MosaicLynx / Application の Profile 全体の管理責任とは扱わない。Profile 全体の backup / restore、export / import、migration、merge / overwrite および保存方法は、MosaicLynx v1 の共通 MUST または共通完了条件として確定しない。これらの責任分担と具体方式は、将来その機能を扱う段階で決定する。
 
 ## 5. 共通機能要求
 
@@ -140,7 +144,7 @@ MosaicLynx は、プラットフォームにかかわらず、少なくとも次
 
 **MUST** 秘密鍵、Mnemonic、Profile password、復号済み backup、署名に必要な秘密情報を、dApp、Web ページ、Relay へ公開してはならない。
 
-秘密情報の保存、復号、鍵導出、backup 形式は、本書で再定義せず、`symbol-nem-wallet-core` の契約、Profile / Account 仕様、OS・Extension 固有要件に従う。
+秘密情報の保存、復号、鍵導出および raw byte signing は `symbol-nem-wallet-core` の契約を正本とする。MosaicLynx 側で wallet-core 内部の鍵管理、Wallet Store、秘密情報を使用する暗号処理、raw signing を再実装してはならない。Profile 全体の backup / restore や backup 形式は本書で確定せず、MosaicLynx v1 の共通 MUST ともしない。
 
 根拠: コンセプト 4、7、9、11、13。参考: `_snwc/README.md`、`docs/specifications/profile-account-spec.md`。
 
@@ -171,6 +175,20 @@ MosaicLynx は、プラットフォームにかかわらず、少なくとも次
 **MUST** 拒否、対象不一致、検証失敗、認証失敗、利用不能、wallet-core 失敗など、署名を完了できない場合に、署名結果を成功として返してはならない。呼び出し側が安全に処理できる失敗結果を返し、秘密情報や過剰な内部情報を含めてはならない。
 
 失敗の分類、公開エラーコード、再試行条件は後続仕様で決定する。
+
+### CR-013 Application と wallet-core の責任境界
+
+**MUST** `symbol-nem-wallet-core` を、鍵管理、Wallet Store、秘密情報を使用する暗号処理および raw byte signing の正本として扱わなければならない。MosaicLynx / Application は、Profile、Account の表示・選択・関連付け、Chain / Network 設定、dApp 接続・権限、UI、利用者の承認・拒否、platform integration、Relay 連携および署名処理の orchestration を担当しなければならない。
+
+既存 TypeScript 実装のうち wallet-core と責任が重複する処理を正本として扱ってはならない。ただし、transaction / message の解析、Symbol / NEM の表示用変換、UI、dApp 接続・権限管理、platform 固有処理、Relay 連携その他の Application 層の処理は、wallet-core の責任外として MosaicLynx 側に残す。
+
+wallet-core の API、Binding、FFI、WASM / Native、React Native 連携、既存実装からの移行手順および error mapping の具体方式は後続設計へ委ねる。
+
+### CR-014 Profile 全体 backup / restore の共通要件外化
+
+**MUST NOT** Profile 全体の backup / restore、export / import、Profile ID の重複判定、merge / overwrite、migration、backup password または backup の保存方法を、MosaicLynx v1 の共通 MUST または共通完了条件として扱ってはならない。
+
+将来 Profile backup 機能を扱う場合の Application と wallet-core の責任分担、Wallet Store の扱い、復元範囲および具体方式は、その機能を対象とする後続の要件・仕様で決定する。既存仕様書に記載された Profile 全体 backup / restore は、現時点の MosaicLynx v1 共通要求へ自動的に取り込まない。
 
 ## 6. 共通の非機能・セキュリティ要求
 
@@ -225,6 +243,7 @@ MosaicLynx v1 の共通対象外は次のとおりとする。
 - MosaicLynx 自身による dApp の企画、開発、運営、利用者獲得。
 - 組織向け監査・統制・カストディ保証を v1 の第一対象または完了条件とすること。
 - ハードウェアウォレット、コールドウォレット、企業カストディと同等の保証を標榜すること。
+- Profile 全体の backup / restore を v1 の共通 MUST または共通完了条件とすること。
 - Relay による署名対象の意味解釈、署名、秘密情報の取り扱い、announce、長期保管。
 
 ## 8. 共通の成功条件・受け入れ条件
@@ -273,12 +292,13 @@ MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の
 - 将来の論点: 一般ユーザー向け提供の後、どこまで保証するか。
 - 扱い: 現在の要件定義や v1 の進行・完了を妨げず、将来の組織向け展開時に改めて判断する。具体的な機能、要件、設計、保証範囲は現在決定しない。
 
-### CR-OPEN-001：symbol-nem-wallet-core との統合境界
+### CR-OPEN-001：wallet-core との具体的統合方式
 
-- 論点: MosaicLynx のどの範囲を `symbol-nem-wallet-core` に委譲し、既存の TypeScript chain adapter / profile-backup / signing 実装とどう責任分担するか。
-- なぜ要件定義段階で決める必要があるか: 秘密情報、Wallet Store、鍵処理、raw byte 署名の正本を一つに定めないまま設計すると、暗号処理・署名処理・保存形式の二重実装や、異なる安全境界が生じる可能性がある。
-- 主な選択肢: (A) wallet-core を鍵管理・Wallet Store・raw byte 署名の正本とし、MosaicLynx が解析・確認・権限・プラットフォーム境界を担う、(B) wallet-core を鍵管理・Wallet Store の正本とし、既存 TypeScript chain adapter と raw signing の接続を段階的に整理する、(C) milestone ごとに wallet-core への委譲範囲を段階化する。いずれも wallet-core の内部暗号を MosaicLynx 側で再実装しない。
-- 後続設計まで保留可能か: API・Binding・移行方式を決める設計まで保留できる。ただし、Extension milestone の署名実装へ進む前に、採用する責任分担を決定する。
+- 確定事項: `symbol-nem-wallet-core` は、鍵管理、Wallet Store、秘密情報を使用する暗号処理および raw byte signing の正本である。MosaicLynx / Application は Profile、表示・承認、dApp 接続・権限、platform integration、Relay 連携および orchestration を担当する。この責任境界自体は未決事項ではない。
+- 論点: 確定した責任境界を、各 platform から利用する具体的な API、Binding、FFI、WASM / Native、React Native 連携、既存 TypeScript 実装からの移行および error mapping へどう反映するか。
+- なぜ要件定義段階で決める必要があるか: 各 platform の署名実装へ進む前に、wallet-core の正本を二重実装せず、Application 層の処理だけを適切に接続する境界を設計へ引き継ぐ必要があるため。
+- 主な選択肢: wallet-core の既存 Binding を利用する、platform ごとの Binding を追加する、既存 TypeScript 実装から段階的に接続を移行する。具体的な採用方式は本書で決定しない。
+- 後続設計まで保留可能か: 具体的な統合方式、移行手順および error mapping は保留可能。ただし、wallet-core を正本とする責任境界を変更せずに設計する。
 
 ### CR-OPEN-002：wallet-core Binding と実行環境の責任境界
 
@@ -289,11 +309,12 @@ MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の
 
 ## 10. 下流工程への引継ぎ
 
-1. `CR-OPEN-001` で wallet-core と既存 TypeScript 実装の正本・委譲範囲を決定する。
+1. `CR-OPEN-001` で、確定した責任境界に沿った wallet-core の具体的な統合方式を決定する。
 2. `CR-OPEN-002` で各 platform の Binding と秘密情報ライフサイクルの境界を決定する。
-3. `OPEN-001`、`OPEN-002`、`OPEN-003`、`OPEN-005` を各 platform 要件へ追跡する。実施順序は変更しない。
-4. 共通要求を満たすために必要な API、データ形式、parser の詳細、エラー、状態遷移、暗号方式、UI、テストを、承認後の仕様・設計で決定する。
-5. `FUTURE-001` は MosaicLynx v1 の要求・完了判定へ取り込まず、将来検討時まで保留する。
+3. Profile 全体の backup / restore は v1 共通要求へ取り込まず、将来その機能を扱う段階で Application と wallet-core の責任分担を決定する。
+4. `OPEN-001`、`OPEN-002`、`OPEN-003`、`OPEN-005` を各 platform 要件へ追跡する。実施順序は変更しない。
+5. 共通要求を満たすために必要な API、データ形式、parser の詳細、エラー、状態遷移、暗号方式、UI、テストを、承認後の仕様・設計で決定する。
+6. `FUTURE-001` は MosaicLynx v1 の要求・完了判定へ取り込まず、将来検討時まで保留する。
 
 ## 11. 参照資料
 

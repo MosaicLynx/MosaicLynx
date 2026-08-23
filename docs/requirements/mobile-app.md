@@ -65,7 +65,7 @@ PIN、OS パスコード、生体認証をどの組み合わせで利用する�
 
 ### MR-007 Wallet Store と OS 保護の責任分担
 
-**MUST** スマホアプリは `symbol-nem-wallet-core` の Wallet Store、Profile、Software Key、raw signing の契約を利用し、wallet-core 内部の KDF、暗号、メモリゼロ化、Store format を再実装してはならない。
+**MUST** スマホアプリは、`symbol-nem-wallet-core` を鍵管理、Wallet Store、Software Key、秘密情報を使用する暗号処理および raw signing の正本として利用し、wallet-core 内部の KDF、暗号、メモリゼロ化、Store format を再実装してはならない。Profile の管理、Account の表示・選択・関連付け、Chain / Network 設定、UI、platform integration および wallet-core を利用する orchestration はスマホアプリ側の責任とする。
 
 OS の Keychain / Keystore 等を利用する場合も、OS 保護の capability、端末変更、バックアップ、失敗状態をアプリ側の責任として明示しなければならない。具体的な Binding、保存場所、鍵のラップ方式は設計で決定する。
 
@@ -79,9 +79,9 @@ Secure Enclave、StrongBox、Keystore、Keychain 等を直接署名に使える�
 
 ### MR-009 Backup と端末移行
 
-**MUST** Profile、Account、Wallet Store の backup / restore または端末移行を提供する場合、復元対象、復元後の署名能力、OS に依存する保護状態を利用者へ明示しなければならない。
+**MUST** Profile、Account、Wallet Store の backup / restore または端末移行を提供する場合、その機能が提供する復元対象、復元後の署名能力、OS に依存する保護状態を利用者へ明示しなければならない。本要求は backup / restore または端末移行の提供自体を要求せず、MosaicLynx v1 の共通 MUST または共通完了条件にも含めない。
 
-端末固有の保護鍵だけでは復旧できない場合に、復旧できると表示してはならない。Mnemonic、暗号化 backup、private key、Wallet Store の具体的な形式と移行手順は `MR-OPEN-006` および後続仕様で決定する。
+端末固有の保護鍵だけでは復旧できない場合に、復旧できると表示してはならない。Profile 全体の backup / restore における Application と wallet-core の責任分担、Mnemonic、暗号化 backup、private key、Wallet Store の具体的な形式と移行手順は `MR-OPEN-006` および後続仕様で決定する。wallet-core v1 が Profile 全体の backup / migration / recovery を提供することは前提にしない。
 
 ### MR-010 端末紛失・アプリ削除
 
@@ -105,7 +105,7 @@ Relay の主経路・代替経路、redirect、Deep Link、QR、Relay unavailabl
 
 **MUST** iOS / Android の配布 build は、対象 platform の公開審査、release evidence、Mainnet gate、サポート情報に従って capability を制御しなければならない。
 
-アプリ更新で Profile、Account、Wallet Store、backup を無断で破壊・置換してはならない。OS サポート範囲、配布チャネル、更新互換性、rollback の詳細は `MR-OPEN-001`、`MR-OPEN-008`、後続の release 設計で決定する。
+アプリ更新で、アプリが管理する Profile metadata、Account の関連付け、dApp 権限または wallet-core の opaque Wallet Store を利用者の明示的な確認なしに破壊・置換してはならない。backup を提供する場合の更新互換性も、別途定めた責任境界に従う。OS サポート範囲、配布チャネル、更新互換性、rollback の詳細は `MR-OPEN-001`、`MR-OPEN-008`、後続の release 設計で決定する。
 
 ## 4. iOS / Android の差異に関する要求
 
@@ -147,7 +147,7 @@ Relay の主経路・代替経路、redirect、Deep Link、QR、Relay unavailabl
 | MR-AC-005 | アプリロック、認証失敗、wallet-core 失敗、OS 保護状態喪失時に署名せず、安全側に終了する。                                           |
 | MR-AC-006 | 秘密情報が外部アプリ、Web ページ、Relay、URL、通知、ログ、診断情報へ不要に露出しない。                                              |
 | MR-AC-007 | iOS / Android 固有の保護 capability を、実際に確認できた範囲を越えて表示しない。                                                    |
-| MR-AC-008 | backup / restore、端末移行、アプリ更新で、署名能力または復元可能性を利用者へ誤認なく示す。                                          |
+| MR-AC-008 | backup / restore または端末移行を提供する場合、署名能力または復元可能性を利用者へ誤認なく示し、提供しない機能を完了条件としない。   |
 | MR-AC-009 | App Store / Google Play 配布 build が Mainnet gate と release evidence の条件を満たさない場合、Mainnet 署名可能として配布されない。 |
 
 ## 7. スマホアプリ固有の未決事項
@@ -191,7 +191,7 @@ Relay の主経路・代替経路、redirect、Deep Link、QR、Relay unavailabl
 
 - 論点: Wallet Store、Profile、Account、Mnemonic、imported key の backup / restore、OS 保護鍵の端末移行、旧端末喪失時の扱い。
 - なぜ要件定義段階で決める必要があるか: 利用者が何を復元できるか、端末固有の保護を失った場合の署名能力、データ互換性に影響するため。
-- 主な選択肢: wallet-core の backup 契約へ委譲、アプリ側のバックアップを追加、端末移行を限定する。
+- 主な選択肢: Application 層で Profile metadata と wallet-core の opaque Wallet Store を別責任として扱う、端末移行の対象を限定する、backup / restore を後続 milestone へ送る。wallet-core が Profile 全体の backup / migration / recovery を提供することは前提にしない。
 - 後続設計まで保留可能か: 端末移行を含む Mobile milestone の完了条件を決める前まで保留可能。
 
 ### MR-OPEN-007：スクリーンショット、録画、通知、最近使ったアプリ表示

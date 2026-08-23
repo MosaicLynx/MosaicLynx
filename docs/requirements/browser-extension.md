@@ -99,7 +99,9 @@ top-level frame 以外、sandbox、opaque origin、特殊 scheme 等をどの範
 
 **MUST** 拡張機能の Profile、Account、Wallet Store を保存する場合、Web ページや content script が管理する Storage を秘密情報の正本としてはならない。
 
-`symbol-nem-wallet-core` の Wallet Store は opaque data として扱い、拡張機能側で内容を解釈・編集・再暗号化してはならない。状態変更の保存、atomic な置換、破損・不整合時の扱いは wallet-core の契約と後続設計に従う。
+Profile の管理、Account の表示・選択・関連付けおよび dApp 権限は Extension / Application の責任とする。`symbol-nem-wallet-core` の Wallet Store は opaque data として扱い、拡張機能側で内容を解釈・編集・再暗号化してはならない。鍵管理、秘密情報を使用する暗号処理および raw signing も wallet-core の責任とし、状態変更の保存、atomic な置換、破損・不整合時の扱いは wallet-core の契約と後続設計に従う。
+
+Profile と Wallet Store を同じ責任主体として扱ってはならない。Profile 全体の backup / restore は本書の共通 MUST とせず、その機能を提供する場合の責任分担と方式は後続の要件・仕様で決定する。
 
 根拠: 共通要件 CR-008、CR-NFR-004。参考: `_snwc/README.md`、`_snwc/docs/specifications/wallet-store-format-v1.md`、`docs/architecture/architecture.md` 8。
 
