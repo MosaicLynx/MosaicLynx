@@ -2,7 +2,7 @@
 
 ## 1. 文書の目的と位置付け
 
-本書は、[MosaicLynx Concept Sheet](../concept/concept-sheet.md) に基づき、ブラウザ拡張機能とスマホアプリのどちらにも適用する共通要求を定める。
+本書は、[MosaicLynx Concept Sheet](../concept/concept-sheet.md) に基づき、ブラウザ拡張機能、Android アプリ、iOS アプリの Signer に共通する要求と、dApp、Signer、必要に応じて Relay を通る署名要求・結果の End-to-End 境界要求を定める。Relay は Signer ではなく、Relay 固有の機能・運用要求は [Relay 要件](./relay.md) に定める。
 
 プラットフォーム固有の要求は、次の文書へ分離する。
 
@@ -10,7 +10,7 @@
 - [スマホアプリ要件](./mobile-app.md)
 - [Relay 要件](./relay.md)
 
-本書は、MosaicLynx Application 側の API、データ形式、暗号アルゴリズム、クラス、画面レイアウト、状態遷移、Binding、FFI、WASM / Native、React Native 連携および実装方式を確定しない。承認済み外部コンポーネントである `symbol-nem-wallet-core` の責任範囲は CR-013 で定め、具体的な統合方式は後続設計で定める。既存仕様書は下流の具体化先または整合確認資料として参照する。
+本書は、MosaicLynx Application 側の API、データ形式、暗号アルゴリズム、クラス、画面レイアウト、状態遷移、Binding、FFI、WASM / Native、React Native 連携および実装方式を確定しない。`symbol-nem-wallet-core` の採用制約と責任範囲は 2.3 および CR-013 に定め、具体的な統合方式は後続設計で定める。既存仕様書は下流の具体化先または整合確認資料として参照する。
 
 ### 1.1 要求の表記
 
@@ -44,6 +44,12 @@ MosaicLynx は、Symbol / NEM の dApp を利用する一般ユーザーが、�
 
 組織利用、カストディ利用、企業向け監査・統制は MosaicLynx v1 の第一対象ではない。将来の保証範囲は `FUTURE-001` として保留し、v1 の進行・完了を妨げない。
 
+### 2.3 承認済みプロジェクト制約
+
+MosaicLynx は、`symbol-nem-wallet-core` を、鍵管理、Wallet Store、秘密情報を使用する暗号処理および raw byte signing の正本として採用する。この採用と責任範囲は、本要件定義開始時点での承認済みプロジェクト制約であり、設計候補または未決事項ではない。
+
+MosaicLynx Application から wallet-core を利用する API、Binding、FFI、WASM / Native、React Native 連携、error mapping、migration 手順および platform ごとの具体的統合方式は、後続設計で定める。`_snwc` の requirements / specification は、採用した wallet-core の外部コンポーネント契約を確認する資料として参照する。
+
 ## 3. v1、milestone、release の共通境界
 
 `MosaicLynx v1` は、次の4 milestone 全体を指す。
@@ -55,7 +61,7 @@ MosaicLynx は、Symbol / NEM の dApp を利用する一般ユーザーが、�
 
 実施順序は上記の順で固定し、Relay milestone の完了を MosaicLynx v1 全体の完了とする。各 milestone は個別の milestone / release 単位として扱える。`Extension MVP` などの個別 release 名称を MosaicLynx v1 全体と同義にしない。
 
-共通の安全な署名判断と責任境界は、各 milestone で維持する。各 milestone の外部要求、個別完了条件、次 milestone へ進む条件、依存関係は `OPEN-003` で定める。
+共通の安全な署名判断と責任境界は、各 milestone で維持する。CR-007 に定める共通署名能力および共通の安全要求・責任境界は確定事項であり、`OPEN-003` の未決範囲には含めない。各 platform 固有の要求、CR-007 以外の platform 固有追加能力、個別完了条件、次 milestone へ進む条件、依存関係および共通要件を具体化する仕様・設計上の条件は `OPEN-003` で定める。
 
 ### Signer と Relay の適用主体
 
@@ -69,7 +75,7 @@ Relay milestone の完了条件は、Relay 自身が利用者判断や署名を�
 
 ### 4.1 共通で提供する能力
 
-MosaicLynx 全体は、プラットフォームにかかわらず、少なくとも次の能力を提供しなければならない。各能力の主体と責任は第3節および CR-011 に従う。
+共通要件は、Signer が提供する共通能力と、dApp、Signer、必要に応じて Relay をまたぐ End-to-End の境界要求からなる。Relay に直接適用するのは、Signer の安全条件を迂回、代替または弱体化させない受け渡し境界である。MosaicLynx は、これらの責任構造において少なくとも次の能力を提供しなければならない。各能力の主体と責任は第3節および CR-011 に従う。
 
 - dApp からのメッセージまたはトランザクションの署名要求を受け付ける。
 - transaction signing と message signing を、ブラウザ拡張機能、Android、iOS の各 Signer に共通する署名操作として提供する。
@@ -147,7 +153,7 @@ transaction schema、署名 byte 列、鍵導出、network constant は `docs/sp
 
 根拠: コンセプト 6.4、7、9、11、13、14。下流: `docs/specifications/web-transaction-handoff-spec.md`、`docs/requirements/relay.md`。
 
-### CR-007 共通の署名接点と署名操作
+### CR-007 共通の署名接点と署名操作（Signer / End-to-End）
 
 **MUST** MosaicLynx v1 の各 Signer（ブラウザ拡張機能、Android、iOS）は、dApp から観測可能な共通の署名接点として、次の署名操作をそれぞれ提供しなければならない。
 
@@ -176,7 +182,7 @@ transaction handoff と message signing の具体的な接点は、既存の han
 
 根拠: コンセプト 2、3、4、5、7、8。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/specifications/product-spec.md`、`docs/specifications/web-transaction-handoff-spec.md`。
 
-### CR-008 秘密情報の分離
+### CR-008 秘密情報の分離（Signer / End-to-End）
 
 **MUST** 秘密鍵、Mnemonic、Profile password、復号済み backup、署名に必要な秘密情報を、dApp、Web ページ、Relay、URL、ログ、例外、warning、診断情報、外部通信または継続保存領域へ不要に公開・保持してはならない。
 
@@ -212,7 +218,7 @@ transaction handoff と message signing の具体的な接点は、既存の han
 
 下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`。参考: `docs/reviews/concept/concept-sheet-review-001.md`。
 
-### CR-012 共通の失敗結果
+### CR-012 共通の失敗結果（Signer / End-to-End / dApp）
 
 **MUST** 拒否、未対応 operation / format、要求元・許可範囲不一致、要求内容不一致、期限切れ、replay / duplicate 等による拒否、Chain / Network / Account 不一致、解析・表示不能、検証失敗、認証失敗、利用不能、wallet-core 失敗など、署名を完了できない場合に、署名結果を成功または別の署名操作の成功として返してはならない。dApp が成功とこれらの失敗を区別して安全に処理できる結果を返し、秘密情報や過剰な内部情報を含めてはならない。
 
@@ -240,13 +246,15 @@ Browser Extension など個別 milestone / release でこれらの機能を提�
 
 ## 6. 共通の非機能・セキュリティ要求
 
-### CR-NFR-001 外部入力を信頼しない
+CR-NFR-008〜CR-NFR-011 は、Concept Sheet の「外部入力を検証前に信頼しない」「利用者が確認・承認した対象と実際の署名対象を対応させる」「確認不能・検証不能時は安全側に終了する」「意図しない署名を発生させない」という安全原則を、要求元、内容、鮮度および再利用の境界で判定可能にした要求である。具体的な実現方式は後続仕様・設計で定める。
+
+### CR-NFR-001 外部入力を信頼しない（Signer / Relay / End-to-End）
 
 **MUST** dApp、Web ページ、Relay、ネットワーク、Provider、Mobile アプリ、wallet-core Binding など外部境界から受け取る入力を、検証前に信頼してはならない。
 
 根拠: コンセプト 13。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`。
 
-### CR-NFR-002 秘密情報を不要に複製・出力しない
+### CR-NFR-002 秘密情報を不要に複製・出力しない（Signer / End-to-End）
 
 **MUST** 秘密情報をログ、例外、warning、診断情報、URL、Web ページ、Relay、外部通信または継続保存領域へ不要に含めてはならない。プラットフォーム側の一時的な入力仲介が発生する場合も、継続保存・公開主体になってはならない。
 
@@ -312,6 +320,8 @@ evidence 項目、policy parameter、検証手順および実装方式は、こ�
 
 すべての dApp に暗号学的な本人認証を必須化することは本要求に含めない。Browser Extension の Origin・Provider connection、Mobile / Relay の handoff session などの具体方式は後続仕様で定める。Relay はこの対応関係を独自に解釈・承認せず、別の要求元・セッション・権限範囲へ置換してはならない。
 
+導出理由: 利用者が許可していない要求元、接続または権限範囲からの署名を防ぐため。
+
 根拠: コンセプト 3、4、5、11、13。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/specifications/web-transaction-handoff-spec.md`。
 
 ### CR-NFR-009 要求内容の完全性と承認対象の一致（Signer / End-to-End）
@@ -319,6 +329,8 @@ evidence 項目、policy parameter、検証手順および実装方式は、こ�
 **MUST** 利用者が確認・承認した要求と、実際に署名する対象が一致していなければならない。要求の改ざん、差し替え、承認後の内容変更、別要求との取り違え、別 Account / Chain / Network への置換を検出または確認できない場合は署名してはならない。
 
 完全性確認と要求識別の具体方式は後続仕様で定め、Relay では `RR-003`、`RR-005` および `RR-007` と整合させる。
+
+導出理由: 利用者が確認・承認した内容と異なる対象への署名を防ぐため。
 
 根拠: コンセプト 3、6.2、6.3、11、13。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`。
 
@@ -328,6 +340,8 @@ evidence 項目、policy parameter、検証手順および実装方式は、こ�
 
 鮮度管理の具体方式は後続仕様で定め、Relay では `RR-004` および `RR-006` と整合させる。
 
+導出理由: 失効済み、期限切れまたは現在有効でない要求への署名を防ぐため。
+
 根拠: コンセプト 3、6.3、11。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`。
 
 ### CR-NFR-011 Replay・重複・遅延配送の拒否（Signer / End-to-End）
@@ -336,6 +350,8 @@ evidence 項目、policy parameter、検証手順および実装方式は、こ�
 
 再利用防止・重複排除・状態管理の具体方式は後続仕様で定め、Relay では `RR-006` および `RR-007` と整合させる。
 
+導出理由: 一度の承認から追加の意図しない署名が発生することを防ぐため。
+
 根拠: コンセプト 3、6.3、11、13。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`。
 
 ### CR-NFR-012 署名結果と元要求の対応（End-to-End / dApp）
@@ -343,6 +359,8 @@ evidence 項目、policy parameter、検証手順および実装方式は、こ�
 **MUST** 署名結果は、元の署名要求、署名者、Account、Chain および Network に対応していることを確認できなければならない。dApp は受け取った署名結果を独立して検証し、Relay または Provider が成功を返したことだけを署名結果の正当性の根拠としてはならない。
 
 結果の形式・対応付け・error の具体方式は後続仕様で定め、Relay では `RR-002`、`RR-005` および `RR-007` と整合させる。
+
+導出理由: 元の要求に対応しない結果を dApp が署名成功として扱うことを防ぐため。
 
 根拠: コンセプト 6.4、7、9、11、13。下流: `docs/requirements/relay.md`、`docs/specifications/web-transaction-handoff-spec.md`、各 platform の署名結果受け入れ条件。
 
@@ -400,8 +418,8 @@ MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の
 ### OPEN-003：4 milestone の個別完了条件
 
 - 論点: ブラウザ拡張機能、Android アプリ、iOS アプリ、Relay が、それぞれ何を提供できれば個別 milestone / release を完了し、次へ進めるか。
-- 確定済み: 実施順序はブラウザ拡張機能 → Android → iOS → Relay。Relay milestone 完了を MosaicLynx v1 全体完了とする。
-- 未決範囲: 各 milestone の外部要求、個別完了条件、次 milestone へ進む条件、必要な依存関係。順序そのものは未決ではない。
+- 確定済み: 実施順序はブラウザ拡張機能 → Android → iOS → Relay。Relay milestone 完了を MosaicLynx v1 全体完了とする。Browser Extension、Android、iOS の各 Signer が、CR-007 に定める transaction signing と message signing を共通能力として提供する。共通の安全要求と責任境界も確定事項とする。
+- 未決範囲: 各 platform 固有の外部要求、CR-007 以外の platform 固有追加能力、個別 milestone の完了条件、次 milestone へ進む条件、platform 固有の依存関係および共通要件を具体化する仕様・設計上の条件。CR-007 の operation 対応可否、共通の安全要求および責任境界は未決範囲に含めない。
 
 ### OPEN-005：Mainnet 一般公開の詳細条件
 
