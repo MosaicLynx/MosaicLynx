@@ -254,9 +254,27 @@ wallet-core の stable error code、warning、Binding 契約の詳細は wallet-
 
 ### CR-NFR-006 Mainnet の公開制御
 
-**MUST** Mainnet は、対象 platform に必要な release evidence、セキュリティ確認、承認が整うまで一般利用可能にしてはならない。詳細な evidence 項目、security gate、承認者、公開手順、CI/CD、テストケースは `OPEN-005` として後続のリリース設計へ引き継ぐ。
+**MUST** Mainnet capability は、適用される Mainnet release policy が要求する gate を満たした場合にのみ有効化できる。Mainnet の安全性を可用性より優先し、gate が成立しない場合に Mainnet unavailable となることは許容する。Testnet-only で安全に継続できる提供形態を妨げてはならない。
 
-根拠: コンセプト 12、14、15。参考: `docs/adr/0001-mainnet-evidence-lite.md`、`docs/release/mainnet-release-evidence.md`。
+次のいずれかに該当する場合は gate 未達成として扱わなければならない。
+
+- 必須 evidence の欠落、不整合、期限切れまたは検証不能。
+- 必須承認の不足。
+- evidence の署名または整合性検証の失敗。
+- 適用する release policy を確定できない状態。
+- trusted key が設定されていない、未知の key しかない、または署名を検証できない状態。
+
+gate 未達成または判定不能な状態で Mainnet を有効化してはならず、fail-open を許可してはならない。
+
+Mainnet release policy に関する資料は、次の役割で相互補完的に扱う。
+
+- `docs/adr/0001-mainnet-evidence-lite.md`: 初期 Mainnet release で Lite gate を採用する意思決定、single-maintainer project における理由および strict policy への移行方針を記録する。すべての gate 項目を機械判定する単独の正本とはしない。
+- `docs/evidence/evidence-policy.json`: mode、required approvals、evidence age、trusted keys その他の evaluator が読む policy parameter を管理する。単体で Mainnet gate 全体の唯一の正本とはしない。
+- `docs/release/mainnet-release-evidence.md`: 現在の release policy における evidence 要求、収集・署名・検証、fail-closed、recovery / key revocation および strict migration の operational reference とする。
+
+具体的な evidence 項目、policy parameter、検証手順および実装方式は、これらの承認済み資料と後続の release / security operation で管理する。
+
+根拠: コンセプト 12、14、15。参考: `docs/adr/0001-mainnet-evidence-lite.md`、`docs/evidence/evidence-policy.json`、`docs/release/mainnet-release-evidence.md`。
 
 ### CR-NFR-007 利用者判断可能性（Signer）
 
@@ -312,24 +330,24 @@ MosaicLynx v1 の共通対象外は次のとおりとする。
 
 MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の分離、提供形態間の責任境界が確認できた状態を成功とする。以下は主要な MUST と、適用主体、成功時に外部または責任境界から確認できる状態、拒否・失敗時の安全側結果を対応付ける最小限の traceability である。個別テストケース、テストデータ、証拠形式および UI 操作手順は後続工程で定義する。
 
-| 受入 ID   | 関連要求                                       | 適用主体                           | 成功時に確認できる状態                                                                                                                                                                               | 拒否・失敗時に確認できる安全側結果                                                                                |
-| --------- | ---------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| CR-AC-001 | `CR-002`, `CR-003`, `CR-NFR-003`, `CR-NFR-007` | Signer                             | 利用者が署名対象、Chain、Network、確認可能な影響を確認し、要求ごとに明示的に承認または拒否でき、承認対象と実際の署名対象が対応している。                                                             | 表示・解析不能、明示的承認なし、確認後の対象変更または判断不能の場合は署名しない。                                |
-| CR-AC-002 | `CR-004`                                       | Signer                             | Signer が理解・確認できる要求だけが署名対象となり、blind signing が行われない。                                                                                                                      | 理解不能、対象外または検証不能な要求は警告だけで継続せず、署名結果を返さず終了する。                              |
-| CR-AC-003 | `CR-005`, `CR-009`, `CR-NFR-005`               | Signer / End-to-End                | Symbol / NEM、Mainnet / Testnet、Account、Profile および署名対象の整合性を確認でき、利用者が署名 Account を選択・確認できる。                                                                        | Chain、Network、Account または許可範囲が不一致・確認不能な場合は署名しない。                                      |
-| CR-AC-004 | `CR-006`, `CR-NFR-012`                         | End-to-End / dApp                  | dApp が、署名結果と元要求、署名者、Account、Chain、Network の対応を確認し、署名結果を独立して検証できる。                                                                                            | 対応を確認できない結果、受け渡し成功だけの結果または不正な結果は成功扱いせず、必要なネットワーク処理へ進めない。  |
-| CR-AC-005 | `CR-007`, `CR-007-TX`                          | Signer                             | Browser Extension、Android、iOS の各 Signer が transaction signing を提供し、対応範囲内の transaction 全体と確認可能な影響を利用者へ提示できる。                                                     | transaction 全体、Chain / Network / Account または影響を確認できない場合は署名しない。                            |
-| CR-AC-006 | `CR-007`, `CR-007-MSG`                         | Signer                             | Browser Extension、Android、iOS の各 Signer が message signing を提供し、message 内容、message signing であること、適用される Chain / Network / Account および実際の署名対象を確認できる。           | raw bytes の羅列だけでは確認済みとせず、解釈不能、表示不能、内容不一致または未対応 format は署名しない。          |
-| CR-AC-007 | `CR-008`, `CR-NFR-002`                         | 全体 / 責任境界                    | 秘密情報が dApp、Web page、Relay、URL、ログ、例外、warning、診断情報、外部通信または継続保存領域へ不要に公開・保持されない。                                                                         | 秘密情報の境界を維持できない場合は処理を継続せず、秘密情報を結果・エラー・診断情報へ返さない。                    |
-| CR-AC-008 | `CR-NFR-006`                                   | Platform / Release                 | Mainnet は必要な release gate を通過するまで一般利用可能な署名能力として有効化されない。                                                                                                             | gate 未達成の場合は Mainnet 署名を有効化せず、公開可として扱わない。                                              |
-| CR-AC-009 | `CR-011`                                       | Signer / Relay / dApp              | Signer が解析・表示・承認・署名を担い、Relay が受け渡しだけを担い、dApp が署名結果を独立して検証する責任境界が維持される。                                                                           | Relay による検証・承認・署名の迂回、代替または弱体化がある場合は署名を継続しない。                                |
-| CR-AC-010 | `CR-013`, `CR-NFR-004`                         | Application / wallet-core / Signer | Profile、表示・承認、platform integration、Relay 連携、orchestration と、鍵管理、Wallet Store、秘密情報処理、raw signing の責任境界を確認できる。wallet-core の失敗も Application 側で安全に扱える。 | 責任境界が不明確、wallet-core が失敗または Store / Binding が不整合な場合は署名を継続せず、秘密情報を漏らさない。 |
-| CR-AC-011 | `CR-NFR-008`                                   | Signer / End-to-End                | 要求が許可した要求元、現在有効な接続・署名セッションまたは許可された権限範囲と対応していることを確認できる。                                                                                         | 要求元・接続・セッション・許可範囲との対応を確認できない場合は署名しない。                                        |
-| CR-AC-012 | `CR-NFR-009`                                   | Signer / End-to-End                | 利用者が確認・承認した要求と実際に署名する対象が一致し、Account、Chain、Network の置換や承認後の内容変更がないことを確認できる。                                                                     | 改ざん、差し替え、取り違えまたは不一致を確認できない場合は署名しない。                                            |
-| CR-AC-013 | `CR-NFR-010`                                   | Signer / End-to-End                | 現在の署名処理として有効な要求だけが処理され、Relay の復旧・再配送だけで無効な要求が有効にならない。                                                                                                 | 期限切れ、失効済みまたは有効性を確認できない要求は拒否し、署名しない。                                            |
-| CR-AC-014 | `CR-NFR-011`                                   | Signer / End-to-End                | replay、使用済み要求の再利用、重複・遅延配送または過去セッションの再出現によって追加の署名が発生しない。                                                                                             | 再利用、重複、遅延または過去セッションとの対応を確認できない要求は署名しない。                                    |
-| CR-AC-015 | `CR-007`, `CR-012`                             | End-to-End / dApp                  | dApp が提供形態・transport の差異を越えて transaction signing / message signing を要求し、成功、利用者拒否、未対応、検証失敗その他の安全側失敗を区別して扱える。                                     | 未対応 operation / format、利用者拒否または検証不能を、別 operation の成功や署名成功として扱わない。              |
-| CR-AC-016 | `CR-001`, `CR-NFR-001`                         | Signer / End-to-End                | 外部要求が検証前に信頼されず、対象範囲内の dApp から Signer の確認領域へ安全性の確認対象として渡される。                                                                                             | 要求元、入力または受け渡しを検証できない場合は署名要求として処理せず、署名結果を成功として返さない。              |
+| 受入 ID   | 関連要求                                       | 適用主体                           | 成功時に確認できる状態                                                                                                                                                                               | 拒否・失敗時に確認できる安全側結果                                                                                                                        |
+| --------- | ---------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CR-AC-001 | `CR-002`, `CR-003`, `CR-NFR-003`, `CR-NFR-007` | Signer                             | 利用者が署名対象、Chain、Network、確認可能な影響を確認し、要求ごとに明示的に承認または拒否でき、承認対象と実際の署名対象が対応している。                                                             | 表示・解析不能、明示的承認なし、確認後の対象変更または判断不能の場合は署名しない。                                                                        |
+| CR-AC-002 | `CR-004`                                       | Signer                             | Signer が理解・確認できる要求だけが署名対象となり、blind signing が行われない。                                                                                                                      | 理解不能、対象外または検証不能な要求は警告だけで継続せず、署名結果を返さず終了する。                                                                      |
+| CR-AC-003 | `CR-005`, `CR-009`, `CR-NFR-005`               | Signer / End-to-End                | Symbol / NEM、Mainnet / Testnet、Account、Profile および署名対象の整合性を確認でき、利用者が署名 Account を選択・確認できる。                                                                        | Chain、Network、Account または許可範囲が不一致・確認不能な場合は署名しない。                                                                              |
+| CR-AC-004 | `CR-006`, `CR-NFR-012`                         | End-to-End / dApp                  | dApp が、署名結果と元要求、署名者、Account、Chain、Network の対応を確認し、署名結果を独立して検証できる。                                                                                            | 対応を確認できない結果、受け渡し成功だけの結果または不正な結果は成功扱いせず、必要なネットワーク処理へ進めない。                                          |
+| CR-AC-005 | `CR-007`, `CR-007-TX`                          | Signer                             | Browser Extension、Android、iOS の各 Signer が transaction signing を提供し、対応範囲内の transaction 全体と確認可能な影響を利用者へ提示できる。                                                     | transaction 全体、Chain / Network / Account または影響を確認できない場合は署名しない。                                                                    |
+| CR-AC-006 | `CR-007`, `CR-007-MSG`                         | Signer                             | Browser Extension、Android、iOS の各 Signer が message signing を提供し、message 内容、message signing であること、適用される Chain / Network / Account および実際の署名対象を確認できる。           | raw bytes の羅列だけでは確認済みとせず、解釈不能、表示不能、内容不一致または未対応 format は署名しない。                                                  |
+| CR-AC-007 | `CR-008`, `CR-NFR-002`                         | 全体 / 責任境界                    | 秘密情報が dApp、Web page、Relay、URL、ログ、例外、warning、診断情報、外部通信または継続保存領域へ不要に公開・保持されない。                                                                         | 秘密情報の境界を維持できない場合は処理を継続せず、秘密情報を結果・エラー・診断情報へ返さない。                                                            |
+| CR-AC-008 | `CR-NFR-006`                                   | Platform / Release                 | 適用される Mainnet release policy が要求する gate を満たしたことを確認できた場合にのみ、Mainnet capability を有効化できる。                                                                          | 必須 evidence の欠落・不整合・期限切れ・検証不能、承認不足、署名・整合性検証失敗、trusted key 不備または policy 判定不能の場合は Mainnet を有効化しない。 |
+| CR-AC-009 | `CR-011`                                       | Signer / Relay / dApp              | Signer が解析・表示・承認・署名を担い、Relay が受け渡しだけを担い、dApp が署名結果を独立して検証する責任境界が維持される。                                                                           | Relay による検証・承認・署名の迂回、代替または弱体化がある場合は署名を継続しない。                                                                        |
+| CR-AC-010 | `CR-013`, `CR-NFR-004`                         | Application / wallet-core / Signer | Profile、表示・承認、platform integration、Relay 連携、orchestration と、鍵管理、Wallet Store、秘密情報処理、raw signing の責任境界を確認できる。wallet-core の失敗も Application 側で安全に扱える。 | 責任境界が不明確、wallet-core が失敗または Store / Binding が不整合な場合は署名を継続せず、秘密情報を漏らさない。                                         |
+| CR-AC-011 | `CR-NFR-008`                                   | Signer / End-to-End                | 要求が許可した要求元、現在有効な接続・署名セッションまたは許可された権限範囲と対応していることを確認できる。                                                                                         | 要求元・接続・セッション・許可範囲との対応を確認できない場合は署名しない。                                                                                |
+| CR-AC-012 | `CR-NFR-009`                                   | Signer / End-to-End                | 利用者が確認・承認した要求と実際に署名する対象が一致し、Account、Chain、Network の置換や承認後の内容変更がないことを確認できる。                                                                     | 改ざん、差し替え、取り違えまたは不一致を確認できない場合は署名しない。                                                                                    |
+| CR-AC-013 | `CR-NFR-010`                                   | Signer / End-to-End                | 現在の署名処理として有効な要求だけが処理され、Relay の復旧・再配送だけで無効な要求が有効にならない。                                                                                                 | 期限切れ、失効済みまたは有効性を確認できない要求は拒否し、署名しない。                                                                                    |
+| CR-AC-014 | `CR-NFR-011`                                   | Signer / End-to-End                | replay、使用済み要求の再利用、重複・遅延配送または過去セッションの再出現によって追加の署名が発生しない。                                                                                             | 再利用、重複、遅延または過去セッションとの対応を確認できない要求は署名しない。                                                                            |
+| CR-AC-015 | `CR-007`, `CR-012`                             | End-to-End / dApp                  | dApp が提供形態・transport の差異を越えて transaction signing / message signing を要求し、成功、利用者拒否、未対応、検証失敗その他の安全側失敗を区別して扱える。                                     | 未対応 operation / format、利用者拒否または検証不能を、別 operation の成功や署名成功として扱わない。                                                      |
+| CR-AC-016 | `CR-001`, `CR-NFR-001`                         | Signer / End-to-End                | 外部要求が検証前に信頼されず、対象範囲内の dApp から Signer の確認領域へ安全性の確認対象として渡される。                                                                                             | 要求元、入力または受け渡しを検証できない場合は署名要求として処理せず、署名結果を成功として返さない。                                                      |
 
 ## 9. 共通の未決事項
 
@@ -353,8 +371,9 @@ MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の
 
 ### OPEN-005：Mainnet 一般公開の詳細条件
 
-- 論点: release evidence、セキュリティ確認、承認をどの証拠で満たしたと判定するか。
-- 扱い: Mainnet は必要な gate を通過するまで有効化しない。具体的な evidence 項目、security checklist、承認者、CI/CD、公開手順、テストケースは後続の要件・リリース設計で決定する。
+- 確定済み: Mainnet release gate は存在し、初期 Mainnet release には ADR 0001 で Lite gate が採用されている。適用される current release policy / evidence policy に従い、gate 未達成または判定不能の場合は Mainnet を有効化しない。
+- 論点: 確定済みの gate を、将来の release approval の具体的運用、CI/CD への組み込み、evidence の保存・配布、policy evaluator の実装、checklist / runbook、strict policy への移行時期・手順、team 化後の approver 分離および policy 改訂へどう反映するか。
+- 扱い: 上記の運用・実装・将来改訂は後続の release / security operation で決定する。Mainnet gate の存在、適用 policy、fail-closed および Testnet-only 継続可能性は未決事項へ戻さない。
 
 ### FUTURE-001：組織向け監査・統制・カストディ保証の範囲
 
@@ -382,7 +401,7 @@ MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の
 1. `CR-OPEN-001` で、確定した責任境界に沿った wallet-core の具体的な統合方式を決定する。
 2. `CR-OPEN-002` で各 platform の Binding と秘密情報ライフサイクルの境界を決定する。
 3. Profile 全体の backup / restore は v1 共通要求へ取り込まず、将来その機能を扱う段階で Application と wallet-core の責任分担を決定する。
-4. `OPEN-001`、`OPEN-002`、`OPEN-003`、`OPEN-005` を各 platform 要件へ追跡する。実施順序は変更しない。
+4. `OPEN-001`、`OPEN-002`、`OPEN-003`、`OPEN-005` を各 platform 要件へ追跡する。`OPEN-005` は確定済みの Mainnet gate を前提に、残る release / security operation の詳細だけを扱う。実施順序は変更しない。
 5. 共通要求を満たすために必要な API、データ形式、parser の詳細、エラー、状態遷移、暗号方式、UI、テストを、承認後の仕様・設計で決定する。
 6. `FUTURE-001` は MosaicLynx v1 の要求・完了判定へ取り込まず、将来検討時まで保留する。
 
@@ -397,6 +416,7 @@ MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の
 - `docs/specifications/profile-account-spec.md`
 - `docs/architecture/architecture.md`
 - `docs/adr/0001-mainnet-evidence-lite.md`
+- `docs/evidence/evidence-policy.json`
 - `docs/release/mainnet-release-evidence.md`
 - `_snwc/README.md`
 - `_snwc/docs/requirements/requirements.md`
