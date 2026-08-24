@@ -52,7 +52,7 @@ MosaicLynx SDK
 
 In-page Provider と Content Script は信頼しない領域として扱う。権限判定、承認状態、mutex、routingはBackgroundへ集約する。秘密情報の復号と署名の最終実行は、Service Workerの停止に依存しないvisible trusted signing document内の`LocalVaultSigner`へ限定する。Backgroundとsigning documentは互いの要約を信用せず、同じ元要求、digest、revisionを独立に再検証する。
 
-Relay は信頼しない transport とし、transaction、署名結果、session secret、capability token を平文で渡さない。Mobile App は Core と Chain Adapter の同じ解析・署名規則を使用し、Relay 内で解析または署名しない。モバイル要求のOrigin文字列だけはWeb pageの自己申告であるため信用しない。Mobile MainnetではWeb Transaction Handoff Specificationの同一Origin well-known keyによるorigin proofを必須とし、Testnetでproofがない場合は未検証と表示する。
+Relay は信頼しない opaque envelope transport とし、transaction、署名結果、session secret、Relay endpoint authorization credential を意味内容の平文として扱わない。authorization credential は endpoint authorization に必要な最小限だけ処理し、Mobile App は Core と Chain Adapter の同じ解析・署名規則を使用し、Relay 内で解析または署名しない。モバイル要求のOrigin文字列だけはWeb pageの自己申告であるため信用しない。Mobile MainnetではWeb Transaction Handoff Specificationの同一Origin well-known keyによるorigin proofを必須とし、Testnetでproofがない場合は未検証と表示する。
 
 ## 4. Monorepo 構成
 
@@ -195,7 +195,7 @@ Provider は接続、許可済みアカウントの参照、構造化メッセ�
 
 ### 5.5 MosaicLynx SDK と Mobile Relay
 
-`packages/sdk`はMosaicLynx SDKとしてdAppにtransport非依存の`signTransaction()`を公開する。Extension AdapterはExtension MVP、Mobile Relay AdapterはMobileマイルストーンに属し、後者をExtension MVPのrelease blockerにしない。MosaicLynx SDKは次を担当する。
+`packages/sdk`はMosaicLynx SDKとしてdAppにtransport非依存の`signTransaction()`と`signData()`を公開する。Extension AdapterはExtension MVP、Mobile Relay AdapterはMobileマイルストーンに属し、後者をExtension MVPのrelease blockerにしない。MosaicLynx SDKは次を担当する。
 
 - 対応 `window.mosaicLynx` Provider の検出と Extension Adapter の選択
 - Provider がない対応 mobile browser での Mobile Relay Adapter の選択
@@ -206,7 +206,9 @@ Provider は接続、許可済みアカウントの参照、構造化メッセ�
 
 MosaicLynx SDKはtransportの強制option、Relay credential、Extensionの`accountId`を公開しない。Providerが利用可能な場合は常にExtensionを優先し、拒否または失敗後にMobile Relayへ自動fallbackしない。
 
-Relay は暗号文と最小限の短寿命 metadata だけを保持する。Mobile App は App Link の fragment から session secret と App capability を受け取り、Relay から request を取得してローカルで復号・解析・承認・署名する。request / response は別鍵の AES-256-GCM で保護し、5分の TTL、first-write-wins、ACK / cancel / expiry 時の削除を必須とする。詳細な wire protocol と HTTP API は Web Transaction Handoff Specification に従う。
+Mobile Relay transport は connect、refreshActiveAccount、disconnect、transaction signing、message signing、既存 SDK 契約の cosignTransaction など複数の SDK / Mobile operation に再利用され得る。ただし Relay milestone の必須署名 operation は transaction signing と message signing（`signTransaction` / `signData`）の二つであり、connect / refreshActiveAccount / disconnect は SDK / Mobile の接続・Account 管理契約、cosignTransaction は optional / existing contract として Relay milestone blocker ではない。Relay はどの operation についても semantic interpretation、表示、承認または署名を行わず、opaque envelope transport として扱う。transport infrastructure の再利用は Relay component requirements の operation scope を拡張しない。
+
+Relay は暗号文と最小限の短寿命 metadata だけを保持する。Mobile App は verified App Link の client-side fragment から、E2E session secret と Relay endpoint authorization credential（現行 Web handoff specification の `appToken`）を別分類の値として一時的に受け取り、fragment 自体を Relay へ送信せず、取得後の authorization credential だけを Relay endpoint の Authorization に必要最小限使用する。Relay から request を取得した App がローカルで復号・解析・承認・署名する。request / response は別鍵の AES-256-GCM で保護し、5分の TTL、first-write-wins、ACK / cancel / expiry 時の削除を必須とする。Relay restart または active state loss では Relay generation context を切り替え、旧 generation の session を復旧せず、旧 identity / ciphertext を current generation の handoff として成立させない。active session store は非永続 Redis でよく、durable payload / ciphertext history は導入しない。詳細な wire protocol と HTTP API は Web Transaction Handoff Specification に従う。
 
 ## 6. 依存方向
 

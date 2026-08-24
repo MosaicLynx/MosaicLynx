@@ -22,10 +22,10 @@ MosaicLynx 全体のプロダクト要件は [Product Specification](./product-s
 
 v1のrelease単位は次のとおりとする。
 
-| マイルストーン | 必須範囲                                                                                               |
-| -------------- | ------------------------------------------------------------------------------------------------------ |
-| Extension MVP  | SDK公開API（`signTransaction()` / `signData()`）、Extension Adapter、Provider 2.x、共通結果検証        |
-| Mobile v1      | Mobile Relay Adapter、Relay、iOS / Android App、verified App Link、Origin proof、mobile signer保証表示 |
+| マイルストーン | 必須範囲                                                                                                            |
+| -------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Extension MVP  | SDK公開API（`signTransaction()` / `signData()`）、Extension Adapter、Provider 2.x、共通結果検証                     |
+| Mobile v1      | Mobile Relay Adapter、Relay、iOS / Android App、verified App Link、Origin proof、mobile signer保証表示、署名handoff |
 
 ### 2.2 v1 の対象外
 
@@ -41,28 +41,29 @@ message signing は v1 の対象であり、`signData()` による message signi
 
 ### 2.3 v1 operation 対応表
 
-| operation                                         | v1 handoff         | result / failure の扱い                                     |
-| ------------------------------------------------- | ------------------ | ----------------------------------------------------------- |
-| `connect` / `refreshActiveAccount` / `disconnect` | 対象               | 既存の account / disconnect response または共通 error       |
-| `signTransaction`                                 | 対象               | `SignedTransaction` または共通 error                        |
-| `signData`                                        | 対象               | `SignedData`（署名済み structured message）または共通 error |
-| `cosignTransaction`                               | 既存公開契約の対象 | 既存の cosignature result または共通 error                  |
+| operation                                         | Relay milestone / SDK・Mobile contract                         | result / failure の扱い                                     |
+| ------------------------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------- |
+| `signTransaction`                                 | Relay milestone mandatory                                      | `SignedTransaction` または共通 error                        |
+| `signData`                                        | Relay milestone mandatory                                      | `SignedData`（署名済み structured message）または共通 error |
+| `connect` / `refreshActiveAccount` / `disconnect` | SDK / Mobile transport contract、Relay milestone non-blocking  | 既存の account / disconnect response または共通 error       |
+| `cosignTransaction`                               | optional / existing SDK contract、Relay milestone non-blocking | 既存の cosignature result または共通 error                  |
 
-上表の対象 operation は、Relay が意味内容を解釈することを意味しない。Relay は全 operation の request / response envelope を opaque として受け渡し、Mobile App が復号、operation 別の検証・表示・承認・署名を行い、dApp / SDK が result を独立検証する。
+同じ Mobile transport / Relay infrastructure を複数 operation が再利用しても、Relay milestone の mandatory scope は `signTransaction` と `signData` の二つから拡張されない。上表の operation は、Relay が意味内容を解釈することを意味しない。Relay は全 operation の request / response envelope を opaque として受け渡し、Mobile App が復号、operation 別の検証・表示・承認・署名を行い、dApp / SDK が result を独立検証する。
 
 ## 3. 用語
 
-| 用語                 | 意味                                                                                                                 |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| MosaicLynx SDK       | dAppが組み込む`@mosaiclynx/sdk`                                                                                      |
-| Provider             | Chrome 拡張機能が公開する `window.mosaicLynx`                                                                        |
-| Extension Adapter    | MosaicLynx SDK内でProviderを呼び出す非公開Adapter                                                                    |
-| Mobile Relay Adapter | MosaicLynx SDK内でリレーセッションとApp Linkを扱う非公開Adapter                                                      |
-| Relay                | E2E 暗号文を短時間だけ保管する MosaicLynx 管理サービス                                                               |
-| App Link             | iOS Universal Links / Android App Links で MosaicLynx アプリを開く verified HTTPS URL                                |
-| capability token     | Relay API の操作権限を与える推測困難な bearer token                                                                  |
-| session secret       | request / response 暗号鍵の導出に使う 256-bit secret                                                                 |
-| initiator Origin     | MosaicLynx SDKが`window.location.origin`から取得して要求へ含めるOrigin。Mobile Mainnetではorigin proofを追加検証する |
+| 用語                                    | 意味                                                                                                                                  |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| MosaicLynx SDK                          | dAppが組み込む`@mosaiclynx/sdk`                                                                                                       |
+| Provider                                | Chrome 拡張機能が公開する `window.mosaicLynx`                                                                                         |
+| Extension Adapter                       | MosaicLynx SDK内でProviderを呼び出す非公開Adapter                                                                                     |
+| Mobile Relay Adapter                    | MosaicLynx SDK内でリレーセッションとApp Linkを扱う非公開Adapter                                                                       |
+| Relay                                   | E2E 暗号文を短時間だけ保管する MosaicLynx 管理サービス                                                                                |
+| App Link                                | iOS Universal Links / Android App Links で MosaicLynx アプリを開く verified HTTPS URL                                                 |
+| Relay endpoint authorization credential | Relay endpoint の authorization に使う最小限の bearer credential。現行仕様の `appToken` はこの分類の具体例であり、E2E secret ではない |
+| capability token                        | Relay API の操作権限を与える推測困難な bearer token。現行 wire では endpoint authorization credential の一形態として扱う              |
+| session secret                          | request / response 暗号鍵の導出に使う 256-bit E2E secret。Relay endpoint authorization credential とは別分類                          |
+| initiator Origin                        | MosaicLynx SDKが`window.location.origin`から取得して要求へ含めるOrigin。Mobile Mainnetではorigin proofを追加検証する                  |
 
 ## 4. MosaicLynx SDKの命名と配布
 
@@ -165,6 +166,7 @@ button.addEventListener('click', async () => {
 
 - dAppはtransportを選択、設定、判定してはならない。MosaicLynx SDKが環境に応じて選択する。
 - 公開引数または返却値へ transport 名、Relay URL、session ID、capability token、session secret、拡張機能の `accountId` を含めない。
+- 現行 Mobile handoff の `appToken` は Relay endpoint authorization credential であり、session secret、request / response encryption key または derived encryption material ではない。SDK の公開 API へ raw credential を含めない。
 - `payload`はsymbol-sdkが生成したlowercase / uppercaseいずれかの偶数長hexadecimalを受け付け、内部検証前に大文字小文字以外を変換しない。decoded byte lengthは256 KiB以下とする。
 - `expectedSignerPublicKey` は任意とする。指定された場合は chain の形式へ正規化した後、実際の signer public key との完全一致を必須とする。不一致は `SIGNER_MISMATCH` とし、署名結果を返さない。
 - `expectedSignerPublicKey` がない場合、Extension は接続許可されたアクティブアカウント、Mobile App は承認画面でユーザーが選択したアカウントを使用する。
@@ -220,11 +222,19 @@ Extension Adapterは次の処理をMosaicLynx SDK内部で行う。
 
 ### 6.2 Mobile Relay Adapter
 
-Mobile Relay Adapterは`connect`、`refreshActiveAccount`、`disconnect`、`signTransaction`、`signData`、`cosignTransaction`のsession生成、暗号化、Relay登録、App Link起動、応答待機、復号、結果検証、ACK / cancelをSDK内部で行う。公開Identity cacheは表示専用とし、署名時の認可は将来のApp側永続Permissionを正とする。
+Mobile Relay Adapterは、SDK / Mobile transport contract として必要な operation の session生成、暗号化、Relay登録、App Link起動、応答待機、復号、結果検証、ACK / cancelをSDK内部で行う。Relay milestone の mandatory handoff は`signTransaction`と`signData`に限り、`connect`、`refreshActiveAccount`、`disconnect`はSDK / Mobile account・session contract、`cosignTransaction`はoptional / existing SDK contractとして扱い、いずれもRelay milestone blockerにしない。公開Identity cacheは表示専用とし、署名時の認可は将来のApp側永続Permissionを正とする。
 
 ## 7. Mobile Relay protocol
 
 ### 7.1 論理要求
+
+#### Relay generation / epoch binding
+
+Relay は current Relay generation context を持つ。generation context は非秘密の opaque context とし、Relay restart、active session state の完全消失、storage loss または既存 state の継続性を保証できなくなった場合に切り替える。切り替え時、旧 generation の pending session は復旧せず、旧 generation 全体を失効させる。active session store は非永続 Redis でよく、payload history または ciphertext history を durable storage へ保存してはならない。
+
+MosaicLynx SDK は handoff creation の直前に current generation context を取得し、handoff の `generationId` として request / response の論理 binding および Relay API の作成 metadata に含める。Relay は `generationId` が current generation と一致する handoff だけを作成し、session / request identity をその generation に関連付ける。generation mismatch は安全側に拒否し、旧 generation の create request、session identity、request identity または遅延配送された request を current generation の handoff として復活させない。
+
+`generationId` は `RelayRequestBase` と `RelayAAD` の認証対象に含める。したがって、generation metadata だけを current 値へ差し替えても、旧 ciphertext の AEAD 認証は成立しない。App / SDK は generation mismatch または認証失敗を安全側に拒否し、旧 request を承認対象にしない。retry は新しい generation context、request / session identity、暗号化 envelope および利用者承認を生成する。
 
 MosaicLynx SDKは次のobjectをRFC 8785 JCSでcanonicalizeし、SHA-256 digestを計算してから暗号化する。
 
@@ -238,6 +248,7 @@ interface OriginProof {
 
 interface RelayRequestBase {
   protocol: 'mosaiclynx.relay.v1';
+  generationId: string;
   requestId: string;
   initiatorOrigin: string;
   createdAt: string;
@@ -431,10 +442,12 @@ https://link.mosaiclynx.app/v1/handoff/{sessionId}#s={sessionSecret}&a={appToken
 
 - `sessionId` は 128-bit CSPRNG 値の padding なし base64url とする。
 - `sessionSecret` と `appToken` は各 256-bit CSPRNG 値の padding なし base64url とする。
-- URL fragment は HTTP request、Referer、server access log へ送らない。
+- `appToken` は Relay endpoint authorization credential であり、`sessionSecret` は E2E session secret である。両者は別分類であり、fragment は verified client-side handoff として正規 Mobile App へ一時的に渡すためだけに使う。
+- fragment 自体は Relay へ送信せず、HTTP request、Referer、server access log、application log、analytics、telemetry、diagnostics、error / crash reporting、Clipboard または browser storage に含めない。App が取得した `appToken` を Relay API の `Authorization` header へ必要最小限だけ設定することは、fragment 自体の送信とは別の endpoint authorization 境界である。
+- verified App Link または fallback が browser context を保持・生成する場合、credential を含む fragment を browser history に継続保持せず、必要な処理後に `history.replaceState()` 等で URL / browsing context から除去する。
 - App は scheme、host、path、ID と fragment の形式を strict validation し、未知 field、重複 field、過剰長を拒否する。
 - iOS は Associated Domains、Android は Digital Asset Links により `link.mosaiclynx.app` と正規アプリを関連付ける。custom URL scheme は v1 の標準経路にしない。
-- HTTPS fallback pageはthird-party script、analytics、service workerを持たず、`default-src 'none'; script-src`を固定したhash付きfirst-party bootstrapだけに限定する。bootstrapは最初の同期処理でfragmentをstrict parseし、必要な導入判定後に`history.replaceState()`でfragmentを除去する。fragment、session ID、tokenをDOM、browser storage、error reportingへ渡さない。
+- HTTPS fallback pageはthird-party script、analytics、service workerを持たず、`default-src 'none'; script-src`を固定したhash付きfirst-party bootstrapだけに限定する。bootstrapは最初の同期処理でfragmentをstrict parseし、credential を正規 App 以外へ転送せず、必要な導入判定後に`history.replaceState()`でfragmentを除去する。fragment、session ID、tokenをDOM、browser storage、persistent history、Clipboard、diagnosticsまたはerror reportingへ渡さず、必要な処理後にURL / browsing contextから除去する。
 
 ### 7.4 App の署名前検証
 
@@ -487,7 +500,7 @@ requestKey  = HKDF-SHA-256(sessionSecret, salt, UTF8("request"), 32)
 responseKey = HKDF-SHA-256(sessionSecret, salt, UTF8("response"), 32)
 ```
 
-session secret、導出鍵、raw capability tokenは永続storage、URL query、log、telemetry、errorへ保存しない。Web pageではMosaicLynx SDK instanceのメモリだけに保持し、完了、cancel、timeout、page disposal時に参照を破棄する。
+session secret、導出鍵、raw `appToken` は永続storage、URL path / query、log、telemetry、diagnostics、errorへ保存しない。`sessionSecret` と `appToken` を含む fragment は verified client-side handoff に限って一時使用し、Web pageではMosaicLynx SDK instanceのメモリだけに保持する。Appが`appToken`を取得した後はfragmentをURL / browsing contextから除去し、完了、cancel、timeout、page disposal時に参照を破棄する。
 
 ### 8.2 暗号形式
 
@@ -511,13 +524,14 @@ AAD は次の object を JCS canonicalize した UTF-8 byte 列とする。
 ```ts
 interface RelayAAD {
   protocol: 'mosaiclynx.relay.v1';
+  generationId: string;
   sessionId: string;
   direction: 'request' | 'response';
   expiresAt: string;
 }
 ```
 
-Relay による session ID、direction、expiry、暗号文の差し替えは AEAD 認証失敗として拒否する。復号 error の詳細は外部へ返さず `INVALID_RESPONSE` または `INTERNAL_ERROR` へ正規化する。
+Relay による generation ID、session ID、direction、expiry、暗号文の差し替えは AEAD 認証失敗として拒否する。generation mismatch と復号 error の詳細は外部へ返さず、安全な共通 error（`CONTEXT_CHANGED`、`INVALID_RESPONSE` または `INTERNAL_ERROR`）へ正規化する。
 
 Relay はこの仕様で定義する request / response の plaintext を扱わず、`EncryptedRelayEnvelope` と handoff に必要な最小限の安全な metadata だけを opaque として保持・受け渡しする。Relay の API response、storage、backup、log、diagnostics、analytics、telemetry に plaintext を露出させず、Relay 運用者や logging infrastructure が通常経路で取得できるようにしてはならない。復号、operation の意味解釈、表示、承認および署名は App / Signer の責任である。
 
@@ -536,6 +550,19 @@ Relay はこの仕様で定義する request / response の plaintext を扱わ�
 - RelayはIPと1分の時間窓ごとの作成数・総byte数をrate limitする。自己ホストMVPの既定値は10件/分かつ4 MiB/分とし、無効な作成要求も加算する。値は運用設定で変更できるが、既存sessionの取得、response、ACK、cancelへ作成用limitを適用しない。
 - error response は request body、token、session の存在を推測できる詳細を返さない。
 
+Relay は `GET /v1/generation` で current generation context の非秘密な `generationId` を返す。MosaicLynx SDK はこの値を handoff creation の直前に取得し、別 handoff のために再利用しない。Relay restart、state loss または state continuity loss の後は新しい `generationId` を返し、旧値を current context として受理しない。
+
+```http
+GET /v1/generation
+```
+
+```ts
+interface RelayGenerationContext {
+  protocol: 'mosaiclynx.relay.v1';
+  generationId: string;
+}
+```
+
 ### 9.2 Session の作成
 
 ```http
@@ -546,6 +573,7 @@ Content-Type: application/json
 ```ts
 interface CreateHandoffRequest {
   protocol: 'mosaiclynx.relay.v1';
+  generationId: string;
   sessionId: string;
   requestId: string;
   expiresAt: string;
@@ -555,7 +583,7 @@ interface CreateHandoffRequest {
 }
 ```
 
-MosaicLynx SDKがsession ID、両tokenとtoken hashを生成するため、request暗号化とRelay登録を一回のrequestで行える。RelayはIDの形式、一意性、期限、body size、algorithmとenvelopeの外形だけを検証し、暗号文を復号しない。
+MosaicLynx SDKがcurrent generation context、session ID、両tokenとtoken hashを生成するため、request暗号化とRelay登録を一回のrequestで行える。Relayは generation ID が current generation と一致すること、IDの形式、一意性、期限、body size、algorithmとenvelopeの外形だけを検証し、暗号文を復号しない。generation mismatch または旧 generation の create request は session を作成せず拒否する。
 
 成功時は`201 Created`と`{ protocol, sessionId, expiresAt }`だけを返す。RelayはMosaicLynx SDKが指定したexpiryを変更してはならず、受理できない場合はsessionを作成せず拒否する。IDが既存の場合は`409 Conflict`とし、新しいIDで最初からやり直して既存sessionを更新しない。schemaまたはexpiry不正は`400 Bad Request`、body超過は`413 Content Too Large`、rate limitは`429 Too Many Requests`とする。
 
@@ -615,7 +643,7 @@ response_available ─────────→ expired
 - 非同期 purge のために tombstone が必要な場合、session ID の keyed hash、終端状態、削除期限だけを最大24時間保持できる。token hash、暗号文、Origin、request ID は tombstone に含めない。
 - 暗号文を backup、analytics、APM payload、application log に含めない。
 
-Relay restart、state loss または storage loss により旧 state が失われた場合、旧 request identity、旧 session identity または同一 ciphertext を新しい handoff として再登録・再処理してはならない。遅延配送された旧 request も新規 request として復活させない。retry は新しい request identity、必要な新しい transport context および新しい利用者承認を伴う新しい署名要求として開始する。この要求の具体的な replay 防止方式は本仕様では追加設計せず、後続設計へ委ねる。
+Relay restart、state loss または storage loss により旧 state が失われた場合、Relay は generation context を切り替え、旧 generation の request / session を復旧しない。旧 generation の create request、request identity、session identity、同一 ciphertext または遅延配送された request は、`generationId` の不一致または存在しない active state として current handoff に再登録・再処理されない。`generationId` を current 値へ差し替えても、旧 ciphertext の AAD / AEAD 認証が一致しないため再利用できない。App は旧 request を承認対象にせず、署名成功を返さない。retry は新しい generation context、request / session identity、transport authorization context、暗号化 envelope および新しい利用者承認を伴う新しい署名要求として開始する。
 
 自己ホストMVPはNode.js Relayと専用の非永続Redisを使用する。session状態遷移はRedis Lua script、long polling通知はRedis Pub/Sub、expiryはRedisのabsolute TTLで実装する。Redis keyにはraw session IDまたはIPを含めず、server secretでdomain-separated HMAC化する。RDB、AOF、volume、backupを無効にし、RedisまたはRelay再起動で進行中sessionを失った場合は復旧せず安全側のtimeout / 共通errorとする。ACK / cancelは暗号文、token hash、session metadataを同じatomic処理で削除する。
 
@@ -700,7 +728,7 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 - Relay は機密性、完全性、真正性の信頼点にしない。Relay の侵害時も transaction と署名結果を復号・改ざんできないことを設計目標とする。
 - App Link domain と正規 App の association file を TLS、変更承認、監視で保護する。
 - AppとMosaicLynx SDKはRelay responseをschema validationしてから使用し、prototype pollution、過剰JSON depth、duplicate key、未知algorithmを拒否する。
-- capability token は bearer credential として扱い、URL path / query、Referer、log、Clipboard へ出さない。
+- capability token（現行仕様の `appToken` を含む）は Relay endpoint authorization credential として扱い、URL path / query、Referer、log、Clipboard へ不要に出さない。verified client-side handoff の fragment に一時的に置く場合も、fragment 自体を HTTP request、Relay、browser storage、history、analytics、telemetry、diagnostics、error / crash reporting へ送らず、正規 App 以外へ転送しない。
 - full App Link を Clipboard、analytics、crash report、browser storage へ保存しない。
 - Relay は request body を WAF / APM が記録しない設定とし、access log から Authorization header と query を除外する。
 - request / response の AEAD 検証前に plaintext を UI、log、domain object として扱わない。
@@ -734,7 +762,7 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 - 別 session の response、request ID 不一致、digest 不一致、replay を拒否する。
 - `signData` の request / `dataSigned` response の request ID、digest、message、signer および operation 対応を検証し、不一致を拒否する。
 - 乱数生成失敗時は session を作成せず安全に失敗する。
-- session secret と token が URL query、HTTP request、log、storage に現れない。
+- session secret と token が URL query、fragment以外のHTTP request、Referer、log、storage、analytics、telemetry、diagnosticsまたはerror reportingに現れない。verified App Link fragmentの`appToken`をAppが取得後にAuthorization headerでRelay endpointへ使用することは許容するが、fragment自体は送信しない。
 
 ### 14.3 Relay integration test
 
@@ -745,7 +773,7 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 - ACK、cancel、expiry 後に暗号文と token hash が削除される。
 - backup、application log、APM、access log に禁止データが含まれない。
 - Relay が request / response を opaque として扱い、plaintext が API response、storage、backup、log、diagnostics、analytics、telemetry に現れない。
-- Relay restart / state loss 後の旧 identity 再登録、同一 ciphertext 再送、late delivery を新しい handoff として受理せず、retry が新しい identity と新しい利用者承認を必要とする。
+- Relay restart、Redis active state loss、old generation create request の再送、old session identity の再送、old request identity / ciphertext の再送、delayed delivery、generation mismatch、generation metadata 改ざんを fault injection し、旧 handoff が復活せず、signing success にならず、App が old request を承認対象にせず、retry が new generation、new identity、new ciphertext および new approval になることを確認する。旧 ciphertext の metadata だけを current generation へ差し替える試行も AEAD / generation binding failure として拒否する。
 - rate limit が既存 session の取得・完了を不必要に妨げない。
 
 ### 14.4 Mobile / browser E2E
