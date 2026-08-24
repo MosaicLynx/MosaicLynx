@@ -232,9 +232,9 @@ Mobile Relay Adapterは、SDK / Mobile transport contract として必要な ope
 
 Relay は current Relay generation context を持つ。generation context は非秘密の opaque context とし、Relay restart、active session state の完全消失、storage loss または既存 state の継続性を保証できなくなった場合に切り替える。切り替え時、旧 generation の pending session は復旧せず、旧 generation 全体を失効させる。active session store は非永続 Redis でよく、payload history または ciphertext history を durable storage へ保存してはならない。
 
-MosaicLynx SDK は handoff creation の直前に current generation context を取得し、handoff の `generationId` として request / response の論理 binding および Relay API の作成 metadata に含める。Relay は `generationId` が current generation と一致する handoff だけを作成し、session / request identity をその generation に関連付ける。generation mismatch は安全側に拒否し、旧 generation の create request、session identity、request identity または遅延配送された request を current generation の handoff として復活させない。
+MosaicLynx SDK は handoff creation の直前に current generation context を取得し、handoff の `generationId` として request / response の論理 binding および Relay API の作成 metadata に含める。Relay は `generationId` が current generation と一致する handoff だけを作成し、session / request identity をその generation に関連付ける。generation mismatch、malformed generation metadata、unsupported / invalid protocol or version、invalid expiry / lifetime、invalid authorization、invalid lifecycle、duplicate / conflicting active state、invalid request / session / result correlation など、opaque ciphertext を復号せず判定できる structural failure は安全側に拒否する。旧 generation の create request、session identity、request identity または遅延配送された request を current generation の有効な handoff として復活させない。Relay は opaque ciphertext の過去 generation での使用履歴を判定せず、current metadata を付けた old ciphertext が structural validation 後に一時保存される可能性はあるが、それを current generation の有効 handoff として成立させてはならない。
 
-`generationId` は `RelayRequestBase` と `RelayAAD` の認証対象に含める。したがって、generation metadata だけを current 値へ差し替えても、旧 ciphertext の AEAD 認証は成立しない。App / SDK は generation mismatch または認証失敗を安全側に拒否し、旧 request を承認対象にしない。retry は新しい generation context、request / session identity、暗号化 envelope および利用者承認を生成する。
+`generationId` は `RelayRequestBase` と `RelayAAD` の認証対象に含める。したがって、generation metadata だけを current 値へ差し替えても、旧 ciphertext の AEAD 認証は成立しない。App / SDK は generation mismatch、AAD binding またはその他の認証失敗を安全側に拒否し、該当 request を利用者承認画面へ進めず、署名せず、success result を返さない。Relay の delivery success は署名成功を意味しない。retry は新しい generation context、request / session identity、暗号化 envelope および利用者承認を生成する。
 
 MosaicLynx SDKは次のobjectをRFC 8785 JCSでcanonicalizeし、SHA-256 digestを計算してから暗号化する。
 
@@ -531,7 +531,7 @@ interface RelayAAD {
 }
 ```
 
-Relay による generation ID、session ID、direction、expiry、暗号文の差し替えは AEAD 認証失敗として拒否する。generation mismatch と復号 error の詳細は外部へ返さず、安全な共通 error（`CONTEXT_CHANGED`、`INVALID_RESPONSE` または `INTERNAL_ERROR`）へ正規化する。
+App / SDK は generation ID、session ID、direction、expiry、または暗号文の差し替えを AEAD 認証失敗として拒否する。Relay は current generation metadata、lifecycle、authorization および envelope 外形を検証するが、opaque ciphertext の内部認証状態は検証しない。generation mismatch と復号 error の詳細は外部へ返さず、安全な共通 error（`CONTEXT_CHANGED`、`INVALID_RESPONSE` または `INTERNAL_ERROR`）へ正規化する。
 
 Relay はこの仕様で定義する request / response の plaintext を扱わず、`EncryptedRelayEnvelope` と handoff に必要な最小限の安全な metadata だけを opaque として保持・受け渡しする。Relay の API response、storage、backup、log、diagnostics、analytics、telemetry に plaintext を露出させず、Relay 運用者や logging infrastructure が通常経路で取得できるようにしてはならない。復号、operation の意味解釈、表示、承認および署名は App / Signer の責任である。
 
@@ -583,7 +583,7 @@ interface CreateHandoffRequest {
 }
 ```
 
-MosaicLynx SDKがRelayからcurrent generation contextを取得し、session ID、両tokenとtoken hashを生成するため、request暗号化とRelay登録を一回のrequestで行える。Relayは generation ID が current generation と一致すること、IDの形式、一意性、期限、body size、algorithmとenvelopeの外形だけを検証し、暗号文を復号しない。generation mismatch または旧 generation の create request は session を作成せず拒否する。
+MosaicLynx SDKがRelayからcurrent generation contextを取得し、session ID、両tokenとtoken hashを生成するため、request暗号化とRelay登録を一回のrequestで行える。Relayは generation ID が current generation と一致すること、IDの形式、一意性、期限、body size、algorithmとenvelopeの外形、authorization、lifecycleおよびcorrelationだけを検証し、暗号文を復号しない。generation mismatch または旧 generation の create request は session を作成せず拒否する。current generation metadata を付けた old ciphertext は、Relay が opaque ciphertext の過去利用を判定できないため、外形等が妥当なら storage へ一時保存される可能性があるが、current generation の有効な handoff とはならない。App は取得した request を current generationId の AAD で検証し、old ciphertext の AEAD 認証失敗を承認・署名・success に進めない。
 
 成功時は`201 Created`と`{ protocol, sessionId, expiresAt }`だけを返す。RelayはMosaicLynx SDKが指定したexpiryを変更してはならず、受理できない場合はsessionを作成せず拒否する。IDが既存の場合は`409 Conflict`とし、新しいIDで最初からやり直して既存sessionを更新しない。schemaまたはexpiry不正は`400 Bad Request`、body超過は`413 Content Too Large`、rate limitは`429 Too Many Requests`とする。
 
@@ -643,7 +643,7 @@ response_available ─────────→ expired
 - 非同期 purge のために tombstone が必要な場合、session ID の keyed hash、終端状態、削除期限だけを最大24時間保持できる。token hash、暗号文、Origin、request ID は tombstone に含めない。
 - 暗号文を backup、analytics、APM payload、application log に含めない。
 
-Relay restart、state loss または storage loss により旧 state が失われた場合、Relay は generation context を切り替え、旧 generation の request / session を復旧しない。旧 generation の create request、request identity、session identity、同一 ciphertext または遅延配送された request は、`generationId` の不一致または存在しない active state として current handoff に再登録・再処理されない。`generationId` を current 値へ差し替えても、旧 ciphertext の AAD / AEAD 認証が一致しないため再利用できない。App は旧 request を承認対象にせず、署名成功を返さない。retry は新しい generation context、request / session identity、transport authorization context、暗号化 envelope および新しい利用者承認を伴う新しい署名要求として開始する。
+Relay restart、state loss または storage loss により旧 state が失われた場合、Relay は generation context を切り替え、旧 generation の request / session を復旧しない。旧 generationId の create request、旧 request identity、旧 session identity または state loss 前の active session は current generation の有効 session として再開・復活させない。Relay は過去 ciphertext の履歴判定を要求されず、旧 ciphertext に current generationId metadata を付けた create が外形等を満たす場合の一時保存は許容される。App が request を取得すると、current generationId を用いて AAD を再構成し、old ciphertext が old generation AAD で生成されたことによる AEAD authentication failure を検出する。App はその request を承認画面へ進めず、署名せず、success result を返さない。Relay delivery success も署名成功として扱わない。retry は新しい generation context、request / session identity、transport authorization context、暗号化 envelope および新しい利用者承認を伴う新しい署名要求として開始する。
 
 自己ホストMVPはNode.js Relayと専用の非永続Redisを使用する。session状態遷移はRedis Lua script、long polling通知はRedis Pub/Sub、expiryはRedisのabsolute TTLで実装する。Redis keyにはraw session IDまたはIPを含めず、server secretでdomain-separated HMAC化する。RDB、AOF、volume、backupを無効にし、RedisまたはRelay再起動で進行中sessionを失った場合は復旧せず安全側のtimeout / 共通errorとする。ACK / cancelは暗号文、token hash、session metadataを同じatomic処理で削除する。
 
@@ -773,7 +773,8 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 - ACK、cancel、expiry 後に暗号文と token hash が削除される。
 - backup、application log、APM、access log に禁止データが含まれない。
 - Relay が request / response を opaque として扱い、plaintext が API response、storage、backup、log、diagnostics、analytics、telemetry に現れない。
-- Relay restart、Redis active state loss、old generation create request の再送、old session identity の再送、old request identity / ciphertext の再送、delayed delivery、generation mismatch、generation metadata 改ざんを fault injection し、旧 handoff が復活せず、signing success にならず、App が old request を承認対象にせず、retry が new generation、new identity、new ciphertext および new approval になることを確認する。旧 ciphertext の metadata だけを current generation へ差し替える試行も AEAD / generation binding failure として拒否する。
+- Relay structural rejection として、old generationId、generation mismatch、malformed generation metadata、invalid lifecycle、invalid authorization、duplicate active state、invalid correlation の fault injection を行い、Relay が session を作成・遷移させないことを確認する。
+- App / End-to-End rejection として、old ciphertext + current generationId metadata、generation metadata tampering、AAD mismatch、delayed old ciphertext、old response ciphertext の再利用を fault injection し、App approval に到達せず、signing success にならず、retry が old ciphertext を利用せず new generation、new identity、fresh ciphertext および new approval になることを確認する。old ciphertext が Relay storage に一時保存されないことは test requirement にしない。
 - rate limit が既存 session の取得・完了を不必要に妨げない。
 
 ### 14.4 Mobile / browser E2E
