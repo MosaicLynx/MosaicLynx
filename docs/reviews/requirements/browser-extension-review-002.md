@@ -83,7 +83,7 @@ Web ページから申告された Origin を信用しないこと、top-level b
 
 ## Validation
 
-- `pnpm exec prettier --check docs/requirements/browser-extension.md docs/reviews/requirements/requirements-review-006.md`: 成功。
+- `pnpm exec prettier --check docs/requirements/browser-extension.md docs/reviews/requirements/browser-extension-review-002.md`: 成功。
 - `git diff --check`: 成功。
 - `pnpm format:check`: exit 2。対象外の既存 submodule にある `_nem/infra/package/3rd-party-licenses/cddl + gplv2 with classpath exception - cddl+gpl.html`、`_sns/packages/symbol-qr-library/examples/index.html`、`_symbol/mkdocs/snippets/devbook/reference/config/config_network.properties.html`、`_symbol/mkdocs/snippets/devbook/reference/config/config_node.properties.html` の HTML 構文エラーと、既存ファイルの format warning により完了しなかった。対象文書と本レビュー成果物は個別 check で成功している。
 
@@ -105,7 +105,7 @@ Web ページから申告された Origin を信用しないこと、top-level b
 - `_snwc/README.md`
 - `_snwc/docs/requirements/requirements.md`
 - `_snwc/docs/specifications/specification.md`
-- `docs/reviews/requirements/requirements-review-005.md`
+- `docs/reviews/requirements/browser-extension-review-001.md`
 - `.agents/project-context.md`
 - `.agents/skills/requirements-review/SKILL.md`
 - [Chrome content scripts / isolated worlds](https://developer.chrome.com/docs/extensions/reference/manifest/content-scripts)

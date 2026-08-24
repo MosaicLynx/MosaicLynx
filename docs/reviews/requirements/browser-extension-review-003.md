@@ -53,7 +53,7 @@ Mainnet gate の評価時点、公開後の evidence 期限切れ・失効・検
 
 ## Validation
 
-- `pnpm exec prettier --check docs/requirements/browser-extension.md docs/reviews/requirements/requirements-review-007.md`: 成功。
+- `pnpm exec prettier --check docs/requirements/browser-extension.md docs/reviews/requirements/browser-extension-review-003.md`: 成功。
 - `git diff --check`: 成功。
 - `pnpm format:check`: exit 2。対象外の既存ファイル・submodule にある複数の format warning と HTML syntax error により完了しなかった。対象要件と本レビュー成果物は個別 check で成功している。
 
@@ -74,7 +74,7 @@ Mainnet gate の評価時点、公開後の evidence 期限切れ・失効・検
 - `docs/evidence/evidence-policy.json`
 - `docs/release/mainnet-release-evidence.md`
 - `docs/release/release-process.md`
-- `docs/reviews/requirements/requirements-review-006.md`
+- `docs/reviews/requirements/browser-extension-review-002.md`
 - `.agents/project-context.md`
 - `.agents/skills/requirements-review/SKILL.md`
 - [Chrome content scripts / isolated worlds](https://developer.chrome.com/docs/extensions/reference/manifest/content-scripts)

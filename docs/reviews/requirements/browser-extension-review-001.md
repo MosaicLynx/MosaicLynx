@@ -69,7 +69,7 @@ Browser Extension の責任境界は概ね明確である。Web ページから�
 ## Not validated
 
 - 本件は要件文書レビューのため、Extension のコード、Manifest、Provider RPC、wallet-core Binding、E2E テスト、Chrome Web Store 配布 build および Mainnet release evidence の実行検証は行っていない。
-- ルートの `pnpm format:check` は、既存サブモジュールの大量の既存 format warning と、`_nem/infra/package/3rd-party-licenses/cddl + gplv2 with classpath exception - cddl+gpl.html` の既存 HTML 構文エラーにより完了しなかった。新規レビュー成果物は `pnpm exec prettier --check docs/reviews/requirements/requirements-review-005.md` で個別に確認し、成功した。
+- ルートの `pnpm format:check` は、既存サブモジュールの大量の既存 format warning と、`_nem/infra/package/3rd-party-licenses/cddl + gplv2 with classpath exception - cddl+gpl.html` の既存 HTML 構文エラーにより完了しなかった。新規レビュー成果物は `pnpm exec prettier --check docs/reviews/requirements/browser-extension-review-001.md` で個別に確認し、成功した。
 
 ## 参照資料
 

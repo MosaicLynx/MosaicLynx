@@ -118,7 +118,7 @@ Relay を Signer と分離し、Relay の侵害・障害・改ざん・replay・
 - `packages/sdk/src/mobile-relay.ts`
 - `packages/sdk/test/mobile-relay.test.ts`
 - `docs/reviews/requirements/requirements-review-004.md`
-- `docs/reviews/requirements/requirements-review-007.md`
+- `docs/reviews/requirements/browser-extension-review-003.md`
 - `docs/reviews/requirements/mobile-app-review-003.md`
 - `.agents/project-context.md`
 - `.agents/skills/requirements-review/SKILL.md`
