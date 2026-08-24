@@ -2,9 +2,9 @@
 
 ## 1. 文書の目的
 
-本書は、dApp が MosaicLynx へトランザクション署名を要求し、署名済みトランザクションを受け取るための Web 向け統合仕様を定義する。
+本書は、dApp が MosaicLynx へ transaction signing または message signing を要求し、対応する署名結果を受け取るための Web 向け統合仕様を定義する。
 
-Web ページ向けライブラリの正式名称は **MosaicLynx SDK**、npm package 名は `@mosaiclynx/sdk` とする。MosaicLynx SDKはChrome拡張機能へ直接渡す方式と、スマートフォンアプリへリレー経由で渡す方式の差を隠蔽し、dAppに一つの`signTransaction()`を公開する。Extension AdapterはExtension MVP、Mobile Relay AdapterとRelay / AppはMobileマイルストーンの提供物である。本書のv1は両者の最終契約を定義するが、Mobile実装をExtension MVPの受け入れ条件には含めない。
+Web ページ向けライブラリの正式名称は **MosaicLynx SDK**、npm package 名は `@mosaiclynx/sdk` とする。MosaicLynx SDKはChrome拡張機能へ直接渡す方式と、スマートフォンアプリへリレー経由で渡す方式の差を隠蔽し、dAppに `signTransaction()` と `signData()` を含む共通署名接点を公開する。Extension AdapterはExtension MVP、Mobile Relay AdapterとRelay / AppはMobileマイルストーンの提供物である。本書のv1は両者の最終契約を定義するが、Mobile実装をExtension MVPの受け入れ条件には含めない。
 
 MosaicLynx 全体のプロダクト要件は [Product Specification](./product-spec.md)、コンポーネントの責務と依存方向は [Architecture](../architecture/architecture.md)、鍵・network・transaction・署名byteの固定契約は [Chain Compatibility Specification](./chain-compatibility-spec.md) に定義する。本書と共通仕様が矛盾する場合、署名可否はProduct Specification、chain byte規則はChain Compatibility Specification、Web受け渡しprotocolは本書を適用する。
 
@@ -14,6 +14,7 @@ MosaicLynx 全体のプロダクト要件は [Product Specification](./product-s
 
 - Symbol Mainnet / Testnet のトランザクション署名
 - NEM Mainnet / Testnet のトランザクション署名
+- transaction signing と message signing の共通 handoff
 - Chrome 拡張機能 Provider への直接受け渡し
 - 同一スマートフォン上の Web ブラウザから MosaicLynx アプリへの受け渡し
 - E2E 暗号化した一時リレーによる要求と結果の往復
@@ -23,12 +24,11 @@ v1のrelease単位は次のとおりとする。
 
 | マイルストーン | 必須範囲                                                                                               |
 | -------------- | ------------------------------------------------------------------------------------------------------ |
-| Extension MVP  | SDK公開API、Extension Adapter、Provider 2.x、共通結果検証                                              |
+| Extension MVP  | SDK公開API（`signTransaction()` / `signData()`）、Extension Adapter、Provider 2.x、共通結果検証        |
 | Mobile v1      | Mobile Relay Adapter、Relay、iOS / Android App、verified App Link、Origin proof、mobile signer保証表示 |
 
 ### 2.2 v1 の対象外
 
-- メッセージ署名
 - PC の Web ページから QR code でスマートフォンへ渡すフロー
 - dApp による transport の強制指定
 - 任意リレー、自己ホストリレー、リレー URL の上書き
@@ -36,6 +36,19 @@ v1のrelease単位は次のとおりとする。
 - Relay による transaction の解析、署名、broadcast、長期保管
 
 dAppはMosaicLynx SDKから受け取った署名済みトランザクションを検証し、必要な場合は自身の責任でノードへannounceする。
+
+message signing は v1 の対象であり、`signData()` による message signing request と `SignedData` による result を Extension / Mobile Relay の両方で同じ安全境界へ引き渡す。未対応 operation / format、検証不能または利用者拒否を transaction signing や message signing の成功へ fallback してはならない。
+
+### 2.3 v1 operation 対応表
+
+| operation                                         | v1 handoff         | result / failure の扱い                                     |
+| ------------------------------------------------- | ------------------ | ----------------------------------------------------------- |
+| `connect` / `refreshActiveAccount` / `disconnect` | 対象               | 既存の account / disconnect response または共通 error       |
+| `signTransaction`                                 | 対象               | `SignedTransaction` または共通 error                        |
+| `signData`                                        | 対象               | `SignedData`（署名済み structured message）または共通 error |
+| `cosignTransaction`                               | 既存公開契約の対象 | 既存の cosignature result または共通 error                  |
+
+上表の対象 operation は、Relay が意味内容を解釈することを意味しない。Relay は全 operation の request / response envelope を opaque として受け渡し、Mobile App が復号、operation 別の検証・表示・承認・署名を行い、dApp / SDK が result を独立検証する。
 
 ## 3. 用語
 
@@ -155,6 +168,7 @@ button.addEventListener('click', async () => {
 - `payload`はsymbol-sdkが生成したlowercase / uppercaseいずれかの偶数長hexadecimalを受け付け、内部検証前に大文字小文字以外を変換しない。decoded byte lengthは256 KiB以下とする。
 - `expectedSignerPublicKey` は任意とする。指定された場合は chain の形式へ正規化した後、実際の signer public key との完全一致を必須とする。不一致は `SIGNER_MISMATCH` とし、署名結果を返さない。
 - `expectedSignerPublicKey` がない場合、Extension は接続許可されたアクティブアカウント、Mobile App は承認画面でユーザーが選択したアカウントを使用する。
+- `signData()` は既存の公開 `MosaicLynxSignDataParams`（`chain`、`network`、`purpose`、`data`、任意の `expectedSignerPublicKey`）を受け取り、既存の `SignedData` 契約を返す。SDK が生成する nonce と有効期限を含む structured message を、既存の `RelayDataSigningRequest` の request payload として handoff する。ここでいう request payload は既存の論理要求の表現であり、新しい message signing wire schema を追加しない。
 - `connect()`は指定scopeのアクティブAccount公開Identityだけを返す。内部account IDとprofile IDは返さない。
 - `isConnected()`は承認UIを開かず、Extensionの現在値またはOrigin単位で保存したMobile公開Identityを確認する。
 - `disconnect()`は現在のOriginに対する全scopeの許可を削除する。MobileではApp側の削除完了後にだけWeb側cacheを削除する。
@@ -374,6 +388,14 @@ type RelayResponse =
       protocol: 'mosaiclynx.relay.v1';
       requestId: string;
       requestDigest: string;
+      outcome: 'dataSigned';
+      signedData: SignedData;
+      completedAt: string;
+    }
+  | {
+      protocol: 'mosaiclynx.relay.v1';
+      requestId: string;
+      requestDigest: string;
       outcome: 'rejected' | 'failed';
       errorCode: MosaicLynxSDKErrorCode;
       completedAt: string;
@@ -395,7 +417,7 @@ dApp
   → App で接続Account選択、署名内容確認、または切断を明示承認
   → App が接続・署名・切断または拒否結果を暗号化して Relay へ登録
   → 元ページの MosaicLynx SDK が response を取得、復号、整合性を検証
-  → MosaicLynx SDK が ACK 後に SignedTransaction または共通 error を返す
+  → MosaicLynx SDK が ACK 後に SignedTransaction、SignedData または共通 error を返す
   → dApp が必要に応じて announce
 ```
 
@@ -497,6 +519,8 @@ interface RelayAAD {
 
 Relay による session ID、direction、expiry、暗号文の差し替えは AEAD 認証失敗として拒否する。復号 error の詳細は外部へ返さず `INVALID_RESPONSE` または `INTERNAL_ERROR` へ正規化する。
 
+Relay はこの仕様で定義する request / response の plaintext を扱わず、`EncryptedRelayEnvelope` と handoff に必要な最小限の安全な metadata だけを opaque として保持・受け渡しする。Relay の API response、storage、backup、log、diagnostics、analytics、telemetry に plaintext を露出させず、Relay 運用者や logging infrastructure が通常経路で取得できるようにしてはならない。復号、operation の意味解釈、表示、承認および署名は App / Signer の責任である。
+
 ## 9. Relay HTTP API
 
 ### 9.1 共通要件
@@ -591,6 +615,8 @@ response_available ─────────→ expired
 - 非同期 purge のために tombstone が必要な場合、session ID の keyed hash、終端状態、削除期限だけを最大24時間保持できる。token hash、暗号文、Origin、request ID は tombstone に含めない。
 - 暗号文を backup、analytics、APM payload、application log に含めない。
 
+Relay restart、state loss または storage loss により旧 state が失われた場合、旧 request identity、旧 session identity または同一 ciphertext を新しい handoff として再登録・再処理してはならない。遅延配送された旧 request も新規 request として復活させない。retry は新しい request identity、必要な新しい transport context および新しい利用者承認を伴う新しい署名要求として開始する。この要求の具体的な replay 防止方式は本仕様では追加設計せず、後続設計へ委ねる。
+
 自己ホストMVPはNode.js Relayと専用の非永続Redisを使用する。session状態遷移はRedis Lua script、long polling通知はRedis Pub/Sub、expiryはRedisのabsolute TTLで実装する。Redis keyにはraw session IDまたはIPを含めず、server secretでdomain-separated HMAC化する。RDB、AOF、volume、backupを無効にし、RedisまたはRelay再起動で進行中sessionを失った場合は復旧せず安全側のtimeout / 共通errorとする。ACK / cancelは暗号文、token hash、session metadataを同じatomic処理で削除する。
 
 全API responseは`Cache-Control: no-store`、`Referrer-Policy: no-referrer`、HSTS、`X-Content-Type-Options: nosniff`を返す。CORSは`Access-Control-Allow-Origin: *`、credentialなしとし、methodおよび`Authorization`、`Content-Type`、`If-None-Match`だけを許可する。4xx / 5xx bodyはstatusによらず`{ "error": "RELAY_REQUEST_REJECTED" }`へ統一し、request loggingを無効にする。
@@ -641,6 +667,8 @@ MosaicLynx SDKはtransport固有errorを次の共通規則で正規化する。
 
 RelayのHTTP status、URL、token、暗号error、Provider内部例外、stack traceはMosaicLynx SDK error messageに含めない。`cause`を本番buildの公開errorへ保持しない。
 
+`signData` を含む v1 対象 operation が unsupported、期限切れ、replay、検証不能、利用者拒否または result unknown になった場合、SDK は署名 result を返さず共通 error として扱う。別 operation の成功や自動 fallback として返してはならない。
+
 ## 11. Page lifecycle と UX
 
 - MosaicLynx SDKは要求開始時の`window.location.origin`とtop-level documentを保持する。
@@ -686,6 +714,7 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 ### 14.1 MosaicLynx SDK contract test
 
 - 同じ `signTransaction()` 呼び出しが Extension と Mobile Relay の両方で共通 `SignedTransaction` を返す。
+- 同じ `signData()` 呼び出しが Extension と Mobile Relay の両方で既存の `SignedData` 契約を返し、message signing が transaction signing として扱われない。
 - 公開 API に transport 固有の option、credential、`accountId` がない。
 - Provider が存在する場合は Relay session を作成しない。
 - Provider がない対応 mobile browser だけが Mobile Relay を選択する。
@@ -703,6 +732,7 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 - request / response key の取り違えを拒否する。
 - nonce、ciphertext、tag、session ID、direction、expiry の各改ざんを拒否する。
 - 別 session の response、request ID 不一致、digest 不一致、replay を拒否する。
+- `signData` の request / `dataSigned` response の request ID、digest、message、signer および operation 対応を検証し、不一致を拒否する。
 - 乱数生成失敗時は session を作成せず安全に失敗する。
 - session secret と token が URL query、HTTP request、log、storage に現れない。
 
@@ -714,6 +744,8 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 - 256 KiB decoded payload、512 KiB HTTP body の境界値と超過を試験する。
 - ACK、cancel、expiry 後に暗号文と token hash が削除される。
 - backup、application log、APM、access log に禁止データが含まれない。
+- Relay が request / response を opaque として扱い、plaintext が API response、storage、backup、log、diagnostics、analytics、telemetry に現れない。
+- Relay restart / state loss 後の旧 identity 再登録、同一 ciphertext 再送、late delivery を新しい handoff として受理せず、retry が新しい identity と新しい利用者承認を必要とする。
 - rate limit が既存 session の取得・完了を不必要に妨げない。
 
 ### 14.4 Mobile / browser E2E

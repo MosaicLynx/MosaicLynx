@@ -14,7 +14,7 @@ Relay は MosaicLynx v1 の第4 milestone である。ブラウザ拡張機能�
 
 - **MUST**: Relay の対象範囲に含まれる場合、満たさなければならない要求。
 - **SHOULD**: 原則として満たすべき重要な要求。満たせない場合は理由と影響を記録する。
-- **MAY**: v1 の成立条件ではないが、要求に反しない範囲で許容される事項。
+- **MAY**: 追加機能、optional capability または実装上の選択肢として許容される事項。MUST の要求、security boundary または受け入れ条件を弱めたり、省略したりする根拠にはならない。Relay の milestone 完了条件を免除するためには使用しない。
 
 ## 2. Relay の目的と責任境界
 
@@ -30,6 +30,7 @@ Relay の可用性より、利用者の署名安全性を優先する。Relay �
 
 - 署名要求を dApp とスマホアプリの間で受け渡せること。
 - 必要に応じて、署名結果をスマホアプリから dApp へ受け渡せること。
+- E2E で保護された opaque request / response envelope と、handoff に必要な最小限の安全な metadata および transport credential の検証に必要な最小限の情報だけを扱うこと。
 - 受け渡しの失敗、改ざん、差し替え、重複、遅延、要求の分離不備が、意図しない署名につながらないこと。
 - Relay を信頼境界の内側に置かず、Relay が侵害された場合もスマホアプリが署名要求を検証し、利用者が承認する責任境界を維持すること。
 
@@ -44,6 +45,7 @@ Relay は次を担わない。
 - トランザクションを announce すること。
 - ノードを選択すること、または継続的なネットワーク状態を管理すること。
 - 署名要求や署名結果を履歴サービスとして長期管理すること。
+- request / response envelope を復号または内容解析すること。transaction、message signing payload、復号済み request / response、Signer に表示される意味内容または署名対象の解釈結果を取得、保持、露出してはならない。
 
 Relay を経由する場合も、スマホアプリが要求の復号・検証、署名対象の意味解釈、利用者への確認、承認または拒否、署名を担う。dApp は返却された署名結果を独立して確認し、必要なネットワーク処理を担う。
 
@@ -68,6 +70,10 @@ operation ごとの結果形式、message payload の具体形式および署名
 ### RR-003 Relay を信頼しない安全境界
 
 **MUST** Relay または Relay との通信経路が侵害されても、Relay の応答や保存状態だけを根拠として署名を成立させてはならない。
+
+**MUST** Relay は、E2E で保護された opaque request / response envelope と、handoff に必要な最小限の安全な metadata および transport credential の検証に必要な最小限の情報だけを扱わなければならない。Relay は envelope の内容を復号、解析、意味解釈、表示または検証してはならず、必要最小限の metadata を署名対象の意味内容の解釈が可能になる範囲へ拡大してはならない。
+
+Relay API、storage、backup、log、diagnostics、analytics または telemetry に、平文の transaction、message signing payload、復号済み request / response、Signer に表示される意味内容または署名対象の解釈結果を出してはならない。Relay 運用者または logging infrastructure が通常経路でこれらを取得できる設計を許容してはならない。
 
 スマホアプリは、Relay を経由した要求についても、利用者が確認・承認した要求と実際に署名する対象の対応を確認しなければならない。具体的な改ざん検出、認証、暗号化の方式は後続仕様で決定する。
 
@@ -99,6 +105,8 @@ operation ごとの結果形式、message payload の具体形式および署名
 ### RR-006 Replay・重複・遅延配送への耐性
 
 **MUST** 古い要求の replay、使用済み要求の再利用、Relay またはネットワークによる重複配送、遅延した要求の後着、Relay 再起動後の古い状態の再出現によって、追加の署名が発生してはならない。
+
+**MUST** Relay restart、state loss または storage loss の後に、旧 request identity、旧 session identity または同一 ciphertext を新しい handoff として再登録・再処理してはならない。遅延配送された旧 request も新規 request として扱ってはならない。retry は新しい request identity を使用する新しい署名要求でなければならず、スマホアプリでは新しい利用者承認を必要としなければならない。
 
 要求の有効性、使用済み判定、重複処理、遅延処理および再起動後の扱いは、後続仕様で一貫した安全側の規則として定義する。具体的な識別子、nonce、期限値および保存形式は本書で決定しない。
 
@@ -157,6 +165,8 @@ DoS により署名連携が利用できなくなること自体は、直ちに 
 
 正常完了、利用者拒否、cancel、expiry、validation failure、timeout、Relay restart、Relay state loss その他の終端状態の後は、古い要求、結果、credential または metadata を再利用できない状態にしなければならない。具体的な保持期間、削除契機、再利用不能の方式および障害復旧時の扱いは後続仕様で決定する。
 
+Relay が旧 state を失っていても、参加者側を含めた E2E の境界として、旧 request identity または旧 ciphertext の再利用を新しい handoff として許容してはならない。retry は新しい identity と新しい署名承認を伴うものとし、epoch、tombstone、nonce、persistent replay database その他の方式は後続仕様で決定する。
+
 ### RR-NFR-004 失敗情報からの秘密情報分離
 
 **MUST** 障害、改ざん、replay、分離失敗、DoS その他の失敗を記録・通知する場合も、秘密情報やそれを復元できる情報をログ、エラー、診断情報へ含めてはならない。
@@ -201,43 +211,43 @@ Relay が利用できない場合の代替経路、redirect、Deep Link、QR、R
 
 ## 7. Relay の受け入れ条件
 
-| ID        | 関連要求                                              | 受け入れ可能な状態                                                                                                                                                                                                                                                                                                                                                    |
-| --------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| RR-AC-001 | RR-004、RR-NFR-002、RR-NFR-005                        | Relay が停止、通信断、タイムアウト、再起動または内部状態消失になった場合、署名連携が成功扱いにならず、検証・承認を省略せずに安全側へ終了する。                                                                                                                                                                                                                        |
-| RR-AC-002 | RR-005、RR-007、RR-NFR-001                            | Relay または通信経路で署名要求・署名結果が改ざん、差し替えまたは別セッションへ置換された場合、利用者が確認した内容と異なる署名が成立しない。                                                                                                                                                                                                                          |
-| RR-AC-003 | RR-006、RR-NFR-005                                    | replay、使用済み要求の再利用、重複配送、遅延配送、再起動後の古い状態の再出現によって追加の署名が発生しない。                                                                                                                                                                                                                                                          |
-| RR-AC-004 | RR-007、RR-NFR-001、RR-NFR-005                        | 第三者が他者または他セッションの要求・結果を取得・置換しても、対応関係の検証失敗として安全側に終了し、別の署名成功へ変換されない。                                                                                                                                                                                                                                    |
-| RR-AC-005 | RR-010、RR-011                                        | DoS や大量要求によって可用性が低下しても、検証条件、承認要求、署名秘密情報・transport credential の保護が緩和されず、意図しない署名が発生しない。                                                                                                                                                                                                                     |
-| RR-AC-006 | RR-008、RR-NFR-004                                    | Relay が署名秘密情報を受信・処理・保持せず、署名、意味解釈、利用者承認、announce、node 選択または継続的な blockchain 状態管理を担っていない。transport credential を扱う場合も、必要最小限に限られ、raw 値が URL、ログ、診断、エラー、analytics、telemetry または不要な継続保存へ現れない。                                                                           |
-| RR-AC-007 | RR-001、RR-002、RR-003、RR-009                        | スマホアプリが Relay 経由の transaction signing と message signing の要求を自ら復号・検証・表示し、利用者の明示的承認と必要な認証条件を経た場合だけ、対応する署名を実行できる。Relay が配送したことだけで署名を開始しない。                                                                                                                                           |
-| RR-AC-008 | RR-002、RR-005、RR-NFR-005、CR-AC-004〜006、CR-AC-015 | dApp が transaction signing と message signing の署名結果を、元の要求、署名者、Account、Chain、Network および operation との対応を含めて独立検証でき、受け渡し成功だけを署名成功の根拠にしていない。                                                                                                                                                                  |
-| RR-AC-009 | RR-001、RR-002、CR-AC-004、CR-AC-005、CR-AC-015       | 正常な transaction signing handoff で、dApp からの元要求がスマホアプリへ届き、利用者の承認後に生成された署名結果が、元の request、signer、Account、Chain、Network に対応する結果として dApp へ返る。                                                                                                                                                                  |
-| RR-AC-010 | RR-001、RR-002、CR-AC-004、CR-AC-006、CR-AC-015       | 正常な message signing handoff で、dApp からの元要求がスマホアプリへ届き、利用者の承認後に生成された署名結果が、元の request、signer、Account、Chain、Network および message signing operation に対応する結果として dApp へ返る。                                                                                                                                     |
-| RR-AC-011 | RR-NFR-003、RR-NFR-004、RR-NFR-005                    | 正常完了、利用者拒否、cancel、expiry、validation failure、timeout、Relay restart、Relay state loss その他の終端状態の後に、古い request、result、transport credential または関連 metadata が再利用できず、履歴・分析・ユーザーアカウントサービスとして保持されない。                                                                                                  |
-| RR-AC-012 | RR-004、RR-006、RR-NFR-002、RR-NFR-005                | 利用者拒否、unsupported operation / format、sender / request origin 不一致、許可範囲不一致、content mismatch、expiry、replay、duplicate、late delivery、Chain / Network / Account mismatch、parse / display inability、validation failure、result unknown、Relay unavailable を成功と区別できる。再試行は古い request を再利用せず、新しい request として判断できる。 |
+| ID        | 関連要求                                              | 受け入れ可能な状態                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| --------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RR-AC-001 | RR-004、RR-NFR-002、RR-NFR-005                        | Relay が停止、通信断、タイムアウト、再起動または内部状態消失になった場合、署名連携が成功扱いにならず、検証・承認を省略せずに安全側へ終了する。                                                                                                                                                                                                                                                                                                                                                                  |
+| RR-AC-002 | RR-005、RR-007、RR-NFR-001                            | Relay または通信経路で署名要求・署名結果が改ざん、差し替えまたは別セッションへ置換された場合、利用者が確認した内容と異なる署名が成立しない。Relay は request / response を opaque envelope として扱い、内容を解釈しない。                                                                                                                                                                                                                                                                                       |
+| RR-AC-003 | RR-006、RR-NFR-005                                    | replay、使用済み要求の再利用、重複配送、遅延配送、再起動後の古い状態の再出現によって追加の署名が発生しない。restart / state loss 後の旧 identity または同一 ciphertext の再登録・再処理も拒否され、retry は新しい identity と新しい利用者承認を必要とする。                                                                                                                                                                                                                                                     |
+| RR-AC-004 | RR-007、RR-NFR-001、RR-NFR-005                        | 第三者が他者または他セッションの要求・結果を取得・置換しても、対応関係の検証失敗として安全側に終了し、別の署名成功へ変換されない。                                                                                                                                                                                                                                                                                                                                                                              |
+| RR-AC-005 | RR-010、RR-011                                        | DoS や大量要求によって可用性が低下しても、検証条件、承認要求、署名秘密情報・transport credential の保護が緩和されず、意図しない署名が発生しない。                                                                                                                                                                                                                                                                                                                                                               |
+| RR-AC-006 | RR-003、RR-008、RR-NFR-004                            | Relay が opaque request / response envelope と必要最小限の metadata だけを扱い、復号・内容解析・意味解釈を行わない。平文 request / response、transaction、message payload または復号結果が API response、storage、backup、log、diagnostics、analytics、telemetry に現れず、Relay 運用者や logging infrastructure の通常経路で取得できない。署名秘密情報を受信・処理・保持せず、署名、利用者承認、announce、node 選択または継続的な blockchain 状態管理も担っていない。transport credential は必要最小限に限る。 |
+| RR-AC-007 | RR-001、RR-002、RR-003、RR-009                        | スマホアプリが Relay 経由の transaction signing と message signing の要求を自ら復号・検証・表示し、利用者の明示的承認と必要な認証条件を経た場合だけ、対応する署名を実行できる。Relay が配送したことだけで署名を開始しない。                                                                                                                                                                                                                                                                                     |
+| RR-AC-008 | RR-002、RR-005、RR-NFR-005、CR-AC-004〜006、CR-AC-015 | dApp が transaction signing と message signing の署名結果を、元の要求、署名者、Account、Chain、Network および operation との対応を含めて独立検証でき、受け渡し成功だけを署名成功の根拠にしていない。                                                                                                                                                                                                                                                                                                            |
+| RR-AC-009 | RR-001、RR-002、CR-AC-004、CR-AC-005、CR-AC-015       | 正常な transaction signing handoff で、dApp からの元要求がスマホアプリへ届き、利用者の承認後に生成された署名結果が、元の request、signer、Account、Chain、Network に対応する結果として dApp へ返る。                                                                                                                                                                                                                                                                                                            |
+| RR-AC-010 | RR-001、RR-002、CR-AC-004、CR-AC-006、CR-AC-015       | 正常な message signing handoff で、dApp からの元要求がスマホアプリへ届き、利用者の承認後に生成された署名結果が、元の request、signer、Account、Chain、Network および message signing operation に対応する結果として dApp へ返る。                                                                                                                                                                                                                                                                               |
+| RR-AC-011 | RR-006、RR-NFR-003、RR-NFR-004、RR-NFR-005            | 正常完了、利用者拒否、cancel、expiry、validation failure、timeout、Relay restart、Relay state loss その他の終端状態の後に、古い request、result、transport credential または関連 metadata が再利用できず、履歴・分析・ユーザーアカウントサービスとして保持されない。同一 identity または同一 ciphertext の再送は新しい handoff として復活せず、retry は新しい identity と新しい署名承認を必要とする。                                                                                                           |
+| RR-AC-012 | RR-004、RR-006、RR-NFR-002、RR-NFR-005                | 利用者拒否、unsupported operation / format、sender / request origin 不一致、許可範囲不一致、content mismatch、expiry、replay、duplicate、late delivery、Chain / Network / Account mismatch、parse / display inability、validation failure、result unknown、Relay unavailable を成功と区別できる。再試行は古い request、identity または ciphertext を再利用せず、新しい request と新しい利用者承認として判断できる。                                                                                             |
 
 ## 8. Traceability
 
 上流根拠は Concept Sheet と共通要件に限定する。Mobile / Browser Extension 要件、Architecture、Product Specification は兄弟要件または整合確認資料として扱い、Web Transaction Handoff Specification、Relay protocol / SDK / implementation は下流引継ぎまたは実装 evidence として扱う。
 
-| 要求 ID    | 上流根拠                                                          | 適用主体                  | 整合確認資料・外部契約                                                 | 下流引継ぎ                                                   | 受け入れ条件                                          |
-| ---------- | ----------------------------------------------------------------- | ------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------- |
-| RR-001     | Concept §6.1、§8；CR-001、CR-007、CR-007-TX、CR-007-MSG           | Relay / End-to-End        | Mobile MR-002〜MR-004；Architecture §3、§5.5                           | Web handoff、Relay protocol、Mobile handoff                  | RR-AC-007、RR-AC-009、RR-AC-010                       |
-| RR-002     | Concept §6.4、§7、§8；CR-006、CR-007、CR-012                      | Relay / End-to-End / dApp | Mobile MR-004、MR-012；Browser Extension BR-005；Architecture §3、§5.5 | result contract、dApp verification、Web handoff              | RR-AC-008、RR-AC-009、RR-AC-010                       |
-| RR-003     | Concept §9、§13；CR-011、CR-NFR-009、CR-NFR-012                   | Relay / Mobile / dApp     | Mobile MR-002〜MR-005；Architecture §3                                 | integrity / authentication / handoff specification           | RR-AC-002、RR-AC-004                                  |
-| RR-004     | Concept §6.3、§11、§13；CR-010、CR-NFR-010、CR-NFR-011            | Relay / Mobile / dApp     | Mobile MR-005、MR-012；Browser Extension BR-007、BR-008                | failure / lifecycle / retry specification                    | RR-AC-001、RR-AC-003、RR-AC-012                       |
-| RR-005     | Concept §6.2、§6.3、§13；CR-NFR-009、CR-NFR-012                   | Relay / Mobile / dApp     | Mobile MR-002、MR-005；Architecture §3                                 | request / result integrity specification                     | RR-AC-002、RR-AC-004、RR-AC-008                       |
-| RR-006     | Concept §6.3、§11、§13；CR-NFR-010、CR-NFR-011                    | Relay / Mobile / dApp     | Mobile MR-005；Browser Extension BR-007、BR-008                        | freshness / replay / duplicate specification                 | RR-AC-003、RR-AC-011、RR-AC-012                       |
-| RR-007     | Concept §13；CR-NFR-008、CR-NFR-009、CR-NFR-012                   | Relay / Mobile / dApp     | Mobile MR-002、MR-003；Browser Extension BR-003、BR-004                | session / request correlation specification                  | RR-AC-002、RR-AC-004、RR-AC-008                       |
-| RR-008     | Concept §9、§13；CR-008、CR-NFR-002                               | Relay / Mobile / dApp     | Mobile MR-003、MR-012；Architecture §3、§5.5                           | credential / secret boundary、handoff security specification | RR-AC-006、RR-AC-011                                  |
-| RR-009     | Concept §6.3、§11、§13；CR-003、CR-011                            | Relay / Mobile            | Mobile MR-004〜MR-006；Architecture §3                                 | Mobile approval / authentication specification               | RR-AC-001、RR-AC-007                                  |
-| RR-010     | Concept §11、§13；CR-010、CR-NFR-001、CR-NFR-002                  | Relay / Operations        | Architecture §3；Relay operation design                                | DoS / availability operation specification                   | RR-AC-005                                             |
-| RR-011     | Concept §11、§12、§13；CR-010、CR-NFR-006、CR-NFR-010、CR-NFR-011 | Relay / Operations        | `docs/adr/0001-mainnet-evidence-lite.md`；Architecture §3              | availability / release / failure specification               | RR-AC-001、RR-AC-005                                  |
-| RR-NFR-001 | Concept §13；CR-NFR-001                                           | Relay / Mobile / dApp     | Mobile MR-002；Browser Extension BR-003；Architecture §3               | input validation specification                               | RR-AC-002、RR-AC-003、RR-AC-004、RR-AC-012            |
-| RR-NFR-002 | Concept §6.3、§13；CR-010、CR-NFR-010、CR-NFR-012                 | Relay / Mobile / dApp     | Mobile MR-005、MR-012；Web handoff failure contract                    | result-unknown / failure specification                       | RR-AC-001、RR-AC-007、RR-AC-012                       |
-| RR-NFR-003 | Concept §10、§13；CR-008、CR-NFR-002                              | Relay / Operations        | Mobile MR-003、MR-012；Architecture §3                                 | retention / deletion / reuse prevention specification        | RR-AC-006、RR-AC-011                                  |
-| RR-NFR-004 | Concept §13；CR-008、CR-NFR-002                                   | Relay / Operations        | Mobile MR-003；Architecture §3、§5.5                                   | logging / diagnostics / privacy specification                | RR-AC-006、RR-AC-008、RR-AC-011                       |
-| RR-NFR-005 | Concept §6.3、§11、§13；CR-012、CR-NFR-010、CR-NFR-011、CR-AC-015 | Relay / Mobile / dApp     | Mobile MR-005、MR-012；Web handoff §10                                 | error taxonomy / retry / dApp handling specification         | RR-AC-001、RR-AC-003、RR-AC-007、RR-AC-008、RR-AC-012 |
+| 要求 ID    | 上流根拠                                                          | 適用主体                        | 整合確認資料・外部契約                                                 | 下流引継ぎ                                                           | 受け入れ条件                                          |
+| ---------- | ----------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------- |
+| RR-001     | Concept §6.1、§8；CR-001、CR-007、CR-007-TX、CR-007-MSG           | Relay / End-to-End              | Mobile MR-002〜MR-004；Architecture §3、§5.5                           | Web handoff、Relay protocol、Mobile handoff                          | RR-AC-007、RR-AC-009、RR-AC-010                       |
+| RR-002     | Concept §6.4、§7、§8；CR-006、CR-007、CR-012                      | Relay / End-to-End / dApp       | Mobile MR-004、MR-012；Browser Extension BR-005；Architecture §3、§5.5 | result contract、dApp verification、Web handoff                      | RR-AC-008、RR-AC-009、RR-AC-010                       |
+| RR-003     | Concept §9、§13；CR-011、CR-NFR-009、CR-NFR-012                   | Relay / Mobile / dApp           | Mobile MR-002〜MR-005；Architecture §3                                 | opaque envelope / integrity / authentication / handoff specification | RR-AC-002、RR-AC-004、RR-AC-006                       |
+| RR-004     | Concept §6.3、§11、§13；CR-010、CR-NFR-010、CR-NFR-011            | Relay / Mobile / dApp           | Mobile MR-005、MR-012；Browser Extension BR-007、BR-008                | failure / lifecycle / retry specification                            | RR-AC-001、RR-AC-003、RR-AC-012                       |
+| RR-005     | Concept §6.2、§6.3、§13；CR-NFR-009、CR-NFR-012                   | Relay / Mobile / dApp           | Mobile MR-002、MR-005；Architecture §3                                 | request / result integrity specification                             | RR-AC-002、RR-AC-004、RR-AC-008                       |
+| RR-006     | Concept §6.3、§11、§13；CR-NFR-010、CR-NFR-011                    | Relay / Mobile / dApp           | Mobile MR-005；Browser Extension BR-007、BR-008                        | freshness / replay / duplicate specification                         | RR-AC-003、RR-AC-011、RR-AC-012                       |
+| RR-007     | Concept §13；CR-NFR-008、CR-NFR-009、CR-NFR-012                   | Relay / Mobile / dApp           | Mobile MR-002、MR-003；Browser Extension BR-003、BR-004                | session / request correlation specification                          | RR-AC-002、RR-AC-004、RR-AC-008                       |
+| RR-008     | Concept §9、§13；CR-008、CR-NFR-002                               | Relay / Mobile / dApp           | Mobile MR-003、MR-012；Architecture §3、§5.5                           | credential / secret boundary、handoff security specification         | RR-AC-006、RR-AC-011                                  |
+| RR-009     | Concept §6.3、§11、§13；CR-003、CR-011                            | Relay / Mobile                  | Mobile MR-004〜MR-006；Architecture §3                                 | Mobile approval / authentication specification                       | RR-AC-001、RR-AC-007                                  |
+| RR-010     | Concept §11、§13；CR-010、CR-NFR-001、CR-NFR-002                  | Relay / Operations              | Architecture §3；Relay operation design                                | DoS / availability operation specification                           | RR-AC-005                                             |
+| RR-011     | Concept §11、§12、§13；CR-010、CR-NFR-006、CR-NFR-010、CR-NFR-011 | Relay / Operations              | `docs/adr/0001-mainnet-evidence-lite.md`；Architecture §3              | availability / release / failure specification                       | RR-AC-001、RR-AC-005                                  |
+| RR-NFR-001 | Concept §13；CR-NFR-001                                           | Relay / Mobile / dApp           | Mobile MR-002；Browser Extension BR-003；Architecture §3               | input validation specification                                       | RR-AC-002、RR-AC-003、RR-AC-004、RR-AC-012            |
+| RR-NFR-002 | Concept §6.3、§13；CR-010、CR-NFR-010、CR-NFR-012                 | Relay / Mobile / dApp           | Mobile MR-005、MR-012；Web handoff failure contract                    | result-unknown / failure specification                               | RR-AC-001、RR-AC-007、RR-AC-012                       |
+| RR-NFR-003 | Concept §10、§13；CR-008、CR-011、CR-NFR-002、CR-NFR-011          | Relay / Operations / End-to-End | Mobile MR-003、MR-012；Architecture §3                                 | retention / deletion / state-loss reuse prevention specification     | RR-AC-003、RR-AC-006、RR-AC-011                       |
+| RR-NFR-004 | Concept §13；CR-008、CR-NFR-002                                   | Relay / Operations              | Mobile MR-003；Architecture §3、§5.5                                   | logging / diagnostics / privacy specification                        | RR-AC-006、RR-AC-008、RR-AC-011                       |
+| RR-NFR-005 | Concept §6.3、§11、§13；CR-012、CR-NFR-010、CR-NFR-011、CR-AC-015 | Relay / Mobile / dApp           | Mobile MR-005、MR-012；Web handoff §10                                 | error taxonomy / retry / dApp handling specification                 | RR-AC-001、RR-AC-003、RR-AC-007、RR-AC-008、RR-AC-012 |
 
 ## 9. Relay 固有の未決事項
 
@@ -248,6 +258,7 @@ Relay が利用できない場合の代替経路、redirect、Deep Link、QR、R
 - 後続判断が必要な理由: operation ごとの具体的な要求・結果形式、Mobile 側の検証・承認範囲、dApp が独立検証できる結果の境界に影響するため。
 - 主な選択肢: 共通要件の両 operation に同じ安全境界を適用する、operation ごとに milestone の詳細完了条件を分ける、既存の Web handoff 仕様を段階的に両 operation へ整合させる。
 - 制約: 本 OPEN を理由に message signing を Relay v1 の必須範囲から除外してはならない。現在の Web Transaction Handoff Specification に message signing を v1 対象外とする記述があるため、下流仕様の修正が必要である。
+- Relay milestone 完了の最低条件: Relay 固有の全 MUST、`RR-AC-001`〜`RR-AC-012` の全受け入れ条件、および Relay に適用される共通 `CR-AC-*`（少なくとも `CR-AC-004`、`CR-AC-005`、`CR-AC-006`、`CR-AC-007`、`CR-AC-009`、`CR-AC-011`〜`CR-AC-016`）を満たすこと。これらは必要条件であり、MAY の採用または未採用によって免除されない。MosaicLynx v1 全体の完了判定や具体的な release process / test runner は共通要件・後続の release 文書へ委ねる。
 
 ### RR-OPEN-002：Relay 障害時の利用者・dApp 向け失敗境界
 
@@ -264,7 +275,7 @@ Relay が利用できない場合の代替経路、redirect、Deep Link、QR、R
 4. bounded retention の保持期間、削除・再利用不能の方式、終端状態、expiry、cancel、restart / state loss 後の扱いを、具体的 storage / purge / backup 方式を固定せずに仕様へ引き継ぐ。
 5. HTTP / HTTPS API、通信方式、データ形式、認証・暗号方式、rate limit、インフラ構成およびテストを基本設計・詳細設計・仕様へ引き継ぐ。API、schema、暗号方式、storage、infra、retry interval、HTTP status は本書で決定しない。
 6. `docs/specifications/web-transaction-handoff-spec.md` にある message signing v1 対象外の記述と、両 operation を必須とする本要件・共通要件の不整合を、下流仕様で解消する。本要件の上流要求を下流仕様に合わせて弱めない。
-7. `OPEN-003` の4 milestone 個別完了条件および `OPEN-005` の Mainnet 公開条件と、本書の受け入れ条件を整合させる。
+7. `OPEN-003` の4 milestone 個別完了条件および `OPEN-005` の Mainnet 公開条件と、本書の受け入れ条件を整合させる。Relay milestone の最低条件は `RR-OPEN-001` に記載した Relay 固有 MUST、全 `RR-AC-*` および適用される全 `CR-AC-*` であり、MAY はこの条件を弱めない。
 
 ## 11. 参照資料
 
