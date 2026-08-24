@@ -69,7 +69,9 @@ PIN、OS パスコード、生体認証をどの組み合わせで利用する�
 
 OS の Keychain / Keystore 等を利用する場合も、OS 保護の capability、端末変更、バックアップ、失敗状態をアプリ側の責任として明示しなければならない。具体的な Binding、保存場所、鍵のラップ方式は設計で決定する。
 
-根拠: `_snwc/README.md`、`_snwc/docs/specifications/specification.md`、`_snwc/docs/decisions/binding-implementation.md`。
+上流根拠: `docs/concept/concept-sheet.md` §9、§13；`docs/requirements/requirements.md` CR-008、CR-013。
+
+外部コンポーネント契約: `_snwc/README.md`、`_snwc/docs/requirements/requirements.md`、`_snwc/docs/specifications/specification.md`、`_snwc/docs/decisions/binding-implementation.md`。
 
 ### MR-008 OS 保護能力の表示
 
@@ -107,25 +109,34 @@ Relay の主経路・代替経路、redirect、Deep Link、QR、Relay unavailabl
 
 アプリ更新で、アプリが管理する Profile metadata、Account の関連付け、dApp 権限または wallet-core の opaque Wallet Store を利用者の明示的な確認なしに破壊・置換してはならない。backup を提供する場合の更新互換性も、別途定めた責任境界に従う。OS サポート範囲、配布チャネル、更新互換性、rollback の詳細は `MR-OPEN-001`、`MR-OPEN-008`、後続の release 設計で決定する。
 
-## 4. iOS / Android の差異に関する要求
+## 4. iOS / Android の差異の位置付け
 
-### 4.1 共通方針
+本節は新しい `MR-*` を定義しない。iOS / Android の差異は、既存の正式な要求、前提、`MR-OPEN-*` の未決定事項として扱う。
 
-- iOS と Android は同じ共通署名要求を満たす必要があるが、OS の保護機能、ライフサイクル、バックアップ、配布条件が異なる場合は差異を明示する。
-- 一方の OS の capability を、もう一方の OS で利用可能と推測してはならない。
-- platform-specific な保護が利用できない場合も、共通の blind signing 禁止、明示的承認、秘密情報分離、安全側終了を維持する。
+### 4.1 前提
 
-### 4.2 iOS 固有の確認事項
+- iOS と Android の OS 保護機能、ライフサイクル、バックアップ、配布条件は異なり得る。一方の OS の capability を、もう一方の OS で利用可能と推測してはならない。
+- platform-specific な保護が利用できない場合も、既存の blind signing 禁止、明示的承認、秘密情報分離、安全側終了を維持する。これらの正式な要求は `MR-002`〜`MR-006`、`MR-008`、`MR-012` に定める。
 
-- iOS のバックグラウンド制約、プロセス終了、Universal Link、Keychain、端末ロック、生体認証の適用範囲を確認する。
-- App Store の配布・審査・更新条件と、Mainnet capability の release gate の対応を確認する。
-- Secure Enclave を利用する場合でも、Symbol / NEM の署名能力を自動的に保証できるとみなさない。
+### 4.2 既存の正式な要求への適用
 
-### 4.3 Android 固有の確認事項
+以下は独立した要求ではなく、既存 `MR-*` とその受け入れ条件で判定する事項である。
 
-- Android の background 制約、プロセス終了、App Link、Keystore、StrongBox、端末ロック、生体認証の適用範囲を確認する。
-- Google Play の配布・審査・更新条件と、Mainnet capability の release gate の対応を確認する。
-- StrongBox または Keystore が利用可能であることだけを理由に、Symbol / NEM の直接署名能力やハードウェア保護を保証していると表示しない。
+| 差異の対象                                                     | 適用する既存要求             | 受け入れ条件                                       |
+| -------------------------------------------------------------- | ---------------------------- | -------------------------------------------------- |
+| OS ライフサイクル、アプリロック、再認証                        | `MR-005`、`MR-006`           | `MR-AC-004`、`MR-AC-005`                           |
+| OS 保護 capability の利用・表示と wallet-core との責任分担     | `MR-007`、`MR-008`           | `MR-AC-007`、`MR-AC-010`                           |
+| 外部要求の受信、秘密情報分離、アプリ管理下の承認、Relay 境界   | `MR-002`〜`MR-004`、`MR-012` | `MR-AC-002`、`MR-AC-003`、`MR-AC-006`、`MR-AC-013` |
+| iOS / Android の個別 milestone、Store 配布、Mainnet gate、更新 | `MR-001`、`MR-013`           | `MR-AC-001`、`MR-AC-009`、`MR-AC-014`              |
+
+### 4.3 未決定事項
+
+- iOS の background 制約、プロセス終了、Universal Link、Keychain、端末ロック、生体認証の適用範囲は、`MR-005`、`MR-006`、`MR-008` に適用し、具体的な扱いを `MR-OPEN-001`〜`MR-OPEN-005` で決定する。
+- iOS の App Store の配布・審査・更新条件と Mainnet capability の release gate の対応は、`MR-013` に適用し、`MR-OPEN-001`、`MR-OPEN-008` で決定する。
+- Secure Enclave を利用する場合でも Symbol / NEM の署名能力を自動的に保証できるとはみなさない。この扱いは `MR-008` と `MR-OPEN-003` に従う。
+- Android の background 制約、プロセス終了、App Link、Keystore、StrongBox、端末ロック、生体認証の適用範囲は、`MR-005`、`MR-006`、`MR-008` に適用し、具体的な扱いを `MR-OPEN-001`〜`MR-OPEN-005` で決定する。
+- Android の Google Play の配布・審査・更新条件と Mainnet capability の release gate の対応は、`MR-013` に適用し、`MR-OPEN-001`、`MR-OPEN-008` で決定する。
+- StrongBox または Keystore が利用可能であることだけを理由に Symbol / NEM の直接署名能力や hardware protection を保証していると表示しない。この扱いは `MR-008` と `MR-OPEN-003` に従う。
 
 ## 5. スマホアプリの対象外
 
@@ -138,17 +149,22 @@ Relay の主経路・代替経路、redirect、Deep Link、QR、Relay unavailabl
 
 ## 6. スマホアプリの受け入れ条件
 
-| ID        | 受け入れ可能な状態                                                                                                                  |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| MR-AC-001 | Android と iOS が個別 milestone として評価され、片方の完了を他方または MosaicLynx v1 全体の完了と混同しない。                       |
-| MR-AC-002 | 外部アプリ・スマホブラウザ・Relay からの要求が検証されるまで署名確認・署名へ進まない。                                              |
-| MR-AC-003 | アプリ管理下の確認領域で、利用者が署名対象、Chain、Network、Account、影響を確認して承認または拒否できる。                           |
-| MR-AC-004 | background、process termination、再起動、要求再表示の後に、古い承認を別要求へ適用して自動署名しない。                               |
-| MR-AC-005 | アプリロック、認証失敗、wallet-core 失敗、OS 保護状態喪失時に署名せず、安全側に終了する。                                           |
-| MR-AC-006 | 秘密情報が外部アプリ、Web ページ、Relay、URL、通知、ログ、診断情報へ不要に露出しない。                                              |
-| MR-AC-007 | iOS / Android 固有の保護 capability を、実際に確認できた範囲を越えて表示しない。                                                    |
-| MR-AC-008 | backup / restore または端末移行を提供する場合、署名能力または復元可能性を利用者へ誤認なく示し、提供しない機能を完了条件としない。   |
-| MR-AC-009 | App Store / Google Play 配布 build が Mainnet gate と release evidence の条件を満たさない場合、Mainnet 署名可能として配布されない。 |
+| ID        | 受け入れ可能な状態                                                                                                                                                                                                                                                                           |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MR-AC-001 | Android と iOS が個別 milestone として評価され、片方の完了を他方または MosaicLynx v1 全体の完了と混同しない。                                                                                                                                                                                |
+| MR-AC-002 | 外部アプリ・スマホブラウザ・Relay からの要求が検証されるまで署名確認・署名へ進まない。                                                                                                                                                                                                       |
+| MR-AC-003 | アプリ管理下の確認領域で、利用者が署名対象、Chain、Network、Account、影響を確認して承認または拒否できる。                                                                                                                                                                                    |
+| MR-AC-004 | background、process termination、再起動、要求再表示の後に、sender / 要求元、要求内容、Chain、Network、Account、expiry / 有効期限、承認状態を再確認し、古い承認を別要求へ適用して自動署名しない。                                                                                             |
+| MR-AC-005 | アプリロック、認証失敗、wallet-core 失敗、OS 保護状態喪失時に署名せず、安全側に終了する。                                                                                                                                                                                                    |
+| MR-AC-006 | 秘密情報が外部アプリ、Web ページ、Relay、URL、通知、ログ、診断情報へ不要に露出しない。                                                                                                                                                                                                       |
+| MR-AC-007 | iOS / Android 固有の保護 capability を、実際に確認できた範囲を越えて表示しない。                                                                                                                                                                                                             |
+| MR-AC-008 | backup / restore または端末移行を提供する場合、署名能力または復元可能性を利用者へ誤認なく示し、提供しない機能を完了条件としない。                                                                                                                                                            |
+| MR-AC-009 | App Store / Google Play 配布 build が Mainnet gate と release evidence の条件を満たさない場合、Mainnet capability を有効化・公開しない。                                                                                                                                                     |
+| MR-AC-010 | wallet-core が担当する鍵管理、Software Key、暗号処理、Wallet Store、raw signing 等を Mobile 側で再実装せず、Mobile 側が UI、Profile 管理、Account の表示・選択・関連付け、Chain / Network 設定、OS integration および orchestration を担当し、OS 固有保護と wallet-core の責任を区別できる。 |
+| MR-AC-011 | 端末紛失、端末初期化、アプリ削除、OS の保護状態喪失時に、署名能力または復元能力の変化を利用者へ誤認なく示す。                                                                                                                                                                                |
+| MR-AC-012 | スクリーンショット、画面録画、最近使ったアプリ一覧、通知表示等による露出リスクが評価され、必要な platform policy が定められている。                                                                                                                                                          |
+| MR-AC-013 | Relay が署名対象を解釈せず、署名せず、秘密情報を扱わず、announce しないことを確認できる。                                                                                                                                                                                                    |
+| MR-AC-014 | アプリ更新によって、既存の Profile metadata、Account の関連付け、dApp 権限または opaque Wallet Store が利用者の明示的な確認なく破壊・置換されない。                                                                                                                                          |
 
 ## 7. スマホアプリ固有の未決事項
 
@@ -193,16 +209,70 @@ Relay の主経路・代替経路、redirect、Deep Link、QR、Relay unavailabl
 - 主な選択肢: 共通 gate を platform 別 evidence へ分解する、Testnet を先行して Mainnet 条件を別途定める、Store 公開と Mainnet capability を分離する。
 - 具体的な evidence 項目はリリース設計で定める。
 
-## 8. 参照資料
+## 8. Traceability
 
-- `docs/requirements/requirements.md`
-- `docs/concept/concept-sheet.md`
+上流根拠は Mobile 要求を導出する `docs/concept/concept-sheet.md` と `docs/requirements/requirements.md` に限定する。整合確認資料は要求との矛盾がないか確認する下流・関連資料であり、下流引継ぎは要求を具体化する後続仕様・設計である。外部コンポーネント契約は `symbol-nem-wallet-core` の責任境界・契約を確認する資料であり、Mobile 要求の上流根拠ではない。
+
+### 8.1 MR-* と MR-AC-* の対応
+
+| 要求 ID | 上流根拠                                                           | 整合確認資料                                                                                                                  | 下流引継ぎ                                         | 外部コンポーネント契約                                                                                                                                       | 受け入れ条件         |
+| ------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------- |
+| MR-001  | Concept §1、§6.5；共通要件 §3、OPEN-003                            | `docs/specifications/product-spec.md`、`docs/mobile/mobile-support.md`、`docs/mobile/mobile-store-release.md`                 | 各 platform milestone の詳細仕様・release 設計     | —                                                                                                                                                            | MR-AC-001            |
+| MR-002  | Concept §8、§13；CR-001、CR-NFR-001、CR-NFR-008                    | `docs/specifications/web-transaction-handoff-spec.md`、`docs/mobile/mobile-support.md`                                        | Mobile handoff の後続仕様・設計                    | —                                                                                                                                                            | MR-AC-002            |
+| MR-003  | Concept §4、§9、§13；CR-008、CR-NFR-002                            | `docs/specifications/web-transaction-handoff-spec.md`、`docs/mobile/mobile-privacy.md`                                        | 外部受け渡しと秘密情報境界の後続仕様               | —                                                                                                                                                            | MR-AC-006            |
+| MR-004  | Concept §4、§6.2、§6.3；CR-002〜CR-004、CR-NFR-007                 | `docs/specifications/product-spec.md`                                                                                         | Mobile の確認・承認表示仕様                        | —                                                                                                                                                            | MR-AC-003            |
+| MR-005  | Concept §6.3、§11、§13；CR-010、CR-NFR-003、CR-NFR-009〜CR-NFR-011 | `docs/architecture/architecture.md`、`docs/specifications/web-transaction-handoff-spec.md`、`docs/mobile/mobile-support.md`   | Mobile lifecycle / pending request の後続仕様      | —                                                                                                                                                            | MR-AC-004            |
+| MR-006  | Concept §11、§13；CR-010、CR-NFR-004                               | `docs/specifications/profile-account-spec.md`、`docs/mobile/mobile-privacy.md`                                                | Mobile の認証・ロック仕様                          | —                                                                                                                                                            | MR-AC-005            |
+| MR-007  | Concept §9、§13；CR-008、CR-013、CR-NFR-004                        | `docs/architecture/architecture.md`、`docs/specifications/profile-account-spec.md`                                            | wallet-core 統合・platform integration の後続設計  | `_snwc/README.md`、`_snwc/docs/requirements/requirements.md`、`_snwc/docs/specifications/specification.md`、`_snwc/docs/decisions/binding-implementation.md` | MR-AC-005、MR-AC-010 |
+| MR-008  | Concept §11、§12、§13；CR-010、CR-NFR-006                          | `docs/specifications/product-spec.md`、`docs/specifications/web-transaction-handoff-spec.md`、`docs/mobile/mobile-privacy.md` | platform capability 表示・release の後続仕様       | —                                                                                                                                                            | MR-AC-007            |
+| MR-009  | Concept §10、§11；CR-013、CR-014                                   | `docs/specifications/profile-account-spec.md`、`docs/mobile/mobile-privacy.md`                                                | backup / migration の後続要件・仕様                | `_snwc/docs/specifications/specification.md`                                                                                                                 | MR-AC-008            |
+| MR-010  | Concept §11、§13；CR-010、CR-014                                   | `docs/specifications/profile-account-spec.md`、`docs/mobile/mobile-privacy.md`、`docs/mobile/mobile-support.md`               | recovery / deletion と platform support の後続仕様 | `_snwc/docs/specifications/specification.md`                                                                                                                 | MR-AC-011            |
+| MR-011  | Concept §13；CR-008、CR-NFR-002                                    | `docs/mobile/mobile-privacy.md`                                                                                               | platform security policy の後続仕様                | —                                                                                                                                                            | MR-AC-012            |
+| MR-012  | Concept §6.4、§9、§13；CR-006、CR-011                              | `docs/requirements/relay.md`、`docs/architecture/architecture.md`                                                             | Relay / Mobile handoff の後続仕様                  | —                                                                                                                                                            | MR-AC-013            |
+| MR-013  | Concept §6.5、§12、§14；共通要件 §3、CR-NFR-006、CR-011            | `docs/specifications/product-spec.md`、`docs/mobile/mobile-store-release.md`、`docs/release/mainnet-release-evidence.md`      | Store、Mainnet gate、更新互換性の release 設計     | —                                                                                                                                                            | MR-AC-009、MR-AC-014 |
+
+### 8.2 MR-OPEN-* の追跡
+
+| 未決事項 ID | 上流根拠                                             | 整合確認資料                                                                               | 下流引継ぎ                                                  | 外部コンポーネント契約                                                                                                                                       |
+| ----------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| MR-OPEN-001 | Concept §1、§6.5、§12；共通要件 OPEN-003、CR-NFR-006 | `docs/mobile/mobile-support.md`、`docs/mobile/mobile-store-release.md`                     | platform support・配布・release の後続設計                  | —                                                                                                                                                            |
+| MR-OPEN-002 | Concept §8、§13；CR-NFR-001、CR-NFR-008              | `docs/specifications/web-transaction-handoff-spec.md`、`docs/requirements/relay.md`        | 外部要求受信・送信元検証の後続仕様                          | —                                                                                                                                                            |
+| MR-OPEN-003 | Concept §9、§13；CR-013、CR-OPEN-001、CR-OPEN-002    | `docs/architecture/architecture.md`、`docs/specifications/profile-account-spec.md`         | platform integration・Binding・OS 保護境界の後続設計        | `_snwc/README.md`、`_snwc/docs/requirements/requirements.md`、`_snwc/docs/specifications/specification.md`、`_snwc/docs/decisions/binding-implementation.md` |
+| MR-OPEN-004 | Concept §11、§13；CR-003、CR-010                     | `docs/mobile/mobile-privacy.md`、`docs/specifications/profile-account-spec.md`             | PIN・OS credential・生体認証の後続仕様                      | —                                                                                                                                                            |
+| MR-OPEN-005 | Concept §6.3、§11；CR-NFR-009〜CR-NFR-011            | `docs/architecture/architecture.md`、`docs/specifications/web-transaction-handoff-spec.md` | lifecycle・pending request の後続仕様                       | —                                                                                                                                                            |
+| MR-OPEN-006 | Concept §10、§11；CR-013、CR-014                     | `docs/specifications/profile-account-spec.md`、`docs/mobile/mobile-privacy.md`             | backup・端末移行・復元の後続要件・仕様                      | `_snwc/docs/specifications/specification.md`                                                                                                                 |
+| MR-OPEN-007 | Concept §13；CR-008、CR-NFR-002                      | `docs/mobile/mobile-privacy.md`                                                            | platform privacy policy の後続仕様                          | —                                                                                                                                                            |
+| MR-OPEN-008 | Concept §12、§14；CR-NFR-006                         | `docs/mobile/mobile-store-release.md`、`docs/release/mainnet-release-evidence.md`          | Store 公開・Mainnet capability・release evidence の後続設計 | —                                                                                                                                                            |
+
+## 9. 参照資料
+
+### 9.1 上流根拠
+
+- `docs/concept/concept-sheet.md`: MosaicLynx の目的、v1 milestone、Signer / Relay の責任境界、セキュリティ原則および未決事項。
+- `docs/requirements/requirements.md`: 共通要求、CR-*、共通受け入れ条件、wallet-core との責任境界および共通未決事項。
+
+### 9.2 整合確認資料
+
+以下は Mobile 要件との整合を確認する資料であり、上流根拠ではない。
+
 - `docs/specifications/product-spec.md`
-- `docs/specifications/web-transaction-handoff-spec.md`
 - `docs/architecture/architecture.md`
+- `docs/requirements/relay.md`
 - `docs/mobile/mobile-privacy.md`
 - `docs/mobile/mobile-support.md`
 - `docs/mobile/mobile-store-release.md`
+
+### 9.3 下流引継ぎ
+
+- `docs/specifications/web-transaction-handoff-spec.md`: 外部要求、Mobile handoff、Relay 境界の具体化先。
+- `docs/specifications/profile-account-spec.md`: Profile、Account、backup / restore の具体化先。
+- `docs/release/mainnet-release-evidence.md`: Mainnet capability と release evidence 運用の具体化先。
+- 各 platform の lifecycle、認証、OS integration、privacy policy、Store 公開、更新互換性に関する後続仕様・設計。
+
+### 9.4 外部コンポーネント契約
+
+以下は `symbol-nem-wallet-core` の外部コンポーネント契約・整合確認資料であり、MosaicLynx の Mobile 要求の上流根拠ではない。Native C ABI、WASM、Binding 等の設計判断を本要件へ取り込まない。
+
 - `_snwc/README.md`
 - `_snwc/docs/requirements/requirements.md`
 - `_snwc/docs/specifications/specification.md`
