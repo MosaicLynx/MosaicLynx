@@ -63,7 +63,6 @@ Web dApp は MosaicLynx SDK の共通 `signTransaction()` を利用する。Exte
 - 構造化メッセージ署名
 - トランザクション署名
 - 署名要求ごとの確認画面
-- Profile の暗号化 backup export / import
 - 日本語 / 英語
 - ライト / ダークテーマ
 
@@ -73,7 +72,7 @@ Web dApp は MosaicLynx SDK の共通 `signTransaction()` を利用する。Exte
 - MosaicLynx SDK と E2E 暗号化 Relay による同一スマートフォン上のトランザクション受け渡し
 - 生体認証、パスキーによるアンロック
 - 対応言語の追加
-- バックアップ方式の拡張
+- Profile backup export / import など、将来提供する backup capability
 - 詳細監査記録、組織 policy、外部 WORM / audit anchor
 
 ### 5.3 対象外
@@ -206,6 +205,8 @@ XYM / XEM の残高は表示しない。
 
 ### 9.1 暗号化 backup と復旧
 
+本節の Profile backup export / import は、将来の個別 platform / release で提供する場合の下流仕様として扱い、Browser Extension の初回 milestone / release の必須機能・完了条件には含めない。
+
 - Profile 管理から、Vault、公開索引、Account source、derivation path、`nextAccountIndex`、Permission を一つの暗号化 backup envelope として export できる。平文のニーモニックまたは秘密鍵を file へ出力しない。
 - backup は現在の Profile password から導出した backup key で AES-256-GCM 暗号化し、MosaicLynx backup format、Profile ID、network、schema / crypto version、作成時刻を AAD に含める。Vault 暗号文の単純コピーではなく、export ごとに一意な salt と nonce を使う。
 - import は schema、KDF 最低値、AEAD、Profile network、全 Account identity、derivation path、重複 ID を検証し、既存 Profile を上書きせず新しい Profile ID へ copy-on-write で復元する。
@@ -235,13 +236,13 @@ XYM / XEM の残高は表示しない。
 
 Profile は `nextAccountIndex` を保持する。ニーモニック由来 Account の追加では現在値を使用して保存成功後にだけ単調増加させ、削除済み index を再利用しない。`accountIndex` は `0..2^31-1` とし、上限到達、重複 path、copy-on-write commit の失敗時は追加しない。
 
-imported private key由来のアカウントは、ニーモニックだけでは復元できないことを追加時とバックアップ確認時に明示する。Mainnet 署名へ使用する前に、Profile の暗号化 backup を export 済みであるか、元の秘密鍵を別媒体に保管済みであることを再確認する。
+imported private key由来のアカウントは、ニーモニックだけでは復元できないことを追加時と安全性確認時に明示する。署名へ使用する前に、復元に必要な秘密情報を別媒体に保管済みであることを再確認する。
 
 ニーモニック生成はchain / networkに依存しない共通処理とする。固定した`@nemnesia/symbol-sdk`で`new Bip32(SymbolFacade.BIP32_CURVE_NAME, "english").random()`を呼び、既定の`seedLength = 32`からBIP39 English 24 wordsを生成する。生成後は24語、辞書、checksumを検証し、`bip32.fromMnemonic(mnemonic, "")`が成功することを確認する。BIP39 passphraseは空文字に固定し、Profile passwordをBIP39 passphraseとして使用しない。
 
 Account導出はsymbol-sdkへ委譲し、MosaicLynxが派生pathを文字列または数値配列として複製しない。Profile networkで生成した`SymbolFacade`の`facade.bip32Path(accountIndex)`をそのまま`root.derivePath()`へ渡す。得た同じprivate keyを`SymbolFacade.createAccount()`と`NemFacade.createAccount()`へ渡し、public keyとaddressも返されたsymbol-sdk Accountから取得する。MosaicLynx独自の鍵計算、公開鍵導出、address checksum実装を持たない。NEMの`NemFacade.bip32Path()`は使用しない。詳細と固定vectorはChain Compatibility Specificationに従う。
 
-Symbol と NEM で同じ秘密鍵を使用することは意図した互換性要件である。NEM Identity はSymbol SDKで派生した秘密鍵をNEM facadeへ入力して導出し、NEM公式walletのニーモニック互換は要件としない。一方のチェーン実装または秘密鍵が侵害された場合は同じProfile / account indexの両チェーンAccountが影響を受けるため、新規作成、インポート、バックアップ確認画面にこの共通リスクを表示する。Mainnet / Testnetごとのpath選択も`SymbolFacade.bip32Path()`へ委譲する。ただしProfile分離は引き続き権限と誤操作を防ぐ境界として扱い、一方のProfileの復号状態を他方へ共有しない。
+Symbol と NEM で同じ秘密鍵を使用することは意図した互換性要件である。NEM Identity はSymbol SDKで派生した秘密鍵をNEM facadeへ入力して導出し、NEM公式walletのニーモニック互換は要件としない。一方のチェーン実装または秘密鍵が侵害された場合は同じProfile / account indexの両チェーンAccountが影響を受けるため、新規作成およびインポート時にこの共通リスクを表示する。Mainnet / Testnetごとのpath選択も`SymbolFacade.bip32Path()`へ委譲する。ただしProfile分離は引き続き権限と誤操作を防ぐ境界として扱い、一方のProfileの復号状態を他方へ共有しない。
 
 ## 11. dApp 接続と権限
 
@@ -690,7 +691,6 @@ MVP は単独ユーザーによるローカル承認型であり、それだけ�
 - iframe と偽装 Origin からの要求を拒否し、Storage が untrusted context から参照できない。
 - `SymbolFacade.bip32Path(accountIndex)` と固定BIP39 vectorからMainnet / Testnetの既知Accountを再現し、削除済みaccount indexを再利用しない。
 - chain / networkを入力せず`Bip32.random()`で生成したmnemonicが24語、checksum有効、`fromMnemonic(mnemonic, "")`可能であり、`facade.bip32Path(0)`から得たchild private keyが32-byteかつall-zeroでない。
-- 暗号化backupを別の空環境へ復元し、mnemonic-derived / imported-private-key双方の全Identityが一致する。改ざん、弱いKDF、重複ID、wrong network、wrong passwordでは既存Profileを変更しない。
 - Symbol unresolved address / mosaic aliasをTransferまたはAggregate内で検出し、Mainnet / Testnetとも署名前に拒否する。
 - Service Workerを承認待ち、unlock後、署名直前に停止・再起動してもraw secretをWorkerへ保存せず、trusted signing documentが失われた場合は署名しない。
 - 署名確認の三層、承認disabled条件、chain状態未照合、Software Vault保証レベル、WCAG 2.2 AAをUI/E2E testで確認できる。
@@ -734,7 +734,7 @@ docs/evidence/mainnet/<version>/
 
 ### 19.3 外部security audit
 
-初回Mainnet、signing/Vault/Approval/chain parser/Relayのmajor変更、前回auditから12か月経過の早い時点で独立第三者auditを完了する。scopeはExtension trust boundary、Mobile wrapping、import/restore、cryptography、Symbol/NEM signing byte、全allowlist Inspection、Origin proof、Relay、supply chain、update/rollbackを含む。監査者へsource、設計、fixture、fuzz corpus、再現build手順を提供する。
+初回Mainnet、signing/Vault/Approval/chain parser/Relayのmajor変更、前回auditから12か月経過の早い時点で独立第三者auditを完了する。scopeはExtension trust boundary、Mobile wrapping、import/restore（対象releaseに含める場合）、cryptography、Symbol/NEM signing byte、全allowlist Inspection、Origin proof、Relay、supply chain、update/rollbackを含む。監査者へsource、設計、fixture、fuzz corpus、再現build手順を提供する。
 
 Critical / Highは0件、Mediumは修正とretest完了、Lowはownerと期限を持つことをrelease条件とする。summary、scope、方法、除外、finding severity、修正commit、retest attestationを公開可能な形で保存する。NDAを理由にscopeと未解決riskまで非公開にしない。監査後にsecurity-sensitive codeが変わった場合、差分を監査者または独立security reviewerが再確認する。
 

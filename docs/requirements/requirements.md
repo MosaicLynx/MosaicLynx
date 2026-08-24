@@ -240,9 +240,9 @@ wallet-core の統合方式、Binding、FFI、WASM / Native、React Native 連�
 
 Profile 全体の backup / restore、export / import、Profile ID の重複判定、merge / overwrite、migration、backup format、backup password または backup の保存方法を、MosaicLynx v1 全体および全 Signer に共通する MUST または共通完了条件として定義しない。
 
-Browser Extension など個別 milestone / release でこれらの機能を提供することは妨げない。提供する場合の Application と wallet-core の責任分担、Wallet Store の扱い、復元範囲および具体方式は、その platform の要件・仕様で定める。Profile 全体の backup / restore を wallet-core の責任とすることは、本書で定義しない。
+個別 platform / release で将来これらの機能を提供することは妨げない。提供する場合の Application と wallet-core の責任分担、Wallet Store の扱い、復元範囲および具体方式は、その platform の要件・仕様で定める。Profile 全体の backup / restore を wallet-core の責任とすることは、本書で定義しない。
 
-根拠: `CR-013`、コンセプト 10。下流: `docs/requirements/browser-extension.md` の `BR-014`、`docs/specifications/product-spec.md`、`docs/specifications/profile-account-spec.md`。
+根拠: `CR-013`、コンセプト 10。下流: backup を将来提供すると決定した個別 platform / release の要件・仕様（`docs/specifications/product-spec.md`、`docs/specifications/profile-account-spec.md` を含む）。Browser Extension 初回 milestone / release の必須能力としては、本 CR-014 から下流要求を追跡しない。
 
 ## 6. 共通の非機能・セキュリティ要求
 
