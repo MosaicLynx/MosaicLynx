@@ -55,7 +55,7 @@ SDK は、承認済みの MosaicLynx 連携契約が提供する範囲で、次�
 - 要求と結果、要求元、接続・署名文脈、Chain / Network の対応確認。
 - 利用者拒否、未対応、接続失敗、期限切れ、Relay 障害その他の失敗分類の正規化。
 - 署名結果を外部アプリケーションが独立して検証できる状態で返すこと。
-- 連携に必要な範囲の最小限の診断情報を、秘密情報を含めず扱うこと。
+- 連携に必要な最小限の非秘密診断情報を扱うこと。
 
 SDK は、上記を実現するために必要な client-side adapter または handoff 処理を持ち得る。ただし、具体的な transport、protocol および暗号方式を本書で固定しない。
 
@@ -79,7 +79,7 @@ Transaction construction の便利機能を SDK の必須責任とするかは�
 
 - MosaicLynx の実施順序は Browser Extension、Android、iOS、Relay である。SDK は最初の Browser Extension 連携を優先し、Mobile / Relay 連携は対応する milestone の成立を前提とする。
 - 現在のワークスペースに Mobile App の実装が存在することを前提にしない。Mobile 対応を定義する要求は、将来 milestone の統合要求として扱う。
-- MosaicLynx の共通要件は transaction signing と message signing を共通の署名能力として定めている。SDK の v1 operation 範囲について既存 handoff 仕様に異なる記載があるため、内容は `SDK-OPEN-001` で未決とする。
+- MosaicLynx の共通要件は transaction signing と message signing を共通の署名能力として定めている。SDK v1 も両方を必須 operation として扱う。具体的な operation 名、message format、wire contract および対応 milestone の実現方法は後続仕様で定める。
 - Symbol と NEM、Mainnet と Testnet は SDK の全ての要求・結果で明示的に区別する。SDK は一方の Chain / Network を他方へ暗黙に変換しない。
 - Mainnet capability は適用される Mainnet release gate を満たす Signer / build の能力だけを扱い、SDK が gate を迂回して Mainnet capability を有効化してはならない。gate が未達成または判定不能でも、安全な unavailable / unsupported として扱えることを優先する。
 - Wallet Core の責任境界は、MosaicLynx Application の表示・承認・orchestration と混同しない。SDK は Application や Wallet Core の責任を外部アプリケーションへ移さない。
@@ -142,7 +142,9 @@ Relay を経由する場合も、Relay は受け渡しの一部に留まり、�
 
 **MUST** SDK は、外部アプリケーションの署名要求を、Signer が要求元、許可状態、署名対象、Chain / Network、Account および有効性を検証できる形で MosaicLynx 側へ受け渡さなければならない。
 
-SDK は、外部アプリケーションが自己申告した caller、Origin、Account、Chain、Network または表示文言だけを安全性の根拠としてはならない。要求の受け渡しが検証できない場合、署名要求として成功扱いにしてはならない。
+Browser の実 Origin と browser context を観測・検証する最終責任は Browser Extension / browser platform 側にある。SDK は dApp が自己申告した caller または Origin 文字列を検証済み Origin として扱ってはならず、Extension が検証した保証を超える caller identity を表明してはならない。Mobile / Relay では、handoff session と要求元との対応を最終的に検証する責任は Mobile App / platform 側にある。SDK は契約上必要な binding 情報を受け渡し得るが、その情報の存在だけで caller の真正性を保証してはならない。Relay は caller identity の最終検証主体ではない。
+
+要求元の対応または受け渡しが検証できない場合、SDK は署名成功、caller verified、verified Origin または接続済みとして報告してはならない。接続済みという事実は caller authenticity の代替にならない。
 
 根拠: Concept §6.1、§13、共通要件 CR-001、CR-NFR-001、CR-NFR-008、CR-NFR-009。整合確認: `docs/requirements/browser-extension.md` BR-003、BR-004、`docs/requirements/mobile-app.md` MR-002、`docs/requirements/relay.md` RR-001、`docs/specifications/web-transaction-handoff-spec.md` §7。下流: SDK request contract、platform caller binding、handoff specification。
 
@@ -158,13 +160,13 @@ Aggregate、multisig および cosignature を含む transaction 関連 operatio
 
 ### SDK-FR-007 Message signing の連携
 
-**MUST** SDK は、MosaicLynx 共通要件で承認された message signing を提供する場合、transaction signing と区別された要求として Signer へ渡し、利用者が実際に署名する message の内容、用途および適用される Chain / Network / Account の文脈を確認できるようにしなければならない。
+**MUST** SDK は、MosaicLynx 共通要件で承認された message signing を SDK v1 の必須 operation として、transaction signing と区別された要求として Signer へ渡し、利用者が実際に署名する message の内容、用途および適用される Chain / Network / Account の文脈を確認できるようにしなければならない。
 
 SDK は、利用者が理解できない raw bytes、未対応 format または表示不能な message を、警告だけで署名へ進める API や暗黙 fallback を提供してはならない。表示・承認された message と実際の署名対象が一致しない場合、署名成功を返してはならない。
 
-共通要件 CR-007 は message signing を v1 の共通能力としているが、既存の `docs/specifications/web-transaction-handoff-spec.md` §2.2 は message signing を v1 対象外としている。SDK が v1 で提供する message operation の名称、形式、対応 milestone および handoff 範囲は `SDK-OPEN-001` が解消されるまで確定しない。未決の間、未対応 message signing を transaction signing、raw signing または別の message format として成功扱いにしてはならない。
+SDK v1 が message signing を必須で扱うことは確定事項であり、未対応 message signing を transaction signing、raw signing または別の message format として成功扱いにしてはならない。具体的な message operation の名称、format、wire contract、API 型および handoff の詳細は後続仕様で定める。
 
-根拠: Concept §2、§3、§6、§8、§11、共通要件 CR-007-MSG、CR-004、CR-NFR-003、CR-NFR-009。整合確認: `docs/architecture/architecture.md` §2、§5.2、`docs/specifications/product-spec.md` §16、`docs/specifications/web-transaction-handoff-spec.md` §2.2、§5。下流: message signing specification、Provider / Mobile operation contract、test specification。
+根拠: Concept §2、§3、§6、§8、§11、共通要件 CR-007-MSG、CR-004、CR-NFR-003、CR-NFR-009。整合確認: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/architecture/architecture.md` §2、§5.2、`docs/specifications/product-spec.md` §16、`docs/specifications/web-transaction-handoff-spec.md` §2、§5。下流: message signing specification、Provider / Mobile operation contract、test specification。
 
 ### SDK-FR-008 署名結果の受信・対応確認
 
@@ -176,11 +178,11 @@ SDK が結果の形式や署名を検証した場合でも、外部アプリケ�
 
 ### SDK-FR-009 Transport 差異の抽象化
 
-**MUST** SDK は、対応する Browser Extension 直接連携、Mobile App 連携および Relay を介した連携について、外部アプリケーションが共通の意味を持つ接続・署名・結果・失敗の契約を利用できるようにしなければならない。
+**MUST** SDK は、対応する Browser Extension 直接連携、Mobile App 連携および Relay を介した連携について、外部アプリケーションが共通の意味を持つ接続・署名・結果・失敗の契約を利用できるようにしなければならない。transaction signing と message signing の正常な署名結果は、transport によらず同じ operation の意味を保たなければならない。
 
 外部アプリケーションに transport 固有の秘密情報、Relay credential、内部 Account ID、任意 Relay の指定または platform 内部状態を要求してはならない。外部アプリケーションが利用可能な transport を個別に選択しなければ署名できない設計を v1 の必須条件としてはならない。
 
-各 transport の利用可能性、提供 milestone、caller 検証および UI 差異を、同一の危険な意味へ変換してはならない。具体的な選択順序、fallback の可否および将来の第三者 transport の追加方針は `SDK-OPEN-003` で扱う。
+各 transport の利用可能性、提供 milestone、caller 検証および UI 差異を、同一の危険な意味へ変換してはならない。User rejection、mismatch / integrity / caller / replay failure および result unknown を自動 retry または別 transport fallback で迂回しないことは確定事項とする。具体的な選択順序、利用者が明示的に選択する代替経路の可否、unavailable / connection failure / timeout 時の扱いおよび将来の第三者 transport の追加方針は `SDK-OPEN-003` で扱う。
 
 根拠: Concept §3、§4、§6.5、§8、共通要件 CR-007、CR-011、CR-AC-015。整合確認: `docs/architecture/architecture.md` §3、§5.5、`docs/specifications/web-transaction-handoff-spec.md` §1、§6、`docs/requirements/relay.md`。下流: transport adapter specification、Extension / Mobile / Relay contract。
 
@@ -194,7 +196,7 @@ SDK が結果の形式や署名を検証した場合でも、外部アプリケ�
 
 ### SDK-FR-011 エラーの正規化
 
-**MUST** SDK は、提供形態・Provider・Relay の差異にかかわらず、外部アプリケーションが少なくとも次の失敗を成功と区別して扱える結果を返さなければならない。
+**MUST** SDK は、提供形態・Provider・Relay の差異にかかわらず、外部アプリケーションが Success と、少なくとも次の九つの失敗分類を相互に区別して扱える結果を返さなければならない。
 
 - MosaicLynx が存在しない、利用不能または対応 capability がない。
 - 接続失敗、許可不足、未接続または接続状態の不一致。
@@ -248,7 +250,9 @@ SDK は、表示用の任意文字列を安全性・本人性・署名対象の�
 
 **MUST** SDK と接続先 Signer は、署名要求が現在の外部アプリケーション、browser context または handoff session、許可された接続範囲および署名文脈に対応していることを確認できなければならない。対応を確認できない要求は署名へ進めてはならない。
 
-外部アプリケーションが自己申告した Origin 文字列だけを、Caller の認証または正当性の証明として扱ってはならない。Browser Extension と Mobile / Relay で異なる caller 検証方式を採用することは許容するが、各方式の保証範囲を越えて本人性・善性・非侵害を表示してはならない。具体的な origin proof、browser context binding または認証方式は後続仕様で定める。
+Browser の実 Origin と browser context を観測・検証する最終責任は Browser Extension / browser platform 側にある。SDK は dApp の自己申告 Origin を検証済み Origin として扱わず、Extension が実際に検証した保証を超える caller identity または verified Origin を外部へ表明してはならない。Mobile / Relay では、handoff session と要求元との対応を最終的に検証する責任は Mobile App / platform 側にあり、Relay は caller identity の最終検証主体ではない。SDK は binding 情報を契約に従って受け渡し得るが、その存在や Relay の配送成功だけで caller の真正性を保証してはならない。
+
+caller / Origin、handoff session または許可範囲を検証できない場合、SDK は署名成功、caller verified、verified Origin または接続済みとして報告してはならない。接続済みという事実は caller authenticity の代替にならない。具体的な Origin proof、nonce、browser API、OS API、暗号方式および credential format は後続仕様で定める。
 
 根拠: Concept §5、§13、共通要件 CR-NFR-008、CR-NFR-009、CR-011。整合確認: `docs/requirements/browser-extension.md` BR-003、BR-004、`docs/requirements/mobile-app.md` MR-002、`docs/specifications/web-transaction-handoff-spec.md` §7.1、§13。下流: caller authentication / origin binding specification。
 
@@ -324,7 +328,7 @@ Relay を介する受け渡しについても、SDK は Relay の一時性・削
 
 **MUST** SDK は、対応する Browser Extension の公開連携境界を利用して、外部アプリケーションが Extension の private context、Vault、承認状態または内部識別子へ直接アクセスせずに、公開情報の取得と署名要求の受け渡しを行えるようにしなければならない。
 
-Extension が要求元、許可、表示、承認、署名および wallet-core の境界を検証する責任を、SDK へ移してはならない。
+Browser が観測した実 Origin と browser context の要求への対応、およびその最終検証責任は Browser Extension / browser platform 側にある。Extension が要求元、許可、表示、承認、署名および wallet-core の境界を検証する責任を SDK へ移してはならない。SDK は dApp の自己申告 Origin を検証済み Origin として扱わず、Extension の検証結果を超える caller 保証を表明してはならない。
 
 根拠: Concept §9、§13、共通要件 CR-011、CR-013。整合確認: `docs/requirements/browser-extension.md` BR-002〜BR-011、`docs/specifications/product-spec.md` §16、`docs/architecture/architecture.md` §5.3〜§5.5。下流: Provider / Extension integration specification。
 
@@ -332,7 +336,7 @@ Extension が要求元、許可、表示、承認、署名および wallet-core 
 
 **MUST** SDK は、Mobile milestone が提供する契約を利用する場合、Mobile App の確認・承認・署名と Relay の受け渡し責任を分離したまま外部アプリケーションへ連携できなければならない。
 
-Mobile App が未提供、未対応または capability を満たさない場合、SDK はその状態を利用可能・署名成功として扱ってはならない。Relay は Mobile App の代わりに扱ってはならない。
+handoff session と要求元との対応を最終的に検証する責任は Mobile App / platform 側にある。Relay は caller identity の最終検証主体ではなく、Relay の配送成功だけを caller 検証成功として扱ってはならない。SDK は契約上必要な binding 情報を受け渡し得るが、その存在だけで caller の真正性を保証してはならない。Mobile App が未提供、未対応または capability を満たさない場合、SDK はその状態を利用可能・署名成功として扱ってはならない。Relay は Mobile App の代わりに扱ってはならない。
 
 根拠: Concept §1、§6.5、§9、§12、共通要件 CR-011、OPEN-003。整合確認: `docs/requirements/mobile-app.md` MR-002、MR-003、MR-004、MR-012、`docs/requirements/relay.md` RR-001〜RR-009、`docs/specifications/web-transaction-handoff-spec.md` §1、§6、§7。下流: Mobile handoff / Relay specification、Mobile milestone acceptance。
 
@@ -406,7 +410,11 @@ SDK version と MosaicLynx 本体 version は同一であることを前提に�
 | Relay / transport failure       | Relay、通信または受け渡しの失敗であり、署名結果が不明または得られなかったこと。                          |
 | Internal failure                | SDK、Provider、Mobile App、Wallet Core または依存 component の内部失敗であること。                       |
 
-具体的な error code、exception class、message 文言、HTTP status および再試行条件は定めない。結果不明を成功、承認済みまたは署名済みとして報告してはならない。
+Success は、要求、operation、signer、Account、Chain、Network、correlation および Signer が確認・承認した対象との対応を確認でき、外部アプリケーションが署名結果を独立検証できる正常完了であることを表す。
+
+User rejection は自動 retry または別 transport への自動 fallback で迂回してはならない。Mismatch / integrity failure は Relay / transport failure とみなして自動再送してはならず、caller / Origin / replay failure も同様に扱わなければならない。Relay / transport failure に含まれる result unknown は Success とみなしてはならず、署名済みまたは未署名だったと推測してはならない。Timeout / expired / cancelled の後に、古い承認、要求または session を再利用してはならない。
+
+具体的な error code、exception class、message 文言、HTTP status、retry 回数および retry interval は定めない。
 
 根拠: Concept §6.3、§13、共通要件 CR-010、CR-012。整合確認: `docs/requirements/relay.md` RR-004、RR-NFR-002、`docs/specifications/web-transaction-handoff-spec.md` §10。下流: SDK error specification、developer documentation、contract test。
 
@@ -428,7 +436,7 @@ Relay、Provider、Mobile App または network が利用できない場合に�
 
 ### SDK-NFR-003 Cross-transport の契約検証可能性
 
-**MUST** SDK の共通契約は、Browser Extension 直接連携と、対応する Mobile / Relay 連携を個別に検証でき、同じ operation の成功・拒否・未対応・安全側失敗の意味が transport により変わらないことを確認できなければならない。
+**MUST** SDK の共通契約は、Browser Extension 直接連携と、提供開始後の対応する Mobile / Relay 連携を個別に検証できなければならない。transaction signing と message signing の正常な署名結果、成功に至らない結果および安全側失敗が、transport により別の operation の意味へ変化しないことを確認できなければならない。
 
 Mobile App が未実装の期間は、Mobile / Relay の実装済み検証結果が存在するものとして報告してはならない。
 
@@ -454,43 +462,35 @@ Mobile App が未実装の期間は、Mobile / Relay の実装済み検証結果
 
 ## 13. 責務境界
 
-| 境界                       | SDK の責任                                                                                    | SDK が担わない責任                                                                               | 最終的なセキュリティ判断                                                                     |
-| -------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| SDK ↔ 外部アプリケーション | 接続・能力判定、要求の受け渡し、結果の対応確認、失敗の正規化、公開情報の最小限の提供。        | 外部アプリケーションの業務判断、署名結果の最終的な network 処理、秘密情報の取得。                | 署名対象の承認は MosaicLynx 側の利用者。結果の利用可否は外部アプリケーションが独立検証する。 |
-| SDK ↔ Browser Extension    | 公開 Provider / 連携契約を介した接続、公開 Account 情報、署名要求・結果の受け渡し。           | Extension の Origin 検証、permission、承認 UI、Vault、秘密鍵、raw signing、Extension lifecycle。 | Extension 管理下の確認領域で利用者が承認する。                                               |
-| SDK ↔ Mobile App           | 対応する Mobile handoff を通じた要求・結果の連携。                                            | App Link / OS integration の最終実装、App の復号・検証・表示・認証・署名、OS 保護。              | Mobile App 管理下の確認領域で利用者が承認する。                                              |
-| SDK ↔ Relay                | Relay を opaque な受け渡し境界として扱い、要求・結果の対応と失敗を確認する client-side 連携。 | Relay server、意味解釈、秘密情報、承認、署名、長期保管、announce。                               | Relay は判断主体でなく、Mobile App が検証・表示・承認・署名する。                            |
-| SDK ↔ Wallet Core          | Wallet Core を正本とする署名結果・公開 identity の境界を尊重する。                            | 鍵管理、Wallet Store、復号、KDF / AEAD、raw signing、認証の代替。                                | Wallet Core は秘密情報処理の正本、利用者承認は Application / Signer。                        |
-| SDK ↔ Symbol / NEM network | Chain / Network の文脈を保持し、必要な結果対応を確認する。                                    | Node、REST / WebSocket、announce、node 選択、残高・履歴・継続状態、汎用 chain SDK の代替。       | Signer が署名対象を確認し、外部アプリケーションが network 処理と結果利用を判断する。         |
+| 境界                       | SDK の責任                                                                                                                                                                | SDK が担わない責任                                                                                                        | 最終的なセキュリティ判断                                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| SDK ↔ 外部アプリケーション | 接続・能力判定、要求の受け渡し、結果の対応確認、失敗の正規化、公開情報の最小限の提供。                                                                                    | 外部アプリケーションの業務判断、署名結果の最終的な network 処理、秘密情報の取得。                                         | 署名対象の承認は MosaicLynx 側の利用者。結果の利用可否は外部アプリケーションが独立検証する。                |
+| SDK ↔ Browser Extension    | 公開 Provider / 連携契約を介した接続、公開 Account 情報、署名要求・結果の受け渡し。Browser が観測した実 Origin / browser context に基づく保証を超えない情報を外部へ出す。 | Extension の Origin / browser context の最終検証、permission、承認 UI、Vault、秘密鍵、raw signing、Extension lifecycle。  | 実 Origin と要求元 context の最終検証は Extension / browser platform、署名承認は Extension 管理下の利用者。 |
+| SDK ↔ Mobile App           | 対応する Mobile handoff を通じた要求・結果の連携と、契約上必要な binding 情報の受け渡し。                                                                                 | App Link / OS integration の最終実装、handoff session と caller の最終検証、App の復号・検証・表示・認証・署名、OS 保護。 | handoff と caller の対応の最終検証および署名承認は Mobile App / platform。                                  |
+| SDK ↔ Relay                | Relay を opaque な受け渡し境界として扱い、要求・結果の対応と失敗を確認する client-side 連携。                                                                             | Relay server の logging、retention、diagnostics、credential handling、意味解釈、承認、署名、長期保管、announce。          | Relay は caller identity の最終検証・署名判断主体でなく、Mobile App が検証・表示・承認・署名する。          |
+| SDK ↔ Wallet Core          | Wallet Core を正本とする署名結果・公開 identity の境界を尊重する。                                                                                                        | 鍵管理、Wallet Store、復号、KDF / AEAD、raw signing、認証の代替。                                                         | Wallet Core は秘密情報処理の正本、利用者承認は Application / Signer。                                       |
+| SDK ↔ Symbol / NEM network | Chain / Network の文脈を保持し、必要な結果対応を確認する。                                                                                                                | Node、REST / WebSocket、announce、node 選択、残高・履歴・継続状態、汎用 chain SDK の代替。                                | Signer が署名対象を確認し、外部アプリケーションが network 処理と結果利用を判断する。                        |
 
 SDK が要求を整形・検証することは、Signer が行う最終的な transaction / message の意味解析、表示および承認判断を代替しない。
 
 ## 14. 受け入れ条件
 
-| ID         | 関連要求                                             | 受け入れ可能な状態                                                                                                                                                                                                                         |
-| ---------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| SDK-AC-001 | SDK-FR-001、SDK-COMP-003                             | 外部アプリケーションが、利用可能性、対応 operation、Chain / Network および version mismatch を、署名成功・接続済みと誤認せず判定できる。                                                                                                   |
-| SDK-AC-002 | SDK-FR-002〜004、SDK-SEC-002                         | 接続・公開 Account の許可と各署名要求の利用者承認が分離され、未接続・許可撤回後の要求が署名へ進まず、Profile / lock / unlock 操作が外部アプリケーションへ移されていない。                                                                  |
-| SDK-AC-003 | SDK-FR-005、SDK-SEC-003、SDK-SEC-004                 | 要求元、許可範囲、要求対象および Chain / Network の対応を確認できない要求が、署名成功として Signer または外部アプリケーションへ返されない。                                                                                                |
-| SDK-AC-004 | SDK-FR-006、SDK-FR-007、SDK-COMP-003                 | 宣言された対応 operation だけがその意味で処理され、transaction / message の区別が維持される。未対応、未解析、表示不能または raw signing への暗黙 fallback は成功しない。message signing の v1 対応範囲は `SDK-OPEN-001` の決定結果に従う。 |
-| SDK-AC-005 | SDK-FR-008、SDK-FR-012、SDK-SEC-005                  | 返却結果が元要求、署名者、Account、Chain、Network および指定 signer と対応しない場合、SDK が成功結果を返さず、外部アプリケーションも独立検証できる。                                                                                       |
-| SDK-AC-006 | SDK-FR-009、SDK-NFR-003                              | Browser Extension 連携と、提供済みの Mobile / Relay 連携で、同一 operation の成功、拒否、未対応、検証失敗および transport failure の意味が安全側に保たれる。未提供の Mobile 機能を実装済みとして扱わない。                                 |
-| SDK-AC-007 | SDK-FR-010、SDK-SEC-006、SDK-ERR-001                 | cancel、timeout、期限切れ、context change、Relay 障害、重複、遅延または replay 後に、古い要求・承認だけで追加署名が発生せず、結果不明が成功にならない。                                                                                    |
-| SDK-AC-008 | SDK-FR-011、SDK-SEC-008                              | User rejection、unavailable、connection / permission failure、unsupported、mismatch / integrity failure、Relay failure および internal failure を、成功と必要な範囲で相互に区別でき、秘密情報や過剰な内部情報が含まれない。                |
-| SDK-AC-009 | SDK-SEC-001、SDK-SEC-007、SDK-PRIV-001、SDK-PRIV-002 | SDK、Relay および SDK の診断経路に、秘密鍵、Mnemonic、password、復号済み Vault、credential、session secret、不要な full payload が不要に現れず、要求・結果が目的を越えて継続保持されない。                                                 |
-| SDK-AC-010 | SDK-PLAT-001〜005                                    | 宣言された browser / platform 境界でのみ利用可能性と caller 検証の意味が保証され、非対応 runtime、未提供 Mobile、未達成 Mainnet gate または配布物の互換性不明を署名可能状態として扱わない。                                                |
-| SDK-AC-011 | SDK-COMP-001〜004                                    | SDK、Provider、Mobile App および Relay protocol の version / capability の組み合わせが検証され、互換性を確認できない operation が別 operation へ downgrade されず、安全側に終了する。                                                      |
-| SDK-AC-012 | SDK-NFR-002、SDK-NFR-005                             | Symbol / NEM × Mainnet / Testnet の対応、固定 compatibility 契約、正常系と異常系、malformed input、secret leakage 不成立を、SDK の contract test および必要な platform E2E で検証できる。                                                  |
+| ID         | 関連要求                                             | 受け入れ可能な状態                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ---------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SDK-AC-001 | SDK-FR-001、SDK-COMP-003                             | 外部アプリケーションが、利用可能性、対応 operation、Chain / Network および version mismatch を、署名成功・接続済みと誤認せず判定できる。                                                                                                                                                                                                                                                                                                                                                                   |
+| SDK-AC-002 | SDK-FR-002〜004、SDK-SEC-002                         | 接続・公開 Account の許可と各署名要求の利用者承認が分離され、未接続・許可撤回後の要求が署名へ進まず、Profile / lock / unlock 操作が外部アプリケーションへ移されていない。                                                                                                                                                                                                                                                                                                                                  |
+| SDK-AC-003 | SDK-FR-005、SDK-SEC-003、SDK-SEC-004                 | Browser では browser が観測した実 Origin / browser context、Mobile / Relay では Mobile App / platform が検証した handoff session と要求元の対応を根拠にできる。自己申告 Origin、binding 情報の存在、Relay の配送成功または接続済みという事実だけでは、caller verified、verified Origin または署名成功を返さない。                                                                                                                                                                                          |
+| SDK-AC-004 | SDK-FR-006、SDK-FR-007、SDK-COMP-003                 | transaction signing と message signing の両方が SDK v1 の正常系検証対象であり、各結果が対応する operation の意味を保つ。未対応、未解析、表示不能または raw signing への暗黙 fallback は成功しない。具体的な operation 名、format、wire contract および API 型は後続仕様で定める。                                                                                                                                                                                                                          |
+| SDK-AC-005 | SDK-FR-008、SDK-FR-012、SDK-SEC-005                  | transaction signing と message signing の正常な署名結果について、dApp / 外部アプリケーションが、元要求、operation、signer、Account、Chain、Network、request / response correlation および実際に Signer が確認・承認した対象との対応を独立して検証できる。対応を確認できない結果は成功にしない。                                                                                                                                                                                                            |
+| SDK-AC-006 | SDK-FR-009、SDK-NFR-003                              | Browser Extension と、提供開始後の Mobile / Relay で、transaction signing と message signing の正常結果、拒否、未対応、検証失敗および transport failure が同じ operation の意味を保つことを個別に確認できる。Mobile App が未実装・未提供の期間は、E2E 済み、contract test 済みまたは対応済みと報告しない。                                                                                                                                                                                                 |
+| SDK-AC-007 | SDK-FR-010、SDK-SEC-006、SDK-ERR-001                 | cancel、timeout、期限切れ、context change、Relay 障害、重複、遅延または replay 後に、古い要求・承認だけで追加署名が発生せず、result unknown は success または「未署名」と推測されない。User rejection は自動 retry / 別 transport fallback で迂回せず、integrity / caller / replay failure は transport failure として自動再送しない。timeout / expired 後は古い承認を再利用しない。                                                                                                                       |
+| SDK-AC-008 | SDK-FR-011、SDK-SEC-008                              | 外部アプリケーションが、Success、User rejection、Unavailable、Connection / permission failure、Invalid request、Unsupported、Mismatch / integrity / caller / replay failure、Timeout / expired / cancelled、Relay / transport failure / result unknown、Internal failure の十分類を相互に区別して、安全な終了・新規要求・再接続の制御を選択できる。具体的な error code、exception class、message 文言、HTTP status、retry 回数および retry interval は後続仕様へ委ね、秘密情報や過剰な内部情報は含めない。 |
+| SDK-AC-009 | SDK-SEC-001、SDK-SEC-007、SDK-PRIV-001、SDK-PRIV-002 | SDK 自身の diagnostics、SDK client-side の一時保持および SDK が外部へ出す情報に、秘密鍵、Mnemonic、password、復号済み Vault、credential、session secret、不要な full payload が不要に現れず、要求・結果が目的を越えて継続保持されない。Relay server 側の logging、retention、diagnostics および credential handling は Relay requirements で管理し、SDK 要件が Relay server の内部実装を直接保証するものとはしない。                                                                                       |
+| SDK-AC-010 | SDK-PLAT-001〜005                                    | 宣言された browser / platform 境界でのみ利用可能性と caller 検証の意味が保証され、非対応 runtime、未提供 Mobile、未達成 Mainnet gate または配布物の互換性不明を署名可能状態として扱わない。                                                                                                                                                                                                                                                                                                                |
+| SDK-AC-011 | SDK-COMP-001〜004                                    | SDK、Provider、Mobile App および Relay protocol の version / capability の組み合わせが検証され、互換性を確認できない operation が別 operation へ downgrade されず、安全側に終了する。                                                                                                                                                                                                                                                                                                                      |
+| SDK-AC-012 | SDK-NFR-002、SDK-NFR-005                             | Symbol / NEM × Mainnet / Testnet の対応、固定 compatibility 契約、正常系と異常系、malformed input、secret leakage 不成立を、SDK の contract test および必要な platform E2E で検証できる。                                                                                                                                                                                                                                                                                                                  |
 
 ## 15. 未決事項
-
-### SDK-OPEN-001：SDK v1 の operation 範囲と message signing の矛盾
-
-- 論点: 共通要件 CR-007 / CR-007-MSG は Browser Extension、Android、iOS の共通能力として transaction signing と message signing を要求している。一方、`docs/specifications/web-transaction-handoff-spec.md` §2.2 は message signing を v1 対象外とし、Provider / architecture の既存資料は構造化 message signing を記載している。
-- 未決の理由: SDK の公開 operation、対応 milestone、message format、MosaicLynx v1 の受け入れ条件に影響し、要求と既存仕様を本書だけで一方に決めることはできないため。
-- 影響: SDK-FR-007、SDK-AC-004、Provider / Mobile / Relay の共通契約、SDK specification および test specification。
-- 決定時期: SDK specification に着手する前。決定まで message signing を transaction signing、raw signing または別 format へ暗黙 fallback しない。
-- 根拠: 共通要件 CR-007、CR-007-MSG、`docs/specifications/web-transaction-handoff-spec.md` §2.1〜§2.2、`docs/specifications/product-spec.md` §16、`docs/architecture/architecture.md` §2、§5.2。
 
 ### SDK-OPEN-002：Aggregate / multisig / cosignature の SDK 公開範囲
 
@@ -500,13 +500,13 @@ SDK が要求を整形・検証することは、Signer が行う最終的な tr
 - 決定時期: SDK specification と Chain Compatibility の対応範囲を確定する前。対応しない operation は capability で未対応とし、通常署名へ変換しない。
 - 根拠: 共通要件 CR-007-TX、`docs/specifications/product-spec.md` §12、`docs/specifications/chain-compatibility-spec.md` §4、`docs/specifications/web-transaction-handoff-spec.md` §5、既存 handoff contract。
 
-### SDK-OPEN-003：Transport 選択、fallback および第三者連携
+### SDK-OPEN-003：Transport 選択、明示的代替経路および第三者連携
 
-- 論点: Extension / Mobile / Relay の選択順、拒否・失敗・timeout 後の fallback、利用者による transport 選択を許可するか、将来の第三者アプリ・第三者 transport を単一契約へ含めるか。
+- 論点: Extension / Mobile / Relay の選択順、unavailable / connection failure / timeout 後の扱い、利用者による transport の明示的選択を許可するか、将来の第三者アプリ・第三者 transport を単一契約へ含めるか。
 - 未決の理由: SDK は transport 差異を吸収する必要があるが、利用者の明示操作、user activation、origin / caller 保証および安全側失敗への影響が platform ごとに異なるため。
 - 影響: SDK-FR-001、SDK-FR-009、SDK-PLAT-003、SDK-COMP-003、UX、Relay / Mobile milestone。
 - 決定時期: 各 platform の handoff specification と SDK compatibility matrix の確定時。
-- 注記: dApp が Relay URL、credential または内部 transport 状態を任意指定して安全境界を変更できないことは、本要件の前提である。
+- 制約: User rejection、mismatch / integrity / caller / replay failure および result unknown の後に、自動 retry または別 transport fallback で処理を迂回してはならない。dApp が Relay URL、credential または内部 transport 状態を任意指定して安全境界を変更できないことも、本要件の前提である。
 
 ### SDK-OPEN-004：Transaction construction の責務
 
@@ -532,13 +532,13 @@ SDK が要求を整形・検証することは、Signer が行う最終的な tr
 - 決定時期: SDK compatibility specification と release policy の確定時。
 - 制約: 非対応または意味を維持できない feature を別 operation へ silent downgrade しないことは確定している。
 
-### SDK-OPEN-007：Caller / Origin authentication の横断方式
+### SDK-OPEN-007：Caller / Origin binding の具体方式
 
-- 論点: Browser Extension の browser-observed Origin、Mobile / Relay の handoff session、必要に応じた Origin proof を、SDK の共通契約でどの粒度まで表現・検証するか。
-- 未決の理由: 要求元と許可範囲の対応、mainnet の caller 保証および Testnet の未検証表示は要求されるが、platform 間で同一の認証方式を採用する必要はないため。
+- 論点: Browser Extension の browser-observed Origin、Mobile / Relay の handoff session、必要に応じた Origin proof を、SDK の共通契約へどの粒度で受け渡すか。
+- 未決の理由: Browser Extension / browser platform または Mobile App / platform が最終検証主体であり、SDK がそれらの保証を超えないことは確定しているが、platform 間で同一の binding 方式を採用する必要はないため。
 - 影響: SDK-SEC-004、SDK-FR-005、SDK-PLAT-002〜004、Mainnet release gate、Mobile handoff。
-- 決定時期: platform-specific caller binding を確定し、SDK の共通 result / error contract へ反映する前。
-- 制約: 外部アプリケーションが渡した Origin 文字列だけを認証根拠にしないこと、保証範囲を越えて dApp の善性や非侵害を表示しないことは確定している。
+- 決定時期: platform-specific caller binding の具体方式を確定し、SDK の共通 result / error contract へ反映する前。
+- 制約: 外部アプリケーションが渡した Origin 文字列だけを認証根拠にしないこと、検証不能時に署名成功・caller verified・verified Origin・接続済みを報告しないこと、保証範囲を越えて dApp の善性や非侵害を表示しないことは確定している。
 
 ## 16. Out of Scope
 
@@ -559,21 +559,21 @@ SDK が要求を整形・検証することは、Signer が行う最終的な tr
 
 ## 17. Traceability
 
-上流根拠は Concept と共通要件に限定し、既存の platform 要件、architecture、Provider / handoff / chain 仕様、Wallet Core 文書および ADR は整合確認資料または下流契約として扱う。README、レビュー資料、AGENTS.md、`.agents/project-context.md` は製品要求の直接根拠としない。
+主要要求の上位根拠は Concept、共通要件、該当する platform 要件および確定済み ADR とする。architecture、Provider / handoff / chain 仕様、Wallet Core 文書および SNIF は整合確認資料または下流引継ぎとして扱い、README、レビュー資料、AGENTS.md、`.agents/project-context.md` は製品要求の直接根拠としない。
 
-| SDK 要求                                         | 上流根拠                                                                     | 整合確認資料・既存契約                                                                                                                                             | 下流引継ぎ                                                                    |
-| ------------------------------------------------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| SDK-FR-001、SDK-COMP-001、SDK-COMP-003           | Concept §8、§11；CR-007、CR-012                                              | `docs/specifications/web-transaction-handoff-spec.md` §5.3、§6；`docs/architecture/architecture.md` §5.5                                                           | capability / version specification、Provider / Mobile support matrix          |
-| SDK-FR-002〜004                                  | Concept §5、§6.3、§11；CR-003、CR-009、CR-011                                | `docs/specifications/product-spec.md` §11、§16；BR-003〜BR-005；MR-002〜MR-004                                                                                     | connection / permission / public identity specification                       |
-| SDK-FR-005、SDK-SEC-003〜005                     | Concept §6.1、§6.2、§13；CR-001、CR-NFR-001、CR-NFR-008、CR-NFR-009          | BR-003、BR-004；MR-002；RR-001、RR-003、RR-005、RR-007；handoff §7、§13                                                                                            | request, caller binding, integrity and approval correspondence specification  |
-| SDK-FR-006、SDK-FR-012、SDK-NFR-002              | Concept §6.1、§6.2、§8、§11；CR-002、CR-004、CR-005、CR-007-TX、CR-NFR-005   | `docs/specifications/product-spec.md` §12；`docs/specifications/chain-compatibility-spec.md`；handoff §2、§7.4                                                     | transaction / chain compatibility / result verification specification         |
-| SDK-FR-007、SDK-OPEN-001                         | Concept §2、§3、§6、§8；CR-007-MSG、CR-004                                   | `docs/architecture/architecture.md` §2、§5.2；product §16；handoff §2.2、§5                                                                                        | message signing decision、Provider / Mobile operation specification           |
-| SDK-FR-008、SDK-FR-010〜011、SDK-SEC-005〜008    | Concept §6.3、§6.4、§13；CR-006、CR-010、CR-012、CR-NFR-003、CR-NFR-009〜012 | RR-002〜RR-007、RR-NFR-002、handoff §7〜§13                                                                                                                        | result / error / lifecycle / replay specification、dApp verification guidance |
-| SDK-FR-009、SDK-PLAT-002〜003、SDK-NFR-003       | Concept §4、§6.5、§8；CR-007、CR-011                                         | `docs/architecture/architecture.md` §3、§5.5；BR-001〜BR-013；MR-001〜MR-013；relay requirements                                                                   | Extension / Mobile / Relay cross-transport contract、milestone acceptance     |
-| SDK-SEC-001〜002、SDK-SEC-007、SDK-PRIV-001〜002 | Concept §4、§9、§10、§13；CR-008、CR-013、CR-NFR-002                         | `docs/architecture/architecture.md` §2、§3、§5；`_snwc/docs/requirements/requirements.md`；`_snwc/docs/specifications/specification.md`；RR-008                    | wallet-core binding、data boundary、Relay privacy / retention specification   |
-| SDK-PLAT-001、SDK-PLAT-004〜005                  | Concept §1、§6.5、§12；CR-011、CR-NFR-006                                    | BR-001、BR-010、BR-013；handoff §1、§4、§5.3；`docs/adr/0001-mainnet-evidence-lite.md`                                                                             | runtime / distribution / release evidence specification                       |
-| SDK-COMP-002、SDK-COMP-004、SDK-OPEN-006         | Concept §8、§12、§15 OPEN-003；CR-007、CR-012                                | handoff §4、§6、§15；BR-012、BR-013；MR-013                                                                                                                        | API / protocol compatibility matrix、deprecation and release policy           |
-| SDK-OPEN-002〜005、SDK-OPEN-007                  | Concept §6.5、§12、§15 OPEN-003、OPEN-005；CR-011、CR-NFR-006、CR-NFR-008    | `docs/specifications/web-transaction-handoff-spec.md`；`docs/requirements/relay.md` RR-OPEN-001〜002；`docs/requirements/mobile-app.md` MR-OPEN-001〜008；ADR 0001 | SDK specification、platform / transport / caller binding / release decisions  |
+| SDK 要求                                         | 上流根拠                                                                                                                                                     | 整合確認資料・既存契約                                                                                                                                             | 下流引継ぎ                                                                    |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| SDK-FR-001、SDK-COMP-001、SDK-COMP-003           | Concept §8、§11；CR-007、CR-012                                                                                                                              | `docs/specifications/web-transaction-handoff-spec.md` §5.3、§6；`docs/architecture/architecture.md` §5.5                                                           | capability / version specification、Provider / Mobile support matrix          |
+| SDK-FR-002〜004                                  | Concept §5、§6.3、§11；CR-003、CR-009、CR-011                                                                                                                | `docs/specifications/product-spec.md` §11、§16；BR-003〜BR-005；MR-002〜MR-004                                                                                     | connection / permission / public identity specification                       |
+| SDK-FR-005、SDK-SEC-003〜005                     | Concept §6.1、§6.2、§13；CR-001、CR-NFR-001、CR-NFR-008、CR-NFR-009；BR-003、BR-004；MR-002；RR-001、RR-003、RR-005、RR-007                                  | `docs/architecture/architecture.md` §3、§5.5；handoff §7、§13                                                                                                      | request, caller binding, integrity and approval correspondence specification  |
+| SDK-FR-006、SDK-FR-012、SDK-NFR-002              | Concept §6.1、§6.2、§8、§11；CR-002、CR-004、CR-005、CR-007-TX、CR-NFR-005                                                                                   | `docs/specifications/product-spec.md` §12；`docs/specifications/chain-compatibility-spec.md`；handoff §2、§7.4                                                     | transaction / chain compatibility / result verification specification         |
+| SDK-FR-007                                       | Concept §2、§3、§6、§8；CR-007-MSG、CR-004；BR-005；MR-004；RR-001、RR-002                                                                                   | `docs/architecture/architecture.md` §2、§5.2；product §16；handoff §2、§5                                                                                          | message operation specification、Provider / Mobile operation contract         |
+| SDK-FR-008、SDK-FR-010〜011、SDK-SEC-005〜008    | Concept §6.3、§6.4、§13；CR-006、CR-010、CR-012、CR-NFR-003、CR-NFR-009〜012；BR-005、BR-008；MR-004、MR-005、MR-012；RR-002〜RR-007、RR-NFR-002、RR-NFR-005 | handoff §7〜§13                                                                                                                                                    | result / error / lifecycle / replay specification、dApp verification guidance |
+| SDK-FR-009、SDK-PLAT-002〜003、SDK-NFR-003       | Concept §4、§6.5、§8；CR-007、CR-011；BR-001〜BR-013；MR-001〜MR-013；RR-001〜RR-009                                                                         | `docs/architecture/architecture.md` §3、§5.5                                                                                                                       | Extension / Mobile / Relay cross-transport contract、milestone acceptance     |
+| SDK-SEC-001〜002、SDK-SEC-007、SDK-PRIV-001〜002 | Concept §4、§9、§10、§13；CR-008、CR-013、CR-NFR-002                                                                                                         | `docs/architecture/architecture.md` §2、§3、§5；`_snwc/docs/requirements/requirements.md`；`_snwc/docs/specifications/specification.md`；RR-008                    | wallet-core binding、data boundary、Relay privacy / retention specification   |
+| SDK-PLAT-001、SDK-PLAT-004〜005                  | Concept §1、§6.5、§12；CR-011、CR-NFR-006；BR-001、BR-010、BR-013；`docs/adr/0001-mainnet-evidence-lite.md`                                                  | handoff §1、§4、§5.3                                                                                                                                               | runtime / distribution / release evidence specification                       |
+| SDK-COMP-002、SDK-COMP-004、SDK-OPEN-006         | Concept §8、§12、§15 OPEN-003；CR-007、CR-012                                                                                                                | handoff §4、§6、§15；BR-012、BR-013；MR-013                                                                                                                        | API / protocol compatibility matrix、deprecation and release policy           |
+| SDK-OPEN-002〜005、SDK-OPEN-007                  | Concept §6.5、§12、§15 OPEN-003、OPEN-005；CR-011、CR-NFR-006、CR-NFR-008                                                                                    | `docs/specifications/web-transaction-handoff-spec.md`；`docs/requirements/relay.md` RR-OPEN-001〜002；`docs/requirements/mobile-app.md` MR-OPEN-001〜008；ADR 0001 | SDK specification、platform / transport / caller binding / release decisions  |
 
 ## 18. 参照資料
 
@@ -588,12 +588,13 @@ SDK が要求を整形・検証することは、Signer が行う最終的な tr
 - `docs/requirements/mobile-app.md`: Mobile App の将来 milestone、外部要求、確認・承認、OS / wallet-core / Relay 境界。
 - `docs/requirements/relay.md`: Relay の受け渡し、opaque 境界、障害、改ざん、replay、秘密情報分離および未決事項。
 - `docs/specifications/product-spec.md`: Product の署名確認、Provider、Chain / Network、Mainnet gate および外部可視動作。
-- `docs/specifications/web-transaction-handoff-spec.md`: SDK、Extension Adapter、Mobile Relay Adapter、result / error、handoff の既存仕様。message signing の対象範囲について本要件と調整が必要な記載を含む。
+- `docs/specifications/web-transaction-handoff-spec.md`: SDK、Extension Adapter、Mobile Relay Adapter、result / error、handoff の既存仕様。message signing を v1 対象として扱う下流整合確認先である。
 - `docs/specifications/chain-compatibility-spec.md`: Symbol / NEM の chain-specific compatibility、transaction、署名および固定 vector。
 - `docs/specifications/profile-account-spec.md`: Profile、Account、Network、署名認証および秘密情報の責任境界。
 - `docs/architecture/architecture.md`: SDK、Provider、Extension、Mobile、Relay、Chain Adapter、Wallet Core の依存方向と責務分担。
 - `_snwc/docs/requirements/requirements.md`、`_snwc/docs/specifications/specification.md`: Wallet Core の鍵管理、Wallet Store、秘密情報処理および raw signing の外部契約。
 - `docs/adr/0001-mainnet-evidence-lite.md`: 初期 Mainnet release gate と、gate 未達成時に Mainnet を有効化しない制約。
+- `_sns/packages/symbol-nem-interchange-format/doc/requirements.md`、`_sns/packages/symbol-nem-interchange-format/doc/spec-format.md`、`_sns/packages/symbol-nem-interchange-format/doc/spec-api.md`: SNIF の形式・API と責務境界の整合確認資料。SNIF は transport 非依存にデータと `id` / `replyTo` 等の correlation 情報を搬送できるが、replay 防止、freshness、使用済み管理、session binding、caller / Origin の真正性、authentication / authorization、利用者承認、署名生成・検証および transaction semantic validation を担わない。SNIF を transport に用いる場合も、Browser Provider、Deep Link / App Link、Relay 固有の安全境界を SDK 要件から消去しない。MosaicLynx SDK が SNIF を使用すること自体は、本要件では確定しない。
 
 ### 18.3 下流引継ぎ
 
