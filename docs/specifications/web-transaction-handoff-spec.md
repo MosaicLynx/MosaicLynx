@@ -583,7 +583,7 @@ interface CreateHandoffRequest {
 }
 ```
 
-MosaicLynx SDKがcurrent generation context、session ID、両tokenとtoken hashを生成するため、request暗号化とRelay登録を一回のrequestで行える。Relayは generation ID が current generation と一致すること、IDの形式、一意性、期限、body size、algorithmとenvelopeの外形だけを検証し、暗号文を復号しない。generation mismatch または旧 generation の create request は session を作成せず拒否する。
+MosaicLynx SDKがRelayからcurrent generation contextを取得し、session ID、両tokenとtoken hashを生成するため、request暗号化とRelay登録を一回のrequestで行える。Relayは generation ID が current generation と一致すること、IDの形式、一意性、期限、body size、algorithmとenvelopeの外形だけを検証し、暗号文を復号しない。generation mismatch または旧 generation の create request は session を作成せず拒否する。
 
 成功時は`201 Created`と`{ protocol, sessionId, expiresAt }`だけを返す。RelayはMosaicLynx SDKが指定したexpiryを変更してはならず、受理できない場合はsessionを作成せず拒否する。IDが既存の場合は`409 Conflict`とし、新しいIDで最初からやり直して既存sessionを更新しない。schemaまたはexpiry不正は`400 Bad Request`、body超過は`413 Content Too Large`、rate limitは`429 Too Many Requests`とする。
 
