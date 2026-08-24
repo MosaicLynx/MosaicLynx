@@ -2,6 +2,10 @@
 
 以下の方針で実装してください。
 
+### Profile backup / restore の適用範囲
+
+本仕様に記載する Profile 全体の backup / restore、export / import に関する内容は、将来の個別 platform / release で当該 capability を提供する場合の仕様として扱う。Browser Extension 初回 milestone / release の必須機能、MVP 完了条件、または現時点の実装必須事項には含めない。
+
 ## 1. プロファイル作成
 
 プロファイルは必ずニーモニックを基点として作成する。
