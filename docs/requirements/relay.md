@@ -256,8 +256,7 @@ Relay が利用できない場合の代替経路、redirect、Deep Link、QR、R
 - 確定事項: Relay v1 が受け渡す operation は transaction signing と message signing の両方である。operation の対象範囲そのものは未決事項ではない。
 - 論点: 両 operation の外部 handoff 契約、dApp・スマホアプリ間で保証する共通結果、Relay milestone の個別完了条件および MosaicLynx v1 全体の完了判定への接続。
 - 後続判断が必要な理由: operation ごとの具体的な要求・結果形式、Mobile 側の検証・承認範囲、dApp が独立検証できる結果の境界に影響するため。
-- 主な選択肢: 共通要件の両 operation に同じ安全境界を適用する、operation ごとに milestone の詳細完了条件を分ける、既存の Web handoff 仕様を段階的に両 operation へ整合させる。
-- 制約: 本 OPEN を理由に message signing を Relay v1 の必須範囲から除外してはならない。現在の Web Transaction Handoff Specification に message signing を v1 対象外とする記述があるため、下流仕様の修正が必要である。
+- 主な選択肢: 共通要件の両 operation に同じ安全境界を適用する、operation ごとに milestone の詳細完了条件を分ける。
 - Relay milestone 完了の最低条件: Relay 固有の全 MUST、`RR-AC-001`〜`RR-AC-012` の全受け入れ条件、および Relay に適用される共通 `CR-AC-*`（少なくとも `CR-AC-004`、`CR-AC-005`、`CR-AC-006`、`CR-AC-007`、`CR-AC-009`、`CR-AC-011`〜`CR-AC-016`）を満たすこと。これらは必要条件であり、MAY の採用または未採用によって免除されない。MosaicLynx v1 全体の完了判定や具体的な release process / test runner は共通要件・後続の release 文書へ委ねる。
 
 ### RR-OPEN-002：Relay 障害時の利用者・dApp 向け失敗境界
