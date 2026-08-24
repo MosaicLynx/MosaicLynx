@@ -1,4 +1,4 @@
-# MosaicLynx スマホアプリ要件（たたき台）
+# MosaicLynx スマホアプリ要件
 
 ## 1. 文書の目的と適用範囲
 
@@ -6,7 +6,7 @@
 
 署名対象の確認、明示的な承認・拒否、blind signing の禁止、秘密情報保護、Symbol / NEM と Mainnet / Testnet の区別などは共通要件であり、本書では重複して再定義しない。
 
-スマホアプリは MosaicLynx v1 の Android milestone と iOS milestone に対応する。現在のワークスペースに `apps/mobile` や `@mosaiclynx/mobile` が存在しないため、本書の要求を実装済み機能や完了証拠とは扱わない。
+スマホアプリは MosaicLynx v1 の Android milestone と iOS milestone に対応する。
 
 ## 2. スマホアプリ固有の責任境界
 
@@ -75,7 +75,7 @@ OS の Keychain / Keystore 等を利用する場合も、OS 保護の capability
 
 **MUST** iOS / Android の OS 保護機能、端末ロック、生体認証、hardware-backed capability 等を利用者へ表示する場合、実行時に確認できた保護範囲を越えて保証してはならない。
 
-Secure Enclave、StrongBox、Keystore、Keychain 等を直接署名に使えるか、またその capability を Mainnet の条件にするかは `MR-OPEN-003` と `OPEN-005` で整理する。既存資料の platform-specific な詳細を、この要件書で自動的に確定したものとは扱わない。
+Secure Enclave、StrongBox、Keystore、Keychain 等を直接署名に使えるか、またその capability を Mainnet の条件にするかは `MR-OPEN-003` と `OPEN-005` で整理する。
 
 ### MR-009 Backup と端末移行
 
@@ -155,58 +155,43 @@ Relay の主経路・代替経路、redirect、Deep Link、QR、Relay unavailabl
 ### MR-OPEN-001：対応 OS、バージョン、配布チャネル
 
 - 論点: iOS / Android の対象 OS version、端末範囲、App Store / Google Play / Test 配布の範囲。
-- なぜ要件定義段階で決める必要があるか: OS API、ライフサイクル、Keychain / Keystore capability、ストア審査、Mainnet gate の適用範囲が変わるため。
 - 主な選択肢: 現行サポート範囲を限定する、OS version を複数設定する、Testnet と Mainnet で対象範囲を分ける。
-- 後続設計まで保留可能か: 各 Mobile milestone の受け入れ対象を確定する前まで保留可能。
 
 ### MR-OPEN-002：外部要求の受信方式と送信元検証
 
 - 論点: スマホブラウザ・外部アプリから要求を受ける経路、送信元の検証、ユーザー操作の起点、Relay との関係。
-- なぜ要件定義段階で決める必要があるか: Deep Link、Universal Link、App Link、Relay 等で、送信元保証、画面遷移、復帰、攻撃面が変わるため。
 - 主な選択肢: OS link、Relay、両者の組み合わせ、別の受け渡し方式。
-- 後続設計まで保留可能か: Mobile milestone の外部要求と受け入れ条件を確定する前まで保留可能。方式の API / protocol はさらに後続設計へ保留できる。
 
 ### MR-OPEN-003：OS 保護機能と wallet-core Binding
 
 - 論点: wallet-core の Native / WASM 等の Binding と、iOS / Android の OS 保護機能、Wallet Store、署名 controller の責任境界。
-- なぜ要件定義段階で決める必要があるか: 秘密情報の継続保持、端末保護、Mainnet capability、復元可能性の保証が変わるため。
 - 主な選択肢: wallet-core の既存 Binding を利用する、platform Binding を追加する、OS 保護を Store 保護に限定する。具体的な実装方式は設計で決定する。
-- 後続設計まで保留可能か: 具体的 Binding と OS API は保留可能。ただし、各 Mobile milestone の署名・保存責任を確定する前に境界を決定する。
 
 ### MR-OPEN-004：PIN、OS パスコード、生体認証の扱い
 
 - 論点: アプリロック解除、署名前再認証、生体認証失敗時の fallback、端末認証の要求頻度。
-- なぜ要件定義段階で決める必要があるか: 利用者の明示的承認と、OS の user-presence 保護の意味が変わるため。
 - 主な選択肢: Profile password のみ、OS user-presence を追加、利用者が platform ごとに選択する。
-- 後続設計まで保留可能か: 要求として「ロック中は署名しない」を固定したまま、具体的な認証方式は設計まで保留可能。
 
 ### MR-OPEN-005：OS ライフサイクルと pending request
 
 - 論点: background、process termination、再起動、通知からの復帰、期限切れ要求の扱い。
-- なぜ要件定義段階で決める必要があるか: 古い承認の再利用や、要求の取り違えを防ぐ受け入れ条件が変わるため。
 - 主な選択肢: 常に新規承認、検証済み要求の再表示、期限内のみ再開する方式。
-- 後続設計まで保留可能か: 共通の「自動署名しない」を維持したまま、具体的な保持・復帰方式は設計まで保留可能。
 
 ### MR-OPEN-006：backup、端末移行、復元可能性
 
 - 論点: Wallet Store、Profile、Account、Mnemonic、imported key の backup / restore、OS 保護鍵の端末移行、旧端末喪失時の扱い。
-- なぜ要件定義段階で決める必要があるか: 利用者が何を復元できるか、端末固有の保護を失った場合の署名能力、データ互換性に影響するため。
 - 主な選択肢: Application 層で Profile metadata と wallet-core の opaque Wallet Store を別責任として扱う、端末移行の対象を限定する、backup / restore を後続 milestone へ送る。wallet-core が Profile 全体の backup / migration / recovery を提供することは前提にしない。
-- 後続設計まで保留可能か: 端末移行を含む Mobile milestone の完了条件を決める前まで保留可能。
 
 ### MR-OPEN-007：スクリーンショット、録画、通知、最近使ったアプリ表示
 
 - 論点: 署名確認画面や秘密情報入力画面の OS 由来の露出をどこまで制限・警告するか。
-- なぜ要件定義段階で決める必要があるか: iOS / Android の実現可能な保護と、利用者への保証表示が変わるため。
 - 主な選択肢: 警告のみ、対象画面の OS 制限、秘密情報画面のみ制限する。
-- 後続設計まで保留可能か: 要件として「完全な防止を保証しない」を維持し、詳細 policy は設計・platform review まで保留可能。
 
 ### MR-OPEN-008：Mobile release evidence と Store 公開条件
 
 - 論点: iOS / Android の Mainnet capability、Store 公開、Testnet build、OS capability report、security review の判定条件。
-- なぜ要件定義段階で決める必要があるか: 各 Mobile milestone の完了と Mainnet 公開可否に影響するため。
 - 主な選択肢: 共通 gate を platform 別 evidence へ分解する、Testnet を先行して Mainnet 条件を別途定める、Store 公開と Mainnet capability を分離する。
-- 後続設計まで保留可能か: `OPEN-005` と整合する release 要件を決めるまで保留可能。具体的な evidence 項目はリリース設計へ送る。
+- 具体的な evidence 項目はリリース設計で定める。
 
 ## 8. 参照資料
 
