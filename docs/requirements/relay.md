@@ -1,8 +1,8 @@
-# MosaicLynx Relay 要件（たたき台）
+# MosaicLynx Relay 要件
 
 ## 1. 文書の目的と適用範囲
 
-本書は、[MosaicLynx 共通要件](./requirements.md) に加えて、dApp とスマホアプリの間で署名要求・署名結果を受け渡す Relay に固有の要求を整理するたたき台である。
+本書は、[MosaicLynx 共通要件](./requirements.md) に加えて、dApp とスマホアプリの間で署名要求・署名結果を受け渡す Relay に固有の要求を定義する。
 
 署名対象の確認、利用者による明示的な承認または拒否、blind signing の禁止、秘密情報の保護、Symbol / NEM と Mainnet / Testnet の区別は共通要件およびスマホアプリ要件で定める。本書では、それらを Relay 経由でも破らないための責任境界と安全性を扱う。
 
@@ -43,7 +43,7 @@ Relay は次を担わない。
 - ノードを選択すること、または継続的なネットワーク状態を管理すること。
 - 署名要求や署名結果を履歴サービスとして長期管理すること。
 
-Relay を経由する場合も、スマホアプリが要求の検証、署名対象の意味解釈、利用者への確認、承認または拒否、署名を担う。dApp は返却された署名結果を独立して確認し、必要なネットワーク処理を担う。
+Relay を経由する場合も、スマホアプリが要求の復号・検証、署名対象の意味解釈、利用者への確認、承認または拒否、署名を担う。dApp は返却された署名結果を独立して確認し、必要なネットワーク処理を担う。
 
 ## 3. Relay 固有の機能要求
 
@@ -189,16 +189,14 @@ Relay が利用できない場合の代替経路、redirect、Deep Link、QR、R
 ### RR-OPEN-001：Relay の受け渡し契約と v1 対応範囲
 
 - 論点: Relay が MosaicLynx v1 で受け渡す署名要求・署名結果の外部契約、対応する操作の範囲、および dApp・スマホアプリ間で保証する共通結果の境界。
-- なぜ要件定義段階で決める必要があるか: Relay milestone の完了条件、スマホアプリとの接続責任、dApp が独立検証できる結果の範囲に影響するため。
+- 後続判断が必要な理由: Relay milestone の完了条件、スマホアプリとの接続責任、dApp が独立検証できる結果の範囲に影響するため。
 - 主な選択肢: 共通要件の署名要求・署名結果に限定する、既存の Web handoff 仕様の対象を段階的に適用する、操作ごとに milestone の対応範囲を分ける。
-- 後続設計まで保留可能か: 具体的な API・データ形式は設計・仕様まで保留できるが、Relay milestone の個別完了条件を確定する前に対応範囲を決定する。
 
 ### RR-OPEN-002：Relay 障害時の利用者・dApp 向け失敗境界
 
 - 論点: Relay の停止、期限切れ、結果不明、再試行可能な失敗を、利用者と dApp がどの粒度で区別し、どの条件で新しい署名要求として再試行できるか。
-- なぜ要件定義段階で決める必要があるか: 失敗を成功と誤認しないこと、古い要求を再利用しないこと、Relay unavailable 時の v1 の利用可能範囲に影響するため。
+- 後続判断が必要な理由: 失敗を成功と誤認しないこと、古い要求を再利用しないこと、Relay unavailable 時の v1 の利用可能範囲に影響するため。
 - 主な選択肢: 失敗・期限切れを共通の終了として扱う、再試行可能性を分けて示す、dApp の再試行判断へ委ねる範囲を定める。
-- 後続設計まで保留可能か: 具体的なエラーコード、期限値、状態遷移、fallback 方式は保留できるが、Relay milestone の受け入れ条件を確定する前に責任境界を決定する。
 
 ## 9. 下流工程への引継ぎ
 
@@ -210,11 +208,20 @@ Relay が利用できない場合の代替経路、redirect、Deep Link、QR、R
 
 ## 10. 参照資料
 
-- [MosaicLynx Concept Sheet](../concept/concept-sheet.md)
-- [MosaicLynx 共通要件](./requirements.md)
-- [MosaicLynx スマホアプリ要件](./mobile-app.md)
-- `docs/specifications/product-spec.md`
-- `docs/specifications/web-transaction-handoff-spec.md`
-- `docs/architecture/architecture.md`
-- `.agents/project-context.md`
-- `AGENTS.md`
+### 10.1 上流根拠
+
+- [MosaicLynx Concept Sheet](../concept/concept-sheet.md): MosaicLynx の目的、v1 milestone、Signer / Relay の責任境界、セキュリティ原則および未決事項。
+- [MosaicLynx 共通要件](./requirements.md): 共通要求、CR-*、共通受け入れ条件、Signer / Relay の責任境界および共通未決事項。
+
+### 10.2 整合確認資料
+
+以下は Relay 要求との整合を確認する資料であり、Relay 要求の上流根拠ではない。
+
+- `docs/specifications/product-spec.md`: Relay を含む製品の範囲と外部可視動作。
+- [MosaicLynx スマホアプリ要件](./mobile-app.md): Mobile が Relay 経由の要求を復号・検証・表示・承認・認証確認・署名する責任境界。
+- [MosaicLynx ブラウザ拡張機能要件](./browser-extension.md): dApp、Signer、署名要求・結果および announce の責任境界。
+- `docs/architecture/architecture.md`: Relay、Mobile App、MosaicLynx SDK および dApp の責務分離。
+
+### 10.3 下流引継ぎ
+
+- `docs/specifications/web-transaction-handoff-spec.md`: SDK、Mobile handoff、Relay の API・protocol・暗号化・状態契約を具体化する仕様。
