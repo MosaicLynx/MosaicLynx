@@ -273,7 +273,7 @@ Relay が利用できない場合の代替経路、redirect、Deep Link、QR、R
 3. 署名秘密情報と transport credential の分類、改ざん検出、要求・結果の分離、replay 防止、重複・遅延処理および credential の検証用表現の具体的な契約を、承認後の仕様で定義する。
 4. bounded retention の保持期間、削除・再利用不能の方式、終端状態、expiry、cancel、restart / state loss 後の扱いを、具体的 storage / purge / backup 方式を固定せずに仕様へ引き継ぐ。
 5. HTTP / HTTPS API、通信方式、データ形式、認証・暗号方式、rate limit、インフラ構成およびテストを基本設計・詳細設計・仕様へ引き継ぐ。API、schema、暗号方式、storage、infra、retry interval、HTTP status は本書で決定しない。
-6. `docs/specifications/web-transaction-handoff-spec.md` にある message signing v1 対象外の記述と、両 operation を必須とする本要件・共通要件の不整合を、下流仕様で解消する。本要件の上流要求を下流仕様に合わせて弱めない。
+6. `docs/specifications/web-transaction-handoff-spec.md` では transaction signing と message signing の両 operation を v1 対象として扱い、共通要件・本書との operation 範囲の整合を維持する。
 7. `OPEN-003` の4 milestone 個別完了条件および `OPEN-005` の Mainnet 公開条件と、本書の受け入れ条件を整合させる。Relay milestone の最低条件は `RR-OPEN-001` に記載した Relay 固有 MUST、全 `RR-AC-*` および適用される全 `CR-AC-*` であり、MAY はこの条件を弱めない。
 
 ## 11. 参照資料
