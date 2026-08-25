@@ -85,13 +85,17 @@ Relay ───────────────► Mobile Signer ───�
 
 各境界の producer は、受け渡しに必要な情報を提供する責任を持つが、受信側の検証を省略させる権限を持たない。`trusted authority` は全データを無条件に信頼するという意味ではなく、その境界で特定の判断を最終的に担う主体を示す。
 
+ここでいう Network context の producer は、Chain / Network を要求へ申告または transport する SDK、Web App、dApp または handoff client と、payload・Profile・Account と照合して Signer-local な trusted context を導出する Signer / chain-specific integration に限る。Relay と blockchain node は、Network metadata の untrusted な搬送元・観測元または候補提供元にはなり得るが、Network model を生成・確定・上書きする authority ではない。
+
 ### 4.2 コンポーネント別の受け取りと返却
 
 - **SDK** は Web App の公開操作を論理的な request へ変換し、Signer から受け取った response を元 request に対応付けて返す。秘密情報、最終承認、transaction の意味解釈および raw signing は扱わない。
 - **Browser Extension** は SDK / Provider と browser が観測した caller context を受け取り、privileged layer で検証した後、確認領域と wallet-core adapter へ渡す。返すのは検証済みの成功結果または分類された失敗であり、秘密情報ではない。
 - **Mobile App** は Relay または別の外部 handoff から opaque な要求を受け取り、App 自身の context、表示および認証で再検証する。現在のワークスペースには実装がなく、OS API、受信方式および host Binding は下位設計に委譲する。
-- **Relay** は E2E で保護された envelope と最小限の transport metadata を受け取り、期限・サイズ・session / generation・重複など transport 上の条件を検証して配送する。署名判断、意味解釈、承認または署名結果の生成を返す主体ではない。
+- **Relay** は E2E で保護された envelope と最小限の transport metadata を受け取り、期限・サイズ・session / generation・重複など transport 上の条件を検証して配送する。Network を決定・上書きせず、Signer の Network validation を代替しない。署名判断、意味解釈、承認または署名結果の生成を返す主体ではない。
 - **wallet-core** は host から渡された契約上の入力を受け取り、Store・key・秘密情報・raw signing の処理結果または error / diagnostics を返す。利用者の caller、UI、permission または署名意図を判断しない。
+
+Relay や blockchain node から得られる Network metadata は、接続・観測または補助情報であり、Signer がそのまま trusted context として採用するものではない。Signer / chain-specific integration が payload、Account、Profile および対象 Chain と照合し、必要な Network context を自ら検証する。node discovery、node selection、chain verification または network fingerprinting の方式は本書で定めない。
 
 ## 5. Trust Boundary
 
@@ -126,20 +130,33 @@ Relay ───────────────► Mobile Signer ───�
 - 対象を一意に識別し、payload、Account、Profile と照合するための network identity。
 - その Network に対応する address、transaction および署名規則を適用するための context。
 
-Network の producer は SDK、dApp、Relay または node になり得るが、これらの自己申告は Signer にとって untrusted である。Signer は payload、選択 Account、Profile と照合して Network を確定する。未確定、wrong network または Chain と Network の不一致は署名へ進めない。
+Network context を要求へ申告または transport する producer は SDK、Web App、dApp または handoff client とする。Relay と blockchain node は Network metadata の untrusted な搬送元・観測元または候補提供元にはなり得るが、Network model を生成・確定・上書きする producer / authority ではない。Signer / chain-specific integration が payload、選択 Account、Profile および対象 Chain と照合して Signer-local な Network context を確定する。未確定、wrong network または Chain と Network の不一致は署名へ進めない。
 
 ### 6.2 Account
 
 `Account` は、Signer が扱う公開された signing identity を表す。Application の Profile / permission 上の選択対象と、wallet-core の Software Key との対応を表し得るが、両者の内部 schema を共通モデルへ取り込まない。
 
-概念上、次の情報を持つ。
+概念上、次の公開情報を持つ。
 
 - Chain と Network。
 - address および public key。
-- Application が参照する account reference。
 - 利用者が識別するための display information。
 
 display information は署名判断に必要な事実と区別する。address、public key、Chain、Network および選択状態は Signer が検証・導出した値を使う。dApp へ公開する Account は利用者が許可した公開情報に限る。
+
+#### 公開 identity と内部 reference
+
+`Account` は、コンポーネント境界を安全に通過させ得る **Public account identity** を表す。Chain、Network、address、public key、利用者向けの display information など、公開して問題のない identity を含む。一方、Signer / Application が Profile、permission または wallet-core の key slot を内部で解決するための **Internal account reference** は、`Account` の公開 identity と同一視しない内部 context である。
+
+Internal account reference について、次を原則とする。
+
+- 秘密鍵そのものではない。
+- 秘密鍵、Mnemonic、seed または decrypted secret を導出可能な情報ではない。
+- 外部 Web App、dApp または requester が任意指定して直接鍵を選択できる capability ではない。
+- Signer の trust boundary 内で、現在の Profile、permission、Account identity および署名 context と照合して解決・検証する。
+- 外部へ公開する必要がない場合は、SDK の公開結果、Relay、dApp または Web App へ渡さない。
+
+内部 reference の形式、永続化方法および key slot との対応は下位設計へ委譲する。外部 requester が提示した reference は、Signer が補助情報として検証できる場合を除き、Account 選択や認可の authority とは扱わない。
 
 `Account` に次を含めない。
 
@@ -165,7 +182,7 @@ Account は、選択されたことだけで署名権限を意味しない。署
 - **signing target / transaction payload**: 実際に署名する transaction、aggregate、cosignature target、message または chain-specific target。表示用 summary ではなく、署名の入力となる対象そのものを指す。
 - **origin / requester / caller context**: Web では browser が観測した Origin・document 等、Mobile では検証済み handoff context 等。外部が記載した名称だけで verified caller とはしない。
 - **expiration / freshness**: request の作成時点、期限、nonce、generation 等、鮮度と replay 防止に必要な概念。具体的な表現や期間は下位仕様へ委譲する。
-- **account selection information**: 利用者が選択または許可した Account、期待される signer、選択要求または Account reference。requester が任意の Account へ切り替える権限を持つことを意味しない。
+- **account selection information**: 利用者が選択または許可した Public account identity、期待される signer、選択要求または Signer-local な内部 reference。内部 reference は Signer / Application 内部の解決用 context であり、外部 SigningRequest、SDK 公開 API、Relay または dApp 向け response の公開 identity と同一視しない。requester が任意の Account へ切り替える権限を持つことを意味しない。
 - **signing context**: session、permission scope、protocol / capability、transaction context、message の purpose / domain / nonce 等、対象 operation の署名判断に必要な文脈。
 
 #### 生成・消費・検証
@@ -176,13 +193,18 @@ Signer は request に含まれる自己申告値を検証前に信頼せず、�
 
 ### 6.4 SigningResponse
 
-`SigningResponse` は SigningRequest に対する処理結果であり、署名が生成されたか、利用者が拒否したか、処理が失敗したかを区別する。結果の配送成否は署名生成の成否とは別の概念である。
+`SigningResponse` は SigningRequest に対する処理結果であり、署名が生成されたか、利用者が拒否したか、処理が失敗したか、または処理結果自体を確定できないかを区別する。request / response の配送成否は、署名生成の成否とは別の transport outcome として扱う。
 
 #### 結果の状態
 
 - **success**: Signer が承認済み target を wallet-core で処理し、返された署名結果を target、Account、Chain、Network、operation および request correlation と対応付けて検証できた状態。
 - **user rejected**: 利用者が明示的に拒否した状態。署名成功ではなく、署名結果を伴わない終端結果とする。
-- **failed**: validation、unsupported、security、authentication、wallet-core、transport、network または内部処理などにより署名を完了できなかった状態。失敗を成功や別 operation の成功へ変換しない。
+- **failed**: validation、unsupported、security、authentication、wallet-core、network または内部処理などにより処理失敗が確定した状態。単に配送状態や処理結果を確定できない場合を `failed` に畳み込まない。
+- **`RESULT_UNKNOWN`（result unknown）**: Signer が処理した可能性、署名した可能性または利用者が判断した可能性はあるが、success、user rejected、failed のいずれかを安全に確定できない状態。成功として返さず、同一 request の自動再署名を行わない。
+
+`DELIVERY_UNKNOWN` は SigningResponse の result status ではなく、request または response の delivery disposition である。送信後の接続断、peer からの配送確認不能または response 配送完了の確認不能など、配送状態を確定できない場合を示す。署名生成が確定済みなら、概念上は `success` と `DELIVERY_UNKNOWN` を併記できるが、同じ target の再署名を開始せず、既存 result の再送・照会だけを候補とする。request の delivery が不明な場合も、未送信・失敗と推測して同じ request を自動再送しない。
+
+`RESULT_UNKNOWN` は処理結果そのものの不明、`DELIVERY_UNKNOWN` は配送状態の不明であり、処理失敗が確定した `failed` と同一視しない。これらの状態からの再送、再照会、idempotency および retry の具体的な契約は下位 protocol design へ委譲する。
 
 #### 含める概念
 
@@ -229,7 +251,7 @@ transaction type ごとの完全な表示項目、画面 layout、warning の文
 | relay error           | Relay の受け渡し、認証、期限、状態または可用性に関する失敗。署名判断を Relay に移さない                  |
 | internal error        | 安全に意味を確定できないその他の内部失敗。fail-closed とする                                             |
 
-`USER_REJECTED` は利用者の意思による拒否であり、`SIGNING_FAILED` は処理上の失敗である。両者は利用者向け表示、dApp の処理、監査および再試行判断で区別できる概念とする。署名生成自体の成否が判定できない `result unknown` と、確定済み結果の配送が不明な状態も、下位仕様で別に扱えるようにする。Error category、公開 code、番号体系、retryable の表現は下位仕様で決定する。
+`USER_REJECTED` は利用者の意思による拒否であり、`SIGNING_FAILED` は処理失敗が確定した状態である。両者は利用者向け表示、dApp の処理、監査および再試行判断で区別できる概念とする。`RESULT_UNKNOWN` は処理結果の outcome、`DELIVERY_UNKNOWN` は request / response の transport outcome であり、いずれも `USER_REJECTED`、`SIGNING_FAILED` または `RELAY_ERROR` へ、原因を確認せず自動的に変換しない。Error は確定した失敗の分類を伝えるために使い、これらの不明状態を表すために無理に Error へ押し込まない。Error category、公開 code、番号体系、retryable の表現は下位仕様で決定する。
 
 ## 7. Interface Responsibilities
 
@@ -276,7 +298,7 @@ SDK が MosaicLynx に対して要求する共通の概念接点は、次の範�
 - 対応 capability と Chain / Network の確認。
 - 接続、許可された公開 Account の取得、接続解除または許可撤回。
 - transaction signing と message signing の SigningRequest 生成・受け渡し。
-- SigningResponse の success、user rejected、failed の区別。
+- SigningResponse の success、user rejected、failed、result unknown の区別、および request / response の delivery outcome。
 - request の cancellation、expiration、duplicate、replay および transport / relay failure の安全な結果。
 
 これらは Web App から観測できる共通の意味であり、各 operation の API 名、戻り値の wire format、transport 選択、transaction construction、announce、node access または UI を本書で確定するものではない。SDK adapter は platform 間で意味をそろえるが、platform 固有の caller 検証や Signer の最終判断を抽象化の中に隠して省略してはならない。
@@ -309,7 +331,7 @@ SDK が MosaicLynx に対して要求する共通の概念接点は、次の範�
 - 接続 permission、session、UNLOCKED 状態、Relay 配送成功または過去の認証を、署名ごとの承認・認証の代替にしない。
 - `1 request = 1 confirmation = 1 authentication = 1 signing operation` の対応を維持し、別 request、別 Account、別 Chain / Network、別 operation または別 target に承認を流用しない。
 - request や context の変化、lifecycle loss、replay、duplicate、結果不明を検出した場合は、古い Authorization を再利用せず安全側に終了する。
-- `USER_REJECTED`、`SIGNING_FAILED`、`RESULT_UNKNOWN` および配送不明を成功に変換しない。自動 fallback や自動再署名で安全境界を迂回しない。
+- `USER_REJECTED`、`SIGNING_FAILED`、`RESULT_UNKNOWN` および `DELIVERY_UNKNOWN` を成功または相互に別の状態へ変換しない。`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の後に同一 request を自動再実行・再署名せず、自動 fallback で安全境界を迂回しない。具体的な再送・再照会は下位 protocol design へ委譲する。
 
 ## 10. Versioning / Extensibility
 
