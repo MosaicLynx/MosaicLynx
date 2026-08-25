@@ -180,7 +180,11 @@ backup / export は利用者の明示操作時だけ実行でき、外部要求�
 
 MosaicLynx 自身が署名対象から確認情報を生成し、利用者が確認した内容と Wallet Core に渡す実際の payload が一致することを、署名直前にも検証する。確認情報の生成後に payload、caller、Account、Chain または Network が変化した場合、承認を無効化して再確認する。
 
-必要に応じて、少なくとも次を確認可能にする。
+署名対象に存在する security-relevant field は、対象 Chain / operation に応じてすべて利用者が確認可能でなければならない。Signer は適用可能な field を解析し、意味を解釈し、trusted UI に表示できない場合は署名してはならない。field を意図的に省略・隠蔽してはならない。具体的な field 一覧、表示順および UI は Chain integration / platform 設計へ委譲する。
+
+外部から取得する補助情報がなくても、署名対象そのものから判断できる重要情報は必ず表示する。補助情報の取得失敗を理由に、署名対象の事実を誤って表示してはならない。必須の確認情報を安全に生成・表示できない場合は署名しない。
+
+例として、対象 Chain / operation に適用される次の情報を確認可能にする。
 
 - Network、Transaction type、Recipient、Amount / Mosaic、Fee、Deadline、Message
 - Aggregate 内部 Transaction
@@ -196,6 +200,12 @@ MosaicLynx 自身が署名対象から確認情報を生成し、利用者が確
 - raw payload だけの要求も、安全に解釈できなければ拒否する。
 - 通常モードで警告だけを表示して bypass できる経路を設けない。
 - 将来 developer mode を設ける場合は、本書を変更せず別途脅威分析・設計・承認を行う。
+
+### 8.3 Message signing の共通原則
+
+Message signing では、対象 protocol / operation が要求する署名文脈を維持しなければならない。適用される security context には、検証済み caller / origin、Account、Chain / Network、purpose / operation、message contents、freshness information、nonce および domain separation が含まれる。すべての operation が全項目を要求するとは限らないが、対象 operation が要求する文脈を MosaicLynx が検証・表示できない場合は署名しない。
+
+ここでいう message-level の署名文脈は、request-level の `requestId` / `createdAt` / `expiresAt` による受け渡し要求の相関・期限・replay 防止とは別のセキュリティ層である。signed message 自体の replay、cross-domain および cross-purpose protection も、対象 protocol / operation の文脈として維持・検証する。具体的な API、wire schema、encoding、nonce format、domain separator の値、expiresAt の値および serialized message format は既存仕様と下位設計へ委譲する。
 
 ## 9. External Request / Permission Model
 
@@ -321,6 +331,8 @@ account 削除時は関連する Secret、session、permission を削除する�
 - 利用者の確認内容と実際の payload の一致
 - 利用者認証、Wallet Core validation、署名結果の対応
 
+Wallet Core が `error`、validation failure、warning、binding error、Store integrity / verification failure、または安全な署名処理の成立を保証できないその他の非成功状態を返した場合、Signer は署名処理を継続してはならない。その場合、署名結果を成功として返さず、warning を UI 警告だけで bypass して署名を継続せず、error / diagnostic に Secret を含めない。復旧後も以前の署名承認を流用してはならない。
+
 Relay、Node、外部 API の障害を理由に検証を省略せず、必須情報を危険な推測値で補完しない。内部例外、復号失敗、部分的な UI 状態または result unknown では処理を中断し、復旧後に以前の承認状態を使い回さない。
 
 ### 15.2 Security incident / recovery
@@ -346,14 +358,14 @@ Relay、Node、外部 API の障害を理由に検証を省略せず、必須情
 
 以下は、実装・下位設計・運用を通じて破ってはならない MUST である。
 
-1. 秘密鍵・mnemonic を SDK / dApp / Relay / 外部 API に渡さない。
+1. 秘密鍵・mnemonic その他の Secret を untrusted external boundary に渡さない。例として SDK、dApp / Web page、Provider、Content Script、Deep Link、Relay、Node、外部 API、URL、log / telemetry / diagnostics を含むが、これらに限らない。
 2. 秘密情報を平文で永続保存しない。
 3. 外部入力はすべて untrusted input として扱う。
 4. 署名内容を解析・検証・表示できない場合は署名しない。
 5. ユーザーが確認した内容と実際に署名する payload を一致させる。
 6. `1 request = 1 confirmation = 1 authentication = 1 signing` とする。
 7. 署名ごとにユーザー認証を必須とし、自動署名を許可しない。
-8. Relay / Node / SDK / dApp の侵害だけでは秘密鍵取得や無確認署名を成立させない。
+8. 外部連携経路・補助サービス・untrusted component の単独侵害だけでは、秘密鍵取得または無確認署名を成立させない。
 9. Secret を log / telemetry / crash report に出力しない。
 10. 安全性を確認できない場合は Fail Closed とする。
 11. 認証・署名確認 UI は MosaicLynx 自身が制御する。
@@ -379,16 +391,18 @@ Relay、Node、外部 API の障害を理由に検証を省略せず、必須情
 - `MR-OPEN-002` / `MR-OPEN-003` / `MR-OPEN-005` / `MR-OPEN-006`: Mobile の受信経路、OS 保護、Binding integration、lifecycle、backup / migration。
 - `SDK-OPEN-002` / `SDK-OPEN-003` / `SDK-OPEN-004` / `SDK-OPEN-006` / `SDK-OPEN-007`: aggregate / cosignature の公開範囲、transport 選択と代替経路、transaction construction、version policy、caller / Origin binding。
 - 共通要件 `OPEN-003`: Android / iOS / Relay の milestone 完了条件と platform 固有依存。
-- Message signing の具体的 format、operation 名、result / error / handoff 契約。
 - Symbol / NEM の対応 transaction type / version、aggregate / multisig / cosignature を含む semantic inspection の範囲。
 - Profile 全体 backup / restore の platform ごとの責任分担と Wallet Core opaque Store の移行方法。
 
-既存資料との整合について、次を OPEN として記録する。既存資料自体は本作業で変更しない。
+既存資料との整合について、次を OPEN として記録する。
 
-- **SEC-OPEN-001**: `docs/specifications/profile-account-spec.md` §20 は `while-unlocked` を署名時認証の選択肢として記載している。本書の「署名ごとに再認証必須」と矛盾するため、共通方針を正本として Profile / Account 仕様を改訂するか決定するまで、while-unlocked を有効な実装条件として扱わない。
 - **SEC-OPEN-002**: 同仕様 §22 は生体認証を将来 capability と記載している。本書は Mobile で生体認証を利用可能とするため、Mobile の capability、fallback および Profile 仕様の位置付けを整合させる必要がある。
 - **SEC-OPEN-003**: 同仕様 §11 は同一秘密鍵から Symbol / NEM の Identity を利用する記述を含む一方、既存アーキテクチャは Chain / Network と Software Key の境界を維持し、旧来の共用前提を採用していない。チェーン別の鍵・Account 対応を確定するまで、本書はチェーン固有の処理を共通化しない。
-- **SEC-OPEN-004**: 共通要件では transaction signing と message signing の v1 能力が確定しているが、既存 handoff 仕様との具体的な message 契約・表示範囲は未確定である。解析不能な message を署名しない原則は変更しない。
+- **SEC-OPEN-004**: 共通要件と既存 handoff 仕様で定義済みの message signing 契約を前提とし、platform 側の表示受け入れ条件および既存 handoff 契約との最終整合だけを確認対象とする。解析不能な message を署名しない原則は変更しない。具体 API、wire schema、encoding および serialized message format は本書で再定義しない。
+
+次は解決済み事項である。
+
+- **SEC-OPEN-001（解決済み）**: Profile / Account 仕様 §20 を署名ごとの再認証に固定し、`while-unlocked` による署名時認証の省略を有効な実装条件から除外した。UNLOCKED は profile の利用状態であり、signing authentication の代替ではない。
 
 ## 関連資料
 

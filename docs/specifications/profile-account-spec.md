@@ -378,7 +378,7 @@ interface DefaultAccountIds {
 - アカウント名
 - デフォルトアカウント
 - 自動ロック設定
-- 署名時認証設定
+- 署名時再認証ルール（署名ごとに固定）
 - その他プロファイル単位の設定
 
 バックアップ全体は、プロファイルパスワードを使って暗号化する。
@@ -488,15 +488,11 @@ type AutoLockDurationMinutes = null | 1 | 3 | 5 | 10 | 15;
 
 ## 20. 署名時の認証
 
-署名時の認証方法は設定可能にする。
+署名ごとに再認証を必須とする。プロファイルが `UNLOCKED` であること、connection permission または session が有効であることだけを理由に、署名時認証を省略してはならない。unlock と signing authentication は別の状態・処理として扱う。
 
 ```ts
-type SigningAuthentication = 'while-unlocked' | 'every-signature';
+type SigningAuthentication = 'every-signature';
 ```
-
-### while-unlocked
-
-プロファイルがロック解除されている間は、署名時の再認証を要求しない。
 
 ### every-signature
 
@@ -570,7 +566,7 @@ OSが提供する安全な領域を利用する。
 - Symbolのデフォルトアカウント
 - NEMのデフォルトアカウント
 - 自動ロック時間
-- 署名時認証ルール
+- 署名時再認証ルール（表示のみ、署名ごとに固定）
 - パスワード変更
 - ニーモニック表示
 - 完全バックアップ作成
