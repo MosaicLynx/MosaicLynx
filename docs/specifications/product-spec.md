@@ -39,7 +39,7 @@ Web dApp は MosaicLynx SDK の共通 `signTransaction()` を利用する。Exte
 | ネットワーク         | `Mainnet` または `Testnet`                                                                                                      |
 | 接続スコープ         | チェーンとネットワークの組み合わせ。例: `Symbol Testnet`                                                                        |
 | プロファイル         | Mainnet または Testnet の一方に属し、Symbol / NEM 双方のアカウントを保持するまとまり                                            |
-| アカウント           | Symbol / NEM で共用する一つの鍵と表示名、およびチェーンごとに導出したアドレス・公開鍵の組み合わせ                               |
+| アカウント           | 一つの Chain / Network に明示的に関連付いた Key Identity、秘密鍵、表示名、アドレスおよび公開鍵                                  |
 | アクティブアカウント | 現在の署名候補として選択されているアカウント                                                                                    |
 | Origin               | dApp の接続許可を識別する `scheme://host[:port]`                                                                                |
 | Profile Vault        | 一つのプロファイルの暗号化した秘密情報と、そのロック状態を管理する領域                                                          |
@@ -152,7 +152,7 @@ Web dApp は MosaicLynx SDK の共通 `signTransaction()` を利用する。Exte
 2. ニーモニックを生成して表示する。
 3. オフラインで安全にバックアップする必要があることを表示し、確認を求める。
 4. ニーモニックの全単語を、候補から正しい順番で選択させる。候補はアルファベット順に表示する。
-5. 正しく確認できた場合にのみ、プロファイルと最初の共用アカウントを保存する。
+5. 正しく確認できた場合にのみ、プロファイルと最初の Chain 別 Account を保存する。
 6. 完了画面からアンロック画面へ移動する。
 
 ニーモニックは確認フローを離れた後、平文で画面・ログ・一時ストレージへ残さない。
@@ -168,7 +168,7 @@ Web dApp は MosaicLynx SDK の共通 `signTransaction()` を利用する。Exte
 2. ニーモニックを入力する。
 3. 単語数、辞書、チェックサムを検証する。
 4. 派生する最初のアカウントと、Symbol / NEM それぞれのアドレスを確認表示する。
-5. プロファイルと最初の共用アカウントを保存する。
+5. プロファイルと各対象 Chain の最初の Account / Key Identity を保存する。
 6. 完了画面からアンロック画面へ移動する。
 
 無効なニーモニックは保存しない。入力値は処理完了後にメモリから可能な範囲で破棄する。
@@ -219,19 +219,19 @@ XYM / XEM の残高は表示しない。
 
 ### 10.1 一覧と操作
 
-- プロファイルに属する共用アカウントを一覧表示する。
-- プロファイルのニーモニックから次の未使用 account index を派生してアカウントを追加できる。
+- プロファイルに属する Chain 別 Account / Key Identity を一覧表示する。
+- プロファイルのニーモニックから対象 Chain を明示し、Chain ごとの導出契約で次の未使用 account index の Account を追加できる。
 - 秘密鍵をインポートしてアカウントを追加できる。
 - アカウント名を変更できる。
-- デフォルトアカウントを選択できる。デフォルト選択は Symbol / NEM で共通とする。
+- Chain ごとにデフォルト Account を選択できる。
 - アカウントを削除できる。
-- プロファイルには常に一つ以上の共用アカウントを必要とし、最後のアカウントは削除できない。
+- プロファイルには有効 Chain ごとに最低1つの Account を必要とし、最後の Account は削除できない。
 
 ### 10.2 鍵の由来
 
-一つのアカウントは一つの秘密鍵を持ち、その同じ秘密鍵から Symbol / NEM それぞれのアドレスと公開鍵を導出する。アカウントには、復元方式を判断できるように鍵の由来を保持する。
+一つの Account / Key Identity は一つの Chain、Profile の Network および一つの秘密鍵に明示的に関連付く。Symbol と NEM は別々の Account / Key Identity として管理し、同じ mnemonic を基にする場合でも、対象 Chain ごとの導出契約を指定して別々に導出する。アカウントには、復元方式を判断できるように鍵の由来を保持する。
 
-- `mnemonicDerived`: プロファイルのニーモニック、account index、固定派生パスから復元したアカウント
+- `mnemonicDerived`: プロファイルのニーモニック、対象 Chain、account index、Chain-specific 導出契約から復元したアカウント
 - `importedPrivateKey`: プロファイルとは独立した秘密鍵をインポートしたアカウント
 
 Profile は `nextAccountIndex` を保持する。ニーモニック由来 Account の追加では現在値を使用して保存成功後にだけ単調増加させ、削除済み index を再利用しない。`accountIndex` は `0..2^31-1` とし、上限到達、重複 path、copy-on-write commit の失敗時は追加しない。
@@ -240,9 +240,9 @@ imported private key由来のアカウントは、ニーモニックだけでは
 
 ニーモニック生成はchain / networkに依存しない共通処理とする。固定した`@nemnesia/symbol-sdk`で`new Bip32(SymbolFacade.BIP32_CURVE_NAME, "english").random()`を呼び、既定の`seedLength = 32`からBIP39 English 24 wordsを生成する。生成後は24語、辞書、checksumを検証し、`bip32.fromMnemonic(mnemonic, "")`が成功することを確認する。BIP39 passphraseは空文字に固定し、Profile passwordをBIP39 passphraseとして使用しない。
 
-Account導出はsymbol-sdkへ委譲し、MosaicLynxが派生pathを文字列または数値配列として複製しない。Profile networkで生成した`SymbolFacade`の`facade.bip32Path(accountIndex)`をそのまま`root.derivePath()`へ渡す。得た同じprivate keyを`SymbolFacade.createAccount()`と`NemFacade.createAccount()`へ渡し、public keyとaddressも返されたsymbol-sdk Accountから取得する。MosaicLynx独自の鍵計算、公開鍵導出、address checksum実装を持たない。NEMの`NemFacade.bip32Path()`は使用しない。詳細と固定vectorはChain Compatibility Specificationに従う。
+Account 導出は対象 Chain を明示して、その Chain の Wallet Core / Chain integration 導出契約へ委譲する。MosaicLynx が derivation path、algorithm、library または Chain 固有の鍵計算を複製しない。public key と address は対象 Chain の正本実装から取得し、詳細と固定 vector は Chain Compatibility Specification に従う。
 
-Symbol と NEM で同じ秘密鍵を使用することは意図した互換性要件である。NEM Identity はSymbol SDKで派生した秘密鍵をNEM facadeへ入力して導出し、NEM公式walletのニーモニック互換は要件としない。一方のチェーン実装または秘密鍵が侵害された場合は同じProfile / account indexの両チェーンAccountが影響を受けるため、新規作成およびインポート時にこの共通リスクを表示する。Mainnet / Testnetごとのpath選択も`SymbolFacade.bip32Path()`へ委譲する。ただしProfile分離は引き続き権限と誤操作を防ぐ境界として扱い、一方のProfileの復号状態を他方へ共有しない。
+Symbol 用に導出した秘密鍵を NEM 用として、または NEM 用に導出した秘密鍵を Symbol 用として暗黙に利用しない。一方の Chain の鍵侵害が他方の Chain に当然に波及する一つの共有鍵モデルは標準 Account model として採用しない。raw private key import 自体の許可方針は維持するが、import された Account / Key Identity の Chain / Network 関連付けと具体的な検証・UX は Wallet Core / Chain integration / platform 設計へ委譲する。Profile 分離は引き続き権限と誤操作を防ぐ境界として扱い、一方の Profile の復号状態を他方へ共有しない。
 
 ## 11. dApp 接続と権限
 
@@ -255,7 +255,7 @@ Symbol と NEM で同じ秘密鍵を使用することは意図した互換性�
 - ユーザーが承認した場合のみ、選択したアカウントのアドレス、公開鍵、表示名を dApp へ返す。
 - 拒否した場合は、Provider の `USER_REJECTED` エラーを返す。
 - 同じ Origin、プロファイル、接続スコープへの接続は、同じアカウント許可が残っている間は再確認しない。公開アカウントを増やす場合は再承認を必要とする。
-- dApp へは許可された共用アカウントのうち、接続時に要求されたチェーンのアドレスと公開鍵だけを返す。
+- dApp へは許可された Chain 別 Account のうち、接続時に要求された Chain のアドレスと公開鍵だけを返す。
 - ロック中の新規接続と許可変更は行わず、アンロックと承認を必要とする。既存許可に対する `getAccounts()` は許可済み公開情報だけを返してよい。
 - MVP はトップレベル frame からの要求だけを受け付け、iframe からの接続要求は拒否する。
 
@@ -672,7 +672,7 @@ MVP は単独ユーザーによるローカル承認型であり、それだけ�
 
 ## 18. MVP 受け入れ条件
 
-- Mainnet / Testnet のプロファイルを作成でき、一つの共用アカウントから Symbol / NEM それぞれのアドレスと公開鍵を取得できる。
+- Mainnet / Testnet のプロファイルを作成でき、Symbol / NEM それぞれの Chain 別 Account / Key Identity から対応するアドレスと公開鍵を取得できる。
 - 拡張機能を再起動しても暗号化データと設定を復元できる。
 - 正しい認証なしに秘密情報を復号・署名できない。
 - 未接続 Origin からアカウント情報を取得・署名できない。

@@ -132,6 +132,8 @@ Wallet Core を信頼することは、Application の承認を Wallet Core に�
 - アプリ内で新規秘密鍵を生成でき、mnemonic import と raw private key import を許可する。
 - import は MosaicLynx 自身の UI で利用者が明示的に行う。外部アプリ、SDK、dApp からの自動 import は禁止する。
 
+Symbol と NEM の Account / Key Identity は別々に管理する。Account は Chain、Profile が固定する Network および chain-specific な Key Identity に明示的に関連付ける。mnemonic から導出する場合は対象 Chain を明示し、その Chain に対応する導出契約を使用する。Symbol 用に導出した秘密鍵を NEM 用として、または NEM 用に導出した秘密鍵を Symbol 用として暗黙に利用する Account model は採用しない。具体的な導出 path、algorithm、library、address 導出および Wallet Store 形式は Wallet Core / Chain integration へ委譲する。
+
 ### 6.2 保存・処理・破棄
 
 - private key / mnemonic を平文で永続保存してはならない。
@@ -151,7 +153,7 @@ backup / export は利用者の明示操作時だけ実行でき、外部要求�
 
 ### 7.1 共通状態
 
-- アプリ / 拡張機能の起動時は原則 LOCKED とする。
+- Browser Extension / Mobile App は、起動、再起動、reload、process recreation、Browser Extension の extension reload または browser restart 後に MUST `LOCKED` とする。利用者の明示認証なしに `UNLOCKED`、署名可能状態または以前の認証済み状態へ移行・復帰してはならない。
 - 利用者認証後だけ UNLOCKED とする。
 - 明示的な lock と、一定時間の非操作等による自動 lock を提供する。具体的な時間値は platform 設計へ委譲する。
 - Browser Extension はブラウザ再起動・拡張機能再ロード時に lock する。
@@ -303,7 +305,8 @@ account 削除時は関連する Secret、session、permission を削除する�
 - private key / mnemonic の clipboard コピーは原則禁止する。例外時は高リスク操作として再認証する。
 - 例外的に clipboard を使う場合、可能な platform では一定時間後に消去する。
 - address / public key は通常通りコピーできるが、Secret と混同しない。
-- Mobile の秘密情報表示画面では、OS が対応する範囲で screenshot / screen recording を防止する。
+- Mobile では、private key / mnemonic の入力・表示画面、パスコード / PIN / 生体認証等の認証画面、署名確認画面、transaction / message 承認画面、および caller / Account / Chain / Network / Amount 等の署名文脈を表示する画面を Sensitive UI として扱う。下位 Mobile 設計は、これらの画面について screenshot、screen recording、screen sharing、recent apps preview、notification、OS preview / task switcher その他の platform 固有の画面露出経路を必ず評価しなければならない。
+- Mobile の Sensitive UI では、OS が防止可能な範囲で保護を利用する。OS が完全に防止できない範囲について、画面露出を完全に防止できると設計または UI で誤認させてはならない。具体的な対象画面、OS API および保護方法は Mobile 設計へ委譲する。
 - Browser Extension では screenshot 防止を保証しない。
 - private key / mnemonic を recent apps preview、通知、履歴または temp UI に残さない。
 - private key / mnemonic の QR 表示は秘密情報表示と同等の高リスク操作として扱う。
@@ -373,15 +376,15 @@ Relay、Node、外部 API の障害を理由に検証を省略せず、必須情
 
 ## 18. 下位設計への委譲事項
 
-| 対象                | 委譲する事項                                                                                                                      | 維持すべき共通条件                                                                    |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Wallet Core         | 暗号アルゴリズム、KDF、DEK / KEK、Wallet Store 内部仕様、秘密情報の一時処理、raw signing                                          | host が暗号を再実装せず、承認済み payload だけを渡し、平文 Secret を永続化しない      |
-| Browser Extension   | Chrome API、origin 観測、privileged layer、UI、再ロード、Storage、具体的な自動 lock 時間、clipboard / screenshot の platform 限界 | Browser 本体 UI、per-origin permission、毎回再認証、外部コンテンツ分離、再起動時 lock |
-| Mobile App          | Deep Link / App Link、OS Secure Storage、生体認証、PIN、lifecycle、screen capture、preview、UI                                    | caller 検証、毎回の確認・再認証、OS を限定的に信頼、未確認要求の再開禁止              |
-| Relay               | protocol format、opaque envelope、TLS、認証、TTL、サイズ、回数、Redis、保存・削除                                                 | Relay を信頼せず、秘密情報・承認・署名・意味解釈を持たせない                          |
-| SDK / Provider      | API、wire format、transport、caller binding、error mapping、retry                                                                 | Secret を扱わず、認証・承認・semantic inspection・fail-closed を Signer から奪わない  |
-| Chain integration   | Symbol / NEM の対応 type / version、parse、validate、表示、canonicalization                                                       | chain と network を混同せず、unknown / parse failure / 表示不能を拒否する             |
-| Release / Operation | CI/CD、SHA pin、SBOM、成果物署名、incident response、旧版廃止                                                                     | 改ざん検出、厳格な security review、侵害時の署名停止、平文 migration 禁止             |
+| 対象                | 委譲する事項                                                                                                                      | 維持すべき共通条件                                                                                      |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Wallet Core         | 暗号アルゴリズム、KDF、DEK / KEK、Wallet Store 内部仕様、秘密情報の一時処理、raw signing                                          | host が暗号を再実装せず、承認済み payload だけを渡し、平文 Secret を永続化しない                        |
+| Browser Extension   | Chrome API、origin 観測、privileged layer、UI、再ロード、Storage、具体的な自動 lock 時間、clipboard / screenshot の platform 限界 | Browser 本体 UI、per-origin permission、毎回再認証、外部コンテンツ分離、再起動時 lock                   |
+| Mobile App          | Deep Link / App Link、OS Secure Storage、生体認証、PIN、lifecycle、screen capture、preview、Sensitive UI の画面露出 policy、UI    | caller 検証、毎回の確認・再認証、OS を限定的に信頼、未確認要求の再開禁止、Sensitive UI の露出リスク評価 |
+| Relay               | protocol format、opaque envelope、TLS、認証、TTL、サイズ、回数、Redis、保存・削除                                                 | Relay を信頼せず、秘密情報・承認・署名・意味解釈を持たせない                                            |
+| SDK / Provider      | API、wire format、transport、caller binding、error mapping、retry                                                                 | Secret を扱わず、認証・承認・semantic inspection・fail-closed を Signer から奪わない                    |
+| Chain integration   | Symbol / NEM の対応 type / version、parse、validate、表示、canonicalization                                                       | chain と network を混同せず、unknown / parse failure / 表示不能を拒否する                               |
+| Release / Operation | CI/CD、SHA pin、SBOM、成果物署名、incident response、旧版廃止                                                                     | 改ざん検出、厳格な security review、侵害時の署名停止、平文 migration 禁止                               |
 
 ## 19. 未決事項
 
@@ -397,12 +400,12 @@ Relay、Node、外部 API の障害を理由に検証を省略せず、必須情
 既存資料との整合について、次を OPEN として記録する。
 
 - **SEC-OPEN-002**: 同仕様 §22 は生体認証を将来 capability と記載している。本書は Mobile で生体認証を利用可能とするため、Mobile の capability、fallback および Profile 仕様の位置付けを整合させる必要がある。
-- **SEC-OPEN-003**: 同仕様 §11 は同一秘密鍵から Symbol / NEM の Identity を利用する記述を含む一方、既存アーキテクチャは Chain / Network と Software Key の境界を維持し、旧来の共用前提を採用していない。チェーン別の鍵・Account 対応を確定するまで、本書はチェーン固有の処理を共通化しない。
 - **SEC-OPEN-004**: 共通要件と既存 handoff 仕様で定義済みの message signing 契約を前提とし、platform 側の表示受け入れ条件および既存 handoff 契約との最終整合だけを確認対象とする。解析不能な message を署名しない原則は変更しない。具体 API、wire schema、encoding および serialized message format は本書で再定義しない。
 
 次は解決済み事項である。
 
 - **SEC-OPEN-001（解決済み）**: Profile / Account 仕様 §20 を署名ごとの再認証に固定し、`while-unlocked` による署名時認証の省略を有効な実装条件から除外した。UNLOCKED は profile の利用状態であり、signing authentication の代替ではない。
+- **SEC-OPEN-003（解決済み）**: Symbol / NEM は別 Key Identity として扱い、mnemonic からは対象 Chain を明示して Chain ごとの導出契約を利用する。具体的な導出仕様は Wallet Core / Chain integration に委譲し、一つの Account の秘密鍵を Symbol / NEM で暗黙共用する Account model は採用しない。
 
 ## 関連資料
 

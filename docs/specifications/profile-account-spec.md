@@ -63,7 +63,7 @@ interface WalletProfile {
 
 ## 4. HDアカウントセット
 
-HDアカウントはチェーンごとに独立したものとして扱わず、同じ導出インデックスに対応するアカウントを1セットとして扱う。
+HDアカウントセットは、同じ導出インデックスに対応する Chain 別 Account を管理上まとめる単位である。Symbol と NEM の Account / Key Identity はそれぞれ独立しており、同じ index や同じ mnemonic を持つことは秘密鍵を共有することを意味しない。各 Chain の Account は、対象 Chain を明示した chain-specific 導出契約から生成する。
 
 例:
 
@@ -73,7 +73,7 @@ HDアカウント #0
 └─ NEMアカウント
 ```
 
-両チェーンが有効な場合、1つのHDアカウントセットにSymbolとNEMの両方のアカウントを持つ。
+両チェーンが有効な場合、1つのHDアカウントセットに Symbol と NEM の別々の Account / Key Identity を持つ。
 
 ```ts
 interface HdAccountSet {
@@ -193,13 +193,13 @@ nextAccountIndex = maxUsedAccountIndex + 1;
 
 除外済みHDアカウントを復活させる機能を用意する。
 
-復活時は、保持しているHDインデックスを使い、プロファイルのニーモニックから各有効チェーンのアカウントを再導出する。
+復活時は、保持しているHDインデックスを使い、プロファイルのニーモニックから各有効 Chain の Account / Key Identity を、その Chain を明示した導出契約で再導出する。
 
 処理内容:
 
 1. プロファイルを認証する
 2. ニーモニックを復号する
-3. 保存済みのHDインデックスから秘密鍵を再導出する
+3. 保存済みのHDインデックスから、対象 Chain ごとの導出契約で秘密鍵を再導出する
 4. 公開鍵とアドレスを再計算する
 5. 保存済みアドレスがある場合は整合性を検証する
 6. 秘密鍵を再暗号化して保存する
@@ -239,24 +239,19 @@ interface ChainAccount {
 }
 ```
 
+`ChainAccount` は一つの Chain-specific Account / Key Identity を表す。`chain` は対象 Chain、`profileId` は Profile に固定された Network との関連を示し、`id` はその Account / Key Identity を一意に識別する。異なる Chain の `ChainAccount` を、一つの秘密鍵を暗黙共用する一つの Account として扱ってはならない。
+
 HDアカウントを除外した場合、そのHDアカウントセットに属する秘密鍵は削除する。
 
 ---
 
 ## 11. 秘密鍵インポート
 
-秘密鍵をインポートする際に、対象チェーンを選択しない。
-
-```text
-秘密鍵をインポート
-
-秘密鍵: ********
-アカウント名: 任意
-```
+秘密鍵 import の raw key そのものは既存の許可方針を維持するが、登録される Account / Key Identity は対象 Chain と Profile Network に明示的に関連付ける。秘密鍵を一方の Chain 用に import したことだけで、他方の Chain 用 Identity として暗黙に利用してはならない。具体的な import の検証条件・拒否条件・UX は Wallet Core / Chain integration / platform 設計へ委譲する。
 
 インポートアカウントはHDアカウントセットには属さない。
 
-アカウントが利用できるチェーンは、所属プロファイルの`enabledChains`で決定する。プロファイルで有効なSymbol / NEMそれぞれについて、同じ秘密鍵から導出したIdentityを利用する。
+アカウントが利用できる Chain は、所属 Profile の `enabledChains` と、Account に明示された Chain Identity の関連付けで決定する。Profile で Symbol / NEM の両方が有効でも、それぞれ別の Account / Key Identity を利用する。
 
 秘密鍵の形式またはSDKによるIdentity導出が不正な場合は、暗号化Vaultやアカウント一覧を変更せず、64桁の16進数が必要であることを表示する。
 

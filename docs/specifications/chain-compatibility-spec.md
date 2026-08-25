@@ -25,35 +25,18 @@ const root = bip32.fromMnemonic(mnemonic, '');
 - BIP39 passphraseは空文字`""`とし、Profile passwordとは独立させる。
 - 乱数生成失敗、語数不一致、checksum不正、all-zero child key、SDK例外時はProfileを保存しない。
 
-### 2.2 SDK委譲によるAccount導出
+### 2.2 Chain-specific Account 導出
 
-```ts
-const facade = new SymbolFacade(profileNetwork);
-const childPrivateKey = root.derivePath(facade.bip32Path(accountIndex)).privateKey;
-```
+Mnemonic は Profile の共通 root として扱うが、Account / Key Identity の導出は対象 Chain ごとに独立して行う。導出要求には対象 Chain と Profile Network を明示し、対象 Chain に対応する Wallet Core / Chain integration の導出契約だけを使用する。
 
-`facade.bip32Path(accountIndex)`の返却値を唯一のpath sourceとする。MosaicLynxのsource、設定、Storage、migrationへcoin type、path文字列、hardened flagを別定数として持たない。保存する`derivationPath`は監査・復旧表示用にsymbol-sdk返却値から生成したsnapshotであり、導出時の入力には使用しない。復旧時も同じ固定版symbol-sdkの`facade.bip32Path(accountIndex)`から再取得し、snapshotとの不一致をdowngrade / compatibility errorとして拒否する。
+- Symbol: Symbol-specific な導出契約で Symbol Software Key を導出し、Symbol の正本実装から Symbol Account の public key と address を取得する。
+- NEM: NEM-specific な導出契約で NEM Software Key を導出し、NEM の正本実装から NEM Account の public key と address を取得する。
 
-`accountIndex`は0から始まる31-bit unsigned integerとし、Profileの`nextAccountIndex`をcopy-on-write commit成功後にだけ増加させる。削除、backup restore、失敗した追加によって既使用indexを再利用しない。
+Symbol 用に導出した秘密鍵を NEM 用として、または NEM 用に導出した秘密鍵を Symbol 用として暗黙に利用してはならない。同じ mnemonic、同じ Profile または同じ account index を使用しても、Symbol / NEM の Account / Key Identity は別々に管理する。
 
-### 2.3 Symbol / NEM共用鍵
+`accountIndex`は0から始まる31-bit unsigned integerとし、Profileの`nextAccountIndex`をcopy-on-write commit成功後にだけ増加させる。削除、backup restore、失敗した追加によって既使用indexを再利用しない。具体的な derivation path、algorithm、library、seed encoding、hardened rule および各 Chain の key implementation は Wallet Core / Chain integration の責務であり、本書では新たに定義しない。
 
-上記symbol-sdk委譲手順で得た同じ32-byte private keyを次へ渡す。
-
-- Symbol: `new SymbolFacade(network).createAccount(privateKey)`
-- NEM: `new NemFacade(network).createAccount(privateKey)`
-
-`NemFacade.BIP32_CURVE_NAME`、`NemFacade.bip32Path()`、`NemFacade.bip32NodeToKeyPair()`はMosaicLynxのmnemonic由来Accountに使用しない。したがってNEM公式walletのmnemonic互換を主張しない。
-
-Account生成、import、Identity導出は次を唯一の本番経路とする。
-
-```ts
-const privateKey = new PrivateKey(secretBytes);
-const symbolAccount = new SymbolFacade(network).createAccount(privateKey);
-const nemAccount = new NemFacade(network).createAccount(privateKey);
-```
-
-Symbol / NEMのpublic keyとaddressはそれぞれのsymbol-sdk Accountの`publicKey`と`address`から取得する。MosaicLynxは楕円曲線演算、byte order変換、public key導出、address network byte、checksum、base32 encodeを再実装しない。秘密鍵importも`new PrivateKey(input)`による長さ・hex検証に成功した値だけを受け入れ、MosaicLynx独自のpadding、truncation、byte reversal、case以外の正規化を行わない。
+Account生成、import、Identity導出では対象 Chain を明示し、対象 Chain の正本実装から public key と address を取得する。MosaicLynx は楕円曲線演算、byte order 変換、public key 導出、address network byte、checksum、base32 encode または Wallet Core の秘密情報処理を再実装しない。raw private key import の許可、検証、拒否条件および UX は既存の Wallet Core / platform 契約に従う。
 
 ## 3. Network compatibility
 

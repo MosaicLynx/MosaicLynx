@@ -34,7 +34,7 @@
 3. 利用者の明示的な承認は、Browser Extension または Mobile App が管理する確認領域で成立する。SDK、Relay、外部アプリケーションの表示や成功応答は承認の代替にならない。
 4. 利用者が確認した要求と実際に署名する対象、要求元、Account、Chain、Network および結果の対応を、Signer 側と必要に応じて dApp 側で検証する。
 5. `wallet-core` が正本とする鍵管理、Wallet Store、秘密情報を使用する暗号処理、鍵導出および raw signing を MosaicLynx 側で再実装しない。
-6. 共通化するのは要求、許可、ライフサイクルおよび承認の意味であり、Symbol / NEM 固有の transaction、message、address、network および署名規則を一つの独自規則へ置き換えない。
+6. 共通化するのは要求、許可、ライフサイクルおよび承認の意味であり、Symbol / NEM 固有の transaction、message、address、network、Key Identity および署名規則を一つの独自規則へ置き換えない。
 7. 外部入力は境界ごとに検証する。Relay の構造検証は Signer の意味解析・表示・承認を代替しない。
 8. Manifest V3 Service Worker、Mobile OS、Relay の可用性を、秘密鍵の保持や承認済み署名の安全な再開の前提にしない。
 9. 署名に必要な解析・検証・承認・wallet-core 呼び出しは、外部 node へ問い合わせずローカルで完結できる境界を持つ。
@@ -186,7 +186,7 @@ Symbol と NEM の transaction / message の意味解析、対応範囲の検証
 `wallet-core` が担う責任:
 
 - Mainnet / Testnet に固定された Wallet Core Profile の管理。
-- Mnemonic と Symbol / NEM Software Key の生成、復元、導出、取込み、削除および明示的 export。
+- Mnemonic と Symbol / NEM の chain-specific Software Key の生成、復元、導出、取込み、削除および明示的 export。導出要求には対象 Chain を明示し、Chain ごとの導出契約を適用する。
 - Profile password による Wallet Store の保護、Wallet Store の検証・更新および秘密情報の処理。
 - Chain-specific な Software Key、public key、address の生成・取得。
 - 呼び出し側が渡す raw byte 列への署名。
@@ -333,7 +333,7 @@ Mobile App の Profile / Account 表示・選択・関連付け、OS 保護能�
 | dApp に見せる operation の意味と結果分類                                              | hash、署名対象 bytes、署名検証、aggregate / multisig / cosignature の扱い   |
 | host 間の wallet-core Binding 境界                                                    | `wallet-core` が提供する Chain-specific key / public identity / raw signing |
 
-Symbol と NEM は同じ Application の署名接点から扱えるが、同じ鍵を共有する Profile や同一の Software Key として扱うことを意味しない。`wallet-core` の要件では Profile は Network に固定され、Software Key は Chain に属し、異なる Chain の同一秘密鍵は別 Software Key として扱われ得る。従って、旧設計にあった「一つの Account の鍵を Symbol / NEM で共用する」前提は本設計から除外する。
+Symbol と NEM は同じ Application の署名接点から扱えるが、Account / Key Identity は別々に管理する。各 Account は Chain、Profile の Network および対応する chain-specific Software Key に明示的に関連付ける。mnemonic からの導出では対象 Chain を指定して Chain ごとの導出契約を利用し、Symbol 用の秘密鍵を NEM 用として、または NEM 用の秘密鍵を Symbol 用として暗黙に利用しない。一つの Account の秘密鍵を Symbol / NEM で暗黙共用する標準 Account model は採用しない。具体的な derivation path、algorithm、library および raw private key import の検証・UX は wallet-core / Chain integration または platform 下位設計へ委譲する。
 
 ## 14. オンライン / ローカル処理境界
 
