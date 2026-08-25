@@ -438,7 +438,7 @@ Relay、Provider、Mobile App または network が利用できない場合に�
 
 **MUST** SDK の共通契約は、Browser Extension 直接連携と、提供開始後の対応する Mobile / Relay 連携を個別に検証できなければならない。transaction signing と message signing の正常な署名結果、成功に至らない結果および安全側失敗が、transport により別の operation の意味へ変化しないことを確認できなければならない。
 
-Mobile / Relay の提供開始前は、その cross-transport 対応を完了扱いにしてはならない。
+Mobile / Relay の提供開始前は、実装済み検証結果が存在するものとして報告してはならない。検証が完了していない状態で、検証済み、確認済み、保証済みまたは対応済みであるかのように報告してはならない。
 
 根拠: Concept §6.5、§14、共通要件 CR-007、CR-011、CR-AC-009、CR-AC-015。整合確認: `docs/specifications/web-transaction-handoff-spec.md` §14、`docs/architecture/architecture.md` §5.5。下流: SDK contract test、platform E2E test、milestone acceptance。
 

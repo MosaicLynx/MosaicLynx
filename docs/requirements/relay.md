@@ -114,7 +114,7 @@ Relay API、storage、backup、log、diagnostics、analytics または telemetry
 
 **MUST** request / session identity と generation context は対応しなければならない。旧 generation の identity、request または ciphertext を current generation の有効な handoff として受理・復活させてはならず、generation metadata の差し替えは App の E2E validation で検出されなければならない。旧 ciphertext の一時保存や過去利用の履歴保持を Relay に要求しないが、旧 ciphertext が承認・署名・success へ到達することは許容しない。
 
-state continuity を失った後は、旧 pending session、request identity または session identity を current generation の session として復旧・再登録してはならない。retry は fresh generation context、新しい identity、fresh encrypted envelope および新しい利用者承認を伴う新しい handoff でなければならない。Relay に durable payload history、ciphertext history または長期 replay history を要求しない。
+state continuity を失った後は、旧 pending session、request identity または session identity を current generation の session として復旧・再登録してはならない。retry は fresh generation context、new request identity、new session identity、必要な新しい transport authorization context、fresh encrypted envelope および新しい利用者承認を伴う新しい handoff でなければならない。transport authorization context は retry によって暗黙に別の認可境界へ置き換えず、必要な場合は維持または再検証しなければならない。Relay に durable payload history、ciphertext history または長期 replay history を要求しない。
 
 要求の有効性、使用済み判定、重複処理、遅延処理および generation binding の具体方式は後続仕様で定義する。本要求は特定の proof、replay database、保存形式またはインフラ構成を必須にしない。
 
