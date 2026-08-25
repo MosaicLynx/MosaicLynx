@@ -104,7 +104,7 @@ MosaicLynx SDK ── encrypted handoff ── Relay
                      request check  approval  wallet-core
 ```
 
-Mobile App は Relay または OS が提供する外部受け渡し経路から要求を受け取り、送信元・handoff session・要求内容・期限・Chain / Network / Account を検証した後、アプリ管理下で表示、承認、署名する。具体的な Deep Link、Universal Link、App Link、QR、Binding および OS API は未確定の詳細設計であり、本書では固定しない。
+Mobile App は Relay または OS が提供する外部受け渡し経路から要求を受け取り、送信元・handoff session・要求内容・期限・Chain / Network / Account を検証した後、アプリ管理下で表示、承認、署名する。具体的な Deep Link、Universal Link、App Link、QR、固定済み wallet-core Binding の host integration および OS API は未確定の詳細設計であり、本書では固定しない。
 
 SDK は Browser Extension 直接経路と Mobile / Relay 経路の operation、結果、失敗の意味を可能な限り共通化する。ただし、transport の選択順、利用者が明示的に選択する代替経路、unavailable / timeout の扱いは未決事項である。利用者拒否、完全性・caller・replay 検証失敗、または result unknown の後に、別 transport へ自動 fallback して安全境界を迂回してはならない。
 
@@ -147,7 +147,7 @@ Mobile App は iOS / Android の host として、外部要求の受信、要求
 - Browser Extension と UI 実装を共有することを前提にしない。共通化するのは domain、request model、署名 policy、結果・失敗の意味および wallet-core 境界である。
 - Deep Link、Intent、通知、Relay metadata などの外部受け渡し情報を、署名承認の唯一の根拠にしない。
 - App が background、停止、再起動または OS 終了した場合、未確認・承認済み要求から署名を無条件に再開しない。
-- OS の secure storage、hardware-backed protection、端末ロック、生体認証等を利用する場合、その capability と限界を Application / platform の責任として扱う。具体的な OS API、Binding、保存場所は後続設計で決定する。
+- OS の secure storage、hardware-backed protection、端末ロック、生体認証等を利用する場合、その capability と限界を Application / platform の責任として扱う。具体的な OS API、固定済み wallet-core Binding の host integration、保存場所は後続設計で決定する。
 
 現在のワークスペースには Mobile App の実装は存在しない。Mobile の要件を満たす構成を示すことと、Mobile の実装・E2E 検証が完了していることを混同しない。
 
@@ -179,7 +179,9 @@ Symbol と NEM の transaction / message の意味解析、対応範囲の検証
 
 ### 6.8 `symbol-nem-wallet-core`
 
-`wallet-core` は MosaicLynx の内部 UI や Relay の一部ではなく、独立した Rust Core と Native / WASM Binding からなる外部コンポーネントである。MosaicLynx は採用した公開契約を Binding 越しに利用する。
+`wallet-core` は MosaicLynx の内部 UI や Relay の一部ではなく、独立した Rust Core と Binding からなる外部コンポーネントである。`wallet-core` v1 の Binding 方式は外部契約として固定されており、WASM は `wasm-bindgen`、Native は `bindings/native` の C ABI を使用する。Binding は入力 buffer、固定長 ID、DTO、error / warning および ownership の変換を担い、鍵導出、秘密情報処理、意味検証および signing を再実装せず Core へ委譲する。MosaicLynx はこの固定済みの公開契約を各 host から利用する。
+
+この Binding の境界は API / data ownership 上の責任境界であり、実行コンテキスト、process または hardware による秘密情報の隔離を意味しない。特に WASM は JavaScript と同じ execution context 内で動作し、WASM linear memory、JavaScript の入力 buffer、glue code または runtime が保持するコピーを host から自動的に隔離・消去するものではない。Binding 内の Core が管理する一時 buffer の安全な処理と、host 側の入力・出力・lifecycle の管理は別の責任として扱う。
 
 `wallet-core` が担う責任:
 
@@ -195,11 +197,11 @@ MosaicLynx が担う責任:
 - dApp 接続、Origin / caller / handoff context、Permission、Profile / Account の表示・選択・関連付け。
 - transaction / message の意味解析、対応範囲、表示、利用者の明示的承認・拒否および blind signing 防止。
 - Browser / Mobile host、Provider、Relay、OS integration、要求 lifecycle、結果 correlation および orchestration。
-- wallet-core Binding の選択・呼び出し、opaque Store の保存、wallet-core のエラーを安全な Application 結果へ対応付けること。
+- 固定済みの wallet-core Binding を各 host から呼び出す adapter / integration、opaque Store の保存、wallet-core のエラーを安全な Application 結果へ対応付けること。
 
 `wallet-core` は transaction construction、transaction / message の利用者向け意味解釈、REST / WebSocket、announce、UI、外部 Signer、Hardware Wallet、OS 固有 secure storage を担わない。MosaicLynx はその不足を同じ暗号・raw signing 実装の再実装で補わない。
 
-Wallet Core の Profile / Software Key と MosaicLynx Application の Profile / Account の対応、Binding / FFI / WASM / Native、OS 保護との組み合わせ、エラー対応および移行手順は、`CR-OPEN-001` / `CR-OPEN-002` と wallet-core の外部契約に従って後続設計で定める。
+Wallet Core の Profile / Software Key と MosaicLynx Application の Profile / Account の対応、各 host から固定済み Binding を利用する adapter / integration、React Native 連携、OS 保護との組み合わせ、秘密 byte の一時 lifecycle、エラー対応および移行手順は、`CR-OPEN-001` / `CR-OPEN-002` と wallet-core の外部契約に従って後続設計で定める。wallet-core の v1 Binding 方式自体を変更する場合は、先に `_snwc` の決定記録と仕様書を更新する。
 
 ## 7. 依存方向
 
@@ -268,13 +270,13 @@ wallet-core ──> its own Rust implementation and chain compatibility contract
 └──────────────────────────────┬───────────────────────────────────┘
                                │ binding / approved raw bytes
                                ▼
-┌──────────────────────── 独立した秘密情報境界 ─────────────────────┐
+┌────────────── 秘密情報処理の論理 / API 境界 ───────────────────────┐
 │ wallet-core                                                        │
 │ - Wallet Store・鍵材料・秘密情報を使用する暗号・raw signing       │
 └───────────────────────────────────────────────────────────────────┘
 ```
 
-Web page、Provider、Content Script および Relay は、署名可否を決める最終的な信頼主体ではない。Extension / Mobile の確認領域は、外部入力を検証した後に利用者が判断する場所である。wallet-core は Application の承認を代行せず、Application から渡された操作をその契約に従って実行する秘密情報境界である。
+Web page、Provider、Content Script および Relay は、署名可否を決める最終的な信頼主体ではない。Extension / Mobile の確認領域は、外部入力を検証した後に利用者が判断する場所である。wallet-core は Application の承認を代行せず、Application から渡された操作をその契約に従って実行する秘密情報処理の正本および論理 / API 境界である。ただし、Binding 自体が host runtime、別 process または hardware から秘密情報を隔離するわけではない。実際の保護は、Binding を公開する trusted host context、Browser / OS の security boundary、host lifecycle および不要な秘密情報を保持しない設計の組み合わせで成立する。
 
 ## 9. 鍵・秘密情報の境界
 
@@ -287,7 +289,7 @@ Web page、Provider、Content Script および Relay は、署名可否を決め
 | Relay transport authorization    | SDK / Mobile / Relay の契約で定める最小情報   | dApp が任意指定しない            | endpoint authorization に必要な最小限だけ処理する | handoff の文脈と結び付けて検証する                                         |
 | public key / address / signature | wallet-core の公開結果を host が利用          | 許可された公開情報と結果だけ返す | opaque result として中継する                      | Chain / Network / Account と対応付けて表示・検証する                       |
 
-秘密情報は URL、Deep Link、App Link、通知、Relay body、Provider event、Content Script message、SDK error、ログ、warning、diagnostics、analytics および telemetry に不要に含めない。Browser / Mobile の保存・認証・OS 保護は host の責任であり、wallet-core の内部暗号・Store 形式・メモリ処理を host 側で複製しない。
+秘密情報は URL、Deep Link、App Link、通知、Relay body、Provider event、Content Script message、SDK error、ログ、warning、diagnostics、analytics および telemetry に不要に含めない。Browser / Mobile の保存・認証・OS 保護は host の責任であり、wallet-core の内部暗号・Store 形式・メモリ処理を host 側で複製しない。WASM Binding を利用する場合も、JavaScript の入力 buffer、WASM glue code または runtime のコピーを Core の zeroize が自動的に消去するとは扱わず、page / Content Script へ Binding を公開しない。
 
 ## 10. 署名要求の主要フロー
 
@@ -303,14 +305,14 @@ Web page、Provider、Content Script および Relay は、署名可否を決め
 
 ## 11. Browser Extension の詳細境界
 
-| 境界                                             | 信頼度                  | 主な責任                                                                                    |
-| ------------------------------------------------ | ----------------------- | ------------------------------------------------------------------------------------------- |
-| Web page ↔ injected Provider                     | 信頼しない              | 公開 API の受け渡し。秘密情報を扱わない                                                     |
-| Provider ↔ Content Script                        | 信頼しない              | request の搬送。browser context の最終保証や承認を行わない                                  |
-| Content Script ↔ Extension privileged layer      | privileged layer が検証 | sender、Origin、document context、Permission、lifecycle を確認する                          |
-| privileged layer ↔ approval UI                   | Extension 管理下        | 利用者への表示、明示的承認・拒否、承認対象の保持と再検証                                    |
-| approval UI / trusted host ↔ wallet-core binding | 秘密情報処理の境界      | wallet-core の API 契約に従い、approved raw bytes の署名を依頼する                          |
-| Extension ↔ Browser Storage                      | host 管理下だが環境依存 | opaque Wallet Store と必要な Application metadata を保存する。Web page から直接参照させない |
+| 境界                                                   | 信頼度                  | 主な責任                                                                                    |
+| ------------------------------------------------------ | ----------------------- | ------------------------------------------------------------------------------------------- |
+| Web page ↔ injected Provider                           | 信頼しない              | 公開 API の受け渡し。秘密情報を扱わない                                                     |
+| Provider ↔ Content Script                              | 信頼しない              | request の搬送。browser context の最終保証や承認を行わない                                  |
+| Content Script ↔ Extension privileged layer            | privileged layer が検証 | sender、Origin、document context、Permission、lifecycle を確認する                          |
+| privileged layer ↔ approval UI                         | Extension 管理下        | 利用者への表示、明示的承認・拒否、承認対象の保持と再検証                                    |
+| approval UI / trusted host ↔ fixed wallet-core binding | 秘密情報処理の境界      | 固定済み Binding の API 契約に従い、approved raw bytes の署名を依頼する                     |
+| Extension ↔ Browser Storage                            | host 管理下だが環境依存 | opaque Wallet Store と必要な Application metadata を保存する。Web page から直接参照させない |
 
 Provider / Content Script は、wallet-core の公開 API、秘密鍵、Mnemonic、password、復号鍵、復号済み Store および signing result の秘密部分を参照できない。Service Worker が停止した場合に、承認済みだからという理由だけで署名を再開しない。再開可能性を設計する場合も、要求・context・freshness・利用者承認・wallet-core 認証を再確認できない状態では署名しない。
 
@@ -341,14 +343,14 @@ MosaicLynx は node 接続、REST / WebSocket、node 選択、残高・履歴取
 
 ## 15. 外部依存境界
 
-| 外部依存                               | MosaicLynx が委ねるもの                                                         | MosaicLynx が保持する責任                                                                   |
-| -------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `wallet-core` と Native / WASM Binding | Wallet Store、秘密情報を使用する暗号、鍵導出、public identity、raw signing      | Binding の選択・呼び出し、opaque Store の保存、Application の承認・表示、エラーの安全な扱い |
-| Symbol / NEM の SDK・互換性資料        | Chain-specific schema、network、address、hash、署名規則の実装基準               | 対応範囲の選択、完全な解析・表示、Chain / Network context、blind signing 防止               |
-| Browser API / Extension Storage        | browser context、Extension lifecycle、host storage                              | Origin / caller 検証、web との隔離、再起動時の安全側処理、権限・承認                        |
-| iOS / Android OS                       | App lifecycle、外部 handoff、secure storage / hardware-backed capability の候補 | capability の正確な表示、認証・ロック、端末状態と署名可否の整合                             |
-| Relay service / Redis 等               | opaque envelope の受け渡し、short-lived state、transport validation             | Relay を信頼しない前提、E2E integrity、semantic validation・承認・署名を Relay 外に置く     |
-| dApp の node / network layer           | announce、node 選択、残高・履歴・継続的 network state                           | 署名結果が元要求に対応することを検証可能に返す                                              |
+| 外部依存                                       | MosaicLynx が委ねるもの                                                         | MosaicLynx が保持する責任                                                                                       |
+| ---------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `wallet-core` と固定済み Native / WASM Binding | Wallet Store、秘密情報を使用する暗号、鍵導出、public identity、raw signing      | 各 host からの Binding adapter / integration、opaque Store の保存、Application の承認・表示、エラーの安全な扱い |
+| Symbol / NEM の SDK・互換性資料                | Chain-specific schema、network、address、hash、署名規則の実装基準               | 対応範囲の選択、完全な解析・表示、Chain / Network context、blind signing 防止                                   |
+| Browser API / Extension Storage                | browser context、Extension lifecycle、host storage                              | Origin / caller 検証、web との隔離、再起動時の安全側処理、権限・承認                                            |
+| iOS / Android OS                               | App lifecycle、外部 handoff、secure storage / hardware-backed capability の候補 | capability の正確な表示、認証・ロック、端末状態と署名可否の整合                                                 |
+| Relay service / Redis 等                       | opaque envelope の受け渡し、short-lived state、transport validation             | Relay を信頼しない前提、E2E integrity、semantic validation・承認・署名を Relay 外に置く                         |
+| dApp の node / network layer                   | announce、node 選択、残高・履歴・継続的 network state                           | 署名結果が元要求に対応することを検証可能に返す                                                                  |
 
 外部 SDK の便利 API、Browser API の状態、OS の保護 capability、Relay の delivery success を、秘密情報の安全性、利用者承認または署名結果の正当性の単独の根拠にしない。
 
@@ -366,8 +368,8 @@ MosaicLynx は node 接続、REST / WebSocket、node 選択、残高・履歴取
 
 以下は本書で勝手に決定しない。
 
-- `CR-OPEN-001` / `CR-OPEN-002`: wallet-core の具体的 Binding、FFI / WASM / Native、platform integration、秘密情報の一時受け渡しおよび error mapping。
-- `MR-OPEN-002` / `MR-OPEN-003` / `MR-OPEN-005` / `MR-OPEN-006`: Mobile の受信経路、OS 保護、Binding、lifecycle、backup / migration。
+- `CR-OPEN-001` / `CR-OPEN-002`: 固定済み wallet-core Binding を各 host から利用する adapter / integration、React Native 連携、秘密情報の一時受け渡し、OS 保護、error mapping および移行手順。Binding 方式そのものは未決事項ではない。
+- `MR-OPEN-002` / `MR-OPEN-003` / `MR-OPEN-005` / `MR-OPEN-006`: Mobile の受信経路、OS 保護、固定済み wallet-core Binding の host integration、lifecycle、backup / migration。
 - `SDK-OPEN-002` / `SDK-OPEN-003` / `SDK-OPEN-004` / `SDK-OPEN-006` / `SDK-OPEN-007`: aggregate / cosignature の SDK 公開範囲、transport 選択と代替経路、transaction construction、version policy、caller / Origin binding。
 - 共通要件 `OPEN-003`: Android / iOS / Relay の個別 milestone 完了条件と platform 固有依存。
 - Message signing の具体的 format、公開 operation 名、結果・error・handoff 契約。共通要件では v1 能力として確定しているが、既存 handoff 仕様との具体的整合は後続仕様で解消する。
