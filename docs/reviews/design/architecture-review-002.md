@@ -3,7 +3,7 @@
 ## レビュー情報
 
 - 対象: `docs/design/architecture.md`
-- 前回レビュー: `docs/reviews/architecture/architecture-review-001.md`
+- 前回レビュー: `docs/reviews/design/architecture-review-001.md`
 - 確認日: 2026-08-25
 - 判定: `READY`
 - レビュー方針: 前回レビューの `AR-001` / `AR-002` の対応確認を中心に、修正された wallet-core / Binding / Trust Boundary の記述と、指定された回帰範囲だけを確認した。requirements を第一の source of truth とし、採用済み ADR、wallet-core 外部契約、必要な範囲の下流資料を照合した。前回問題なしと判断した領域を全面的に再レビューしていない。変更は本レビュー成果物だけに限定した。
