@@ -458,7 +458,7 @@ MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の
 - `docs/specifications/web-transaction-handoff-spec.md`
 - `docs/specifications/chain-compatibility-spec.md`
 - `docs/specifications/profile-account-spec.md`
-- `docs/architecture/architecture.md`
+- `docs/design/architecture.md`
 - `docs/adr/0001-mainnet-evidence-lite.md`
 - `docs/evidence/evidence-policy.json`
 - `docs/release/mainnet-release-evidence.md`

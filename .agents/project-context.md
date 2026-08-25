@@ -19,7 +19,7 @@
 | 目的                           | 正本または既定の作成先                                                                                        |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | プロダクト範囲・受け入れ条件   | `docs/specifications/product-spec.md`                                                                         |
-| アーキテクチャ・責務・依存方向 | `docs/architecture/architecture.md`                                                                           |
+| アーキテクチャ・責務・依存方向 | `docs/design/architecture.md`                                                                           |
 | Symbol / NEM 互換性            | `docs/specifications/chain-compatibility-spec.md`                                                             |
 | SDK / Relay handoff            | `docs/specifications/web-transaction-handoff-spec.md`                                                         |
 | Profile / Account / backup     | `docs/specifications/profile-account-spec.md`                                                                 |

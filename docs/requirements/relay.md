@@ -317,7 +317,7 @@ RR-006 と RR-NFR-003 の state-loss / replay 要求は、generation binding、�
 - `docs/specifications/product-spec.md`: Relay を含む製品の範囲と外部可視動作。
 - [MosaicLynx スマホアプリ要件](./mobile-app.md): Mobile が Relay 経由の要求を復号・検証・表示・承認・認証確認・署名する責任境界。
 - [MosaicLynx ブラウザ拡張機能要件](./browser-extension.md): dApp、Signer、署名要求・結果および announce の責任境界。
-- `docs/architecture/architecture.md`: Relay、Mobile App、MosaicLynx SDK および dApp の責務分離。
+- `docs/design/architecture.md`: Relay、Mobile App、MosaicLynx SDK および dApp の責務分離。
 
 ### 11.3 下流引継ぎ
 

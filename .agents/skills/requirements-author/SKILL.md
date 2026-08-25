@@ -11,7 +11,7 @@ description: MosaicLynx の要求を、目的、利用者、範囲、機能・�
 
 - 出力先の指定があればそのパスを使う。
 - 指定がなければ `docs/requirements/<topic>.md` を新規作成する。
-- 既存の `docs/specifications/`、`docs/architecture/architecture.md` を、要件書と推測して上書きしない。
+- 既存の `docs/specifications/`、`docs/design/architecture.md` を、要件書と推測して上書きしない。
 - 既存ファイルの更新は明示依頼がある場合だけ行う。成果物は要件定義書だけとする。
 
 ## 要件化するもの

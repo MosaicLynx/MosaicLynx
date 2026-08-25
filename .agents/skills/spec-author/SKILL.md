@@ -5,7 +5,7 @@ description: MosaicLynx の承認済み要求と既存資料を、実装・検�
 
 # Specification Author
 
-作業前に `/home/harvestasya/workspace/mosaiclynx/.agents/project-context.md` を読み、対象 app / package と対象機能を確定する。関連する `docs/specifications/product-spec.md`、`docs/architecture/architecture.md`、`docs/specifications/chain-compatibility-spec.md`、`docs/specifications/web-transaction-handoff-spec.md`、`docs/specifications/profile-account-spec.md`、`docs/adr/`、公開 API、テストを必要な範囲で照合する。
+作業前に `/home/harvestasya/workspace/mosaiclynx/.agents/project-context.md` を読み、対象 app / package と対象機能を確定する。関連する `docs/specifications/product-spec.md`、`docs/design/architecture.md`、`docs/specifications/chain-compatibility-spec.md`、`docs/specifications/web-transaction-handoff-spec.md`、`docs/specifications/profile-account-spec.md`、`docs/adr/`、公開 API、テストを必要な範囲で照合する。
 
 ## 出力
 

@@ -281,7 +281,7 @@ FUTURE-001 は現在の要件定義へ未決事項として引き継がず、将
 - `README.md`: プロジェクト概要、提供形態、一般利用、Mobile、Relay、Signer の保証範囲。
 - `docs/specifications/product-spec.md`: プロダクト目的、対応範囲、対象外、一般ユーザー向け署名責任、Mainnet release evidence の前提。
 - `docs/specifications/web-transaction-handoff-spec.md`: Extension、Mobile、Relay、dApp の責任境界と提供形態の差異。
-- `docs/architecture/architecture.md`: Signer、Extension、Mobile、Relay、dApp の責務分離に関する既存方針。
+- `docs/design/architecture.md`: Signer、Extension、Mobile、Relay、dApp の責務分離に関する既存方針。
 - `docs/specifications/profile-account-spec.md`: Profile、Account、秘密情報、backup、利用者責任の範囲。
 - `docs/release/mainnet-release-evidence.md`: Mainnet capability を証跡で制御する前提。
 - `AGENTS.md`、`.agents/project-context.md`: 文書の正本区分、現在のワークスペース、作業上の制約。

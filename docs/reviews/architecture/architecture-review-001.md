@@ -2,7 +2,7 @@
 
 ## レビュー情報
 
-- 対象: `docs/architecture/architecture.md`
+- 対象: `docs/design/architecture.md`
 - 確認日: 2026-08-25
 - 判定: `READY WITH CONDITIONS`
 - レビュー方針: 現在確定済みの requirements を第一の source of truth とし、採用済み ADR、architecture、必要な下流仕様・外部 wallet-core 契約・現行 workspace の順に照合した。下流仕様や実装が architecture と異なることだけでは指摘せず、requirements と採用済み設計判断に対する architecture の適合性を評価した。変更は本レビュー成果物だけに限定した。
@@ -64,7 +64,7 @@ architecture は、今回の再整理によって全体の基本設計として�
 
 - ID: `AR-001`
 - Severity: `MEDIUM`
-- 対象: `docs/architecture/architecture.md` §5.2、§6.4、§6.8、§15、§17
+- 対象: `docs/design/architecture.md` §5.2、§6.4、§6.8、§15、§17
 - 問題: architecture は `CR-OPEN-001` / `CR-OPEN-002` の説明として、wallet-core の「Binding、FFI / WASM / Native」を未決事項として列挙している。MosaicLynx 側の platform integration、React Native 連携、秘密情報の一時受け渡し、OS 保護との組み合わせ、error mapping が未決であることは正しい。一方、wallet-core 側の v1 Binding 方式そのものは `_snwc/docs/decisions/binding-implementation.md` と `_snwc/docs/specifications/specification.md` §13 で、WASM は `wasm-bindgen`、Native は C ABI と既に固定されている。現記述のままでは、MosaicLynx の後続設計が wallet-core の v1 Binding 方式まで自由に再選択できるように読める。
 - 根拠: 共通要件 `CR-013`、`CR-OPEN-001`、`CR-OPEN-002` は責任境界を確定したうえで Application からの具体的統合方式を後続設計へ委ねている。採用済み外部決定 `_snwc/docs/decisions/binding-implementation.md` §決定、`_snwc/docs/specifications/specification.md` §13 は wallet-core の v1 Binding 方式を固定している。architecture §6.8、§17 はこの二層を分けずに記述している。
 - 影響: component design が Native / WASM の再選択や独自 Binding の追加を前提に進み、wallet-core の公開契約・所有権・error / warning 境界と競合する可能性がある。MosaicLynx 側で Binding に鍵管理・暗号・署名を再実装する誘因にもなる。
@@ -74,7 +74,7 @@ architecture は、今回の再整理によって全体の基本設計として�
 
 - ID: `AR-002`
 - Severity: `MEDIUM`
-- 対象: `docs/architecture/architecture.md` §8、§9、§11、§15
+- 対象: `docs/design/architecture.md` §8、§9、§11、§15
 - 問題: wallet-core を「独立した秘密情報境界」と表現しているが、wallet-core の WASM Binding は JavaScript と同じ execution context で動作し、WASM 自体は JavaScript から秘密情報を隔離する security boundary ではない。現 architecture は Web page / Provider / Content Script から wallet-core へ直接到達させない構成を別途示しているため、直ちに要件違反ではない。しかし、論理的な責任・API 境界と、実行コンテキスト・プロセスによる security isolation が区別されていない。
 - 根拠: `_snwc/docs/decisions/binding-implementation.md` §WASM / Browser security contract は、WASM が同じ JavaScript execution context にあり、page context へ Wallet Core を直接公開すべきでないと明記する。`BR-006`、`BR-011`、`CR-NFR-002` は page / extension の分離と秘密情報の不要な複製・出力禁止を要求する。architecture §5.1、§8、§11 は page / content script 分離を示す一方、wallet-core の境界を独立した秘密情報 isolation と読める表現である。
 - 影響: Browser Extension の WASM Binding を page context や Content Script に公開しても wallet-core が隔離してくれる、または Binding 内の zeroize が JavaScript 側のコピーを消去する、という誤った脅威モデル・実装判断につながる。秘密情報の最終保護責任、trusted host の範囲、WASM と Native の保証差のレビューが不十分になる。

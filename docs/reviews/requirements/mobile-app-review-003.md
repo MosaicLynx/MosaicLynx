@@ -68,7 +68,7 @@
 - `docs/specifications/product-spec.md`
 - `docs/specifications/web-transaction-handoff-spec.md`
 - `docs/specifications/profile-account-spec.md`
-- `docs/architecture/architecture.md`
+- `docs/design/architecture.md`
 - `docs/mobile/mobile-privacy.md`
 - `docs/mobile/mobile-support.md`
 - `docs/mobile/mobile-store-release.md`

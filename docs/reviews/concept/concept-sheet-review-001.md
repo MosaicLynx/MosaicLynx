@@ -70,7 +70,7 @@
 - `.agents/project-context.md`
 - `docs/specifications/product-spec.md`
 - `docs/specifications/web-transaction-handoff-spec.md`
-- `docs/architecture/architecture.md`
+- `docs/design/architecture.md`
 - `docs/adr/0001-mainnet-evidence-lite.md`
 
 上記資料は用語、現在のワークスペース、既存の責任境界、Mainnet capability の前提を確認する補助資料として参照した。これらとの相違だけを理由に、コンセプトの判定を下げていない。

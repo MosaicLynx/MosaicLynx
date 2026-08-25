@@ -74,7 +74,7 @@
 - `docs/specifications/product-spec.md`
 - `docs/specifications/chain-compatibility-spec.md`
 - `docs/specifications/web-transaction-handoff-spec.md`
-- `docs/architecture/architecture.md`
+- `docs/design/architecture.md`
 - `docs/adr/0001-mainnet-evidence-lite.md`
 - `_snwc/docs/requirements/requirements.md`
 - `_snwc/docs/specifications/specification.md`

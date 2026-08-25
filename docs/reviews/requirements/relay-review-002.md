@@ -72,7 +72,7 @@ Relay を Signer から分離し、障害、改ざん、差し替え、replay、
 - `docs/requirements/mobile-app.md`
 - `docs/requirements/browser-extension.md`
 - `docs/requirements/relay.md`
-- `docs/architecture/architecture.md`
+- `docs/design/architecture.md`
 - `docs/specifications/product-spec.md`
 - `docs/specifications/web-transaction-handoff-spec.md`
 - `apps/relay/README.md`

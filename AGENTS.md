@@ -56,7 +56,7 @@ MosaicLynx は、Symbol / NEM dApp 向けの署名機能を持つ Chrome Manifes
 主なドキュメントの役割は次のとおり。
 
 - `docs/specifications/product-spec.md`: 拡張機能のプロダクト範囲、外部可視動作、受け入れ条件。
-- `docs/architecture/architecture.md`: モノレポの責務分担、依存方向、境界、保存、RPC、テスト戦略。
+- `docs/design/architecture.md`: モノレポの責務分担、依存方向、境界、保存、RPC、テスト戦略。
 - `docs/specifications/chain-compatibility-spec.md`: Symbol / NEM の導出、network、transaction、署名 byte 列、固定 vector。
 - `docs/specifications/web-transaction-handoff-spec.md`: SDK、Extension、Relay の受け渡し契約と暗号化。
 - `docs/specifications/profile-account-spec.md`: Profile、Account、backup、復元、ロック、認証の仕様。

@@ -71,7 +71,7 @@
 
 1. `MR-OPEN-001`〜`MR-OPEN-008` の具体的な OS 対応、外部要求受信、OS 保護と wallet-core Binding、認証、lifecycle、backup / migration、画面露出、Store release 条件は、要求上の未決定事項として維持できる。ただし、各決定後は本レビューで残った受け入れ条件と Traceability の欠落を埋める必要がある。
 2. `_snwc` の Wallet Store、秘密情報処理、raw signing、Binding は、`CR-013` と `MR-007` の責任境界を確認する外部契約であり、Mobile 固有の新しい上流要求をそこから導出しない。
-3. `docs/specifications/product-spec.md`、`docs/architecture/architecture.md`、`docs/specifications/web-transaction-handoff-spec.md`、`docs/mobile/*` は、Mobile 要件を具体化・運用化する下流または整合確認資料である。これらにのみ存在する具体的判断は、必要に応じて下流仕様・設計で扱う。
+3. `docs/specifications/product-spec.md`、`docs/design/architecture.md`、`docs/specifications/web-transaction-handoff-spec.md`、`docs/mobile/*` は、Mobile 要件を具体化・運用化する下流または整合確認資料である。これらにのみ存在する具体的判断は、必要に応じて下流仕様・設計で扱う。
 
 ## Validation
 
@@ -92,7 +92,7 @@
 - `docs/specifications/product-spec.md`
 - `docs/specifications/web-transaction-handoff-spec.md`
 - `docs/specifications/profile-account-spec.md`
-- `docs/architecture/architecture.md`
+- `docs/design/architecture.md`
 - `docs/mobile/mobile-privacy.md`
 - `docs/mobile/mobile-support.md`
 - `docs/mobile/mobile-store-release.md`

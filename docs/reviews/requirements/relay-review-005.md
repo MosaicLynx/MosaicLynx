@@ -20,7 +20,7 @@
 ### RREQ5-001 — `ERROR` — `appToken` の分類と App Link fragment の許否が要件・下流仕様で未整合
 
 - 状態: `OPEN`
-- 対象: `docs/requirements/relay.md:125-131,227`、`docs/specifications/web-transaction-handoff-spec.md:426-437,531-537,562-580,698-705`、`docs/architecture/architecture.md:209`
+- 対象: `docs/requirements/relay.md:125-131,227`、`docs/specifications/web-transaction-handoff-spec.md:426-437,531-537,562-580,698-705`、`docs/design/architecture.md:209`
 - 根拠: Relay 要件 `RR-008` は Relay endpoint authorization credential を raw 値の URL query / fragment、ログ、診断等へ露出しないと定める。続く記述は URL fragment 等の一時 handoff を E2E session secret のための client-side handoff として扱い、「Relay credential transport ではない」としている。しかし下流仕様は App Link を `#s={sessionSecret}&a={appToken}` とし、`appToken` を `Authorization: Bearer {appToken}` として request 取得・response 登録に使用する Relay endpoint authorization credential と定義している。Architecture も App Link fragment から session secret と App capability を受け取ると記載している。
 - 影響: 現行 App Link を実装すると、`appToken` を URL fragment へ載せることが `RR-008` の禁止対象か、E2E secret handoff の例外として許容されるのかを判定できない。Relay credential を fragment に渡す場合の fallback、browser context、DOM、履歴、clipboard、診断情報への残存条件も、E2E session secret の条件だけでは閉じない。逆に fragment を禁止すると現行 Web handoff の App による Relay request 取得が成立しない。
 - 必要な修正: `appToken` を Relay endpoint authorization credential と明示し、E2E session secret / derived encryption material と区別する。そのうえで、(1) App Link fragment に raw `appToken` を載せない方式へ下流仕様を変更するか、(2) verified App Link への一時的な client-side credential handoff として明示的に許容し、Relay credential transport ではないと扱える根拠、正規 App 以外・fallback・browser history・DOM・clipboard・diagnostics への非露出、処理後の除去および継続保持禁止を要件・共通要件・下流仕様で統一する。どちらを選ぶ場合も、`RR-AC-006` で `appToken` の扱いを判定できるようにする。具体的な token 形式や暗号方式は本要件で固定する必要はない。
@@ -36,7 +36,7 @@
 ### RREQ5-003 — `WARN` — Relay v1 の operation 範囲が下流 handoff 契約と完全には対応していない
 
 - 状態: `OPEN`
-- 対象: `docs/requirements/relay.md:23-25,56-68,228-231,260-266`、`docs/specifications/web-transaction-handoff-spec.md:13-21,42-51`、`docs/architecture/architecture.md:198-209`
+- 対象: `docs/requirements/relay.md:23-25,56-68,228-231,260-266`、`docs/specifications/web-transaction-handoff-spec.md:13-21,42-51`、`docs/design/architecture.md:198-209`
 - 根拠: Relay 要件は transaction signing と message signing の request / result を v1 の必須範囲として定め、正常系受け入れ条件もこの二つの operation に限定している。一方、Web handoff 仕様の v1 operation 対応表は `connect`、`refreshActiveAccount`、`disconnect`、`signTransaction`、`signData`、`cosignTransaction` を対象とし、Architecture も Relay session と App Link をこれらの SDK / Mobile handoff に使用する責務を記載している。
 - 影響: `connect` 等の非署名 operation と `cosignTransaction` が Relay milestone の対象なのか、別の Mobile / SDK 要件でのみ保証するのかを、Relay milestone の完了判定から再現できない。対象である場合は、正常な受け渡し、結果の対応、利用者拒否・切断・未対応・結果不明の安全側失敗を Relay 固有 acceptance で確認できない。対象外である場合は、下流仕様が Relay v1 の提供物として記載する範囲と衝突する。
 - 必要な修正: Relay v1 が transport として保証する operation の境界を明示する。非署名 operation を含めるなら、署名 operation と混同しない result / failure、要求元・Account・session の対応および正常系・安全側失敗の受け入れ条件を追加し、`RR-OPEN-001` と Traceability に追跡する。含めないなら、Web handoff 仕様・Architecture・milestone 表で Relay の対象外または別責任であることを明記する。`CR-007` の transaction signing / message signing の必須範囲を弱める変更は行わない。
@@ -77,7 +77,7 @@
 - `docs/concept/concept-sheet.md`
 - `docs/specifications/product-spec.md`
 - `docs/specifications/web-transaction-handoff-spec.md`
-- `docs/architecture/architecture.md`
+- `docs/design/architecture.md`
 - `apps/relay/src/redis-store.ts`
 - `apps/relay/src/memory-store.ts`
 - `apps/relay/test/app.test.ts`

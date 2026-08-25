@@ -166,7 +166,7 @@ SDK は、利用者が理解できない raw bytes、未対応 format または�
 
 SDK v1 が message signing を必須で扱うことは確定事項であり、未対応 message signing を transaction signing、raw signing または別の message format として成功扱いにしてはならない。具体的な message operation の名称、format、wire contract、API 型および handoff の詳細は後続仕様で定める。
 
-根拠: Concept §2、§3、§6、§8、§11、共通要件 CR-007-MSG、CR-004、CR-NFR-003、CR-NFR-009。整合確認: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/architecture/architecture.md` §2、§5.2、`docs/specifications/product-spec.md` §16、`docs/specifications/web-transaction-handoff-spec.md` §2、§5。下流: message signing specification、Provider / Mobile operation contract、test specification。
+根拠: Concept §2、§3、§6、§8、§11、共通要件 CR-007-MSG、CR-004、CR-NFR-003、CR-NFR-009。整合確認: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/design/architecture.md` §2、§5.2、`docs/specifications/product-spec.md` §16、`docs/specifications/web-transaction-handoff-spec.md` §2、§5。下流: message signing specification、Provider / Mobile operation contract、test specification。
 
 ### SDK-FR-008 署名結果の受信・対応確認
 
@@ -184,7 +184,7 @@ SDK が結果の形式や署名を検証した場合でも、外部アプリケ�
 
 各 transport の利用可能性、提供 milestone、caller 検証および UI 差異を、同一の危険な意味へ変換してはならない。User rejection、mismatch / integrity / caller / replay failure および result unknown を自動 retry または別 transport fallback で迂回しないことは確定事項とする。具体的な選択順序、利用者が明示的に選択する代替経路の可否、unavailable / connection failure / timeout 時の扱いおよび将来の第三者 transport の追加方針は `SDK-OPEN-003` で扱う。
 
-根拠: Concept §3、§4、§6.5、§8、共通要件 CR-007、CR-011、CR-AC-015。整合確認: `docs/architecture/architecture.md` §3、§5.5、`docs/specifications/web-transaction-handoff-spec.md` §1、§6、`docs/requirements/relay.md`。下流: transport adapter specification、Extension / Mobile / Relay contract。
+根拠: Concept §3、§4、§6.5、§8、共通要件 CR-007、CR-011、CR-AC-015。整合確認: `docs/design/architecture.md` §3、§5.5、`docs/specifications/web-transaction-handoff-spec.md` §1、§6、`docs/requirements/relay.md`。下流: transport adapter specification、Extension / Mobile / Relay contract。
 
 ### SDK-FR-010 要求のキャンセル・期限切れ・ライフサイクル
 
@@ -228,7 +228,7 @@ Symbol と NEM の transaction schema、address、署名 byte、hash および n
 
 SDK が公開 Account identity や署名結果を扱う場合も、公開情報と秘密情報を混同してはならない。
 
-根拠: Concept §4、§9、§13、共通要件 CR-008、CR-NFR-002。整合確認: `docs/architecture/architecture.md` §2、§3、§5.5、`_snwc/docs/requirements/requirements.md` §2、`_snwc/docs/specifications/specification.md` §2。下流: SDK data-boundary specification、Wallet Core binding contract、security test specification。
+根拠: Concept §4、§9、§13、共通要件 CR-008、CR-NFR-002。整合確認: `docs/design/architecture.md` §2、§3、§5.5、`_snwc/docs/requirements/requirements.md` §2、`_snwc/docs/specifications/specification.md` §2。下流: SDK data-boundary specification、Wallet Core binding contract、security test specification。
 
 ### SDK-SEC-002 最終的な承認主体を MosaicLynx 側に置く
 
@@ -278,7 +278,7 @@ Relay の復旧、再配送、通信再接続または外部アプリケーシ�
 
 Relay を介する場合、SDK と Mobile App が要求・結果の完全性、対応、鮮度および承認条件を確認できる境界を維持しなければならない。Relay に渡る情報は、承認済み handoff 契約が必要とする最小限の保護された情報に限り、Relay が秘密鍵、Mnemonic、Profile password、復号済み Wallet Store または raw signing secret を扱わないことを前提とする。
 
-根拠: Concept §9、§13、共通要件 CR-011、CR-NFR-008〜CR-NFR-012。整合確認: `docs/requirements/relay.md` RR-001〜RR-009、`docs/architecture/architecture.md` §3、§5.5、`docs/specifications/web-transaction-handoff-spec.md` §7〜§9、§13。下流: Relay protocol、Mobile handoff、SDK security specification。
+根拠: Concept §9、§13、共通要件 CR-011、CR-NFR-008〜CR-NFR-012。整合確認: `docs/requirements/relay.md` RR-001〜RR-009、`docs/design/architecture.md` §3、§5.5、`docs/specifications/web-transaction-handoff-spec.md` §7〜§9、§13。下流: Relay protocol、Mobile handoff、SDK security specification。
 
 ### SDK-SEC-008 エラー・診断からの情報漏洩防止
 
@@ -322,7 +322,7 @@ Relay を介する受け渡しについても、SDK は Relay の一時性・削
 
 具体的な module format、package manifest、bundler、framework、最低 browser version および配布 channel は本書で固定しない。初期 Browser Extension milestone の Chrome 対応は Browser Extension 要件に従う。
 
-根拠: Concept §4、§5、§6.5、共通要件 §3、§4。整合確認: `docs/requirements/browser-extension.md` BR-001、`docs/specifications/web-transaction-handoff-spec.md` §1、§4、`docs/architecture/architecture.md` §1、§5.5。下流: SDK distribution / runtime specification、Browser Extension integration specification。
+根拠: Concept §4、§5、§6.5、共通要件 §3、§4。整合確認: `docs/requirements/browser-extension.md` BR-001、`docs/specifications/web-transaction-handoff-spec.md` §1、§4、`docs/design/architecture.md` §1、§5.5。下流: SDK distribution / runtime specification、Browser Extension integration specification。
 
 ### SDK-PLAT-002 Browser Extension との連携
 
@@ -330,7 +330,7 @@ Relay を介する受け渡しについても、SDK は Relay の一時性・削
 
 Browser が観測した実 Origin と browser context の要求への対応、およびその最終検証責任は Browser Extension / browser platform 側にある。Extension が要求元、許可、表示、承認、署名および wallet-core の境界を検証する責任を SDK へ移してはならない。SDK は dApp の自己申告 Origin を検証済み Origin として扱わず、Extension の検証結果を超える caller 保証を表明してはならない。
 
-根拠: Concept §9、§13、共通要件 CR-011、CR-013。整合確認: `docs/requirements/browser-extension.md` BR-002〜BR-011、`docs/specifications/product-spec.md` §16、`docs/architecture/architecture.md` §5.3〜§5.5。下流: Provider / Extension integration specification。
+根拠: Concept §9、§13、共通要件 CR-011、CR-013。整合確認: `docs/requirements/browser-extension.md` BR-002〜BR-011、`docs/specifications/product-spec.md` §16、`docs/design/architecture.md` §5.3〜§5.5。下流: Provider / Extension integration specification。
 
 ### SDK-PLAT-003 Mobile App / Relay との連携
 
@@ -346,7 +346,7 @@ handoff session と要求元との対応を最終的に検証する責任は Mob
 
 Browser の Origin、user activation、Page lifecycle または Mobile App の導入状態を必要とする連携を、Node.js その他の server-side runtime で同じ保証があるように扱ってはならない。Node.js、Web Worker、SSR、非 browser runtime を正式対応対象とするかは `SDK-OPEN-005` で決定する。
 
-根拠: Concept §11、§12、共通要件 CR-NFR-001、CR-NFR-008。整合確認: `docs/requirements/browser-extension.md` BR-004、BR-007、BR-008、`docs/specifications/web-transaction-handoff-spec.md` §5.3、§11、`docs/architecture/architecture.md` §3、§6。下流: runtime support matrix、caller binding specification。
+根拠: Concept §11、§12、共通要件 CR-NFR-001、CR-NFR-008。整合確認: `docs/requirements/browser-extension.md` BR-004、BR-007、BR-008、`docs/specifications/web-transaction-handoff-spec.md` §5.3、§11、`docs/design/architecture.md` §3、§6。下流: runtime support matrix、caller binding specification。
 
 ### SDK-PLAT-005 配布と実行コードの信頼境界
 
@@ -432,7 +432,7 @@ Relay、Provider、Mobile App または network が利用できない場合に�
 
 **MUST** SDK は、承認済みの Provider、Mobile App、Relay、Chain Adapter および Chain Compatibility の契約と相互運用できなければならない。Symbol と NEM の差異、Mainnet と Testnet の差異および署名結果の検証可能性を、提供形態の差異によって失わせてはならない。
 
-根拠: Concept §8、§11、共通要件 CR-005、CR-006、CR-NFR-005。整合確認: `docs/specifications/chain-compatibility-spec.md`、`docs/specifications/web-transaction-handoff-spec.md`、`docs/architecture/architecture.md` §2、§6。下流: interoperability specification、fixed vector / differential test specification。
+根拠: Concept §8、§11、共通要件 CR-005、CR-006、CR-NFR-005。整合確認: `docs/specifications/chain-compatibility-spec.md`、`docs/specifications/web-transaction-handoff-spec.md`、`docs/design/architecture.md` §2、§6。下流: interoperability specification、fixed vector / differential test specification。
 
 ### SDK-NFR-003 Cross-transport の契約検証可能性
 
@@ -440,7 +440,7 @@ Relay、Provider、Mobile App または network が利用できない場合に�
 
 Mobile / Relay の提供開始前は、実装済み検証結果が存在するものとして報告してはならない。検証が完了していない状態で、検証済み、確認済み、保証済みまたは対応済みであるかのように報告してはならない。
 
-根拠: Concept §6.5、§14、共通要件 CR-007、CR-011、CR-AC-009、CR-AC-015。整合確認: `docs/specifications/web-transaction-handoff-spec.md` §14、`docs/architecture/architecture.md` §5.5。下流: SDK contract test、platform E2E test、milestone acceptance。
+根拠: Concept §6.5、§14、共通要件 CR-007、CR-011、CR-AC-009、CR-AC-015。整合確認: `docs/specifications/web-transaction-handoff-spec.md` §14、`docs/design/architecture.md` §5.5。下流: SDK contract test、platform E2E test、milestone acceptance。
 
 ### SDK-NFR-004 配布・更新時の安全性
 
@@ -522,7 +522,7 @@ SDK が要求を整形・検証することは、Signer が行う最終的な tr
 - 未決の理由: Web handoff は browser context、Origin、page lifecycle および user activation に依存し得るが、全 runtime の保証範囲は既存要件で確定していないため。
 - 影響: SDK-PLAT-001、SDK-PLAT-004、caller binding、distribution、test matrix。
 - 決定時期: SDK distribution / runtime specification と各 platform milestone の決定時。
-- 根拠: Concept §6.5、共通要件 OPEN-003、`docs/specifications/web-transaction-handoff-spec.md` §1、§4、§5.3、`docs/architecture/architecture.md` §1、§6。
+- 根拠: Concept §6.5、共通要件 OPEN-003、`docs/specifications/web-transaction-handoff-spec.md` §1、§4、§5.3、`docs/design/architecture.md` §1、§6。
 
 ### SDK-OPEN-006：Versioning、backward compatibility および deprecation policy
 
@@ -563,14 +563,14 @@ SDK が要求を整形・検証することは、Signer が行う最終的な tr
 
 | SDK 要求                                         | 上流根拠                                                                                                                                                     | 整合確認資料・既存契約                                                                                                                                             | 下流引継ぎ                                                                    |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| SDK-FR-001、SDK-COMP-001、SDK-COMP-003           | Concept §8、§11；CR-007、CR-012                                                                                                                              | `docs/specifications/web-transaction-handoff-spec.md` §5.3、§6；`docs/architecture/architecture.md` §5.5                                                           | capability / version specification、Provider / Mobile support matrix          |
+| SDK-FR-001、SDK-COMP-001、SDK-COMP-003           | Concept §8、§11；CR-007、CR-012                                                                                                                              | `docs/specifications/web-transaction-handoff-spec.md` §5.3、§6；`docs/design/architecture.md` §5.5                                                           | capability / version specification、Provider / Mobile support matrix          |
 | SDK-FR-002〜004                                  | Concept §5、§6.3、§11；CR-003、CR-009、CR-011                                                                                                                | `docs/specifications/product-spec.md` §11、§16；BR-003〜BR-005；MR-002〜MR-004                                                                                     | connection / permission / public identity specification                       |
-| SDK-FR-005、SDK-SEC-003〜005                     | Concept §6.1、§6.2、§13；CR-001、CR-NFR-001、CR-NFR-008、CR-NFR-009；BR-003、BR-004；MR-002；RR-001、RR-003、RR-005、RR-007                                  | `docs/architecture/architecture.md` §3、§5.5；handoff §7、§13                                                                                                      | request, caller binding, integrity and approval correspondence specification  |
+| SDK-FR-005、SDK-SEC-003〜005                     | Concept §6.1、§6.2、§13；CR-001、CR-NFR-001、CR-NFR-008、CR-NFR-009；BR-003、BR-004；MR-002；RR-001、RR-003、RR-005、RR-007                                  | `docs/design/architecture.md` §3、§5.5；handoff §7、§13                                                                                                      | request, caller binding, integrity and approval correspondence specification  |
 | SDK-FR-006、SDK-FR-012、SDK-NFR-002              | Concept §6.1、§6.2、§8、§11；CR-002、CR-004、CR-005、CR-007-TX、CR-NFR-005                                                                                   | `docs/specifications/product-spec.md` §12；`docs/specifications/chain-compatibility-spec.md`；handoff §2、§7.4                                                     | transaction / chain compatibility / result verification specification         |
-| SDK-FR-007                                       | Concept §2、§3、§6、§8；CR-007-MSG、CR-004；BR-005；MR-004；RR-001、RR-002                                                                                   | `docs/architecture/architecture.md` §2、§5.2；product §16；handoff §2、§5                                                                                          | message operation specification、Provider / Mobile operation contract         |
+| SDK-FR-007                                       | Concept §2、§3、§6、§8；CR-007-MSG、CR-004；BR-005；MR-004；RR-001、RR-002                                                                                   | `docs/design/architecture.md` §2、§5.2；product §16；handoff §2、§5                                                                                          | message operation specification、Provider / Mobile operation contract         |
 | SDK-FR-008、SDK-FR-010〜011、SDK-SEC-005〜008    | Concept §6.3、§6.4、§13；CR-006、CR-010、CR-012、CR-NFR-003、CR-NFR-009〜012；BR-005、BR-008；MR-004、MR-005、MR-012；RR-002〜RR-007、RR-NFR-002、RR-NFR-005 | handoff §7〜§13                                                                                                                                                    | result / error / lifecycle / replay specification、dApp verification guidance |
-| SDK-FR-009、SDK-PLAT-002〜003、SDK-NFR-003       | Concept §4、§6.5、§8；CR-007、CR-011；BR-001〜BR-013；MR-001〜MR-013；RR-001〜RR-009                                                                         | `docs/architecture/architecture.md` §3、§5.5                                                                                                                       | Extension / Mobile / Relay cross-transport contract、milestone acceptance     |
-| SDK-SEC-001〜002、SDK-SEC-007、SDK-PRIV-001〜002 | Concept §4、§9、§10、§13；CR-008、CR-013、CR-NFR-002                                                                                                         | `docs/architecture/architecture.md` §2、§3、§5；`_snwc/docs/requirements/requirements.md`；`_snwc/docs/specifications/specification.md`；RR-008                    | wallet-core binding、data boundary、Relay privacy / retention specification   |
+| SDK-FR-009、SDK-PLAT-002〜003、SDK-NFR-003       | Concept §4、§6.5、§8；CR-007、CR-011；BR-001〜BR-013；MR-001〜MR-013；RR-001〜RR-009                                                                         | `docs/design/architecture.md` §3、§5.5                                                                                                                       | Extension / Mobile / Relay cross-transport contract、milestone acceptance     |
+| SDK-SEC-001〜002、SDK-SEC-007、SDK-PRIV-001〜002 | Concept §4、§9、§10、§13；CR-008、CR-013、CR-NFR-002                                                                                                         | `docs/design/architecture.md` §2、§3、§5；`_snwc/docs/requirements/requirements.md`；`_snwc/docs/specifications/specification.md`；RR-008                    | wallet-core binding、data boundary、Relay privacy / retention specification   |
 | SDK-PLAT-001、SDK-PLAT-004〜005                  | Concept §1、§6.5、§12；CR-011、CR-NFR-006；BR-001、BR-010、BR-013；`docs/adr/0001-mainnet-evidence-lite.md`                                                  | handoff §1、§4、§5.3                                                                                                                                               | runtime / distribution / release evidence specification                       |
 | SDK-COMP-002、SDK-COMP-004、SDK-OPEN-006         | Concept §8、§12、§15 OPEN-003；CR-007、CR-012                                                                                                                | handoff §4、§6、§15；BR-012、BR-013；MR-013                                                                                                                        | API / protocol compatibility matrix、deprecation and release policy           |
 | SDK-OPEN-002〜005、SDK-OPEN-007                  | Concept §6.5、§12、§15 OPEN-003、OPEN-005；CR-011、CR-NFR-006、CR-NFR-008                                                                                    | `docs/specifications/web-transaction-handoff-spec.md`；`docs/requirements/relay.md` RR-OPEN-001〜002；`docs/requirements/mobile-app.md` MR-OPEN-001〜008；ADR 0001 | SDK specification、platform / transport / caller binding / release decisions  |
@@ -591,7 +591,7 @@ SDK が要求を整形・検証することは、Signer が行う最終的な tr
 - `docs/specifications/web-transaction-handoff-spec.md`: SDK、Extension Adapter、Mobile Relay Adapter、result / error、handoff の既存仕様。message signing を v1 対象として扱う下流整合確認先である。
 - `docs/specifications/chain-compatibility-spec.md`: Symbol / NEM の chain-specific compatibility、transaction、署名および固定 vector。
 - `docs/specifications/profile-account-spec.md`: Profile、Account、Network、署名認証および秘密情報の責任境界。
-- `docs/architecture/architecture.md`: SDK、Provider、Extension、Mobile、Relay、Chain Adapter、Wallet Core の依存方向と責務分担。
+- `docs/design/architecture.md`: SDK、Provider、Extension、Mobile、Relay、Chain Adapter、Wallet Core の依存方向と責務分担。
 - `_snwc/docs/requirements/requirements.md`、`_snwc/docs/specifications/specification.md`: Wallet Core の鍵管理、Wallet Store、秘密情報処理および raw signing の外部契約。
 - `docs/adr/0001-mainnet-evidence-lite.md`: 初期 Mainnet release gate と、gate 未達成時に Mainnet を有効化しない制約。
 - `_sns/packages/symbol-nem-interchange-format/doc/requirements.md`、`_sns/packages/symbol-nem-interchange-format/doc/spec-format.md`、`_sns/packages/symbol-nem-interchange-format/doc/spec-api.md`: SNIF の形式・API と責務境界の整合確認資料。SNIF は transport 非依存にデータと `id` / `replyTo` 等の correlation 情報を搬送できるが、replay 防止、freshness、使用済み管理、session binding、caller / Origin の真正性、authentication / authorization、利用者承認、署名生成・検証および transaction semantic validation を担わない。SNIF を transport に用いる場合も、Browser Provider、Deep Link / App Link、Relay 固有の安全境界を SDK 要件から消去しない。MosaicLynx SDK が SNIF を使用すること自体は、本要件では確定しない。

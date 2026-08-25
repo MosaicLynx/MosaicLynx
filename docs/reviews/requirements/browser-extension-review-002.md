@@ -98,7 +98,7 @@ Web ページから申告された Origin を信用しないこと、top-level b
 - `docs/concept/concept-sheet.md`
 - `docs/specifications/product-spec.md`
 - `docs/specifications/profile-account-spec.md`
-- `docs/architecture/architecture.md`
+- `docs/design/architecture.md`
 - `docs/adr/0001-mainnet-evidence-lite.md`
 - `docs/evidence/evidence-policy.json`
 - `docs/release/mainnet-release-evidence.md`

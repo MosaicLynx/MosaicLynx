@@ -4,7 +4,7 @@
 
 本書は、MosaicLynx の最初の提供形態である Chrome 拡張機能のプロダクト仕様を定義する。
 
-実装方式と責務分担は [Architecture](../architecture/architecture.md) に定義する。
+実装方式と責務分担は [Architecture](../design/architecture.md) に定義する。
 Web ページから Extension または Mobile App へトランザクションを渡す MosaicLynx SDK と Relay の仕様は [Web Transaction Handoff Specification](./web-transaction-handoff-spec.md) に定義する。
 鍵導出、対応 transaction schema、network constant、署名 byte 列の固定契約は [Chain Compatibility Specification](./chain-compatibility-spec.md) に定義する。
 

@@ -69,7 +69,7 @@ Mainnet gate の評価時点、公開後の evidence 期限切れ・失効・検
 - `docs/concept/concept-sheet.md`
 - `docs/specifications/product-spec.md`
 - `docs/specifications/profile-account-spec.md`
-- `docs/architecture/architecture.md`
+- `docs/design/architecture.md`
 - `docs/adr/0001-mainnet-evidence-lite.md`
 - `docs/evidence/evidence-policy.json`
 - `docs/release/mainnet-release-evidence.md`

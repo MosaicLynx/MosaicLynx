@@ -6,7 +6,7 @@
 
 Web ページ向けライブラリの正式名称は **MosaicLynx SDK**、npm package 名は `@mosaiclynx/sdk` とする。MosaicLynx SDKはChrome拡張機能へ直接渡す方式と、スマートフォンアプリへリレー経由で渡す方式の差を隠蔽し、dAppに `signTransaction()` と `signData()` を含む共通署名接点を公開する。Extension AdapterはExtension MVP、Mobile Relay AdapterとRelay / AppはMobileマイルストーンの提供物である。本書のv1は両者の最終契約を定義するが、Mobile実装をExtension MVPの受け入れ条件には含めない。
 
-MosaicLynx 全体のプロダクト要件は [Product Specification](./product-spec.md)、コンポーネントの責務と依存方向は [Architecture](../architecture/architecture.md)、鍵・network・transaction・署名byteの固定契約は [Chain Compatibility Specification](./chain-compatibility-spec.md) に定義する。本書と共通仕様が矛盾する場合、署名可否はProduct Specification、chain byte規則はChain Compatibility Specification、Web受け渡しprotocolは本書を適用する。
+MosaicLynx 全体のプロダクト要件は [Product Specification](./product-spec.md)、コンポーネントの責務と依存方向は [Architecture](../design/architecture.md)、鍵・network・transaction・署名byteの固定契約は [Chain Compatibility Specification](./chain-compatibility-spec.md) に定義する。本書と共通仕様が矛盾する場合、署名可否はProduct Specification、chain byte規則はChain Compatibility Specification、Web受け渡しprotocolは本書を適用する。
 
 ## 2. 対応範囲
 

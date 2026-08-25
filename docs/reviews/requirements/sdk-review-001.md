@@ -98,7 +98,7 @@ SDK の責任を Signer、Wallet Core、Relay、外部アプリケーション�
 - `docs/specifications/product-spec.md`
 - `docs/specifications/chain-compatibility-spec.md`
 - `docs/specifications/web-transaction-handoff-spec.md`
-- `docs/architecture/architecture.md`
+- `docs/design/architecture.md`
 - `packages/sdk/README.md`
 - `packages/sdk/package.json`
 - `packages/sdk/src/types.ts`

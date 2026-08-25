@@ -2,7 +2,7 @@
 
 ## レビュー情報
 
-- 対象: `docs/architecture/architecture.md`
+- 対象: `docs/design/architecture.md`
 - 前回レビュー: `docs/reviews/architecture/architecture-review-001.md`
 - 確認日: 2026-08-25
 - 判定: `READY`

@@ -61,7 +61,7 @@
 - `docs/concept/concept-sheet.md`
 - `docs/specifications/product-spec.md`
 - `docs/specifications/web-transaction-handoff-spec.md`
-- `docs/architecture/architecture.md`
+- `docs/design/architecture.md`
 - `apps/relay/src/app.ts`
 - `apps/relay/src/types.ts`
 - `apps/relay/src/redis-store.ts`

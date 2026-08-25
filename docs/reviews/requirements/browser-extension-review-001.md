@@ -77,7 +77,7 @@ Browser Extension の責任境界は概ね明確である。Web ページから�
 - `docs/requirements/requirements.md`
 - `docs/concept/concept-sheet.md`
 - `docs/specifications/product-spec.md`（下流仕様との引継ぎ確認のみ）
-- `docs/architecture/architecture.md`（下流設計との責任境界確認のみ）
+- `docs/design/architecture.md`（下流設計との責任境界確認のみ）
 - `docs/adr/0001-mainnet-evidence-lite.md`
 - `docs/release/mainnet-release-evidence.md`
 - `docs/evidence/evidence-policy.json`

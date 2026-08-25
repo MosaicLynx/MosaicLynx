@@ -105,7 +105,7 @@ Relay を Signer と分離し、Relay の侵害・障害・改ざん・replay・
 - `docs/concept/concept-sheet.md`
 - `docs/specifications/product-spec.md`
 - `docs/specifications/web-transaction-handoff-spec.md`
-- `docs/architecture/architecture.md`
+- `docs/design/architecture.md`
 - `apps/relay/README.md`
 - `apps/relay/src/app.ts`
 - `apps/relay/src/types.ts`
