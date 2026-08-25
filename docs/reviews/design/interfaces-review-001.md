@@ -177,13 +177,6 @@ BLOCKER / HIGH はなく、security / Trust Boundary の根幹、Relay の非署
 - repository 内リンク: 参照資料の存在確認に成功した。
 - Markdown formatter: `pnpm exec prettier --check docs/reviews/design/interfaces-review-001.md` 成功。
 - `git diff --check`: staged diff で成功。
-- 変更範囲: 作業前の変更はなく、現在の変更はレビュー成果物 1 ファイルのみ。
+- 変更範囲: 本レビューで作成・変更したのはレビュー成果物 1 ファイルのみ。対象設計書の既存ワークツリー変更は保持し、変更していない。
 - リポジトリ全体 `pnpm format:check`: 失敗。レビュー成果物単体は成功したが、既存の `_nem`、`_sns`、`_snwc` 等に大量の format warning と HTML parse error があり、今回のレビュー成果物起因ではない。
 - lint / typecheck / test / build: レビュー成果物のみの変更のため実行対象外。未実行を成功とは扱わない。
-
-## 変更範囲・コミット・プッシュ
-
-- 作成ファイル: `docs/reviews/design/interfaces-review-001.md`
-- 対象設計書、concept、requirements、security-design、signing-flow、architecture、ADR、Wallet Core 資料、実装コードおよびテストは変更していない。
-- コミット: 日本語の既存履歴形式に合わせる。
-- push: `origin/main` へ実施する。
