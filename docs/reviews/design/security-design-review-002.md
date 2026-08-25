@@ -48,7 +48,7 @@ Browser Extension、Relay、SDK および共通の Mobile handoff / approval 境
 - `_snwc/docs/specifications/specification.md`
 - `_snwc/docs/decisions/binding-implementation.md`
 
-前回指摘の解消確認には commit `840de754c19201dc3fcd2c4aef862d31267d18f4` を使用した。下流資料との差異だけを理由に共通設計を誤りとは判定せず、共通要求、承認済み責任分界および Wallet Core 境界を中心に確認した。
+下流資料との差異だけを理由に共通設計を誤りとは判定せず、共通要求、承認済み責任分界および Wallet Core 境界を中心に確認した。
 
 ## 前回指摘の解消状況
 
@@ -171,10 +171,3 @@ Browser Extension、Relay、SDK および共通の Mobile handoff / approval 境
 - 変更範囲確認: staged diff でレビュー成果物 1 ファイルのみを確認。
 - リポジトリ全体 `pnpm format:check`: 失敗。対象ファイルはチェックを通過したが、既存の `_nem` / `_sns` 等に大量の format warning と HTML parse error があり exit 2。今回のレビュー成果物起因ではない。
 - リポジトリ全体の lint / typecheck / test / build: レビュー成果物のみのため実行対象外。未実行を成功とは扱わない。
-
-## 変更範囲・コミット・プッシュ
-
-- 作成ファイル: `docs/reviews/design/security-design-review-002.md`
-- 対象設計書、concept、requirements、Wallet Core、Browser Extension / Mobile / Relay / SDK 資料、実装コードは変更しない。
-- コミット: 日本語の既存履歴形式に合わせる。
-- push: `origin/main` へ実施する。

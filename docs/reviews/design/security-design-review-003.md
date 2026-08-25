@@ -121,8 +121,3 @@ Browser Extension、Mobile、Relay、SDK および Chain integration の下位�
 - 変更範囲: レビュー成果物 1 ファイルのみを確認。
 - リポジトリ全体 `pnpm format:check`: 既存の `_nem` / `_sns` 等に起因する format warning と HTML parse error があるため失敗。レビュー成果物単体は成功し、今回の変更起因ではない。
 - lint / typecheck / test / build: レビュー成果物のみの変更のため実行対象外。未実行を成功とは扱わない。
-
-## コミット・プッシュ
-
-- 日本語の既存履歴形式に合わせてコミットする。
-- `origin/main` への push を実施する。
