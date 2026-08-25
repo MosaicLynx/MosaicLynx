@@ -2,11 +2,9 @@
 
 ## 1. 文書の目的と適用範囲
 
-本書は、[MosaicLynx 共通要件](./requirements.md) に加えて、dApp とスマホアプリの間で署名要求・署名結果を受け渡す Relay に固有の要求を定義する。
+本書は、[MosaicLynx 共通要件](./requirements.md) に加えて、dApp と Mobile App の間で署名要求・署名結果を受け渡す Relay 固有の要求を定義する。共通要件の署名安全性と責任境界を Relay 経由でも維持する。
 
-署名対象の確認、利用者による明示的な承認または拒否、blind signing の禁止、秘密情報の保護、Symbol / NEM と Mainnet / Testnet の区別は共通要件およびスマホアプリ要件で定める。本書では、それらを Relay 経由でも破らないための責任境界と安全性を扱う。
-
-Relay は MosaicLynx v1 の第4 milestone である。ブラウザ拡張機能、Android アプリ、iOS アプリ、Relay の順序、および Relay milestone の完了を MosaicLynx v1 全体の完了とする定義は、コンセプトシートと共通要件に従う。
+Relay は MosaicLynx v1 の第4 milestone であり、ブラウザ拡張機能、Android、iOS、Relay の順序と v1 完了条件は Concept Sheet と共通要件に従う。
 
 本書は、API、データ形式、通信方式、暗号方式、インフラ、保存方式、詳細な状態遷移、実装ライブラリを確定しない。
 
@@ -112,13 +110,13 @@ Relay API、storage、backup、log、diagnostics、analytics または telemetry
 
 **MUST** Relay は論理的な Relay generation context を持たなければならない。Relay restart、active session state の完全消失、storage loss または既存 session state の継続性を保証できなくなった場合、current generation context を切り替え、旧 generation 全体を失効させなければならない。
 
-**MUST** 新しい handoff は、その時点の current generation context に binding されなければならない。Relay は current generation と一致しない `generationId`、malformed generation metadata、unsupported / invalid protocol or version、invalid expiry / lifetime、invalid authorization credential、invalid lifecycle / state transition、duplicate / conflicting active state、invalid request / session / result correlation、および plaintext の復号なしに判定できるその他の structural / transport failure を拒否しなければならない。Relay は current generation context と一致しない handoff を作成してはならず、opaque ciphertext の内部認証状態や過去 generation での使用履歴を判定する責任を持たない。
+**MUST** 新しい handoff は、その時点の current generation context に binding されなければならない。Relay は generation、認証、期限、lifecycle、request / session / result の対応またはその他の structural / transport validation に失敗した handoff を、plaintext の復号や意味解釈なしに拒否しなければならない。Relay は opaque ciphertext の内部認証状態や過去 generation での使用履歴を判定する責任を持たない。
 
-**MUST** session / request identity と generation context は対応し、encrypted request / response の認証対象も generation context に対応しなければならない。旧 generation の identity または request は current generation の有効な handoff として受理・復活させてはならない。current generation の metadata を付けた旧 ciphertext は、opaque envelope の structural validation を満たす限り Relay storage へ一時的に保存される可能性があるが、requirements violation とは扱わない。旧 ciphertext が current generation の有効な request / response として成立すること、利用者承認・署名・success へ到達することは許容してはならず、generation metadata の差し替えは App の E2E validation で検出されなければならない。
+**MUST** request / session identity と generation context は対応しなければならない。旧 generation の identity、request または ciphertext を current generation の有効な handoff として受理・復活させてはならず、generation metadata の差し替えは App の E2E validation で検出されなければならない。旧 ciphertext の一時保存や過去利用の履歴保持を Relay に要求しないが、旧 ciphertext が承認・署名・success へ到達することは許容しない。
 
-state continuity を失った後は、旧 pending session を復旧せず、旧 create request、旧 request identity または旧 session identity を current generation の session として再登録・再処理してはならない。旧 ciphertext の過去利用を Relay が記憶して再登録を拒否することは要求しない。retry は fresh generation context、new request identity、new session identity、必要な新しい transport authorization context、fresh encrypted envelope および新しい利用者承認を伴う新しい handoff でなければならない。Relay はこの保証のために durable payload history、ciphertext history、persistent replay database、generation-bound proof / commitment または利用者 handoff の長期 replay history を保持することを要求されない。
+state continuity を失った後は、旧 pending session、request identity または session identity を current generation の session として復旧・再登録してはならない。retry は fresh generation context、新しい identity、fresh encrypted envelope および新しい利用者承認を伴う新しい handoff でなければならない。Relay に durable payload history、ciphertext history または長期 replay history を要求しない。
 
-要求の有効性、使用済み判定、重複処理、遅延処理および generation の具体的な識別子、epoch、token、AAD field、session ID encoding、保存形式は後続仕様で一貫した安全側の規則として定義する。本要求は Relay-verifiable generation-bound proof / commitment、durable replay database、RDB、Redis AOF / RDB または persistent ciphertext digest database を必須にしない。
+要求の有効性、使用済み判定、重複処理、遅延処理および generation binding の具体方式は後続仕様で定義する。本要求は特定の proof、replay database、保存形式またはインフラ構成を必須にしない。
 
 ### RR-007 要求・結果の分離
 
@@ -134,7 +132,7 @@ Relay は、要求と結果が意図した dApp、スマホアプリおよび署
 
 **MUST** E2E session secret、request encryption key、response encryption key、derived encryption key その他の E2E envelope を復号可能にする秘密値（以下、E2E session secret / derived encryption material）は、Relay endpoint authorization credential と別分類で扱う。Relay はこれらを受信、復号、保持、hash 化、導出または再構成可能な情報として保持してはならず、Relay の侵害時にも opaque envelope を復号できない責任境界を維持しなければならない。
 
-現行 Web handoff specification の `appToken` は、Relay endpoint authorization credential の具体例であり、E2E session secret / derived encryption material とは別分類である。`appToken` という名称自体を上流の製品要求として固定せず、下流仕様における分類対応として扱う。
+下流仕様で定義される Relay endpoint authorization credential は、E2E session secret / derived encryption material とは別分類である。
 
 SDK と正規 Mobile App の間の verified client-side handoff は Relay を経由しない。下流仕様が verified App Link または verified HTTPS URL の fragment 等を採用する場合、E2E session secret と Relay endpoint authorization credential（現行仕様の `appToken` 等）を、正規 Mobile App へ一時的に渡すことを限定的に許容する。これは credential を Relay-facing URL へ公開すること、または fragment 全体を Relay へ送信することを意味しない。App が取得した authorization credential を、Relay endpoint authorization に必要な範囲で HTTP Authorization として利用することとは別の境界である。
 
@@ -253,7 +251,7 @@ Relay が利用できない場合の代替経路、redirect、Deep Link、QR、R
 
 ## 8. Traceability
 
-上流根拠は Concept Sheet と共通要件に限定する。Mobile / Browser Extension 要件、Architecture、Product Specification は兄弟要件または整合確認資料として扱い、Web Transaction Handoff Specification、Relay protocol / SDK / implementation は下流引継ぎまたは実装 evidence として扱う。
+上流根拠、整合確認資料、下流引継ぎを分けて RR-* に対応付ける。
 
 | 要求 ID    | 上流根拠                                                          | 適用主体                        | 整合確認資料・外部契約                                                 | 下流引継ぎ                                                                                         | 受け入れ条件                                          |
 | ---------- | ----------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
@@ -274,7 +272,7 @@ Relay が利用できない場合の代替経路、redirect、Deep Link、QR、R
 | RR-NFR-004 | Concept §13；CR-008、CR-NFR-002                                   | Relay / Operations              | Mobile MR-003；Architecture §3、§5.5                                   | logging / diagnostics / privacy specification                                                      | RR-AC-006、RR-AC-008、RR-AC-011                       |
 | RR-NFR-005 | Concept §6.3、§11、§13；CR-012、CR-NFR-010、CR-NFR-011、CR-AC-015 | Relay / Mobile / dApp           | Mobile MR-005、MR-012；Web handoff §10                                 | error taxonomy / retry / dApp handling specification                                               | RR-AC-001、RR-AC-003、RR-AC-007、RR-AC-008、RR-AC-012 |
 
-RR-006 と RR-NFR-003 の state-loss / replay 要求は、下流 Web handoff specification の Relay generation / epoch boundary、generation binding、旧 generation 失効および fresh retry 規則へ追跡する。RR-008 は `appToken` を Relay endpoint authorization credential として、E2E session secret / derived encryption material および verified client-side fragment handoff と区別する。
+RR-006 と RR-NFR-003 の state-loss / replay 要求は、generation binding、旧 generation 失効および fresh retry 規則へ追跡する。RR-008 は Relay endpoint authorization credential を E2E session secret / derived encryption material および verified client-side handoff と区別する。
 
 ## 9. Relay 固有の未決事項
 
@@ -303,7 +301,7 @@ RR-006 と RR-NFR-003 の state-loss / replay 要求は、下流 Web handoff spe
 5. HTTP / HTTPS API、通信方式、データ形式、認証・暗号方式、rate limit、インフラ構成およびテストを基本設計・詳細設計・仕様へ引き継ぐ。API、schema、暗号方式、storage、infra、retry interval、HTTP status は本書で決定しない。
 6. `docs/specifications/web-transaction-handoff-spec.md` では transaction signing と message signing の両 operation を v1 対象として扱い、共通要件・本書との operation 範囲の整合を維持する。
 7. `OPEN-003` の4 milestone 個別完了条件および `OPEN-005` の Mainnet 公開条件と、本書の受け入れ条件を整合させる。Relay milestone の最低条件は `RR-OPEN-001` に記載した Relay 固有 MUST、全 `RR-AC-*` および適用される全 `CR-AC-*` であり、MAY はこの条件を弱めない。
-8. generation-aware contract の endpoint / current generation 管理、create metadata、protocol、SDK の generation 取得、E2E AAD binding、Relay structural validation、App validation および restart / state loss fault injection を下流実装・テストへ引き継ぐ。現行の Relay、protocol、SDK の実装・テストは、この contract の検証済み evidence として扱わない。
+8. generation binding、Relay の structural validation、App の E2E validation および restart / state loss の検証を下流仕様・テストへ引き継ぐ。
 
 ## 11. 参照資料
 
@@ -321,7 +319,6 @@ RR-006 と RR-NFR-003 の state-loss / replay 要求は、下流 Web handoff spe
 - [MosaicLynx ブラウザ拡張機能要件](./browser-extension.md): dApp、Signer、署名要求・結果および announce の責任境界。
 - `docs/architecture/architecture.md`: Relay、Mobile App、MosaicLynx SDK および dApp の責務分離。
 
-### 11.3 下流引継ぎ・実装 evidence
+### 11.3 下流引継ぎ
 
 - `docs/specifications/web-transaction-handoff-spec.md`: SDK、Mobile handoff、Relay の API・protocol・暗号化・状態契約を具体化する仕様。transaction signing と message signing の両 operation を v1 対象とする本要件・共通要件との整合確認先である。
-- `packages/relay-protocol/`、`packages/sdk/`、`apps/relay/`: Relay protocol、SDK adapter、Relay server の後続実装および整合確認先。これらの実装・テストの存在だけを本要件の上流根拠とはしない。

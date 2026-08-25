@@ -69,10 +69,6 @@ PIN、OS パスコード、生体認証をどの組み合わせで利用する�
 
 OS の Keychain / Keystore 等を利用する場合も、OS 保護の capability、端末変更、バックアップ、失敗状態をアプリ側の責任として明示しなければならない。具体的な Binding、保存場所、鍵のラップ方式は設計で決定する。
 
-上流根拠: `docs/concept/concept-sheet.md` §9、§13；`docs/requirements/requirements.md` CR-008、CR-013。
-
-外部コンポーネント契約: `_snwc/README.md`、`_snwc/docs/requirements/requirements.md`、`_snwc/docs/specifications/specification.md`、`_snwc/docs/decisions/binding-implementation.md`。
-
 ### MR-008 OS 保護能力の表示
 
 **MUST** iOS / Android の OS 保護機能、端末ロック、生体認証、hardware-backed capability 等を利用者へ表示する場合、実行時に確認できた保護範囲を越えて保証してはならない。
@@ -128,15 +124,6 @@ Relay の主経路・代替経路、redirect、Deep Link、QR、Relay unavailabl
 | OS 保護 capability の利用・表示と wallet-core との責任分担     | `MR-007`、`MR-008`           | `MR-AC-007`、`MR-AC-010`                           |
 | 外部要求の受信、秘密情報分離、アプリ管理下の承認、Relay 境界   | `MR-002`〜`MR-004`、`MR-012` | `MR-AC-002`、`MR-AC-003`、`MR-AC-006`、`MR-AC-013` |
 | iOS / Android の個別 milestone、Store 配布、Mainnet gate、更新 | `MR-001`、`MR-013`           | `MR-AC-001`、`MR-AC-009`、`MR-AC-014`              |
-
-### 4.3 未決定事項
-
-- iOS の background 制約、プロセス終了、Universal Link、Keychain、端末ロック、生体認証の適用範囲は、`MR-005`、`MR-006`、`MR-008` に適用し、具体的な扱いを `MR-OPEN-001`〜`MR-OPEN-005` で決定する。
-- iOS の App Store の配布・審査・更新条件と Mainnet capability の release gate の対応は、`MR-013` に適用し、`MR-OPEN-001`、`MR-OPEN-008` で決定する。
-- Secure Enclave を利用する場合でも Symbol / NEM の署名能力を自動的に保証できるとはみなさない。この扱いは `MR-008` と `MR-OPEN-003` に従う。
-- Android の background 制約、プロセス終了、App Link、Keystore、StrongBox、端末ロック、生体認証の適用範囲は、`MR-005`、`MR-006`、`MR-008` に適用し、具体的な扱いを `MR-OPEN-001`〜`MR-OPEN-005` で決定する。
-- Android の Google Play の配布・審査・更新条件と Mainnet capability の release gate の対応は、`MR-013` に適用し、`MR-OPEN-001`、`MR-OPEN-008` で決定する。
-- StrongBox または Keystore が利用可能であることだけを理由に Symbol / NEM の直接署名能力や hardware protection を保証していると表示しない。この扱いは `MR-008` と `MR-OPEN-003` に従う。
 
 ## 5. スマホアプリの対象外
 
@@ -211,7 +198,7 @@ Relay の主経路・代替経路、redirect、Deep Link、QR、Relay unavailabl
 
 ## 8. Traceability
 
-上流根拠は Mobile 要求を導出する `docs/concept/concept-sheet.md` と `docs/requirements/requirements.md` に限定する。整合確認資料は要求との矛盾がないか確認する下流・関連資料であり、下流引継ぎは要求を具体化する後続仕様・設計である。外部コンポーネント契約は `symbol-nem-wallet-core` の責任境界・契約を確認する資料であり、Mobile 要求の上流根拠ではない。
+上流根拠、整合確認資料、下流引継ぎおよび外部コンポーネント契約を分けて MR-* に対応付ける。
 
 ### 8.1 MR-* と MR-AC-* の対応
 
@@ -253,8 +240,6 @@ Relay の主経路・代替経路、redirect、Deep Link、QR、Relay unavailabl
 
 ### 9.2 整合確認資料
 
-以下は Mobile 要件との整合を確認する資料であり、上流根拠ではない。
-
 - `docs/specifications/product-spec.md`
 - `docs/architecture/architecture.md`
 - `docs/requirements/relay.md`
@@ -270,8 +255,6 @@ Relay の主経路・代替経路、redirect、Deep Link、QR、Relay unavailabl
 - 各 platform の lifecycle、認証、OS integration、privacy policy、Store 公開、更新互換性に関する後続仕様・設計。
 
 ### 9.4 外部コンポーネント契約
-
-以下は `symbol-nem-wallet-core` の外部コンポーネント契約・整合確認資料であり、MosaicLynx の Mobile 要求の上流根拠ではない。Native C ABI、WASM、Binding 等の設計判断を本要件へ取り込まない。
 
 - `_snwc/README.md`
 - `_snwc/docs/requirements/requirements.md`

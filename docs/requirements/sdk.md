@@ -31,15 +31,15 @@ SDK が提供する価値は、外部アプリケーションが次を一貫し�
 
 ### 2.2 対象利用者と責任主体
 
-| 主体                        | SDK 要件上の位置付け                                                                                                                                  |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 一般ユーザー                | SDK の直接利用者ではない。MosaicLynx 側の確認領域で署名対象を確認し、要求ごとに承認または拒否する。                                                   |
-| dApp / 外部アプリケーション | SDK の主要な利用者。要求を生成し、SDK の結果を受け取り、必要な検証・ネットワーク処理を行う。                                                          |
-| dApp 開発者                 | 主要な統合者。提供形態ごとの差異を個別に扱わず、MosaicLynx の共通連携を利用する。                                                                     |
-| Browser Extension           | SDK が接続する Signer の一つ。要求元、許可、表示、承認、署名および Extension 内の秘密情報境界を管理する。                                             |
-| Mobile App                  | 将来の Signer。外部要求の検証、表示、利用者の承認、署名および端末側の秘密情報境界を管理する。現在のワークスペースに実装済みであることを前提にしない。 |
-| Relay                       | Mobile 連携時の受け渡し基盤。SDK は必要なクライアント側連携を行い得るが、Relay サーバーは署名、意味解釈、承認および秘密情報処理を担わない。           |
-| Wallet Core                 | 鍵管理、Wallet Store、秘密情報を使用する暗号処理および raw signing の正本。SDK はこの責務を代替しない。                                               |
+| 主体                        | SDK 要件上の位置付け                                                                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 一般ユーザー                | SDK の直接利用者ではない。MosaicLynx 側の確認領域で署名対象を確認し、要求ごとに承認または拒否する。                                         |
+| dApp / 外部アプリケーション | SDK の主要な利用者。要求を生成し、SDK の結果を受け取り、必要な検証・ネットワーク処理を行う。                                                |
+| dApp 開発者                 | 主要な統合者。提供形態ごとの差異を個別に扱わず、MosaicLynx の共通連携を利用する。                                                           |
+| Browser Extension           | SDK が接続する Signer の一つ。要求元、許可、表示、承認、署名および Extension 内の秘密情報境界を管理する。                                   |
+| Mobile App                  | 将来 milestone の Signer。外部要求の検証、表示、利用者の承認、署名および端末側の秘密情報境界を管理する。                                    |
+| Relay                       | Mobile 連携時の受け渡し基盤。SDK は必要なクライアント側連携を行い得るが、Relay サーバーは署名、意味解釈、承認および秘密情報処理を担わない。 |
+| Wallet Core                 | 鍵管理、Wallet Store、秘密情報を使用する暗号処理および raw signing の正本。SDK はこの責務を代替しない。                                     |
 
 ## 3. スコープ
 
@@ -78,7 +78,7 @@ Transaction construction の便利機能を SDK の必須責任とするかは�
 ## 4. 前提・制約
 
 - MosaicLynx の実施順序は Browser Extension、Android、iOS、Relay である。SDK は最初の Browser Extension 連携を優先し、Mobile / Relay 連携は対応する milestone の成立を前提とする。
-- 現在のワークスペースに Mobile App の実装が存在することを前提にしない。Mobile 対応を定義する要求は、将来 milestone の統合要求として扱う。
+- Mobile 対応を定義する要求は、将来 milestone の統合要求として扱う。
 - MosaicLynx の共通要件は transaction signing と message signing を共通の署名能力として定めている。SDK v1 も両方を必須 operation として扱う。具体的な operation 名、message format、wire contract および対応 milestone の実現方法は後続仕様で定める。
 - Symbol と NEM、Mainnet と Testnet は SDK の全ての要求・結果で明示的に区別する。SDK は一方の Chain / Network を他方へ暗黙に変換しない。
 - Mainnet capability は適用される Mainnet release gate を満たす Signer / build の能力だけを扱い、SDK が gate を迂回して Mainnet capability を有効化してはならない。gate が未達成または判定不能でも、安全な unavailable / unsupported として扱えることを優先する。
@@ -438,7 +438,7 @@ Relay、Provider、Mobile App または network が利用できない場合に�
 
 **MUST** SDK の共通契約は、Browser Extension 直接連携と、提供開始後の対応する Mobile / Relay 連携を個別に検証できなければならない。transaction signing と message signing の正常な署名結果、成功に至らない結果および安全側失敗が、transport により別の operation の意味へ変化しないことを確認できなければならない。
 
-Mobile App が未実装の期間は、Mobile / Relay の実装済み検証結果が存在するものとして報告してはならない。
+Mobile / Relay の提供開始前は、その cross-transport 対応を完了扱いにしてはならない。
 
 根拠: Concept §6.5、§14、共通要件 CR-007、CR-011、CR-AC-009、CR-AC-015。整合確認: `docs/specifications/web-transaction-handoff-spec.md` §14、`docs/architecture/architecture.md` §5.5。下流: SDK contract test、platform E2E test、milestone acceptance。
 
@@ -559,7 +559,7 @@ SDK が要求を整形・検証することは、Signer が行う最終的な tr
 
 ## 17. Traceability
 
-主要要求の上位根拠は Concept、共通要件、該当する platform 要件および確定済み ADR とする。architecture、Provider / handoff / chain 仕様、Wallet Core 文書および SNIF は整合確認資料または下流引継ぎとして扱い、README、レビュー資料、AGENTS.md、`.agents/project-context.md` は製品要求の直接根拠としない。
+主要要求の上流根拠は Concept、共通要件、該当する platform 要件および確定済み ADR とする。architecture、Provider / handoff / chain 仕様、Wallet Core 文書および SNIF は整合確認資料または下流引継ぎとして扱う。
 
 | SDK 要求                                         | 上流根拠                                                                                                                                                     | 整合確認資料・既存契約                                                                                                                                             | 下流引継ぎ                                                                    |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
