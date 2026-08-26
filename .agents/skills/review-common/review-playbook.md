@@ -1,6 +1,6 @@
 # Review Playbook
 
-レビュー系 Skill 共通の実行規則。各レビュー Skill は、この文書を読んだうえで、対象種別の reviewers.md、review-gates.md、output-format.md を読む。
+レビュー系 Skill 共通の実行規則。各レビュー Skill は、この文書を読んだうえで、対象種別の reviewers.md、review-gates.md、output-format.md を読む。成果物の共通構成は `review-common/output-format.md`、対象種別固有の値は各 Skill の `output-format.md` を正本とする。
 
 ## 目的
 
@@ -61,9 +61,9 @@ Chair は Phase 1 の候補を重複排除し、各候補へ次の反証を行�
 ### Phase 3: ゲート判定と成果物
 
 1. 対象種別の review-gates.md を適用する。
-2. 不合格ゲートは、対応する Critical または CRITICAL 指摘へ結び付ける。
+2. 不合格ゲートは、対象 Skill が定める必須重大度の正式指摘へ結び付ける。
 3. 採用指摘へ正式 ID と状態を付ける。
-4. output-format.md の構成で新規成果物を作る。既存成果物は移動、削除、上書きしない。
+4. `review-common/output-format.md` の共通構成と、対象 Skill の `output-format.md` の固有値で新規成果物を作る。章の追加、削除、順序変更はしない。既存成果物は移動、削除、上書きしない。
 5. 実行していない検証を成功扱いにせず、未確認範囲へ記録する。
 
 ## 根拠の扱い
