@@ -46,6 +46,13 @@ author系 Skill 共通の作成規則。各Skillは、この文書を読んだ�
 7. 対象外文書やコードを変更せず、指定された成果物だけを作成・更新する。
 8. 完了前に各Skill固有の自己確認を行う。
 
+## 成果物の整形と検証
+
+- formatter と format check は、作成・更新した成果物の明示的なパスだけを対象にする。
+- Markdown 成果物は、対象パスに対して `pnpm exec prettier --write <artifact-path>` を実行した後、同じパスに `pnpm exec prettier --check <artifact-path>` を実行する。
+- コードや設定を含む場合も、formatter の対象は依頼された変更ファイルまたは明示された成果物に限定する。対象 package やリポジトリ全体の formatter は通常実行しない。
+- リポジトリ全体を走査する `pnpm format:check` は、ユーザーが明示的に求めた場合または release gate が対象に含める場合だけ実行し、成果物単体の結果と分けて報告する。
+
 ## 境界と安全性
 
 Symbol と NEM、Mainnet と Testnet、Extension と Relay、SDK とwallet-coreを暗黙に共通化しない。現在のワークスペースに存在しないMobile実装を、実装済みと記載しない。

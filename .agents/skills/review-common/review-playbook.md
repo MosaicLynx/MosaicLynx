@@ -66,6 +66,13 @@ Chair は Phase 1 の候補を重複排除し、各候補へ次の反証を行�
 4. `review-common/output-format.md` の共通構成と、対象 Skill の `output-format.md` の固有値で新規成果物を作る。章の追加、削除、順序変更はしない。既存成果物は移動、削除、上書きしない。
 5. 実行していない検証を成功扱いにせず、未確認範囲へ記録する。
 
+## 成果物の整形と検証
+
+- formatter と format check は、今回作成・更新するレビュー成果物の明示的なパスだけを対象にする。
+- Markdown 成果物は、対象パスに対して `pnpm exec prettier --write <artifact-path>` を実行した後、同じパスに `pnpm exec prettier --check <artifact-path>` を実行する。
+- レビュー対象の package やリポジトリ全体を formatter のためだけに走査しない。対象 package の品質検証が必要な場合も、formatter は依頼された変更ファイルまたは成果物に限定する。
+- リポジトリ全体を走査する `pnpm format:check` は、ユーザーが明示的に求めた場合または release gate が対象に含める場合だけ実行し、成果物単体の結果と分けて記録する。
+
 ## 根拠の扱い
 
 根拠の種別を区別する。主な種別は、対象本文、ユーザー提供資料、承認済み要件、承認済み仕様、ADR、実装コードまたは差分、テストまたは fixture、プロトコル仕様、公式実装・スキーマ、公式 SDK、package manifest、実行結果である。

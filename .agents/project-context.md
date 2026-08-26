@@ -19,7 +19,7 @@
 | 目的                           | 正本または既定の作成先                                                                                        |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
 | プロダクト範囲・受け入れ条件   | `docs/specifications/product-spec.md`                                                                         |
-| アーキテクチャ・責務・依存方向 | `docs/design/architecture.md`                                                                           |
+| アーキテクチャ・責務・依存方向 | `docs/design/architecture.md`                                                                                 |
 | Symbol / NEM 互換性            | `docs/specifications/chain-compatibility-spec.md`                                                             |
 | SDK / Relay handoff            | `docs/specifications/web-transaction-handoff-spec.md`                                                         |
 | Profile / Account / backup     | `docs/specifications/profile-account-spec.md`                                                                 |
@@ -50,11 +50,14 @@
 ## 代表的な検証コマンド
 
 ```sh
-pnpm format:check
+pnpm exec prettier --write path/to/artifact
+pnpm exec prettier --check path/to/artifact
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
 ```
+
+`path/to/artifact` は作成・更新した成果物の実パスに置き換える。通常の成果物作成・更新では、リポジトリ全体を走査する `pnpm format:check` を実行しない。
 
 Redis integration は別枠であり、通常の `pnpm test` に含まれない。実行した場合だけ結果に含める。

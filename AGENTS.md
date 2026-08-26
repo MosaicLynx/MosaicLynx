@@ -117,12 +117,15 @@ Symbol / NEM の技術的事実を記憶だけで決めない。`docs/specificat
 変更内容に応じて、実行したコマンドだけを結果として報告する。
 
 ```sh
-pnpm format:check
+pnpm exec prettier --write path/to/artifact
+pnpm exec prettier --check path/to/artifact
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
 ```
+
+formatter と Markdown format check は、作成・更新した成果物の明示的なパスだけを対象に実行する。リポジトリ全体を走査する `pnpm format:check` は、ユーザーが明示的に求めた場合または release gate が対象に含める場合だけ実行する。
 
 追加の確認:
 
@@ -132,7 +135,7 @@ pnpm build
 - SDK / Provider / chain adapter / backup / protocol の変更: 対象 package の `pnpm --filter <package> test` と `typecheck` を追加する。
 - release evidence の変更: `pnpm evidence:collect`、`pnpm evidence:manifest`、`pnpm evidence:verify`、`pnpm evidence:gate` の対象範囲を確認する。
 
-ドキュメントまたは `.agents` だけの変更でも、可能な範囲で `pnpm format:check` を実行する。実行できなかった検証は `Not validated` として理由を報告する。
+ドキュメントまたは `.agents` だけの変更では、作成・更新した成果物に対する formatter check を実行する。全体 formatter を実行した場合は、成果物単体の結果と分けて報告する。実行できなかった検証は `Not validated` として理由を報告する。
 
 ## 文書とレビュー
 
