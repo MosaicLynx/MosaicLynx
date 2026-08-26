@@ -241,6 +241,8 @@ type RelayResponse =
     });
 ```
 
+`errorCode` は [Web Transaction Handoff Specification](./web-transaction-handoff-spec.md) §10 が定義する `MosaicLynxSDKErrorCode` を参照する。本仕様はこの型を再定義せず、Handoff §10 に含まれない値を受け付けない。
+
 outcome と payload の依存関係は次のとおりとする。
 
 - connected は account required、その他の signing result と errorCode は禁止する。
@@ -508,33 +510,9 @@ retryable は共通 wire field として確定していない。上表の既定�
 
 ### 10.2 SDK 公開 error code
 
-既存 handoff で確定している公開 code は次の union である。
+Relay handoff で使用する `MosaicLynxSDKErrorCode` と `MosaicLynxSDKError` は、[Web Transaction Handoff Specification](./web-transaction-handoff-spec.md) §10 が定義する。本仕様では、Handoff §10 の code 集合、error mapping および error 型を再定義しない。
 
-```ts
-type MosaicLynxSDKErrorCode =
-  | 'USER_REJECTED'
-  | 'UNAVAILABLE'
-  | 'NOT_CONNECTED'
-  | 'APP_NOT_INSTALLED'
-  | 'VAULT_LOCKED'
-  | 'REQUEST_EXPIRED'
-  | 'INVALID_PARAMS'
-  | 'INVALID_MESSAGE'
-  | 'NONCE_REUSED'
-  | 'INVALID_TRANSACTION'
-  | 'UNSUPPORTED_TRANSACTION'
-  | 'CHAIN_MISMATCH'
-  | 'NETWORK_MISMATCH'
-  | 'SIGNER_MISMATCH'
-  | 'CONTEXT_CHANGED'
-  | 'INVALID_RESPONSE'
-  | 'INTERNAL_ERROR';
-
-interface MosaicLynxSDKError {
-  code: MosaicLynxSDKErrorCode;
-  message: string;
-}
-```
+Handoff §10 の公開 code 集合には `INVALID_MESSAGE` と `NONCE_REUSED` は含まれない。したがって、本仕様でもこれらを公開 code として扱わない。structured message の schema、size、encoding、validation、expiry および replay に関する具体的な error code への射影は、Handoff §10 の既存 mapping に従い、ここで別 code または alias を追加してはならない。
 
 message は human-readable だが、分岐・authorization・retry の根拠にしない。安定した code を使用する。HTTP status、URL、token、暗号 library error、Provider 内部例外、stack trace、parser dump、Vault detail および wallet-core の秘密情報を公開 message、details または cause に含めない。
 
