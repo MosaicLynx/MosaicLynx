@@ -8,12 +8,13 @@ description: MosaicLynx の承認済み要件・仕様・ADRを、責務境界�
 承認済み要求を実装へつなぐ基本設計を作成または更新する。基本設計は「どの責務を、どの境界で、どの依存方向に配置するか」を定める文書であり、要求、外部仕様、詳細実装を混同しない。作業開始時に次の順で確認する。
 
 1. /home/harvestasya/workspace/mosaiclynx/.agents/project-context.md
-2. 対象機能のコンセプトと要件定義
-3. 対象機能の承認済み仕様
-4. docs/design/architecture.md と関連する既存設計
-5. 適用可能な docs/adr/
-6. 必要な公開API、実装、テスト、公式資料
-7. output-format.md
+2. ../author-common/author-playbook.md
+3. 対象機能のコンセプトと要件定義
+4. 対象機能の承認済み仕様
+5. docs/design/architecture.md と関連する既存設計
+6. 適用可能な docs/adr/
+7. 必要な公開API、実装、テスト、公式資料
+8. output-format.md
 
 ## 対象と出力
 
