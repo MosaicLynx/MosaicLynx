@@ -1,6 +1,6 @@
 ---
 name: release-readiness-review
-description: MosaicLynx の公開対象 npm package を、README、CHANGELOG、package.json、SemVer、依存関係、配布物、検証、release evidence、securityの観点で公開前に確認する。publish、commit、tag、source codeの変更は行わない。
+description: MosaicLynx の公開対象 npm package を、README、CHANGELOG、package.json、SemVer、依存関係、配布物、検証、release evidence、securityの観点で公開前に確認する。publish、tag、source codeの変更は行わず、レビュー成果物など今回の作業で生じた変更は完了時のGit運用に従う。
 ---
 
 # Release Readiness Review
@@ -50,6 +50,10 @@ description: MosaicLynx の公開対象 npm package を、README、CHANGELOG、p
 
 review-playbook.md の Phase 0〜3 を適用する。Reviewer A〜D の独立パスで、対象・文書、metadata・依存・配布、SemVer・公開契約、検証・evidenceを確認する。
 
-デフォルトはレビューのみであり、README、CHANGELOG、package.jsonを含めファイルを変更しない。ユーザーが修正も明示した場合に限り、README、CHANGELOG、package.jsonのversion・公開metadataだけを対象にできる。source、test、設定、fixture、lockfile、commit、tag、remote、registryは変更しない。
+デフォルトはレビューのみであり、README、CHANGELOG、package.jsonを含めレビュー対象のファイルを変更しない。ユーザーが修正も明示した場合に限り、README、CHANGELOG、package.jsonのversion・公開metadataだけを対象にできる。source、test、設定、fixture、lockfile、tag、remote、registryは変更しない。今回作成したレビュー成果物などの変更は、作業完了後のGit運用に従って扱う。
 
 判定は READY、READY WITH MINOR FIXES、NOT READY、TARGET CONFIRMATION REQUIRED とする。必須文書・metadata・配布物・SemVer・重要検証に公開阻害事項があれば NOT READY、軽微な改善だけなら READY WITH MINOR FIXES、対象不明なら TARGET CONFIRMATION REQUIRED とする。
+
+## 作業完了後のGit運用
+
+作業内容の確認と必要な検証を終えたら、今回の変更をコミットし、現在の作業ブランチを `origin` へプッシュする。変更がない場合は新規コミットを作成しない。コミットメッセージには変更の種類を示すプレフィックス（`docs:`、`feat:`、`fix:`、`chore:` など）を付け、概要の後に変更箇所と内容が分かる箇条書きを続ける。既存のユーザー変更はコミット対象に混ぜない。この運用指示は、作成・更新する成果物本文へ転記しない。

@@ -40,3 +40,7 @@ READMEの誤りを直接生じさせないAPI設計、製品仕様、実装品�
 review-playbook.md の Phase 0〜3 を適用する。Reviewer A〜C の独立パスで、事実/API、利用開始、制約/過剰記載を確認し、指摘を反証してからゲートを適用する。README、コード、manifest、仕様、設定をレビュー中に変更しない。
 
 判定は READY、READY WITH MINOR FIXES、REVISE README とする。ERROR または WARN があれば REVISE README、NITだけなら READY WITH MINOR FIXES、指摘なしなら READY とする。
+
+## 作業完了後のGit運用
+
+作業内容の確認と必要な検証を終えたら、今回の変更をコミットし、現在の作業ブランチを `origin` へプッシュする。変更がない場合は新規コミットを作成しない。コミットメッセージには変更の種類を示すプレフィックス（`docs:`、`feat:`、`fix:`、`chore:` など）を付け、概要の後に変更箇所と内容が分かる箇条書きを続ける。既存のユーザー変更はコミット対象に混ぜない。この運用指示は、作成・更新する成果物本文へ転記しない。
