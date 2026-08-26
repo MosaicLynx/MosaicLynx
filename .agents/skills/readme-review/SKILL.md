@@ -1,22 +1,42 @@
 ---
 name: readme-review
-description: MosaicLynx の README を package manifest、公開 API、実装、仕様、テスト、設定と照合し、正確性、利用可能性、情報不足、過剰記載、整合性をレビューする。コードや仕様は変更しない。
+description: MosaicLynx の README を package manifest、公開 API、実装、仕様、テスト、設定と照合し、正確性、利用可能性、情報不足、過剰記載、重要な制約、整合性をレビューする。コードや仕様は変更しない。
 ---
 
 # README Review
 
-`/home/harvestasya/workspace/mosaiclynx/.agents/project-context.md` を読み、ユーザーが指定した README 1件を対象にする。指定がなければルート `README.md` または対象 package / app の `README.md` を、対象が一意な場合だけ選ぶ。
+READMEを利用者向け文書としてレビューし、インストールから最初の利用まで進められ、記載内容を現在の実装が裏付けているかを判定する。作業開始時に次の順で全文を読む。
 
-## 観点
+1. /home/harvestasya/workspace/mosaiclynx/.agents/project-context.md
+2. ../review-common/review-playbook.md
+3. reviewers.md
+4. review-gates.md
+5. output-format.md
 
-- install、package 名、コマンド、import、API、戻り値、前提が実際と一致するか
-- 利用者が最初の実行まで進めるために必要な情報があるか
-- 実装されていない機能、将来機能、存在しない Mobile package、未検証の capability を現在利用できるように書いていないか
-- Mainnet / Testnet、Symbol / NEM、署名 gate、秘密情報、Relay、announce 非対応などの重要な制約が正確か
-- 内部実装や詳細仕様を README で新規定義していないか
+## 対象と成果物
 
-問題は README の正確性・利用可能性に直接関係するものだけを指摘し、API設計や製品改善へ拡張しない。
+- ユーザーがREADMEのパスを指定した場合は、その1件を対象にする。
+- package、app、機能が指定されREADMEのパスがない場合は直接対応するREADMEを探す。候補が0件または複数件なら推測で選ばず、対象確認で終了する。
+- 未指定の場合はルート README.md または対象 package / app の README.md を、対象が一意な場合だけ選ぶ。
+- 成果物は対象 package / app の docs/reviews/readme/<READMEベース名>-review-NNN.md に新規作成し、既存ファイルを上書きしない。正式 ID は RM 接頭辞でベース名ごとに連番にする。
 
-## 成果物
+## 確認する事実源
 
-`docs/reviews/readme/<base>-review-NNN.md` を新規作成し、必要なディレクトリを作る。既存成果物を上書きせず、対象、確認日、判定（`READY` / `READY WITH MINOR FIXES` / `REVISE README`）、指摘 ID、重大度（`ERROR` / `WARN` / `NIT`）、状態、対象箇所、根拠、利用者への影響、README に必要な修正、実行した検証、未確認範囲を記録する。README、コード、仕様、設定はレビュー中に変更しない。
+README全体を読んだ後、package.json、workspace設定、公開exports、型定義、主要実装、仕様、license、テスト、サンプル、build設定を必要な範囲で照合する。確認できない環境や未実行サンプルは成功扱いにしない。
+
+READMEの誤りを直接生じさせないAPI設計、製品仕様、実装品質、性能、coverage、将来機能はレビュー対象外とする。
+
+## レビュー観点
+
+- インストール、package名、import、API、引数、戻り値、必要設定、対応環境
+- 利用者が最初の実行まで辿れる手順と最小例
+- 実装済み機能、未実装・将来機能、capability、Mainnet / Testnet、Symbol / NEMの表現
+- Relay、署名 gate、秘密情報、announce非対応など重要な制約の欠落・過剰保証
+- package manifest、公開API、仕様、コード、テスト、リンク、licenseとの整合
+- 利用者向けの順序、用語、見出し、コード例の読みやすさ
+
+## 実行と判定
+
+review-playbook.md の Phase 0〜3 を適用する。Reviewer A〜C の独立パスで、事実/API、利用開始、制約/過剰記載を確認し、指摘を反証してからゲートを適用する。README、コード、manifest、仕様、設定をレビュー中に変更しない。
+
+判定は READY、READY WITH MINOR FIXES、REVISE README とする。ERROR または WARN があれば REVISE README、NITだけなら READY WITH MINOR FIXES、指摘なしなら READY とする。
