@@ -129,15 +129,15 @@ endpoint、method、header、body、status および credential の正本は [Ha
 
 ### 5.2 Endpoint 一覧
 
-| Endpoint                                        | participant          | Relay の処理                                                                                    | 成功 / 失敗の authority |
-| ----------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------- | ----------------------- |
-| `GET /v1/generation`                            | SDK / handoff client | current generation の非秘密 context を返す                                                      | Handoff §9.1            |
-| `POST /v1/handoffs`                             | Web-side             | generation、ID、expiry、hash、request envelope の構造と admission を検証して session を作成する | Handoff §9.2            |
-| `GET /v1/handoffs/{sessionId}/request`          | Mobile-side          | `appToken` と request direction を検証し、未完了 request を返す                                 | Handoff §9.3            |
-| `PUT /v1/handoffs/{sessionId}/response`         | Mobile-side          | `appToken`、response direction、correlation、state を検証し、最初の response を保存する         | Handoff §9.4            |
-| `GET /v1/handoffs/{sessionId}/response?wait=25` | Web-side             | `webToken` と response direction を検証し、response を polling / retrieval する                 | Handoff §9.5            |
-| `POST /v1/handoffs/{sessionId}/ack`             | Web-side             | `webToken` を検証し、response を consumed として purge する                                     | Handoff §9.6            |
-| `DELETE /v1/handoffs/{sessionId}`               | Web-side             | `webToken` を検証し、未完了 session を cancelled として purge する                              | Handoff §9.6            |
+| Endpoint                                        | participant          | Relay の処理                                                                                                               | 成功 / 失敗の authority |
+| ----------------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `GET /v1/generation`                            | SDK / handoff client | current generation の非秘密 context を返す                                                                                 | Handoff §9.1            |
+| `POST /v1/handoffs`                             | Web-side             | generation、ID、expiry、hash、request envelope の構造と admission を検証して session を作成する                            | Handoff §9.2            |
+| `GET /v1/handoffs/{sessionId}/request`          | Mobile-side          | `appToken` と request direction を検証し、未完了 request を返す                                                            | Handoff §9.3            |
+| `PUT /v1/handoffs/{sessionId}/response`         | Mobile-side          | `appToken`、response direction、correlation、state を検証し、最初の response を保存する                                    | Handoff §9.4            |
+| `GET /v1/handoffs/{sessionId}/response?wait=25` | Web-side             | `webToken` と response direction を検証し、response を polling / retrieval する                                            | Handoff §9.5            |
+| `POST /v1/handoffs/{sessionId}/ack`             | Web-side             | Handoff §9.6 の外形検証後は常に `204 No Content` を返し、条件を満たす場合だけ response を consumed として purge する       | Handoff §9.6            |
+| `DELETE /v1/handoffs/{sessionId}`               | Web-side             | Handoff §9.6 の外形検証後は常に `204 No Content` を返し、条件を満たす場合だけ未完了 session を cancelled として purge する | Handoff §9.6            |
 
 Relay は `sessionId` 単独を authorization として使用しない。各 endpoint は direction、participant role、対象 credential、session state、generation および該当 identity を併せて検証する。
 
@@ -259,9 +259,10 @@ session が expired、cancelled、consumed、generation 不一致または state
 - credential が要求される endpoint は `Authorization: Bearer {token}` を使用する。
 - token は Handoff の CSPRNG と検証用 representation の契約に従う。Relay は raw token を長期保存しない。
 - appToken は App-side endpoint に、webToken は Web-side endpoint に限定する。相互利用、session 間利用、role の越境を許可しない。
-- credential の有効性は対象 session、endpoint、participant role、generation、expiry および lifecycle state と併せて確認する。
-- expired、cancelled、consumed、state-lost または generation-invalid session の credential は受理しない。
+- credential の有効性は対象 session、endpoint、participant role、generation、expiry および lifecycle state と併せて、状態変更の条件として確認する。
+- expired、cancelled、consumed、state-lost または generation-invalid session の credential は状態変更に使用しない。
 - credential mismatch、session 不在、terminal state または期限切れを区別して session existence を漏えいさせない。Handoff の共通 `404 Not Found` / error body を使用する endpoint ではその contract に従う。
+- ただし ACK / cancel は Handoff §9.6 の endpoint-specific HTTP semantics が優先される。method、path、header、body、protocol およびその他の structural validation を満たす ACK / cancel request には、webToken の不一致、session 不在、terminal / purge 済み、期限切れまたは state loss にかかわらず常に `204 No Content` を返し、状態変更の条件を満たさない場合は no-op とする。外形が不正な request はこの例外に含めず、Handoff の structural error contract に従う。
 - credential の検証失敗を user rejection、permission denied、signing failure または approval として返さない。
 
 ### 8.3 Non-exposure
@@ -364,7 +365,7 @@ storage key の hash、prefix、table、Redis key、index または内部 object
 
 ### 11.5 Old credential / generation
 
-old token、別 session の token、old generation metadata、stale session、old requestId または old response は拒否・非公開とする。Relay はこれらを user rejection、permission denial、approval または signing success へ変換しない。
+old token、別 session の token、old generation metadata、stale session、old requestId または old response は、ACK / cancel 以外では拒否・非公開とし、Relay はこれらを user rejection、permission denial、approval または signing success へ変換しない。ACK / cancel は Handoff §9.6 に従い、request の外形が妥当であれば `204 No Content` を返すが、状態変更は行わない。
 
 Relay は過去の全 ciphertext history を持たなくてもよい。old ciphertext が current metadata とともに一時保存され得る場合の client-side AEAD / AAD failure、署名前拒否および success 非到達は Handoff / Mobile App の責任分界に従う。
 
@@ -402,19 +403,25 @@ long-term payload history、ciphertext history、backup、analytics、署名監�
 
 ### 13.1 ACK
 
-`POST /v1/handoffs/{sessionId}/ack` は webToken を検証し、`response_available → consumed` の transition を要求する。
+`POST /v1/handoffs/{sessionId}/ack` は、Handoff §9.6 が endpoint request として valid と扱う外形を検証した後、HTTP response と state mutation を分離して処理する。
 
-- 正しい外形と対象 webToken の場合、成功 status は Handoff §9.6 の `204 No Content` とする。
+- 外形が妥当な ACK request には、状態変更の成否にかかわらず常に `204 No Content` を返す。`204` は state mutation の成功、session の存在、webToken の正しさ、signing success、signing 未実行または application processing success を証明しない。
+- 状態変更は、正しい endpoint-scope の webToken、対応する session、`response_available` state および current generation / lifecycle の有効性を全て確認できた場合だけ行う。その場合に限り `response_available → consumed` へ一度だけ遷移し、適用可能な Relay state を purge する。
+- webToken 不一致、unknown session、already consumed、already purged、expired、cancelled、duplicate ACK、generation mismatch または state loss 後に対象 state を確認できない場合は、状態変更を行わず no-op とする。これらの差異を HTTP response から区別させない。
 - ACK は response の E2E 復号、schema、correlation、integrity および result validation が成功したことを前提とするが、Relay 自身はその validation を行わない。
 - ACK / `consumed` は Mobile App の approval、authentication、signing success または dApp の独立検証完了を意味しない。
-- purge 後の同一 ACK retry は、Handoff が定める冪等な外形で処理し、session existence や token validity を新たに漏えいさせない。
+- purge 後の同一 ACK retry を含む ACK は idempotent / existence-hiding な transport operation であり、session existence や token validity を新たに漏えいさせない。
 
 ### 13.2 Cancel
 
-`DELETE /v1/handoffs/{sessionId}` は webToken を検証し、未完了 session を `cancelled` として terminal purge する。
+`DELETE /v1/handoffs/{sessionId}` は、Handoff §9.6 が endpoint request として valid と扱う外形を検証した後、HTTP response と state mutation を分離して処理する。
 
+- 外形が妥当な cancel request には、状態変更の成否にかかわらず常に `204 No Content` を返す。`204` は state mutation の成功、session の存在、webToken の正しさ、signing cancellation の成功、signing 未実行または application processing success を証明しない。
+- 状態変更は、正しい endpoint-scope の webToken、対応する active session および current lifecycle で cancellation が適用可能であることを全て確認できた場合だけ行う。その場合に限り session を `cancelled` として扱い、適用可能な Relay state を purge する。
+- webToken 不一致、unknown session、already cancelled、already consumed、already expired、already purged、duplicate cancel、generation mismatch または state loss / restart 後に対象 state を確認できない場合は、状態変更を行わず no-op とする。これらの差異を HTTP response から区別させない。
 - cancel は Relay object の削除・無効化であり、Signer に対する signing cancellation の完了を意味しない。
 - cancel の送信、受理、`204 No Content` または purge は、署名が未実行である証明ではない。
+- purge 後の同一 cancel retry を含む cancel は idempotent / existence-hiding な transport operation であり、session existence や token validity を新たに漏えいさせない。
 - cancel と response upload / ACK / expiry が競合した場合、一つの terminal transition だけを適用し、terminal state を再活性化しない。
 - cancel 後の late response は response result として配送しない。
 
@@ -428,17 +435,19 @@ Relay が報告できるのは accepted、stored、available、delivered、ackno
 
 ### 14.1 Failure categories
 
-| Relay condition                           | Relay の処理                                                            | Signing outcome への解釈                                              |
-| ----------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| malformed / structural rejection          | request / transition を受け付けず、必要最小限の generic error を返す    | signing validation / rejection を推測しない                           |
-| authorization failure                     | 対象 object を変更せず、Handoff の endpoint error contract に従う       | permission denial、user rejection または signing failure に変換しない |
-| not found / terminal / expired            | 同じ外部応答に統一できる endpoint では同一化する                        | 未署名、署名済みまたは user rejection を断定しない                    |
-| stale generation                          | current state として受理・作成・配送しない                              | signing outcome ではない                                              |
-| storage unavailable / consistency failure | state transition、delivery、ACK を success とせず安全側に停止・失敗する | `RESULT_UNKNOWN` / delivery uncertainty を client が必要に応じて扱う  |
-| restart / state loss                      | old state を復元せず generation を切り替える                            | old approval / signing state を復元しない                             |
-| network / transport timeout               | bounded wait / delivery を終える                                        | SDK timeout と signing request expiry を混同しない                    |
-| response delivery failure                 | delivery disposition を失敗または不明として扱う                         | `SUCCEEDED`、未署名または `RESULT_UNKNOWN` を Relay が決めない        |
-| duplicate / replay / conflict             | duplicate は既存 contract に従い冪等化し、conflict / stale は拒否する   | approval / signing success に変換しない                               |
+| Relay condition                           | Relay の処理                                                                                                                                 | Signing outcome への解釈                                              |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| malformed / structural rejection          | request / transition を受け付けず、必要最小限の generic error を返す                                                                         | signing validation / rejection を推測しない                           |
+| authorization failure                     | 対象 object を変更せず、Handoff の endpoint error contract に従う。ACK / cancel の valid request は `204 No Content` の no-op とする         | permission denial、user rejection または signing failure に変換しない |
+| not found / terminal / expired            | 同じ外部応答に統一できる endpoint では同一化する。ACK / cancel の valid request は `204 No Content` の no-op とする                          | 未署名、署名済みまたは user rejection を断定しない                    |
+| stale generation                          | current state として受理・作成・配送しない                                                                                                   | signing outcome ではない                                              |
+| storage unavailable / consistency failure | state transition、delivery、ACK / cancel の状態変更を success とせず安全側に停止する。valid request の HTTP semantics は Handoff §9.6 に従う | `RESULT_UNKNOWN` / delivery uncertainty を client が必要に応じて扱う  |
+| restart / state loss                      | old state を復元せず generation を切り替える                                                                                                 | old approval / signing state を復元しない                             |
+| network / transport timeout               | bounded wait / delivery を終える                                                                                                             | SDK timeout と signing request expiry を混同しない                    |
+| response delivery failure                 | delivery disposition を失敗または不明として扱う                                                                                              | `SUCCEEDED`、未署名または `RESULT_UNKNOWN` を Relay が決めない        |
+| duplicate / replay / conflict             | duplicate は既存 contract に従い冪等化し、conflict / stale は拒否する                                                                        | approval / signing success に変換しない                               |
+
+上表の一般的な authorization failure、not found、terminal、expired、stale state または consistency failure の response rule は、ACK / cancel の endpoint-specific semantics を上書きしない。Handoff §9.6 に従い、外形が妥当な ACK / cancel は常に `204 No Content` とし、token validity、session existence、terminal / purge 状態または state loss を response の差異で露出させない。状態変更の条件を満たさない場合は no-op とする。malformed request、protocol / method / structural validation failure はこの扱いではなく、既存の Handoff structural error contract に従う。
 
 ### 14.2 Error authority
 
@@ -466,10 +475,10 @@ Relay は複数 session、participant、request、response、polling、ACK、can
 - session ごとに participant role、direction、generation、requestId、expiry および state を分離する。
 - 一つの session の response upload は `pending → response_available` を一度だけ成功させる。
 - 同一 envelope の response retry は同じ結果として冪等に扱い、異なる envelope は conflict とする。
-- `response_available → consumed`、`pending → cancelled`、expiry および purge は terminal state の再活性化なしに適用する。
-- response upload と cancel、response retrieval と expiry、ACK と cleanup、submit と duplicate、disconnect と delivery が競合しても、state rollback、double response、cross-session delivery、terminal reuse を許さない。
+- `response_available → consumed`、`pending → cancelled`、expiry および purge は terminal state の再活性化なしに適用する。ACK / cancel の状態変更は、それぞれ §13.1 / §13.2 の条件を満たす場合だけ行う。
+- ACK vs ACK、cancel vs cancel、ACK vs expiry、cancel vs expiry、ACK vs purge、cancel vs response submission、ACK vs state loss または cancel vs restart が競合しても、適用可能な logical transition は一度だけとし、state rollback、double response、cross-session delivery、terminal reuse を許さない。
 - concurrent polling は同じ response を返し得るが、response を別 request に付け替えない。
-- shared state の整合性を確認できない場合は transition / delivery を成功として進めない。
+- shared state の整合性を確認できない場合は状態を推測・復元せず、state mutation / delivery を成功として進めない。外形が妥当な ACK / cancel の HTTP response はこの場合も `204 No Content` とし、状態変更は no-op とする。
 
 ### 15.2 Exactly-once の範囲
 
@@ -486,10 +495,12 @@ Relay restart、storage loss、persistence corruption、cluster split-brain ま�
 - current generation を切り替える。
 - 旧 active session、pending request、response、credential state、approval、authentication または signing authorization を復元しない。
 - old generationId、old sessionId、old requestId または old response を current session として再開しない。
-- shared state の整合性を確認できない期間は、新規 handoff、delivery、ACK / cancel transition を必要に応じて停止・拒否する。
+- shared state の整合性を確認できない期間は、旧 state を推測・復元せず、新規 handoff と delivery を必要に応じて停止する。ACK / cancel の対象 state を確認できない場合は状態変更を行わないが、外形が妥当な ACK / cancel には Handoff §9.6 に従い `204 No Content` を返す。malformed request 等の structural validation failure は既存 contract に従う。
 - client が retry する場合は fresh generation、fresh session / request identity、fresh envelope、credential の再検証および新しい client-side validation / approval を必要とする。
 
 Relay は state loss から signing outcome を推測しない。旧 ciphertext が構造上受理され得る場合でも、Mobile App / SDK が generation-bound integrity / AAD validation に失敗した request を承認・署名・success へ進めない。
+
+restart、state loss または generation change と ACK / cancel が競合した場合も、Relay は signing outcome、session existence または token validity を推測しない。current generation / lifecycle と対象 state を確認できる logical transition だけを一度適用し、確認できない場合は対象 state を復元・推測せず状態変更を行わない。外形が妥当な ACK / cancel にはいずれの場合も `204 No Content` を返す。
 
 ### 16.2 Temporary disconnect / reconnect
 
