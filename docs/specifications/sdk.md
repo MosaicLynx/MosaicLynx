@@ -92,17 +92,17 @@ SDK の公開 factory、instance、引数および戻り値は、[Web Transactio
 
 公開 method の契約は次のとおりである。型の exact field、required / optional および encoding は同 Handoff Specification と [interfaces.md](./interfaces.md) の対応する節に従う。
 
-| Method                        | 引数                                | 戻り値                                          | 前提と意味                                                                                                          |
-| ----------------------------- | ----------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `isAvailable()`               | なし                                | `Promise<boolean>`                              | 対応 Provider または既存の対応 handoff 条件が利用可能かを返す。connection、permission、approval、署名成功を表さない |
-| `connect(scope)`              | `MosaicLynxScope`                   | `Promise<MosaicLynxActiveAccount>`              | 指定 Scope の公開 Account disclosure / connection を Signer に要求する。利用者の connection 許可が必要である        |
-| `isConnected(scope)`          | `MosaicLynxScope`                   | `Promise<boolean>`                              | UI を開かず、現在の Scope の connection / permission 状態を確認する。署名 approval ではない                         |
-| `getActiveAccount(scope)`     | `MosaicLynxScope`                   | `MosaicLynxActiveAccount \| undefined`          | SDK が保持する公開 Account の現在値を返す。cache は最新 permission や所有権の証明ではない                           |
-| `refreshActiveAccount(scope)` | `MosaicLynxScope`                   | `Promise<MosaicLynxActiveAccount \| undefined>` | Provider / Signer に公開 Account を再照会する。署名を開始しない                                                     |
-| `disconnect()`                | なし                                | `Promise<void>`                                 | 現在の Origin に対する既存の connection / permission を切断する。Scope 引数で一部だけを暗黙指定しない               |
-| `signTransaction(params)`     | `MosaicLynxSignTransactionParams`   | `Promise<SignedTransaction>`                    | transaction signing request を構築・dispatch し、Signer が承認・署名した対応結果だけを返す                          |
-| `signData(params)`            | `MosaicLynxSignDataParams`          | `Promise<SignedData>`                           | structured message signing request を構築・dispatch し、対応する signed data だけを返す                             |
-| `cosignTransaction(params)`   | `MosaicLynxCosignTransactionParams` | `Promise<MosaicLynxCosignature>`                | 既存公開 contract の範囲で cosignature request を扱う。公開必須能力や chain-specific scope は未決事項を閉じない     |
+| Method                        | 引数                                | 戻り値                                          | 前提と意味                                                                                                                                                  |
+| ----------------------------- | ----------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isAvailable()`               | なし                                | `Promise<boolean>`                              | Handoff §5.3 の選択可能な local Provider route または Mobile Relay route が存在する場合に true を返す。connection、permission、approval、署名成功を表さない |
+| `connect(scope)`              | `MosaicLynxScope`                   | `Promise<MosaicLynxActiveAccount>`              | 指定 Scope の公開 Account disclosure / connection を Signer に要求する。利用者の connection 許可が必要である                                                |
+| `isConnected(scope)`          | `MosaicLynxScope`                   | `Promise<boolean>`                              | UI を開かず、現在の Scope の connection / permission 状態を確認する。署名 approval ではない                                                                 |
+| `getActiveAccount(scope)`     | `MosaicLynxScope`                   | `MosaicLynxActiveAccount \| undefined`          | SDK が保持する公開 Account の現在値を返す。cache は最新 permission や所有権の証明ではない                                                                   |
+| `refreshActiveAccount(scope)` | `MosaicLynxScope`                   | `Promise<MosaicLynxActiveAccount \| undefined>` | Provider / Signer に公開 Account を再照会する。署名を開始しない                                                                                             |
+| `disconnect()`                | なし                                | `Promise<void>`                                 | 現在の Origin に対する既存の connection / permission を切断する。Scope 引数で一部だけを暗黙指定しない                                                       |
+| `signTransaction(params)`     | `MosaicLynxSignTransactionParams`   | `Promise<SignedTransaction>`                    | transaction signing request を構築・dispatch し、Signer が承認・署名した対応結果だけを返す                                                                  |
+| `signData(params)`            | `MosaicLynxSignDataParams`          | `Promise<SignedData>`                           | structured message signing request を構築・dispatch し、対応する signed data だけを返す                                                                     |
+| `cosignTransaction(params)`   | `MosaicLynxCosignTransactionParams` | `Promise<MosaicLynxCosignature>`                | 既存公開 contract の範囲で cosignature request を扱う。公開必須能力や chain-specific scope は未決事項を閉じない                                             |
 
 `MosaicLynxSDK.version` は SDK API version を返し、現行 Handoff contract の version は `1.0.0` である。`MosaicLynxSDKOptions` は Handoff §5.1 に定義された diagnostics option のみを公開する。transport、Relay URL、session credential、Account の内部 identifier または秘密情報を公開引数へ追加してはならない。
 
@@ -140,10 +140,12 @@ Provider discovery は次の規則に従う。
 - global object の存在、表示名、icon、自己申告 version または自己申告 Origin だけで Provider を trusted と判断しない。
 - 欠落 method、malformed response、fake / conflicting Provider、非対応 major version または互換性を判定できない Provider は利用可能な Provider として選択しない。
 - discovery は自動 connect、Account disclosure、permission request または signing request を開始しない。
-- 対応 Provider が存在しない場合は `isAvailable()` を `false` とし、署名 API を成功させない。
+- `isAvailable()` と transport selection は Handoff §5.3 / §6 の route availability を使用する。対応 Provider が存在しない場合でも、Handoff が認める条件を満たした Mobile Relay route は `isAvailable()` の根拠になり得る。
 - 非対応 Provider が存在する場合、それを「Provider がない」とみなして別経路へ silent fallback してはならない。
 
 Provider が複数存在する場合の具体的な明示選択、優先順位および conflicting Provider policy は、既存の未決事項を閉じるため、本書では確定しない。選択不能な場合は、未検証 Provider へ request を送らず unavailable / incompatible として安全側に終了する。
+
+Provider が存在せず、Handoff §5.3 の current release、feature flag、release / product gate、受信 App 提供状況、runtime、Web API および verified HTTPS App Link 条件を満たさない場合、local / remote の選択可能な route は存在せず `isAvailable()` は `false` である。
 
 ### 6.3 Capability と対応範囲
 
@@ -527,17 +529,17 @@ SDK 実装は少なくとも次を満たす場合に本仕様へ適合する。
 
 ## 20. Traceability
 
-| Requirement                                 | Design                                                                                                      | 本仕様での具体化                                                                 |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `SDK-FR-001`、`SDK-COMP-001`〜`004`         | [SDK Design §7、§18](../design/sdk.md)                                                                      | §6 の discovery、capability、version、unsupported / incompatible の fail-closed  |
-| `SDK-FR-002`〜`004`                         | [SDK Design §8、§10](../design/sdk.md)                                                                      | §5、§7 の connect、公開 Account、permission、disconnect および再利用禁止         |
-| `SDK-FR-005`、`SDK-SEC-004`                 | [SDK Design §9、§11](../design/sdk.md)、[Security Design](../design/security-design.md)                     | §7.3、§8、§16 の Origin authority、request construction、secret / trust boundary |
-| `SDK-FR-006`、`SDK-FR-007`                  | [SDK Design §11](../design/sdk.md)、[Signing Flow §9〜§17](../design/signing-flow.md)                       | §9 の transaction、message、cosignature 境界と Signer authority の分離           |
-| `SDK-FR-008`、`SDK-SEC-005`〜`006`          | [SDK Design §12〜§16](../design/sdk.md)                                                                     | §10、§11 の requestId correlation、concurrency、stale / duplicate / replay 防止  |
-| `SDK-FR-009`、`SDK-PLAT-002`〜`003`         | [SDK Design §17](../design/sdk.md)、[Relay Design](../design/relay.md)                                      | §15 の local / remote semantics、Relay 非 authority、無断 fallback 禁止          |
-| `SDK-FR-010`、`SDK-FR-011`                  | [SDK Design §13〜§15](../design/sdk.md)、[Signing Protocol §18〜§20](./signing-protocol.md)                 | §10〜§13 の lifecycle、timeout、cancel、unknown outcome、error authority         |
-| `SDK-FR-012`、`SDK-AC-010`〜`012`           | [SDK Design §10、§18](../design/sdk.md)、[Chain Compatibility Specification](./chain-compatibility-spec.md) | §7、§9、§14、§19 の Scope、chain / network、payload / signer validation          |
-| `SDK-SEC-001`〜`003`、`SDK-PRIV-001`〜`003` | [SDK Design §6、§19、§22](../design/sdk.md)、[Security Design](../design/security-design.md)                | §5.3、§16、§17 の非特権境界、secret isolation、diagnostics privacy               |
+| Requirement                                         | Design                                                                                                      | 本仕様での具体化                                                                                                           |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `SDK-FR-001`、`SDK-PLAT-003`、`SDK-COMP-001`〜`004` | [SDK Design §7、§18](../design/sdk.md)、[Handoff §5.3、§6](./web-transaction-handoff-spec.md)               | §5.1、§6.2 の local / remote route availability、discovery、capability、version、unsupported / incompatible の fail-closed |
+| `SDK-FR-002`〜`004`                                 | [SDK Design §8、§10](../design/sdk.md)                                                                      | §5、§7 の connect、公開 Account、permission、disconnect および再利用禁止                                                   |
+| `SDK-FR-005`、`SDK-SEC-004`                         | [SDK Design §9、§11](../design/sdk.md)、[Security Design](../design/security-design.md)                     | §7.3、§8、§16 の Origin authority、request construction、secret / trust boundary                                           |
+| `SDK-FR-006`、`SDK-FR-007`                          | [SDK Design §11](../design/sdk.md)、[Signing Flow §9〜§17](../design/signing-flow.md)                       | §9 の transaction、message、cosignature 境界と Signer authority の分離                                                     |
+| `SDK-FR-008`、`SDK-SEC-005`〜`006`                  | [SDK Design §12〜§16](../design/sdk.md)                                                                     | §10、§11 の requestId correlation、concurrency、stale / duplicate / replay 防止                                            |
+| `SDK-FR-009`、`SDK-PLAT-002`〜`003`                 | [SDK Design §17](../design/sdk.md)、[Relay Design](../design/relay.md)                                      | §15 の local / remote semantics、Relay 非 authority、無断 fallback 禁止                                                    |
+| `SDK-FR-010`、`SDK-FR-011`                          | [SDK Design §13〜§15](../design/sdk.md)、[Signing Protocol §18〜§20](./signing-protocol.md)                 | §10〜§13 の lifecycle、timeout、cancel、unknown outcome、error authority                                                   |
+| `SDK-FR-012`、`SDK-AC-010`〜`012`                   | [SDK Design §10、§18](../design/sdk.md)、[Chain Compatibility Specification](./chain-compatibility-spec.md) | §7、§9、§14、§19 の Scope、chain / network、payload / signer validation                                                    |
+| `SDK-SEC-001`〜`003`、`SDK-PRIV-001`〜`003`         | [SDK Design §6、§19、§22](../design/sdk.md)、[Security Design](../design/security-design.md)                | §5.3、§16、§17 の非特権境界、secret isolation、diagnostics privacy                                                         |
 
 共通 `requestId`、Scope、Origin、Account、timestamp / expiry、error、serialization および signing state は [interfaces.md](./interfaces.md) と [signing-protocol.md](./signing-protocol.md) を参照する。Handoff の concrete API / error code は [web-transaction-handoff-spec.md](./web-transaction-handoff-spec.md) を参照する。
 

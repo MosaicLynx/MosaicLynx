@@ -180,21 +180,46 @@ button.addEventListener('click', async () => {
 
 ### 5.3 `isAvailable()`
 
-`isAvailable()` は次のいずれかで `true` を返す。
+本仕様における route availability は、現在の release、実行環境および既存 handoff contract の条件を満たし、transport selection の候補として選択できる route が存在することを意味する。connection、permission、Account disclosure、user approval、署名成功または Mobile App のインストール済みを意味しない。
+
+`isAvailable()` は、次の route availability の論理和で `true` を返す。
+
+```text
+isAvailable() = local_provider_route_available
+              OR mobile_relay_route_available
+```
+
+ただし、`mobile_relay_route_available` は、互換性のある local Provider が存在しない場合にだけ transport selection の候補となる。`window.mosaicLynx` が存在するが malformed、incompatible、conflicting または現在選択不能な Provider である場合、それを Provider 不在として Mobile Relay へ切り替えてはならない。
+
+Local Provider route は、次の全てを満たす場合に available である。
 
 - 対応 Provider API version の `window.mosaicLynx` を検出した。
-- Providerはないが、MosaicLynx SDKのsupport matrixにあるmobile browserでWeb Crypto、`fetch`、Page Visibility API、verified HTTPS App Linkの起動条件を満たす。
+- 必要 method、capability、Chain / Network および protocol compatibility を検証できる。
+- 現在の要求に対して Extension Adapter を選択できる。
 
-`isAvailable()` はモバイルアプリがインストール済みであることを保証しない。Web platform から確実に判定できないため、未インストールは App Link 起動後の fallback または timeout で扱う。UA / client hint による mobile 判定は transport 選択の UX hint であり、セキュリティ境界として使用しない。
+Mobile Relay route は Provider が存在しない場合に限り、次の全てを満たす場合に available である。
+
+- 現在の SDK / product release で Mobile Relay が提供対象として有効である。
+- 既存の Mobile Relay feature flag が有効であり、release gate / product gate により route が無効化されていない。
+- 対象 release の受信 Mobile App が提供対象として公開されている。
+- 現在の runtime / browser が support matrix の対象であり、Web Crypto、`fetch`、Page Visibility API および verified HTTPS App Link の既存 handoff 条件を満たす。
+
+受信 Mobile App が端末へ実際にインストールされていることは、Web 側から確実に判定できないため、Mobile Relay route availability の必須条件にしない。インストール不可・起動不可・応答不能は、route 選択後の既存 fallback または timeout / error contract で扱う。
+
+feature flag が無効、対象 release で未提供、release / product gate 未達、受信 App が対象 release で未公開、runtime 非対応または必要 Web API 不足の場合、Mobile Relay route は availability の根拠および transport selection の候補から除外する。本仕様の現行 production `1.0.0` では、受信 Mobile App が公開されるまで Mobile Relay route を無効とする。
+
+local / remote のいずれの route も選択できない場合に限り、`isAvailable()` は `false` を返す。Provider の存在だけで `true` にせず、Provider が存在しないことだけで `false` にしない。
+
+`isAvailable()` はモバイルアプリがインストール済みであることを保証しない。UA / client hint による mobile 判定は transport 選択の UX hint であり、セキュリティ境界として使用しない。
 
 ## 6. Transport の自動選択
 
-MosaicLynx SDKは接続、更新、切断、各署名ごとに次の順序でtransportを選択する。`isConnected()`と`getActiveAccount()`はUIを開かない。
+MosaicLynx SDKは接続、更新、切断、各署名ごとに次の順序でtransportを選択する。ここでの選択可能性と `isAvailable()` の判定は §5.3 の route availability を正本とする。`isConnected()`と`getActiveAccount()`はUIを開かない。
 
 1. `window.mosaicLynx` の存在、必要メソッド、Provider API major version `2` を検証する。
 2. 対応 Provider があれば必ず Extension Adapter を選択する。
-3. Providerがなく、Mobile Relay機能フラグが有効な対応mobile browserならMobile Relay Adapterを選択する。本番v1.0.0では受信アプリ公開まで無効とする。
-4. Provider がない desktop browser、非対応 browser、必要 Web API がない環境では `UNAVAILABLE` を返す。
+3. Provider が存在せず、§5.3 の Mobile Relay route availability（current release の有効化、feature flag、release / product gate、対象 release の受信 App 提供、runtime および既存 Web API / verified HTTPS App Link 条件）を全て満たす場合だけ Mobile Relay Adapter を選択する。本番 `1.0.0` では受信アプリ公開までこの route を選択しない。
+4. local / remote のいずれも選択できない場合は `UNAVAILABLE` を返す。
 
 `window.mosaicLynx` が存在するが API major version が非対応の場合は downgrade fallback を行わず `UNAVAILABLE` を返す。非対応 Provider がある状態を「Provider がない」とみなして Mobile Relay を選択してはならない。
 
@@ -745,7 +770,7 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 - 同じ `signData()` 呼び出しが Extension と Mobile Relay の両方で既存の `SignedData` 契約を返し、message signing が transaction signing として扱われない。
 - 公開 API に transport 固有の option、credential、`accountId` がない。
 - Provider が存在する場合は Relay session を作成しない。
-- Provider がない対応 mobile browser だけが Mobile Relay を選択する。
+- Provider がなく、§5.3 の current release、feature flag、release / product gate、対象 release の受信 App 提供、runtime、Web API および verified HTTPS App Link 条件を全て満たす対応 mobile browser だけが Mobile Relay を選択する。
 - Provider がない desktop / 非対応環境は `UNAVAILABLE` を返す。
 - 拒否、失敗、timeout 後に transport を切り替えない。
 - 接続、接続確認、active account更新、切断が両transportで同じ公開Identity契約を持つ。
