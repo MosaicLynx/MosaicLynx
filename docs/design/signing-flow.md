@@ -27,6 +27,7 @@
 Signer は Browser Extension と Mobile App である。Signer は次を担う。
 
 - caller / Origin、permission、session、Chain、Network、Account および request context の検証
+- 対象 request / target / Profile / Account / Chain / Network に対する Authentication、Signing-capable unlock、Account authorization および Explicit user approval の共通署名ゲートの成立と再確認
 - transaction / message の chain-specific な parse、validation、semantic inspection
 - 利用者が判断できる confirmation model の生成
 - MosaicLynx が管理する UI による明示的な承認・拒否および署名ごとの認証
@@ -34,7 +35,7 @@ Signer は Browser Extension と Mobile App である。Signer は次を担う�
 - wallet-core 呼び出しの orchestration、署名結果の検証および元要求への対応付け
 - 不明、未対応、期限切れ、改ざん、重複、認証失敗その他の安全側終了
 
-SDK、Relay、dApp は Signer ではなく、利用者の承認・認証または最終的な署名判断を代行しない。
+SDK、Relay、dApp は Signer ではなく、共通署名ゲートを成立・変更・免除・迂回せず、利用者の承認・認証または最終的な署名判断を代行しない。
 
 ### 2.2 Wallet Core
 
@@ -42,9 +43,11 @@ SDK、Relay、dApp は Signer ではなく、利用者の承認・認証また�
 
 Signer は、利用者が承認し、署名前に再検証した signing target だけを Wallet Core の既存公開契約へ渡す。Wallet Core が error、warning、Binding error、Store integrity / verification failure または安全な署名成立を保証できない状態を返した場合、署名結果を成功として返さない。
 
+Wallet Core の password / Store validation や raw signing の成功は、Application-level の Authentication、Signing-capable unlock、Account authorization または Explicit user approval の代替ではない。これらの成立は Signer が管理する。
+
 ### 2.3 SDK
 
-SDK は dApp と Signer の接続・受け渡し境界である。SDK は要求の correlation、必要な context、capability および安全側の結果を受け渡すが、最終的な caller verification、semantic inspection、表示、承認、認証および signing は Signer の責任とする。
+SDK は dApp と Signer の接続・受け渡し境界である。SDK は要求の correlation、必要な context、capability および安全側の結果を受け渡すが、最終的な caller verification、semantic inspection、表示、承認、認証、共通署名ゲートの成立および signing は Signer の責任とする。SDK、Provider または dApp の状態・自己申告は、ゲートの条件を成立させる根拠にならない。
 
 ### 2.4 Relay
 
@@ -60,50 +63,54 @@ MosaicLynx は announce、node 選択、残高、履歴または継続的な net
 
 ## 3. 用語
 
-| 用語                | 本書での意味                                                                                                                                                    |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Signer              | Browser Extension または Mobile App。署名判断と Wallet Core 呼び出しの主体。                                                                                    |
-| Signing request     | 一つの署名判断に必要な request context、caller、session、operation、Account、Chain、Network および signing target の論理的な組。                                |
-| Signing target      | 実際に署名される transaction、aggregate、cosignature 対象、message または chain-specific な署名対象。                                                           |
-| Transaction context | transaction 本体、embedded transaction、parent aggregate、multisig wrapper、partial state など、signing target を意味解釈するために必要な chain-specific 情報。 |
-| Inspection          | Signing target を parse、validation、semantic analysis し、confirmation model を生成する処理。                                                                  |
-| Confirmation model  | 利用者へ提示する、Signer が signing target から生成した確認可能な情報の論理表現。UI schema や画面 layout ではない。                                             |
-| Authorization       | 利用者の明示的な承認と署名ごとの認証が、特定の signing request と signing target に対して成立した状態。                                                         |
-| Result unknown      | 署名生成自体の成否を、署名成功・未署名のいずれとも安全に判定できない状態。配送失敗の意味には使用しない。                                                        |
-| Partial             | Chain / network 上または handoff 上の transaction 状態を表す chain-specific context。共通の署名 primitive 名ではない。                                          |
+| 用語                | 本書での意味                                                                                                                                                      |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Signer              | Browser Extension または Mobile App。署名判断と Wallet Core 呼び出しの主体。                                                                                      |
+| Signing request     | 一つの署名判断に必要な request、caller、session、Profile、operation、Account、Chain、Network および signing target の論理的な組。                                 |
+| Signing target      | 実際に署名される transaction、aggregate、cosignature 対象、message または chain-specific な署名対象。                                                             |
+| Transaction context | transaction 本体、embedded transaction、parent aggregate、multisig wrapper、partial state など、signing target を意味解釈するために必要な chain-specific 情報。   |
+| Inspection          | Signing target を parse、validation、semantic analysis し、confirmation model を生成する処理。                                                                    |
+| Confirmation model  | 利用者へ提示する、Signer が signing target から生成した確認可能な情報の論理表現。UI schema や画面 layout ではない。                                               |
+| Profile             | Signer 内部で Profile Network、Chain-specific Account / Key Identity および Wallet Core context を一意に解決する Application context。公開 field を要求しない。   |
+| Authorization       | Authentication、Signing-capable unlock、Account authorization および Explicit user approval の4条件が、特定の request / target / Profile に独立して成立した状態。 |
+| Result unknown      | 署名生成自体の成否を、署名成功・未署名のいずれとも安全に判定できない状態。配送失敗の意味には使用しない。                                                          |
+| Partial             | Chain / network 上または handoff 上の transaction 状態を表す chain-specific context。共通の署名 primitive 名ではない。                                            |
 
 ## 4. 設計原則
 
 1. Signer が signing target 全体を安全に解析し、利用者へ確認可能な形で提示できない場合は署名しない。
 2. 警告だけを表示して未解析、未対応または表示不能な signing target を bypass する経路を設けない。
-3. 利用者の承認は requestId 単体ではなく、caller、session、operation、Account、Chain、Network、permission context、protocol / capability context、signing target、transaction context、inspection result および freshness の組に対して成立する。
-4. Confirmation 後に署名判断へ影響する context または target が変化した場合、Authorization を失効させ、再解析・再確認・再認証を要求する。
-5. Wallet Core を呼び出す直前に、利用者が確認した target と実際に渡す target の一致を再検証する。
-6. `1 request = 1 confirmation = 1 authentication = 1 signing operation` を維持する。ここで signing operation とは、一つの logical signing target に対して一回限りの Authorization を消費して行う一つの logical signing decision を指す。Wallet Core の API call 数、cryptographic primitive の内部呼び出し、signature verification、result validation、response serialization、response delivery、result の resend / lookup は新しい signing operation ではない。内部処理を複数回行う場合も、承認済み target の範囲を拡張してはならない。
-7. connection permission、session、UNLOCKED、直前の認証および Relay の配送成功を、署名ごとの承認・認証の代替にしない。
-8. Relay、SDK、Provider、Content Script、dApp、Node または外部 API の自己申告を、署名可否の最終根拠にしない。
-9. Symbol / NEM の chain-specific semantics、signing bytes、schema、address、hash および multisig / cosignature の意味を、一つの共通 transaction model で上書きしない。
-10. restart、process recreation、Service Worker restart、background、Relay state loss または結果不明の後に、古い Authorization を無条件に再利用しない。
+3. 利用者の承認は requestId 単体ではなく、request、caller、session、Profile、operation、Account、Chain、Network、permission context、protocol / capability context、signing target、transaction context、inspection result および freshness の組に対して成立する。
+4. Authentication、Signing-capable unlock、Account authorization および Explicit user approval は独立した必須条件であり、4条件すべてが同じ Signer-owned context に対して成立しない限り署名しない。
+5. Confirmation 後に署名判断へ影響する context または target が変化した場合、Authorization を失効させ、再解析・再確認・再認証を要求する。
+6. Wallet Core を呼び出す直前に、利用者が確認した target と実際に渡す target の一致を再検証する。
+7. `1 request = 1 confirmation = 1 authentication = 1 signing operation` を維持する。ここで signing operation とは、一つの logical signing target に対して一回限りの Authorization を消費して行う一つの logical signing decision を指す。Wallet Core の API call 数、cryptographic primitive の内部呼び出し、signature verification、result validation、response serialization、response delivery、result の resend / lookup は新しい signing operation ではない。内部処理を複数回行う場合も、承認済み target の範囲を拡張してはならない。
+8. connection、permission、capability、session、単なる `UNLOCKED`、過去の authentication、wallet-core password / Store validation、Relay delivery success または SDK / Provider の状態を、4条件のいずれかの代替にしない。
+9. Relay、SDK、Provider、Content Script、dApp、Node または外部 API の自己申告を、署名可否の最終根拠にしない。
+10. Symbol / NEM の chain-specific semantics、signing bytes、schema、address、hash および multisig / cosignature の意味を、一つの共通 transaction model で上書きしない。
+11. 複数の active request は、それぞれ独立した security context として扱い、request identity、caller / source context、session、Profile、Account、Chain / Network、operation、target、semantic inspection、approval、authentication および result / response channel を相互に共有・統合しない。Browser の複数 tab / frame と Mobile の複数 Deep Link / Relay handoff を含む。queue、mutex、parallel processing、fairness、最大同時数および具体 UI は下位へ委譲する。
+12. restart、process recreation、Service Worker restart、background、Relay state loss または結果不明の後に、古い Authorization を無条件に再利用しない。
 
 ## 5. Signing Request の論理モデル
 
-Signing request は、次の概念情報を binding した論理単位として扱う。これは概念モデルであり、JSON schema、wire field 名または特定の ID format を定めるものではない。
+Signing request は、次の概念情報を binding した論理単位として扱う。これは概念モデルであり、JSON schema、wire field 名または特定の ID format を定めるものではない。少なくとも `request / caller / session / Profile / Account / Chain / Network / operation / target` の関係を Signer 内部で安全に維持する。Profile は公開 wire field の追加を意味せず、Signer-local な context として解決する。
 
-| 概念                           | 署名判断上の責任                                                                                                                        |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| request identity / correlation | request と result を一意に対応させ、別 request への result 流用を防ぐ。                                                                 |
-| operation                      | transaction、cosignature、message など、署名の意味と検証経路を固定する。                                                                |
-| caller context                 | Browser が観測した Origin / tab / frame / document、または Mobile handoff で検証した要求元 context。                                    |
-| session context                | 接続・handoff・transport の session。permission や signing authorization と同一視しない。                                               |
-| permission context             | 対象 caller が対象 Account / Chain / Network を利用できる許可範囲。承認時の scope / revision または同等の不変識別子を binding する。    |
-| Account                        | 利用者が選択し、対象 Chain / Network に明示的に関連付けた signing identity。                                                            |
-| Chain / Network                | Symbol / NEM および Mainnet / Testnet の対象。別の対象へ暗黙変換しない。                                                                |
-| signing target                 | 実際に署名する transaction、aggregate、cosignature target または message。                                                              |
-| transaction context            | Aggregate 全体、embedded transaction、parent、multisig、partial state 等、target の意味解釈に必要な情報。                               |
-| freshness                      | request-level の作成時刻、期限、nonce、generation または protocol が要求する鮮度情報。具体的な encoding や秒数は下位仕様へ委譲する。    |
-| protocol / capability context  | protocol version、対応能力、Chain-specific format および operation の対応範囲。承認時の context または同等の不変識別子を binding する。 |
+| 概念                           | 署名判断上の責任                                                                                                                                    |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| request identity / correlation | request と result を一意に対応させ、別 request への result 流用を防ぐ。                                                                             |
+| operation                      | transaction、cosignature、message など、署名の意味と検証経路を固定する。                                                                            |
+| caller context                 | Browser が観測した Origin / tab / frame / document、または Mobile handoff で検証した要求元 context。                                                |
+| session context                | 接続・handoff・transport の session。permission や signing authorization と同一視しない。                                                           |
+| Profile                        | Application が選択した Profile と固定された Profile Network。Signer 内部で対象 Account / Key Identity および Wallet Core context を一意に解決する。 |
+| permission context             | 対象 caller が対象 Account / Chain / Network を利用できる許可範囲。承認時の scope / revision または同等の不変識別子を binding する。                |
+| Account                        | 対象 Profile / Network の Chain-specific Account / Key Identity として Signer 内部で一意に解決された signing identity。                             |
+| Chain / Network                | Symbol / NEM および Mainnet / Testnet の対象。別の対象へ暗黙変換しない。                                                                            |
+| signing target                 | 実際に署名する transaction、aggregate、cosignature target または message。                                                                          |
+| transaction context            | Aggregate 全体、embedded transaction、parent、multisig、partial state 等、target の意味解釈に必要な情報。                                           |
+| freshness                      | request-level の作成時刻、期限、nonce、generation または protocol が要求する鮮度情報。具体的な encoding や秒数は下位仕様へ委譲する。                |
+| protocol / capability context  | protocol version、対応能力、Chain-specific format および operation の対応範囲。承認時の context または同等の不変識別子を binding する。             |
 
-Signer's approval record は、少なくとも request identity だけでなく、上記の適用される context、承認時の permission scope / revision または同等の不変識別子、protocol / capability context、target digest または同等の不変性確認情報、inspection result および認証状態と結び付く。具体的な field、revision の形式および serialization は下位仕様へ委譲する。署名直前に permission や capability が現在も存在することだけでは、承認時 binding の代わりにならない。
+Signer's approval record は、少なくとも request identity だけでなく、上記の適用される context、Profile、承認時の permission scope / revision または同等の不変識別子、protocol / capability context、target digest または同等の不変性確認情報、inspection result、Authentication、Signing-capable unlock、Account authorization および Explicit user approval の成立状態と結び付く。具体的な field、revision の形式および serialization は下位仕様へ委譲する。署名直前に permission や capability が現在も存在することだけでは、承認時 binding の代わりにならない。
 
 ## 6. Signing Operation Model
 
@@ -147,33 +154,33 @@ terminal:
   REJECTED / FAILED / EXPIRED / CANCELLED / INVALIDATED / RESULT_UNKNOWN
 ```
 
-| 状態             | 意味                                                                                                                                             |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `RECEIVED`       | Signer が外部経路から要求を受け付けたが、信頼できる request として扱う前の状態。                                                                 |
-| `VALIDATED`      | 構造、caller、permission、session、freshness、Chain / Network / Account、operation および capability の検証が完了した状態。                      |
-| `INSPECTED`      | Signing target と transaction context を chain-specific に parse / validate / inspect し、confirmation model を生成できた状態。                  |
-| `AWAITING_USER`  | Signer 管理 UI で利用者が確認・拒否できる状態。まだ署名認証・Authorization は成立していない。                                                    |
-| `AUTHORIZED`     | 利用者の明示承認と、署名ごとの認証が特定の request / target に対して成立した状態。短寿命の内部状態とする。                                       |
-| `SIGNING`        | Target の再検証を通過し、Signer が Wallet Core の署名契約を呼び出している状態。自動再実行を許可しない。                                          |
-| `SUCCEEDED`      | Wallet Core の成功結果を受け、Signer が signature、signed payload、target、signer、Account、Chain、Network および request 対応を検証済みの状態。 |
-| `REJECTED`       | 利用者が明示的に拒否した状態。署名結果を持たない terminal state。                                                                                |
-| `FAILED`         | 検証、inspection、authentication、Wallet Core または内部処理の失敗で安全側に終了した状態。                                                       |
-| `EXPIRED`        | request または message / transaction context の期限を過ぎた状態。                                                                                |
-| `CANCELLED`      | 利用者、dApp、Signer、platform または transport が処理を取り消した状態。                                                                         |
-| `INVALIDATED`    | context、target、承認、session、lifecycle または完全性が変化し、以前の処理を継続できない状態。                                                   |
-| `RESULT_UNKNOWN` | 署名生成自体の結果を成功・未署名のいずれとも安全に確定できない状態。成功として返さず、自動 retry しない。配送失敗には使用しない。                |
+| 状態             | 意味                                                                                                                                                                                                                                                                    |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RECEIVED`       | Signer が外部経路から要求を受け付けたが、信頼できる request として扱う前の状態。                                                                                                                                                                                        |
+| `VALIDATED`      | 構造、caller、permission、session、Profile、freshness、Chain / Network / Account、operation および capability の検証と、Profile-bound Account / Wallet Core context の一意な解決が完了した状態。                                                                        |
+| `INSPECTED`      | Signing target と transaction context を chain-specific に parse / validate / inspect し、confirmation model を生成できた状態。                                                                                                                                         |
+| `AWAITING_USER`  | Signer 管理 UI で利用者が確認・拒否できる状態。まだ Explicit user approval、Authentication、Signing-capable unlock または Account authorization は成立していない。                                                                                                      |
+| `AUTHORIZED`     | Authentication、Signing-capable unlock、対象 Profile / Chain / Network / Account に対する Account authorization および Explicit user approval が、独立した必須条件として、特定の request / target とその Profile context に対して成立した状態。短寿命の内部状態とする。 |
+| `SIGNING`        | 4条件、Profile を含む全 binding および target の再検証を通過し、Signer が Wallet Core の署名契約を呼び出している状態。自動再実行を許可しない。                                                                                                                          |
+| `SUCCEEDED`      | Wallet Core の成功結果を受け、Signer が signature、signed payload、target、signer、Profile、Account、Chain、Network、request 対応および署名時の共通ゲート context を検証済みの状態。                                                                                    |
+| `REJECTED`       | 利用者が明示的に拒否した状態。署名結果を持たない terminal state。                                                                                                                                                                                                       |
+| `FAILED`         | 検証、inspection、authentication、Wallet Core または内部処理の失敗で安全側に終了した状態。                                                                                                                                                                              |
+| `EXPIRED`        | request または message / transaction context の期限を過ぎた状態。                                                                                                                                                                                                       |
+| `CANCELLED`      | 利用者、dApp、Signer、platform または transport が処理を取り消した状態。                                                                                                                                                                                                |
+| `INVALIDATED`    | context、Profile、target、承認、session、lifecycle または完全性が変化し、以前の処理を継続できない状態。                                                                                                                                                                 |
+| `RESULT_UNKNOWN` | 署名生成自体の結果を成功・未署名のいずれとも安全に確定できない状態。成功として返さず、自動 retry しない。配送失敗には使用しない。                                                                                                                                       |
 
 ### 7.2 遷移
 
-| 遷移                                 | 条件                                                                                                              |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| `RECEIVED → VALIDATED`               | 構造と全ての適用 context を検証できた場合のみ。                                                                   |
-| `VALIDATED → INSPECTED`              | Target 全体を chain-specific に解析し、確認可能な inspection result を生成できた場合のみ。                        |
-| `INSPECTED → AWAITING_USER`          | Confirmation model を Signer 管理 UI に渡せる場合のみ。                                                           |
-| `AWAITING_USER → AUTHORIZED`         | 利用者が対象を確認して明示承認し、署名ごとの認証が成功した場合のみ。                                              |
-| `AUTHORIZED → SIGNING`               | 直前の target、context、approval、authentication、capability を再検証し、全て一致した場合のみ。                   |
-| `SIGNING → SUCCEEDED`                | Wallet Core が成功を返し、Signer が結果と元 target の対応を検証できた場合のみ。                                   |
-| いずれの非 terminal state → terminal | reject、failure、expiry、cancel、context change、lifecycle loss、duplicate、replay または検証不能を検出した場合。 |
+| 遷移                                 | 条件                                                                                                                                                                                                            |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RECEIVED → VALIDATED`               | 構造と全ての適用 context を検証できた場合のみ。                                                                                                                                                                 |
+| `VALIDATED → INSPECTED`              | Target 全体を chain-specific に解析し、確認可能な inspection result を生成できた場合のみ。                                                                                                                      |
+| `INSPECTED → AWAITING_USER`          | Confirmation model を Signer 管理 UI に渡せる場合のみ。                                                                                                                                                         |
+| `AWAITING_USER → AUTHORIZED`         | 利用者が対象を確認して Explicit user approval を行い、Authentication、Signing-capable unlock および対象 Profile / Chain / Network / Account に対する Account authorization が、独立してすべて成功した場合のみ。 |
+| `AUTHORIZED → SIGNING`               | 直前の target、Profile を含む全 context、approval および4条件の成立状態を再検証し、全て一致・有効である場合のみ。                                                                                               |
+| `SIGNING → SUCCEEDED`                | Wallet Core が成功を返し、Signer が結果と元 target、Profile、request および署名時の4条件・approval context の対応を安全に検証できた場合のみ。                                                                   |
+| いずれの非 terminal state → terminal | reject、failure、expiry、cancel、context change、lifecycle loss、duplicate、replay または検証不能を検出した場合。                                                                                               |
 
 次の遷移は禁止する。
 
@@ -182,6 +189,7 @@ terminal:
 - `SUCCEEDED` から同じ request を再署名すること。
 - terminal state の request を、新しい request として扱わずに reopen すること。
 - Relay の配送成功、UI の再表示、Service Worker の再起動または Mobile process の復旧だけで `AUTHORIZED` に戻ること。
+- security failure、user rejection、locked または `RESULT_UNKNOWN` の後に、別 transport、Provider または Signer route へ自動 fallback して signing を試みること。
 
 ### 7.3 Lifecycle loss
 
@@ -189,6 +197,7 @@ Browser Extension の Service Worker 停止・再起動、extension reload、bro
 
 - `RECEIVED`、`VALIDATED`、`INSPECTED`、`AWAITING_USER` は、失われた context を復元できなければ `INVALIDATED` とする。
 - `AUTHORIZED` は、承認対象と認証状態を同一の trusted context から再構成できない限り `INVALIDATED` とする。古い承認の復元だけで署名可能にしない。
+- Profile switch、Profile lock、Profile association change、Account switch、Chain / Network switch、caller context change または relevant permission / session change は、既存の approval、authentication、Account authorization および signing context を失効させる。Profile A の context を Profile B へ流用しない。
 - `SIGNING` 中に Wallet Core の結果が確定しない場合は `RESULT_UNKNOWN` とする。
 - `SUCCEEDED` 後に response delivery だけが失敗し、signature が確定している場合は `RESULT_UNKNOWN` ではなく、配送 disposition の `DELIVERY_UNKNOWN` とする。同じ request の自動再署名は行わず、結果再取得・再送の可否だけを下位 handoff 仕様へ委譲する。
 
@@ -216,8 +225,8 @@ flowchart TD
     R --> V[Structural and context validation]
     V --> I[Chain-specific inspection]
     I --> C[Confirmation model]
-    C --> U[User confirmation and authentication]
-    U --> A[Authorization bound to request and target]
+    C --> U[User confirmation / four gate conditions]
+    U --> A[Authorization bound to request, Profile and target]
     A --> T[Signing target revalidation]
     T --> W[wallet-core raw signing]
     W --> Q[Signer result validation]
@@ -229,7 +238,7 @@ flowchart TD
     W -.-> X
 ```
 
-各段階で、外部入力、補助情報または以前の状態を暗黙に信頼してはならない。失敗した段階から、古い Authorization や target を使用して後続段階へ進めない。
+各段階で、外部入力、補助情報または以前の状態を暗黙に信頼してはならない。Authentication、Signing-capable unlock、Account authorization および Explicit user approval の4条件は独立した必須条件として Signer が成立させ、いずれかが確認できなければ fail-closed とする。失敗した段階から、古い Authorization や target を使用して後続段階へ進めない。
 
 ## 9. Transaction Signing
 
@@ -238,23 +247,25 @@ flowchart TD
 1. **Receive**: SDK、Provider または Mobile handoff から要求を受け、request identity と transport context を保持する。
 2. **Structural validation**: 必須 context、サイズ、形式、protocol / capability、freshness、重複および完全性を検証する。
 3. **Caller / permission validation**: browser が観測した caller、Mobile が検証した handoff context、現在の permission、session、要求元の scope を検証する。自己申告 Origin だけを信頼しない。
-4. **Chain / Network / Account validation**: 対象 Chain、Profile Network、選択 Account、expected signer、payload 内 signer および operation の対応を検証する。
+4. **Profile / Chain / Network / Account validation**: Signer 内部で Profile、Profile Network、Chain-specific Account / Key Identity および Wallet Core context を一意に解決し、選択 Account、expected signer、payload 内 signer、対象 Chain / Network および operation の対応を検証する。Profile を公開 request field として要求することは、この binding の前提ではない。
 5. **Chain-specific parse / validation**: Symbol / NEM の正本 SDK、Chain integration および固定契約に従って parse、型、version、network、サイズ、canonicality および署名状態を検証する。
 6. **Semantic inspection**: 送信先、資産、fee、deadline、message、権限・authority、metadata、multisig 等の確認可能な影響を解析する。
-7. **Confirmation**: inspection result から Signer 管理 UI 用の confirmation model を生成し、利用者の明示承認を受ける。
-8. **Authentication**: この signing request / target に対する署名ごとの認証を要求する。permission、session、UNLOCKED または直前認証を代用しない。
-9. **Revalidation**: target と全 context を再取得・再解析し、承認時の inspection と実際に Wallet Core へ渡す target が一致することを検証する。
-10. **Wallet Core signing**: 承認済みの raw target だけを既存 Wallet Core 契約へ渡す。
-11. **Result validation**: signature、signed payload、signer、Account、Chain、Network、target identity および request correlation を検証する。
-12. **Response**: 成功結果または安全側の失敗を、元 request に対応付けて返す。announce は行わない。
+7. **Confirmation**: inspection result から Signer 管理 UI 用の confirmation model を生成し、利用者の Explicit user approval を受ける。
+8. **Common signing gate**: 当該 request / target / Profile に対する Authentication、Signing-capable unlock、Account authorization および Explicit user approval の4条件が、独立してすべて成立していることを確認する。connection、permission、capability、session、単なる `UNLOCKED`、過去の認証または Wallet Core の password / Store validation を代用しない。
+9. **Revalidation**: target と Profile を含む全 context、approval および4条件の成立状態を再取得・再解析し、承認時の inspection と実際に Wallet Core へ渡す target が一致することを検証する。
+10. **Wallet Core signing**: 4条件を満たした承認済みの raw target だけを既存 Wallet Core 契約へ渡す。
+11. **Result validation**: signature、signed payload、signer、Profile、Account、Chain、Network、target identity、request correlation および signing 時の4条件・approval context の対応を検証する。
+12. **Response**: signing context を安全に帰属・確認できる成功結果、または安全側の失敗だけを元 request に対応付けて返す。announce は行わない。
 
-どの段階でも、解析不能、表示不能、unsupported、wrong network、wrong signer、permission mismatch、expired、duplicate、replay または result unknown は署名成功に変換しない。
+どの段階でも、解析不能、表示不能、unsupported、wrong network、wrong signer、permission mismatch、Profile / Account mismatch、locked、4条件のいずれかの未成立、expired、duplicate、replay または result unknown は署名成功に変換しない。security failure の後に別 transport、Provider または Signer route へ自動 fallback しない。
 
 ## 10. Aggregate Transaction
 
 ### 10.1 Aggregate 全体の扱い
 
 Symbol Aggregate Complete と Aggregate Bonded は、通常 transaction と異なり、outer transaction だけでは利用者が署名結果の影響を判断できない場合がある。Signer は、対応する範囲で Aggregate 全体を保持し、outer と embedded transaction を同一の transaction context として解析する。
+
+Aggregate 全体への初期署名または cosignature は、共通署名ゲートの一つの signing target として扱う。Signer は、Aggregate 全体の inspection、確認および target binding に対して、Authentication、Signing-capable unlock、Account authorization および Explicit user approval の4条件を独立して成立させる。
 
 少なくとも適用可能な次の情報を chain-specific inspection へ含める。
 
@@ -276,7 +287,7 @@ Bonded / partial であることを理由に、node から parent や embedded t
 
 ### 11.1 Cosignature の signing target
 
-Cosignature の signing target は、cosignature byte 列だけではなく、cosignature が追加される parent transaction 全体と、それに対する selected cosigner の関係である。
+Cosignature の signing target は、cosignature byte 列だけではなく、cosignature が追加される parent transaction 全体と、それに対する selected cosigner の関係である。Cosignature でも、対象 Profile / Account / Chain / Network に対する共通署名ゲート4条件を省略しない。
 
 ```text
 complete parent Aggregate / multisig context
@@ -334,7 +345,7 @@ Partial の transport、保存、network lifecycle、取得 API、公開 scope �
 
 ## 13. NEM Multisig
 
-NEM multisig は Symbol Aggregate と同一の transaction model へ押し込めない。共通化するのは request lifecycle、approval、Account binding、result correlation、fail-closed および blind signing prevention だけである。
+NEM multisig は Symbol Aggregate と同一の transaction model へ押し込めない。共通化するのは request lifecycle、4条件の共通署名ゲート、approval、Profile / Account binding、result correlation、fail-closed および blind signing prevention だけである。
 
 NEM-specific integration は次を正本として扱う。
 
@@ -349,11 +360,14 @@ NEM multisig の inner transaction または必要な parent context を完全�
 
 Message signing は transaction signing と別 operation として扱う。message の表示文言と実際の signing bytes を別々の入力から生成してはならない。
 
+Message signing でも、元 request、caller、Profile、Account、Chain / Network、operation、message target および approval context に対する Authentication、Signing-capable unlock、Account authorization および Explicit user approval の4条件を独立して成立させる。Transaction signing のゲートを message signing で省略・代替してはならない。
+
 ### 14.1 Message context
 
 対象 protocol / operation が要求する適用可能な context を保持・検証する。
 
 - 検証済み caller / Origin
+- Profile と Profile Network
 - Account、Chain、Network
 - purpose / operation
 - message contents
@@ -368,9 +382,10 @@ Message signing は transaction signing と別 operation として扱う。messa
 1. message signing request として operation を識別する。
 2. caller、Account、Chain / Network、purpose、freshness および message contents を検証する。
 3. Signer が message から confirmation model を生成し、transaction signing と区別して表示できる状態にする。
-4. 利用者が message contents と適用 context を確認し、署名ごとの承認・認証を行う。
-5. 署名直前に message、context、domain、nonce、expiry および signing bytes の生成対象を再検証する。
-6. Wallet Core の既存 chain-specific / message signing 契約へ渡し、返却された signature と signed message の対応を検証する。
+4. 利用者が message contents と適用 context を確認し、Explicit user approval を行う。
+5. Authentication、Signing-capable unlock、対象 Profile / Chain / Network / Account に対する Account authorization および Explicit user approval の4条件が独立して成立していることを確認する。
+6. 署名直前に message、Profile を含む全 context、approval、4条件、domain、nonce、expiry および signing bytes の生成対象を再検証する。
+7. Wallet Core の既存 chain-specific / message signing 契約へ渡し、返却された signature と signed message の対応を検証する。
 
 raw bytes を利用者が意味確認できないまま表示して署名すること、外部アプリの表示用 message と実際の bytes を別に扱うこと、message signing の失敗を transaction signing の成功へ fallback することを禁止する。
 
@@ -383,6 +398,7 @@ raw bytes を利用者が意味確認できないまま表示して署名する�
 Inspection result は、Signer が signing target から生成する内部の確認モデルである。少なくとも適用可能な次の分類を持つ。
 
 - request / caller / session context
+- Profile、Profile Network および Profile-bound Account / Key Identity
 - operation、Chain、Network、Account、expected signer / role
 - target の schema、type、version、parent / aggregate / multisig context
 - recipient、asset、mosaic、amount、fee、deadline、message
@@ -396,12 +412,14 @@ Warning は、署名可能条件を満たさない状態を利用者の自己責
 
 ### 15.2 Confirmation model の不変性
 
-Confirmation model は、表示時点の signing target と全適用 context に binding する。次のいずれかが変化した場合は、既存 confirmation と Authorization を無効化する。
+Confirmation model は、表示時点の signing target と全適用 context、4条件の成立対象に binding する。次のいずれかが変化した場合は、既存 confirmation と Authorization を無効化する。
 
 - payload、transaction、aggregate、embedded / inner transaction、message contents
 - parent hash、transactions hash、signature、cosignature、signer、expected signer
-- Account、Chain、Network、caller、Origin、session、permission、operation
+- Profile、Profile Network、Account、Chain、Network、caller、Origin、session、permission、operation
 - request freshness、expiry、capability または protocol context
+
+Profile、Account、Chain / Network、caller context、relevant permission / session、Authentication、Signing-capable unlock、Account authorization または Explicit user approval のいずれかを確認できない場合も、confirmation と Authorization を無効化する。
 
 外部 API、Node、Relay または dApp から取得した補助表示を、target そのものの事実として confirmation model に混入させない。補助情報の取得に失敗しても target から判断できる事実を誤表示せず、必要情報を安全に確認できなければ署名しない。
 
@@ -409,28 +427,31 @@ Confirmation model は、表示時点の signing target と全適用 context に
 
 ### 16.1 Authorization の単位
 
-Authorization は次の論理 tuple に対する一回限りの承認として扱う。
+Authorization は次の論理 tuple に対する一回限りの承認として扱う。公開 SigningRequest、SDK API または Relay envelope に Profile field を追加することを要求するものではなく、Signer 内部で Profile と Account / Wallet Core context を一意に解決して binding する。Profile は request、Authentication、Signing-capable unlock、Account authorization、approval、signing target、signing および result にわたる必須の内部 context とする。
 
 ```text
-(caller, session, operation, Account, Chain, Network,
+(request, caller, session, Profile, operation, Account, Chain, Network,
  permission context, protocol / capability context,
  signing target, transaction context, inspection result, freshness)
 ```
 
-requestId はこの tuple を識別する補助であり、tuple の代替ではない。Authorization は、承認時の permission scope / revision または同等の不変識別情報と、承認時の protocol / capability context に binding する。具体的な field、revision ID および serialization は下位仕様へ委譲する。署名直前に permission が現在存在すること、または capability が現在利用可能であることだけでは、承認時 binding の代わりにならない。
+requestId はこの tuple を識別する補助であり、tuple の代替ではない。Authorization は、承認時の permission scope / revision または同等の不変識別情報、承認時の protocol / capability context および Profile-bound Account / Wallet Core context に binding する。具体的な field、revision ID および serialization は下位仕様へ委譲する。署名直前に permission が現在存在すること、または capability が現在利用可能であることだけでは、承認時 binding の代わりにならない。
 
-Permission や session が同じでも、別 parent transaction、別 signing target、別 cosigner、別 operation、別 Account、別 Chain、別 Network、別 caller、別 permission または別 capability へ Authorization を流用しない。複数 target の batch signing をこの原則から暗黙に許可しない。
+Authorization を成立させる Authentication、Signing-capable unlock、対象 Profile / Chain / Network / Account に対する Account authorization および Explicit user approval は、互いに独立した4条件である。connection、permission、capability、session、単なる `UNLOCKED`、過去の authentication、wallet-core password / Store validation または Relay delivery success は、いずれの条件も代替しない。Signer が4条件を成立・再確認し、下流の dApp、SDK、Provider、Content Script、Relay または Wallet Core が成立・変更・免除・迂回してはならない。
+
+Permission や session が同じでも、別 Profile、別 parent transaction、別 signing target、別 cosigner、別 operation、別 Account、別 Chain、別 Network、別 caller、別 permission または別 capability へ Authorization を流用しない。Profile A の approval、authentication、authorization または result を Profile B へ流用してはならない。複数 target の batch signing をこの原則から暗黙に許可しない。
 
 ### 16.2 署名前の再検証
 
 Wallet Core 呼び出し直前に、Signer は次を再確認する。
 
-1. request が未期限切れ、未使用、未取消、未失効である。
-2. caller、session、承認時に binding した permission context、Account、Chain、Network、operation および protocol / capability context が Authorization と一致する。現在 permission が存在することだけを確認してはならない。
+1. request が未期限切れ、未使用、未取消、未失効であり、Profile、Account、Chain / Network および caller context が継続している。
+2. caller、session、Profile、承認時に binding した permission context、Account、Chain、Network、operation および protocol / capability context が Authorization と一致する。現在 permission が存在することだけを確認してはならない。
 3. signing target と transaction context が、利用者が確認した inspection result と一致する。
 4. payload、parent、embedded / inner transaction、message、signer、expected signer、既存署名・cosignature が変化していない。
-5. chain-specific parse、validation、canonicalization、signature state および承認時に binding した capability / protocol context が引き続き一致している。permission revoke、scope change、permission revision change、protocol version change、capability change または operation capability change があれば、現在の新しい context が安全に見えても既存 Authorization を `INVALIDATED` とする。
-6. Wallet Core に渡す raw target が承認済み target から再構成され、別の外部入力または補助情報で置換されていない。
+5. chain-specific parse、validation、canonicalization、signature state および承認時に binding した capability / protocol context が引き続き一致している。permission revoke、scope change、permission revision change、protocol version change、capability change、operation capability change、Profile switch、Profile association change、Account switch または Chain / Network switch があれば、現在の新しい context が安全に見えても既存 Authorization を `INVALIDATED` とする。
+6. Authentication、Signing-capable unlock、対象 Profile / Chain / Network / Account に対する Account authorization および Explicit user approval の4条件が、当該 request / target に対してすべて成立し、失効・lock・stale・unknown でない。
+7. Wallet Core に渡す raw target が承認済み target から再構成され、別の外部入力または補助情報で置換されていない。
 
 一つでも確認できない場合は Authorization を `INVALIDATED` とし、署名しない。これは UI 確認後の payload substitution と TOCTOU を防ぐための必須境界である。
 
@@ -438,10 +459,10 @@ Wallet Core 呼び出し直前に、Signer は次を再確認する。
 
 ```text
 Signer
-  ├─ caller / permission / session
-  ├─ Chain / Network / Account binding
+  ├─ caller / permission / session / Profile binding
+  ├─ Chain / Network / Account / Wallet Core context binding
   ├─ parse / inspection / confirmation
-  ├─ user authorization / authentication
+  ├─ Authentication / signing-capable unlock / Account authorization / explicit approval
   └─ final target revalidation
               │ approved raw target only
               ▼
@@ -452,7 +473,7 @@ wallet-core
   └─ raw byte signing
 ```
 
-Signer は Wallet Core に transaction の意味解釈、利用者承認または caller verification を委譲しない。Wallet Core が返す result、error、warning、Binding error、Store integrity failure または result unknown は安全側に扱い、Secret を error、diagnostic、log、telemetry または response に含めない。
+Signer は Wallet Core に transaction の意味解釈、利用者承認、Application-level の Authentication、Signing-capable unlock、Account authorization または caller verification を委譲しない。Wallet Core が返す result、error、warning、Binding error、Store integrity failure または result unknown は安全側に扱い、Secret を error、diagnostic、log、telemetry または response に含めない。
 
 Wallet Core の具体的 API、raw byte signing、key derivation、cryptographic primitive、Store format、memory lifecycle および chain-specific signing bytes は既存の公開契約へ委譲する。
 
@@ -467,16 +488,17 @@ Content Script
       ↓ browser observed context + message
 Extension privileged layer
       ├─ sender / Origin / tab / frame / document verification
-      ├─ permission / session / Account / Chain / Network validation
+      ├─ permission / session / Profile / Account / Chain / Network validation
+      ├─ common signing gate: authentication / unlock / Account authorization / approval
       ├─ chain-specific inspection and approval UI
       └─ wallet-core Binding
               ↓
           wallet-core
 ```
 
-Provider と Content Script は信頼主体ではない。Extension の privileged layer が browser API で観測した sender、Origin、tab / frame / document context と、受け取った request の対応を最終確認する。Web page が渡した caller、表示文言、app 名、icon または transaction summary を承認根拠にしない。
+Provider と Content Script は信頼主体ではない。Extension の privileged layer が browser API で観測した sender、Origin、tab / frame / document context と、受け取った request の対応を最終確認する。Web page が渡した caller、表示文言、app 名、icon または transaction summary を承認根拠にしない。Browser privileged layer が Authentication、Signing-capable unlock、Profile-bound Account authorization および Explicit user approval の4条件を成立させる Signer-side owner である。
 
-Extension reload、browser restart、Service Worker 停止・再起動、tab / document navigation、frame context 変更で request context または承認状態を失った場合は、旧 Authorization を破棄する。新しい要求、再検証、再確認および署名ごとの再認証なしに署名を再開しない。
+Extension reload、browser restart、Service Worker 停止・再起動、tab / document navigation、frame context 変更で request context または承認状態を失った場合は、旧 Authorization を破棄する。Profile switch、Profile lock、Profile association change、Account switch、Chain / Network switch、caller context change または permission / session change でも、該当する approval、authentication、Account authorization および signing context を失効させる。新しい要求、再検証、再確認および署名ごとの再認証なしに署名を再開しない。
 
 ## 19. Mobile / Relay Flow
 
@@ -487,7 +509,7 @@ flowchart LR
     E --> R[Relay<br/>opaque / untrusted]
     R --> M[Mobile App Signer]
     M --> C[Validation / inspection]
-    C --> U[Confirmation / authentication]
+    C --> U[Confirmation / four gate conditions]
     U --> W[wallet-core]
     W --> M
     M --> R
@@ -503,7 +525,7 @@ Relay は transport metadata と opaque envelope を受け渡し得るが、次�
 - signing target の生成・補完・差し替え
 - signature generation、announce または result の意味的な成功判定
 
-Mobile App は Relay から届いたデータを全て untrusted input として扱い、handoff session、generation、request identity、期限、caller、operation、Account、Chain、Network、target integrity および permission を再検証する。Relay restart、state loss、duplicate、timeout、old generation、late delivery または result unknown は、古い Authorization を復元せず、新しい要求と新しい承認を必要とする。
+Mobile App は Relay から届いたデータを全て untrusted input として扱い、handoff session、generation、request identity、期限、caller、Profile、operation、Account、Chain、Network、target integrity および permission を再検証する。Mobile App trusted host は Authentication、Signing-capable unlock、Profile-bound Account authorization および Explicit user approval の4条件を成立させる Signer-side owner である。Relay restart、state loss、duplicate、timeout、old generation、late delivery または result unknown は、古い Authorization を復元せず、新しい要求と新しい承認を必要とする。
 
 具体的な E2E encryption、Relay API、HTTP endpoint、Redis state、Deep Link / Universal Link / App Link の format は本書では定めない。
 
@@ -513,27 +535,29 @@ Mobile App は Relay から届いたデータを全て untrusted input として
 
 成功結果は、署名 bytes だけでなく、少なくとも次の概念に対応付けて扱う。
 
-- 元 request identity / correlation
+- 元 request identity / correlation と caller / source context
 - operation
 - signer identity / expected signer
-- Account、Chain、Network
+- Profile、Account、Chain、Network および Profile-bound Wallet Core context
 - signature または signed payload
 - transaction、aggregate、parent / multisig identity または message identity
 - target digest、transaction hash、aggregate hash または chain-specific equivalent
+- 署名時に成立した Authentication、Signing-capable unlock、Account authorization および Explicit user approval の4条件と、その approval context
 
-具体的な response field、signed payload format、hash format および API は下位仕様へ委譲する。結果に含まれる情報は、dApp / SDK が元 request と独立検証できる十分な対応関係を持たなければならない。
+具体的な response field、signed payload format、hash format および API は下位仕様へ委譲する。結果に含まれる情報は、dApp / SDK が元 request と独立検証できる十分な対応関係を持たなければならない。Profile および共通ゲート context は Signer 内部で安全に帰属・検証できなければならず、公開 wire field として返すことを本書は要求しない。
 
 ### 20.2 Result validation
 
 Signer は Wallet Core から受け取った結果について、少なくとも次を検証する。
 
 - signature / signed payload が Wallet Core へ渡した target に対応する。
-- signer、Account、Chain、Network、operation が request と一致する。
+- 元 request、caller、Profile、Account、Chain、Network、operation および Profile-bound Wallet Core context が一致する。
 - Aggregate / multisig なら parent、embedded / inner transaction、existing signature / cosignature および target identity が一致する。
 - message signing なら message contents、domain、purpose、nonce、freshness および signed message context が一致する。
 - response correlation が別 request、別 session、別 transport または stale result へ流用されていない。
+- Authentication、Signing-capable unlock、Account authorization および Explicit user approval の4条件と approval context が、署名時に当該 request / target / Profile に対して成立していたことを Signer が安全に帰属・確認できる。
 
-検証不能または `RESULT_UNKNOWN` の場合、成功 result を返さない。`RESULT_UNKNOWN` は署名生成自体の成否不明に限定し、確定済み result の配送失敗は delivery disposition で表す。dApp は Provider / Relay の delivery success だけで署名成功とみなさず、受け取った結果を独立検証する。
+検証不能または `RESULT_UNKNOWN` の場合、成功 result を返さない。結果返却時の signing context が lost、unknown、stale、revoked、locked または mismatch の場合も success とせず、このために新しい署名を行ってはならない。`RESULT_UNKNOWN` は署名生成自体の成否不明に限定し、確定済み result の配送失敗は `DELIVERY_UNKNOWN` の delivery disposition で表す。既知 result の保管・再配送方法および具体 error state は下位仕様へ委譲する。dApp は Provider / Relay の delivery success だけで署名成功とみなさず、受け取った結果を独立検証する。
 
 MosaicLynx は署名後の announce、node 選択または継続的な network state 管理を行わない。
 
@@ -552,24 +576,30 @@ MosaicLynx は署名後の announce、node 選択または継続的な network s
 - `RESULT_UNKNOWN` の後に、同じ署名を自動再実行してはならない。これは署名生成自体の成否不明に限る。確定済み署名の response delivery failure は `DELIVERY_UNKNOWN` として扱い、外部利用者が既存 result を resend / retrieval / lookup できる場合だけ別処理として扱う。
 - request-level expiry と message-level expiry は分けて検証する。どちらか一方が失効した場合も、適用される署名を開始しない。
 - Relay の retry は配送 retry であって署名 retry ではない。Signer が同じ target を再度署名する根拠にしない。
+- user rejection、locked、Authentication failure、Signing-capable unlock failure、Account authorization failure、permission failure、caller mismatch、integrity failure、replay / duplicate failure、semantic inspection failure、Chain / Network mismatch、その他の security-relevant context mismatch または `RESULT_UNKNOWN` の後に、同一要求を別 transport、Provider または Signer route へ自動 fallback して署名を試みない。可用性・transport recovery のために security decision を迂回してはならない。
+- 利用者が明示的に再試行する場合は、fresh user activation、fresh request、fresh validation、fresh Authentication、fresh Signing-capable unlock、fresh Account authorization および fresh Explicit user approval を伴う新しい signing flow とする。過去の request identity、session、Authorization、approval、authentication、ciphertext、target binding を再利用しない。transport 選択順序、Provider discovery および具体的な retry algorithm は下位仕様へ委譲する。
 
 ## 22. Error / Terminal State
 
 具体的な numeric code、JSON schema または wire error は定めず、少なくとも次の意味を区別できる設計にする。
+
+共通署名ゲートの Authentication、Signing-capable unlock、Account authorization および Explicit user approval は独立した必須条件である。いずれかが未成立、locked、unknown、stale、revoked または mismatch の場合は fail-closed とし、署名を開始せず、success result も返さない。下位仕様はこの条件を迂回する error mapping、retry または fallback を定めてはならない。
 
 | 意味                            | 処理                                                                                                                      |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | user rejected                   | 利用者が明示拒否。署名 result を返さず `REJECTED`。                                                                       |
 | invalid request                 | 構造、必須 context または完全性が不正。`FAILED` または下位仕様の invalid terminal。                                       |
 | unsupported                     | operation、Chain、Network、type、version、format または capability が対象外。blind signing や fallback を行わない。       |
-| permission denied               | caller、session、scope または Account の許可範囲不一致。                                                                  |
-| authentication failed           | 署名ごとの認証失敗。署名せず、直前の承認を流用しない。                                                                    |
+| permission denied               | caller、session、scope、Profile または Account の許可範囲不一致。                                                         |
+| Account authorization failed    | 対象 Profile / Chain / Network / Account に対する署名認可の失敗または確認不能。署名せず、古い認可を流用しない。           |
+| authentication failed           | 署名ごとの Authentication の失敗。署名せず、直前の承認を流用しない。                                                      |
+| signing-capable unlock failed   | 署名可能な unlock 条件の失敗または確認不能。署名せず、単なる `UNLOCKED` を代用しない。                                    |
 | expired                         | request、message、transaction または parent context の期限切れ。                                                          |
 | cancelled                       | 利用者、dApp、Signer、platform または transport による取消。                                                              |
 | duplicate / replay detected     | 使用済み、重複または再送を検出。追加署名しない。                                                                          |
 | inspection failed               | parse、validation、semantic inspection または表示不能。blind signing しない。                                             |
 | signing failed                  | Wallet Core または署名 orchestration の非成功。Secret を error に含めない。                                               |
-| transport unavailable / timeout | 受け渡し不能または期限超過。古い Authorization で再開しない。                                                             |
+| transport unavailable / timeout | 受け渡し不能または期限超過。古い Authorization で再開せず、security failure 後に自動 fallback しない。                    |
 | result unknown                  | 署名生成自体の成功・未署名を確定できない。成功として返さず、自動 retry しない。response delivery failure には使用しない。 |
 | internal failure                | その他の安全性不明な内部失敗。Fail-Closed。                                                                               |
 
@@ -579,16 +609,21 @@ MosaicLynx は署名後の announce、node 選択または継続的な network s
 
 1. 利用者が確認できず、Signer 自身が parent を含む全 security-relevant field を再構成・検証・表示できない signing target には署名しない。
 2. 利用者が確認した target と実際の signing target は一致しなければならない。
-3. payload、transaction context、Account、Chain、Network、caller、session、operation、signer、expected signer、承認時の permission context または protocol / capability context が変われば Authorization は失効する。
-4. Relay は署名判断、inspection、承認および signing の信頼主体ではない。
-5. SDK / dApp / Provider の自己申告情報だけで caller を verified としない。
-6. stale、replay、duplicate request を新しい承認として扱わない。
-7. `RESULT_UNKNOWN` は署名生成自体が不明な場合に限定し、同一署名を自動再実行しない。確定済み result の delivery failure では再署名しない。
-8. 一つの Authorization は一つの logical signing target に対する一回の signing decision にだけ使用し、result の resend / lookup を signing operation として扱わない。Wallet Core に渡すのは、再検証済みの承認 target だけとする。
-9. private key / mnemonic を signing request、signing result、transport または diagnostics に露出しない。
-10. unknown transaction、unsupported version、未知 message format を warning だけで blind sign しない。
-11. Symbol / NEM の chain-specific semantics、signing bytes、transaction structure を共通 model で上書きしない。
-12. restart、process recreation、Service Worker restart、Relay state loss または context loss 後に古い Authorization を再利用しない。
+3. Authentication、Signing-capable unlock、対象 Profile / Chain / Network / Account に対する Account authorization および Explicit user approval は独立した4条件であり、すべてが同じ request / target / signing context に対して成立しない限り署名しない。
+4. connection、permission、capability、session、単なる `UNLOCKED`、過去の authentication、wallet-core password / Store validation または Relay delivery success は、共通署名ゲートの代替にならない。Signer は4条件を成立・再確認し、dApp、SDK、Provider、Content Script、Relay および Wallet Core は成立・変更・免除・迂回しない。
+5. payload、transaction context、Profile、Profile Network、Account、Chain、Network、caller、session、operation、signer、expected signer、承認時の permission context または protocol / capability context が変われば Authorization は失効する。
+6. Profile、Profile-bound Account / Key Identity、approval、authentication、signing target、signing および result は、Signer 内部で同じ Profile context に binding する。Profile switch、Profile lock、Profile association change、Account switch、Chain / Network switch、caller context change または relevant permission / session change 後に古い context を流用しない。
+7. Relay は署名判断、inspection、承認および signing の信頼主体ではない。
+8. SDK / dApp / Provider の自己申告情報だけで caller を verified としない。Browser の observed caller / Origin または Mobile trusted host の verified handoff context を最終 authority とする。
+9. 複数の active request は独立した security context として扱う。request identity、caller / source context、session、Profile、Account、Chain / Network、operation、target、semantic inspection、approval、authentication および result / response channel を相互に流用・共有・暗黙統合しない。
+10. stale、replay、duplicate request を新しい承認として扱わない。
+11. `RESULT_UNKNOWN` は署名生成自体が不明な場合に限定し、同一署名を自動再実行しない。確定済み result の delivery failure は `DELIVERY_UNKNOWN` として扱い、再署名しない。
+12. 一つの Authorization は一つの logical signing target に対する一回の signing decision にだけ使用し、result の resend / lookup を signing operation として扱わない。Wallet Core に渡すのは、4条件と Profile binding を再検証した承認 target だけとする。
+13. security failure、user rejection、locked、Authentication / unlock / Account authorization / permission failure、caller / integrity / replay / duplicate / inspection failure、Chain / Network mismatch、security-relevant context mismatch または `RESULT_UNKNOWN` の後に、別 transport、Provider または Signer route へ自動 fallback して署名を試みない。明示的再試行は fresh user activation と新しい request / validation / gate を要求する。
+14. private key / mnemonic を signing request、signing result、transport または diagnostics に露出しない。
+15. unknown transaction、unsupported version、未知 message format を warning だけで blind sign しない。
+16. Symbol / NEM の chain-specific semantics、signing bytes、transaction structure を共通 model で上書きしない。
+17. restart、process recreation、Service Worker restart、Relay state loss または context loss 後に古い Authorization を再利用しない。
 
 ## 24. Chain-specific Boundary
 
@@ -602,9 +637,11 @@ NEM の transaction type / version、multisig wrapper / inner transaction、cosi
 
 ### 24.3 共通化の限界
 
-共通化してよいのは request lifecycle、caller / permission / session binding、Account / Chain / Network binding、approval、authentication、fail-closed、result correlation および dApp への失敗意味である。Chain-specific な parse、semantic inspection、signing target、signing bytes、hash、address、signature semantics、Aggregate / multisig / cosignature の対応範囲は各 Chain integration に残す。
+共通化してよいのは request lifecycle、caller / permission / session / Profile binding、Profile / Account / Chain / Network binding、approval、authentication、fail-closed、result correlation および dApp への失敗意味である。Chain-specific な parse、semantic inspection、signing target、signing bytes、hash、address、signature semantics、Aggregate / multisig / cosignature の対応範囲は各 Chain integration に残す。
 
 ## 25. 下位仕様への引継ぎ
+
+Browser Extension の privileged layer と Mobile App の trusted host が Profile binding と共通署名ゲート4条件の Signer-side owner であり、SDK / Provider / dApp / Content Script / Relay はその条件を成立・変更・免除・迂回しない。Wallet Core は Signer が確認済みの target の raw signing と秘密情報処理を担うが、Application-level の Authentication、Signing-capable unlock、Account authorization または Explicit user approval を担わない。
 
 | 領域               | 本書で固定する安全条件                                                                                                             | 下位仕様へ委譲する事項                                                                                      |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -620,7 +657,8 @@ NEM の transaction type / version、multisig wrapper / inner transaction、cosi
 
 本書は、未決の公開契約をこの基本設計から推測して確定しない。
 
-- `SDK-OPEN-002`、`SDK-OPEN-003`、`SDK-OPEN-004`、`SDK-OPEN-006`、`SDK-OPEN-007`: Aggregate / cosignature の公開範囲、transaction construction、transport、version policy、caller / Origin binding および具体 API。
+- `SDK-OPEN-002`、`SDK-OPEN-003`、`SDK-OPEN-004`、`SDK-OPEN-006`: Aggregate / cosignature の公開範囲、transaction construction、transport、version policy および具体 API。
+- `SDK-OPEN-007`: SDK が caller / Origin context を要求・伝播・correlate する公開契約、correlation の公開契約、transport-specific representation、version および API detail。caller / Origin verification の最終責任は Signer にあり、Browser の privileged context から得た observed caller / Origin または Mobile trusted host が確立した verified handoff context を最終 authority とする。この authority、SDK / Provider / dApp / Relay の自己申告値を trusted caller authority としない境界および SDK が Signer の caller verification を代替しないことは未決ではない。
 - `MR-OPEN-002`、`MR-OPEN-003`、`MR-OPEN-005`、`MR-OPEN-006`: Mobile 受信経路、OS 保護、Binding integration、lifecycle、backup / migration。
 - `CR-OPEN-001`、`CR-OPEN-002`: Wallet Core Binding host integration、秘密 byte lifecycle、OS 保護、error mapping、migration。
 - Aggregate Complete / Bonded、Partial、Symbol cosignature、NEM multisig / cosignature の各 public operation / format / supported scope。共通の安全 model は本書で定めたが、公開 API と対応範囲は Chain / SDK / platform 設計で決定する。
