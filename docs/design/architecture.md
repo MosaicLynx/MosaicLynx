@@ -132,7 +132,7 @@ SDK の API 名、message format、result / error の wire 契約、version poli
 
 Browser Extension は、Chrome 固有の受信、browser context の確認、接続許可、確認 UI、Profile / Account の Application 管理、wallet-core の Binding 利用および署名結果の受け渡しを担う。
 
-Browser Extension の privileged layer は、Browser 経路における共通 Signer gate の owner として、利用者の authentication、signing-capable unlock、対象 Profile / Chain / Network / Account の signing authorization および explicit user approval を成立させ、署名前に再確認する。
+Browser Extension の privileged layer は、Browser 経路における共通署名ゲートの管理主体として、利用者認証、署名可能な unlock、対象 Profile / Chain / Network / Account の署名認可および利用者の明示承認を成立させ、署名前に再確認する。
 
 - `sender`、Origin、tab / frame / document など browser が観測できる要求元 context を最終検証する。
 - Provider / Content Script から受けた外部入力を検証し、許可範囲、現在の Profile / Account、Chain / Network、要求の鮮度・完全性を確認する。
@@ -146,7 +146,7 @@ Manifest V3 Service Worker は routing、検証、UI 起動および Extension l
 
 Mobile App は iOS / Android の host として、外部要求の受信、要求元・handoff の検証、Profile / Account の Application 管理、確認 UI、認証・ロック、OS integration、wallet-core の Binding 利用および署名結果の返却を担う。
 
-Mobile App は、Mobile 経路における共通 Signer gate の owner として、利用者の authentication、signing-capable unlock、対象 Profile / Chain / Network / Account の signing authorization および explicit user approval を成立させ、署名前に再確認する。
+Mobile App は、Mobile 経路における共通署名ゲートの管理主体として、利用者認証、署名可能な unlock、対象 Profile / Chain / Network / Account の署名認可および利用者の明示承認を成立させ、署名前に再確認する。
 
 - Browser Extension と UI 実装を共有することを前提にしない。共通化するのは domain、request model、署名 policy、結果・失敗の意味および wallet-core 境界である。
 - Deep Link、Intent、通知、Relay metadata などの外部受け渡し情報を、署名承認の唯一の根拠にしない。
@@ -207,18 +207,18 @@ MosaicLynx が担う責任:
 
 Wallet Core の Profile / Software Key と MosaicLynx Application の Profile / Account の対応、各 host から固定済み Binding を利用する adapter / integration、React Native 連携、OS 保護との組み合わせ、秘密 byte の一時 lifecycle、エラー対応および移行手順は、`CR-OPEN-001` / `CR-OPEN-002` と wallet-core の外部契約に従って後続設計で定める。wallet-core の v1 Binding 方式自体を変更する場合は、先に `_snwc` の決定記録と仕様書を更新する。
 
-### 6.9 共通 Signer gate / Security Invariant
+### 6.9 共通署名ゲート / セキュリティ不変条件
 
-Browser Extension の privileged layer と Mobile App の trusted host は、共通 Signer として、wallet-core の署名処理へ進む前に、対象の signing request、signing target、Profile、Account、Chain および Network に対して、次の4条件をすべて成立させる。この gate は個別 platform の UI 詳細ではなく、Signer を利用する全実行経路に共通する Architecture-level の成立条件である。
+Browser Extension の privileged layer と Mobile App の trusted host は、共通 Signer として、wallet-core の署名処理へ進む前に、対象の署名要求、署名対象、Profile、Account、Chain および Network に対して、次の4条件をすべて成立させる。このゲートは個別 platform の UI 詳細ではなく、Signer を利用する全実行経路に共通するアーキテクチャレベルの成立条件である。
 
-1. **Authentication**: 現在の利用者または操作主体が認証済みであること。
-2. **Signing-capable unlock**: 単なるアプリ利用可能状態ではなく、署名能力を利用可能にする適切な unlock 条件が成立していること。
-3. **Account authorization**: 対象 Profile / Chain / Network context において、対象の署名要求で選択された Account を利用する権限が確認されていること。
-4. **Explicit user approval**: 利用者が署名対象の内容を確認し、当該署名要求を明示的に承認していること。
+1. **利用者認証（Authentication）**: 現在の利用者または操作主体が認証済みであること。
+2. **署名可能な unlock（Signing-capable unlock）**: 単なるアプリ利用可能状態ではなく、署名能力を利用可能にする適切な unlock 条件が成立していること。
+3. **Account 利用認可（Account authorization）**: 対象 Profile / Chain / Network の文脈において、対象の署名要求で選択された Account を利用する権限が確認されていること。
+4. **利用者の明示承認（Explicit user approval）**: 利用者が署名対象の内容を確認し、当該署名要求を明示的に承認していること。
 
-4条件のいずれかが未成立、locked、unknown、stale、失効または不整合である場合、Signer は署名を開始せず、署名結果を成功として返さない。署名前の再確認、要求・context の lifecycle 失効および結果返却にもこの gate と対象 binding を適用する。connection / permission、単なるアプリ利用可能状態、過去の認証、非署名用の unlock または wallet-core の password / Store 処理の成功だけで、この gate を代替してはならない。
+4条件のいずれかが未成立、locked、unknown、stale、失効または不整合である場合、Signer は署名を開始せず、署名結果を成功として返さない。署名前の再確認、要求・文脈の lifecycle 失効および結果返却にもこのゲートと対象 binding を適用する。connection / permission、単なるアプリ利用可能状態、過去の認証、非署名用の unlock または wallet-core の password / Store 処理の成功だけで、このゲートを代替してはならない。
 
-共通 gate の成立と再確認は Browser Extension の privileged layer または Mobile App の trusted host の責任であり、downstream component が迂回できない。dApp、SDK および Relay は、この gate を成立・更新・免除する authority を持たない。`wallet-core` は Wallet Store、秘密情報処理および raw signing の正本であるが、UI による explicit approval または Application-level の authentication、signing-capable unlock、Account authorization を担わない。認証方式、unlock の実装方式、Account authorization の具体的な構造および UI は下位設計へ委譲するが、fail-closed の共通条件を弱めてはならない。
+共通ゲートの成立と再確認は Browser Extension の privileged layer または Mobile App の trusted host の責任であり、下流コンポーネントが迂回できない。dApp、SDK および Relay は、このゲートを成立・更新・免除する権限を持たない。`wallet-core` は Wallet Store、秘密情報処理および raw signing の正本であるが、UI による利用者の明示承認または Application-level の利用者認証、署名可能な unlock、Account 利用認可を担わない。認証方式、unlock の実装方式、Account 利用認可の具体的な構造および UI は下位設計へ委譲するが、fail-closed の共通条件を弱めてはならない。
 
 ## 7. 依存方向
 
@@ -282,8 +282,8 @@ wallet-core ──> its own Rust implementation and chain compatibility contract
 │ Extension privileged layer / Mobile App                          │
 │ - caller・session・permission・request integrity                  │
 │ - Chain / Network / Account 整合性                                │
-│ - authentication・signing-capable unlock・Account authorization   │
-│   ・explicit user approval の共通 Signer gate                      │
+│ - 利用者認証・署名可能な unlock・Account 利用認可                  │
+│   ・利用者の明示承認による共通署名ゲート                            │
 │ - semantic inspection・display・explicit approval                  │
 │ - lifecycle・result correlation・safe failure                      │
 └──────────────────────────────┬───────────────────────────────────┘
@@ -317,10 +317,10 @@ Web page、Provider、Content Script および Relay は、署名可否を決め
 3. Browser Extension または Mobile App が、要求元・接続・session・Permission、要求の完全性・鮮度・重複、Chain / Network / Account を検証する。
 4. Signer 側の chain-specific integration が、transaction / message を対象範囲内として完全に解析・表示可能か検証する。理解できない、未対応、表示できない、改ざんされた要求は署名しない。
 5. Signer が管理する確認領域で、利用者が署名対象、Chain、Network、Account、確認可能な影響を確認し、要求ごとに明示的に承認または拒否する。
-6. Signer が共通 Signer gate を適用し、authentication、signing-capable unlock、対象 Account の signing authorization および当該要求への explicit user approval がすべて成立していることを、署名前に再確認する。いずれかが確認できなければ署名しない。
+6. Signer が共通署名ゲートを適用し、利用者認証、署名可能な unlock、対象 Profile / Chain / Network における Account 利用認可および当該要求への利用者の明示承認がすべて成立していることを、署名前に再確認する。いずれかが確認できなければ署名しない。
 7. 承認された元要求と実際の raw payload、signer、Account、Chain、Network の対応を再確認する。
 8. Signer が wallet-core の契約を使って approved raw bytes に署名する。MosaicLynx 側は private key、KDF、AEAD、raw signature algorithm を実行しない。
-9. Signer が署名結果と元要求の対応、および署名時に成立した共通 Signer gate の context を確認し、確認不能な場合は成功結果を返さず、SDK を通じて安全側の結果を返す。Relay を使う場合、Relay は結果を生成・変更せずに中継する。
+9. Signer が署名結果と元要求の対応、および署名時に成立した共通署名ゲートの文脈を確認し、確認不能な場合は成功結果を返さず、SDK を通じて安全側の結果を返す。Relay を使う場合、Relay は結果を生成・変更せずに中継する。
 10. dApp が署名結果を独立して検証し、必要な node 処理や announce を自ら行う。
 
 ## 11. Browser Extension の詳細境界
@@ -378,7 +378,7 @@ MosaicLynx は node 接続、REST / WebSocket、node 選択、残高・履歴取
 
 - 外部入力、要求、結果、handoff metadata、Wallet Store および Binding の戻り値を検証し、検証不能な場合は fail closed にする。
 - Secret、password、復号済み Store、session secret および transport credential をエラー、ログ、warning、診断情報、analytics、telemetry、URL、通知へ含めない。
-- 利用者の承認前、authentication、signing-capable unlock、Account authorization または explicit user approval のいずれかが未成立のとき、または要求内容の変更後、要求元 context の変更後、期限切れ・replay・duplicate・result unknown の状態では署名しない。
+- 利用者の承認前、利用者認証、署名可能な unlock、Account 利用認可または利用者の明示承認のいずれかが未成立のとき、または要求内容の変更後、要求元文脈の変更後、期限切れ・replay・duplicate・result unknown の状態では署名しない。
 - Provider、SDK、Relay、外部アプリケーションによる self-reported Origin、Account、Chain、Network または表示文言を、検証済み情報として無条件に採用しない。
 - Mainnet capability は、適用される release evidence / policy を満たした場合だけ有効化する。判定不能や evidence 不足で fail-open にしない。
 - Browser Extension の software signer、Mobile の OS 保護、wallet-core の保証範囲を混同せず、hardware wallet、cold wallet、custody 相当の保証を表示しない。
@@ -398,21 +398,21 @@ MosaicLynx は node 接続、REST / WebSocket、node 選択、残高・履歴取
 
 ### 17.1 責務・不変条件・下流引継ぎの追跡
 
-Architecture で定める責務、不変条件および未決事項は、次の authoritative な下流 Design / Specification が詳細化する。Owner は各責務を実行または成立させる主体を示し、委譲境界を越えて Architecture の責任分界を再定義してはならない。
+Architecture で定める責務、不変条件および未決事項は、次の正本となる下流設計 / 仕様が詳細化する。責任主体は各責務を実行または成立させる主体を示し、委譲境界を越えて Architecture の責任分界を再定義してはならない。
 
-| Architecture の責務・不変条件・未決事項                                                                                                                                  | Authoritative downstream Design / Specification                                    | Owner                                                                  | Architecture から委譲する境界                                                                                                                               |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 共通 Security / Trust Boundary、secret isolation、fail-closed、共通 Signer gate（Authentication、signing-capable unlock、Account authorization、explicit user approval） | [共通セキュリティ設計](./security-design.md) §5、§7–§8、§15、§17                   | Signer（Browser Extension privileged layer / Mobile App trusted host） | 認証方式、unlock 方式、credential 保存、UI 詳細。wallet-core は UI approval と Application-level authentication / authorization を担わない                  |
-| 署名 request lifecycle、approval / target binding、署名前再検証、stale / lifecycle / result unknown の扱い                                                               | [署名フロー基本設計](./signing-flow.md) §7–§8、§16、§23                            | Signer（Browser Extension / Mobile App）                               | API、wire contract、具体的 state transition、retry / error contract                                                                                         |
-| request / response の概念モデル、境界ごとの validation、correlation および result responsibility                                                                         | [共通データモデル・インターフェース基本設計](./interfaces.md) §4、§7–§9、§11       | 各境界の実装主体（SDK、Signer、Relay、wallet-core）                    | API、schema、DTO、encoding、error catalogue                                                                                                                 |
-| Browser caller context、Permission、trusted UI、Browser lifecycle、Signer gate の Browser 適用                                                                           | [Browser Extension 基本設計](./browser-extension.md) §4、§6、§8、§10–§12、§20–§24  | Browser Extension privileged layer                                     | Chrome API、message、Storage、UI layout、具体的 lock / unlock および lifecycle 実装                                                                         |
-| Mobile external handoff、device / App authentication、Profile / Account、trusted UI、OS lifecycle、Signer gate の Mobile 適用（`MR-OPEN-002` / `003` / `005` / `006`）   | [Mobile App 基本設計](./mobile-app.md) §4、§6、§10、§12、§15–§18、§24–§28          | Mobile App trusted host                                                | OS API、handoff 方式、credential、screen / UI、具体的 lifecycle、Binding host integration                                                                   |
-| Relay の opaque transport、structural validation、short-lived state、stale / duplicate / state loss の安全側処理（`RR-OPEN-001` / `002`）                                | [Relay 基本設計](./relay.md) §3、§5、§7–§12、§25–§32                               | Relay service                                                          | HTTP / Redis、TTL、session / generation、認証形式、storage、rate limit および wire protocol                                                                 |
-| dApp-side の非特権 integration、request construction、correlation、transport abstraction、Signer gate の非代替（`SDK-OPEN-002` / `003` / `004` / `006` / `007`）         | [SDK 基本設計](./sdk.md) §4、§6、§11–§18、§22–§25                                  | SDK / dApp-side integration layer                                      | API、wire format、transport 選択、caller binding、version policy、retry / error details                                                                     |
-| Symbol / NEM および Mainnet / Testnet の分離、chain-specific inspection、対応 type / version、署名対象 bytes                                                             | [Chain Compatibility Specification](../specifications/chain-compatibility-spec.md) | Chain-specific integration と wallet-core 契約                         | schema、type / version の具体範囲、serialization、hash / signature bytes、fixture および parser 詳細                                                        |
-| Application Profile / Account の関連付け、署名 Account authorization、Profile 全体 backup / restore の共通非包含、`CR-OPEN-001` / `002` の Profile / Account 対応        | [Profile / Account 仕様](../specifications/profile-account-spec.md)                | MosaicLynx Application（host が適用）                                  | permission 構造、backup / restore、migration、opaque Store の具体形式および platform ごとの提供範囲                                                         |
-| Wallet Store、鍵管理、秘密情報処理、raw signing および固定済み v1 Binding（`CR-OPEN-001` / `002` の host integration を除く）                                            | [`wallet-core` 外部仕様](../../_snwc/docs/specifications/specification.md)         | `wallet-core`（secret processing） / host adapter（integration）       | Rust / Binding API、cryptography、key derivation、temporary secret lifecycle、ownership、error mapping。固定済み Binding 方式を Architecture で再選択しない |
-| Mainnet capability、release evidence、evidence 不足時の fail-closed                                                                                                      | [Mainnet release evidence](../release/mainnet-release-evidence.md)                 | Release / Operation と `packages/release-evidence`                     | evidence の収集・署名・trusted key・build embedding・runtime enforcement の運用詳細                                                                         |
+| Architecture の責務・不変条件・未決事項                                                                                                                    | 正本となる下流設計 / 仕様                                                          | 責任主体                                                                     | Architecture から委譲する境界                                                                                                                 |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| 共通セキュリティ / Trust Boundary、秘密情報分離、fail-closed、共通署名ゲート（利用者認証、署名可能な unlock、Account 利用認可、利用者の明示承認）          | [共通セキュリティ設計](./security-design.md) §5、§7–§8、§15、§17                   | Signer（Browser Extension の privileged layer / Mobile App の trusted host） | 認証方式、unlock 方式、credential 保存、UI 詳細。wallet-core は利用者の明示承認と Application-level の利用者認証 / 認可を担わない             |
+| 署名要求の lifecycle、承認 / 対象 binding、署名前再検証、stale / lifecycle / result unknown の扱い                                                         | [署名フロー基本設計](./signing-flow.md) §7–§8、§16、§23                            | Signer（Browser Extension / Mobile App）                                     | API、wire 契約、具体的な状態遷移、再試行 / エラー契約                                                                                         |
+| 要求 / 結果の概念モデル、境界ごとの検証、対応付けおよび結果の責任                                                                                          | [共通データモデル・インターフェース基本設計](./interfaces.md) §4、§7–§9、§11       | 各境界の実装主体（SDK、Signer、Relay、wallet-core）                          | API、schema、DTO、encoding、エラー一覧                                                                                                        |
+| Browser の要求元文脈、Permission、trusted UI、Browser lifecycle、共通署名ゲートの Browser 適用                                                             | [Browser Extension 基本設計](./browser-extension.md) §4、§6、§8、§10–§12、§20–§24  | Browser Extension の privileged layer                                        | Chrome API、message、Storage、UI layout、具体的な lock / unlock および lifecycle 実装                                                         |
+| Mobile の外部 handoff、端末 / App 認証、Profile / Account、trusted UI、OS lifecycle、共通署名ゲートの Mobile 適用（`MR-OPEN-002` / `003` / `005` / `006`） | [Mobile App 基本設計](./mobile-app.md) §4、§6、§10、§12、§15–§18、§24–§28          | Mobile App の trusted host                                                   | OS API、handoff 方式、credential、画面 / UI、具体的な lifecycle、Binding の host 連携                                                         |
+| Relay の opaque transport、構造検証、短期状態、stale / duplicate / state loss の安全側処理（`RR-OPEN-001` / `002`）                                        | [Relay 基本設計](./relay.md) §3、§5、§7–§12、§25–§32                               | Relay サービス                                                               | HTTP / Redis、TTL、session / generation、認証形式、storage、rate limit および wire protocol                                                   |
+| dApp 側の非特権連携、要求構築、対応付け、transport abstraction、共通署名ゲートの非代替（`SDK-OPEN-002` / `003` / `004` / `006` / `007`）                   | [SDK 基本設計](./sdk.md) §4、§6、§11–§18、§22–§25                                  | SDK / dApp 側の連携層                                                        | API、wire format、transport 選択、caller binding、version policy、再試行 / エラー詳細                                                         |
+| Symbol / NEM および Mainnet / Testnet の分離、チェーン固有 inspection、対応 type / version、署名対象 bytes                                                 | [Chain Compatibility Specification](../specifications/chain-compatibility-spec.md) | チェーン固有 integration と wallet-core 契約                                 | schema、type / version の具体範囲、serialization、hash / signature bytes、fixture および parser 詳細                                          |
+| Application の Profile / Account 関連付け、署名 Account 利用認可、Profile 全体 backup / restore の共通非包含                                               | [Profile / Account 仕様](../specifications/profile-account-spec.md)                | MosaicLynx Application（host が適用）                                        | permission 構造、backup / restore、migration、opaque Store の具体形式および platform ごとの提供範囲                                           |
+| Wallet Store、鍵管理、秘密情報処理、raw signing および固定済み v1 Binding（`CR-OPEN-001` / `002` の host integration を除く）                              | [`wallet-core` 外部仕様](../../_snwc/docs/specifications/specification.md)         | `wallet-core`（秘密情報処理） / host adapter（連携）                         | Rust / Binding API、暗号処理、鍵導出、秘密情報の一時 lifecycle、ownership、error mapping。固定済み Binding 方式を Architecture で再選択しない |
+| Mainnet capability、release evidence、evidence 不足時の fail-closed                                                                                        | [Mainnet release evidence](../release/mainnet-release-evidence.md)                 | Release / Operation と `packages/release-evidence`                           | evidence の収集・署名・信頼鍵・build embedding・runtime enforcement の運用詳細                                                                |
 
 ## 18. 関連資料
 
