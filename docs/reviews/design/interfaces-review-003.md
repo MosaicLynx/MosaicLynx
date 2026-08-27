@@ -315,7 +315,7 @@ requestId や transport session の相関だけを実装した場合、別 reque
 
 - Prettier / Markdown format: `pnpm exec prettier --write docs/reviews/design/interfaces-review-003.md` と `pnpm exec prettier --check docs/reviews/design/interfaces-review-003.md` — `PASS`。
 - Git whitespace: `git diff --check` および staged artifact に対する `git diff --cached --check` — `PASS`。
-- Markdown link: review artifact 内の相対リンク 36件を存在確認 — `PASS`。
+- Markdown link: review artifact 内の相対リンク 38件を存在確認 — `PASS`。
 - Finding ID duplicate: `DR-001`〜`DR-005` と過去 `IF-001`〜`IF-003` の重複および finding heading の重複なし — `PASS`。
 - Review section order: 17章が指定順序で存在 — `PASS`。
 - Review Gate / finding status consistency: `REVISE DESIGN`、Critical 3件 / Major 2件 / Minor 0件、Required Changes、gate failure の対応を確認 — `PASS`。
