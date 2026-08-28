@@ -184,7 +184,7 @@ button.addEventListener('click', async () => {
 - 現行 Mobile handoff の `appToken` は Relay endpoint authorization credential であり、session secret、request / response encryption key または derived encryption material ではない。SDK の公開 API へ raw credential を含めない。
 - `payload`はsymbol-sdkが生成したlowercase / uppercaseいずれかの偶数長hexadecimalを受け付け、内部検証前に大文字小文字以外を変換しない。decoded byte lengthは256 KiB以下とする。
 - `expectedSignerPublicKey` は任意とする。指定された場合は chain の形式へ正規化した後、実際の signer public key との完全一致を必須とする。不一致は `SIGNER_MISMATCH` とし、署名結果を返さない。
-- `expectedSignerPublicKey` がない場合、Extension は接続許可されたアクティブアカウント、Mobile App は承認画面でユーザーが選択したアカウントを使用する。
+- `expectedSignerPublicKey` がない場合、Extension の trusted Signer は接続許可された current active Account / Profile-local context から対象を解決し、Mobile App は承認画面でユーザーが選択した公開 Account identity を使用する。SDK / page は internal selector を生成・送信しない。
 - `signData()` は既存の公開 `MosaicLynxSignDataParams`（`chain`、`network`、`purpose`、`data`、任意の `expectedSignerPublicKey`）を受け取り、`MosaicLynxSigningResult<SignedData>` を返す。SDK が生成する nonce と有効期限を含む structured message を、既存の `RelayDataSigningRequest` の request payload として handoff する。ここでいう request payload は既存の論理要求の表現であり、新しい message signing wire schema を追加しない。
 - `connect()`は指定scopeのアクティブAccount公開Identityだけを返す。内部account IDとprofile IDは返さない。
 - `isConnected()`は承認UIを開かず、Extensionの現在値またはOrigin単位で保存したMobile公開Identityを確認する。
@@ -267,13 +267,14 @@ MosaicLynx SDKは接続、更新、切断、各署名ごとに次の順序でtra
 
 Extension Adapterは次の処理をMosaicLynx SDK内部で行う。
 
-1. SDKの接続、active account更新、切断をProviderへ委譲し、公開Identityへ射影する。
-2. 署名時に`getAccounts()`で要求scopeの接続済みアカウントを確認し、存在しなければ`NOT_CONNECTED`を返す。
-3. `expectedSignerPublicKey` がある場合、許可済みアカウントから一致する `accountId` を特定する。一致しなければ `SIGNER_MISMATCH` とする。
-4. Provider の `signTransaction({ chain, network, payload, accountId })` を呼ぶ。
-5. 結果payloadを固定版symbol-sdkのSymbol / NEM TransactionFactoryでdeserializeし、Facadeの`verifyTransaction()` / `hashTransaction()`でsigner、signature、hash、元要求との対応を検証して、公開 `MosaicLynxSigningResult<SignedTransaction>` の succeeded branch を返す。Signer-originated `RESULT_UNKNOWN` は同じ公開型の resultUnknown branch へ対応付け、SDK adapter は生成しない。
+1. SDKの接続、active account更新、切断をProviderへ委譲し、page-facing の `PublicAccountIdentity` へ射影する。Provider の内部 Account record、`accountId`、`profileId`、Wallet Store ID、key slot または opaque internal handle は公開 identity に含めず、SDK / page-facing Provider 間で受け渡さない。
+2. 署名時に`getAccounts()`で要求scopeの公開 Account identity と current permission / active Account を確認し、接続された対象を解決できなければ`NOT_CONNECTED`または既存の Handoff §10 mapping に従う。`getAccounts()` の公開値から internal Account selector を取得・生成しない。
+3. `expectedSignerPublicKey` がある場合、SDK / Adapter は公開 Account identity の `publicKey` と照合する。一致しなければ `SIGNER_MISMATCH` とし、internal Account ID を特定・返却しない。Provider へ渡す signer expectation は、公開 contract にある `expectedSignerPublicKey` とし、internal selector ではない。
+4. `expectedSignerPublicKey` がある場合はその公開 signer expectation を Provider の signing request に渡す。ない場合は `expectedSignerPublicKey` を省略し、Provider / privileged host / trusted Signer が既存の current permission、Profile-local context、active Account および必要な trusted UI に従って internal Account Reference を解決する。Provider の公開 signing request は `chain`、`network`、`payload` および任意の `expectedSignerPublicKey` の意味に従い、`accountId`、`profileId` または opaque internal handle を渡さない。SDK / page は internal selector を生成しない。
+5. Provider から取得する logical signing result は、known result なら signing outcome `SUCCEEDED`、signed result および Signer-originated `deliveryDisposition`（`PENDING`、`DELIVERED` または `DELIVERY_UNKNOWN`）を保持する。結果payloadを固定版symbol-sdkのSymbol / NEM TransactionFactoryでdeserializeし、Facadeの`verifyTransaction()` / `hashTransaction()`でsigner、signature、hash、元要求との対応を検証したうえで、同じ signed result と disposition を公開 `MosaicLynxSigningResult<SignedTransaction>` の `outcome: 'succeeded'` branch へ意味不変に渡す。
+6. Provider が Signer-originated `RESULT_UNKNOWN` を返す場合、SDK Adapter は signed result、deliveryDisposition および normal errorCode を付けず、公開 `MosaicLynxSigningResult<SignedTransaction>` の `outcome: 'resultUnknown'` branch へ意味不変に対応付ける。SDK Adapter、Provider、Promise settlement、page delivery および transport は `RESULT_UNKNOWN`、`PENDING`、`DELIVERED` または `DELIVERY_UNKNOWN` を生成、推測または書き換えない。bare な `SignedTransaction` / `SignedMessage` だけを返してこれらを区別できない Provider shape は、本節の normative contract ではない。
 
-接続承認と署名承認は統合せず、Provider の別々のユーザー確認として維持する。Provider の error は 10 章の共通 error へ変換する。
+接続承認と署名承認は統合せず、Provider の別々のユーザー確認として維持する。Provider の error は 10 章の共通 error へ変換し、Provider / privileged RPC 固有 code を SDK public error code として追加しない。
 
 ### 6.2 Mobile Relay Adapter
 

@@ -91,7 +91,7 @@ Provider の page-facing global name は `window.mosaicLynx` とする。Provide
 
 以下は SDK の public API ではなく、Web page と Extension の Provider boundary の契約である。SDK の `connect()`、`signTransaction()`、`signData()` 等は [sdk.md](./sdk.md) の責任範囲で Provider を利用し、Provider が SDK の代替 authority になることはない。
 
-Provider は既存 `@mosaiclynx/provider-api` / Handoff contract の次の operation を提供可能な範囲で公開する。
+Provider は、[interfaces.md](./interfaces.md)、[sdk.md](./sdk.md)、[web-transaction-handoff-spec.md](./web-transaction-handoff-spec.md) および本書の整合した page-facing public operation semantics を、実装で提供可能な範囲で公開する。現行 `@mosaiclynx/provider-api` の operation shape は implementation evidence であり、公開 field / result の authority ではない。公開 operation の詳細は §5.2 に従い、新しい method、event または field を追加しない。
 
 | Provider method / event                                   | 意味                                                                                                                                                                              |
 | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -106,11 +106,11 @@ Provider は既存 `@mosaiclynx/provider-api` / Handoff contract の次の opera
 
 Provider の既存 event 名は `accountsChanged` と `disconnect` である。`accountsChanged` は page に開示可能な Account projection が変更、無効化または接続 scope から外れたことを通知し、内部 Account / Profile ID、secret、permission detail または signing outcome を含めない。`disconnect` は connection context の終了・revoke・喪失を通知し、署名が未実行だったこと、署名が失敗したことまたは結果が存在しないことを表明しない。
 
-Provider の exact JSON / RPC envelope、wire serialization、listener delivery、Provider software version の許容範囲および capability advertisement の exact field は既存 Provider API / Handoff contract に従う。本書は新しい Provider method、event、field または API version を追加しない。
+Provider の exact JSON / RPC envelope、wire serialization、listener delivery、Provider software version の許容範囲および capability advertisement の exact field は、上記の整合した公開契約を実装へ対応付ける下流 implementation boundary の責任とする。内部表現の差分を page-facing public contract の authority にせず、新しい Provider method、event、field または API version を追加しない。
 
 ### 5.2 Provider operation shape
 
-Provider の TypeScript method / result shape は既存 `@mosaiclynx/provider-api` contract を使用し、本書で別の public interface を定義しない。実装が満たす論理的な入出力は次のとおりである。
+Provider の page-facing TypeScript method / result shape の normative authority は、[interfaces.md](./interfaces.md)、[sdk.md](./sdk.md)、[web-transaction-handoff-spec.md](./web-transaction-handoff-spec.md) および本書の整合した公開契約である。現行 `@mosaiclynx/provider-api` の TypeScript shape は implementation evidence にとどまり、そのまま page-facing normative contract として使用しない。現行 package の `MosaicAccount.id`、`MosaicAccount.profileId`、signing params の `accountId`、bare な signed result との差分は downstream Implementation synchronization の対象であり、本書は既存実装に合わせて internal ID、internal selector または旧 result shape を復活させない。実装が満たす論理的な入出力は次のとおりである。
 
 | operation           | input                                                                                                 | successful result                                                                                                                  |
 | ------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
