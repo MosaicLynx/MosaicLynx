@@ -40,13 +40,13 @@ MosaicLynx v1 の Signer は transaction signing と message signing を共通�
 - [Signing Flow 基本設計](../design/signing-flow.md): signing lifecycle、authorization、target binding、Aggregate / cosignature / Partial、result disposition および責任境界。
 - [共通 Interface / Data Model Specification](./interfaces.md): 共通 identifier、request / response、Account、Scope、Origin、Permission、message model、error、serialization、validation および state 表現。
 - [共通 Interface / Data Model 基本設計](../design/interfaces.md): 共通 model の設計意図と責任境界。
-- [共通 Security Design](../design/security-design.md): Trust Boundary、explicit approval、authentication、replay protection、secret isolation および fail-closed。
+- [共通 Security Design](../design/security-design.md): Trust Boundary、共通4条件、replay protection、secret isolation および fail-closed。
 
 ### 3.2 関連仕様・要件
 
 - [共通要件](../requirements/requirements.md): `CR-001`〜`CR-012`、`CR-007-TX`、`CR-007-MSG` および共通受け入れ条件。
 - [SDK 要件](../requirements/sdk.md): `SDK-FR-006`、`SDK-FR-007`、`SDK-SEC-005`〜`SDK-SEC-006` および `SDK-OPEN-*`。
-- [Browser Extension 要件](../requirements/browser-extension.md): Browser Signer の caller、approval、authentication および lifecycle 要件。
+- [Browser Extension 要件](../requirements/browser-extension.md): Browser Signer の caller、4条件および lifecycle 要件。
 - [Mobile App 要件](../requirements/mobile-app.md): Mobile Signer の外部要求、認証および lifecycle 要件。
 - [Relay 要件](../requirements/relay.md): opaque / untrusted delivery、generation、replay、state loss および責任境界。
 - [Product Specification](./product-spec.md): v1 の transaction allowlist、message signing、confirmation 要件および acceptance criteria。
@@ -54,7 +54,7 @@ MosaicLynx v1 の Signer は transaction signing と message signing を共通�
 - [Chain Compatibility Specification](./chain-compatibility-spec.md): Symbol / NEM の transaction、canonicality、署名 byte、hash および fixed vector。
 - [Profile / Account Specification](./profile-account-spec.md): Profile、Account、lock、`every-signature` Authentication および unlock と signing authentication の分離。
 
-レビュー資料は上流の要求または設計を置き換えない。Signing Flow の状態、Aggregate / cosignature / Partial、authorization binding および result disposition は [Signing Flow Design Review](../reviews/design/signing-flow-review-002.md) が `READY` と確認した範囲を引き継ぐ。
+Signing Flow の lifecycle、authorization binding、Aggregate / cosignature / Partial、result disposition および責任境界は [Signing Flow 基本設計](../design/signing-flow.md) を正本とする。レビュー成果物は整合性確認および履歴としてのみ扱い、Requirements / Design を置き換えない。
 
 ## 4. 用語
 
@@ -174,7 +174,7 @@ REJECTED | FAILED | EXPIRED | CANCELLED | INVALIDATED | RESULT_UNKNOWN
 | `SIGNING`        | 4条件と Profile-local context を含む全 binding を再検証済みの target を wallet-core の signing contract に渡している状態                                                                                                                                                                   | 同じ operation の自動再実行不可      |
 | `SUCCEEDED`      | 4条件が成立した同一 Profile-local context において、wallet-core result と request、target、signer、Profile / Account、Chain / Network、operation、request correlation の対応を検証済み                                                                                                     | 署名済み。再署名不可                 |
 | `REJECTED`       | 利用者が明示的に拒否した終端状態                                                                                                                                                                                                                                                           | 署名 result なし                     |
-| `FAILED`         | validation、unsupported、inspection、authentication、wallet-core または内部処理の失敗が確定した終端状態                                                                                                                                                                                    | 署名 result を成功として返さない     |
+| `FAILED`         | validation、unsupported、inspection、Authentication、Signing-capable unlock、Account authorization、wallet-core または内部処理の失敗が確定した終端状態                                                                                                                                     | 署名 result を成功として返さない     |
 | `EXPIRED`        | request または適用される message / transaction / parent context の期限切れ                                                                                                                                                                                                                 | 署名不可                             |
 | `CANCELLED`      | 利用者、dApp、Signer、platform または transport が処理を取り消した終端状態                                                                                                                                                                                                                 | 署名不可                             |
 | `INVALIDATED`    | context、target、承認、session、lifecycle または完全性が変化し、継続できない終端状態                                                                                                                                                                                                       | 署名不可                             |
@@ -271,7 +271,7 @@ request expiry、message expiry、transaction / parent context の expiry、sess
 - structured message の `issuedAt`、message expiry および request expiry は、[interfaces.md §9.4](./interfaces.md) の検証規則に従う。field 名の不一致は §24 の OPEN-001 として扱う。
 - expiry 到達後に、UI の再表示、transport retry または process 復旧だけで `AUTHORIZED` / `SIGNING` に戻してはならない。`SIGNING` 開始後の expiry は署名が未実行である根拠にはならず、wallet-core の結果が確定しない場合は `RESULT_UNKNOWN` とする。
 
-## 8. Approval / Authentication / Signing 境界
+## 8. Approval、Authentication および4条件の Signing 境界
 
 ### 8.1 独立した事実
 
@@ -346,7 +346,7 @@ Signer は次の順で target を扱う。
 1. request payload の形式、size、encoding および integrity を検証する。
 2. 対象 Chain / operation の contract で target 全体を parse / validate する。
 3. target から confirmation model と target identity / digest を導出する。
-4. 利用者の approval / authentication を当該 target に binding する。
+4. Authentication、Signing-capable unlock、Account authorization および Explicit user approval の4条件を、当該 request / target / Profile-local security context に binding する。
 5. 署名直前に target を再取得・再解析し、承認時の target と byte / semantic level で一致させる。
 6. 一致した target だけを wallet-core の既存 signing contract へ渡す。
 
@@ -372,7 +372,7 @@ confirmation 後に次のいずれかが変化した場合、既存 Authorizatio
 - requestId、session、Origin、permission revision、capability、protocol version、expiry
 - existing signature / cosignature、parent hash、transactions hash、canonical serialization または inspection result
 
-Signer は変更後の target を古い confirmation に対して署名してはならない。再開する場合は、下位 lifecycle contract が許可する新しい request identity、新しい inspection、明示 approval および署名ごとの authentication を必要とする。
+Signer は変更後の target を古い confirmation に対して署名してはならない。再開する場合は、下位 lifecycle contract が許可する新しい signing operation として、new request identity、fresh caller / source context、fresh Profile-local context、fresh permission / Account / Chain / Network binding、fresh inspection、fresh Authentication、fresh Signing-capable unlock、fresh Account authorization、fresh Explicit user approval および fresh pre-sign validation をすべて成立させなければならない。古い approval、Authentication、unlock、Account authorization、Authorization または target binding を再利用してはならない。wire schema や API は本書で追加しない。
 
 ## 10. Transaction Signing
 
@@ -580,6 +580,8 @@ success result の具体的 field、signature encoding、hash および response
 | Origin、session、permission、Account、Chain / Network または signer 不一致 | `permission_denied` または既存 mismatch category               | `FAILED` または `INVALIDATED` | 返さない                       |
 | 利用者の明示拒否                                                           | `user_rejected`                                                | `REJECTED`                    | 返さない                       |
 | 署名ごとの authentication 失敗                                             | `authentication_failed`                                        | `FAILED`                      | 返さない                       |
+| Signing-capable unlock 失敗または確認不能                                  | 既存 Interfaces / Handoff authority の category に従う         | `FAILED` または `INVALIDATED` | 返さない                       |
+| Account authorization 失敗または確認不能                                   | 既存 Interfaces / Handoff authority の category に従う         | `FAILED` または `INVALIDATED` | 返さない                       |
 | request、message、transaction または parent expiry                         | `expired`                                                      | `EXPIRED`                     | 返さない                       |
 | 利用者、dApp、Signer、platform または transport による取消し               | `cancelled`                                                    | `CANCELLED`                   | 返さない                       |
 | duplicate、replay、late、stale または既使用 identity                       | `duplicate_or_replay`                                          | `FAILED` または `INVALIDATED` | 返さない                       |
