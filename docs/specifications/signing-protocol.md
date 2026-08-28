@@ -66,8 +66,8 @@ MosaicLynx v1 の Signer は transaction signing と message signing を共通�
 | inspection           | target を parse、validate、semantic analysis し、確認可能な confirmation model を生成する処理                                                |
 | confirmation model   | Signer が signing target から生成する利用者確認用の logical model。UI layout ではない                                                        |
 | authorization        | 特定の request / target に対する利用者の明示承認と署名ごとの authentication が成立した短寿命の状態                                           |
-| result unknown       | 署名生成自体の成功・未署名を安全に確定できない状態。配送不明には使用しない                                                                   |
-| delivery disposition | 確定済み signing result の配送状態。signing state または signing operation ではない                                                          |
+| result unknown       | trusted Signer だけが成立させる、署名生成自体の成功・未署名を安全に確定できない状態。配送不明には使用しない                                  |
+| delivery disposition | trusted Signer が known signed result に付随させる配送状態。signing state または signing operation ではなく、transport が生成しない          |
 | parent               | Aggregate または multisig の全体 transaction context。cosignature の検証・確認対象となる                                                     |
 | Partial              | Chain / Network または handoff 上の未完成・追加署名待ちの chain-specific context。共通 signing primitive ではない                            |
 
@@ -533,20 +533,20 @@ success result の具体的 field、signature encoding、hash および response
 
 ### 16.3 Failure to state mapping
 
-| 条件                                                                       | logical category                                          | terminal state                | signing result                 |
-| -------------------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------- | ------------------------------ |
-| schema、required field、形式、size、encoding または request context 不正   | `invalid_request`                                         | `FAILED`                      | 返さない                       |
-| operation、Chain、Network、type、version、format または capability 非対応  | `unsupported`                                             | `FAILED`                      | 返さない                       |
-| Origin、session、permission、Account、Chain / Network または signer 不一致 | `permission_denied` または既存 mismatch category          | `FAILED` または `INVALIDATED` | 返さない                       |
-| 利用者の明示拒否                                                           | `user_rejected`                                           | `REJECTED`                    | 返さない                       |
-| 署名ごとの authentication 失敗                                             | `authentication_failed`                                   | `FAILED`                      | 返さない                       |
-| request、message、transaction または parent expiry                         | `expired`                                                 | `EXPIRED`                     | 返さない                       |
-| 利用者、dApp、Signer、platform または transport による取消し               | `cancelled`                                               | `CANCELLED`                   | 返さない                       |
-| duplicate、replay、late、stale または既使用 identity                       | `duplicate_or_replay`                                     | `FAILED` または `INVALIDATED` | 返さない                       |
-| parse、semantic inspection、confirmation または displayability failure     | `inspection_failed`                                       | `FAILED`                      | 返さない                       |
-| wallet-core / Signer の失敗が確定                                          | `signing_failed`                                          | `FAILED`                      | 返さない                       |
-| wait、transport または lifecycle の期限到達で signing outcome が確定       | `timeout` または `transport_failure`                      | `FAILED`                      | outcome を成功と推測しない     |
-| signing generation 自体の結果不明                                          | `internal_failure` または下位 protocol の unknown outcome | `RESULT_UNKNOWN`              | 成功・拒否・失敗として返さない |
+| 条件                                                                       | logical category                                               | terminal state                | signing result                 |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------- | ----------------------------- | ------------------------------ |
+| schema、required field、形式、size、encoding または request context 不正   | `invalid_request`                                              | `FAILED`                      | 返さない                       |
+| operation、Chain、Network、type、version、format または capability 非対応  | `unsupported`                                                  | `FAILED`                      | 返さない                       |
+| Origin、session、permission、Account、Chain / Network または signer 不一致 | `permission_denied` または既存 mismatch category               | `FAILED` または `INVALIDATED` | 返さない                       |
+| 利用者の明示拒否                                                           | `user_rejected`                                                | `REJECTED`                    | 返さない                       |
+| 署名ごとの authentication 失敗                                             | `authentication_failed`                                        | `FAILED`                      | 返さない                       |
+| request、message、transaction または parent expiry                         | `expired`                                                      | `EXPIRED`                     | 返さない                       |
+| 利用者、dApp、Signer、platform または transport による取消し               | `cancelled`                                                    | `CANCELLED`                   | 返さない                       |
+| duplicate、replay、late、stale または既使用 identity                       | `duplicate_or_replay`                                          | `FAILED` または `INVALIDATED` | 返さない                       |
+| parse、semantic inspection、confirmation または displayability failure     | `inspection_failed`                                            | `FAILED`                      | 返さない                       |
+| wallet-core / Signer の失敗が確定                                          | `signing_failed`                                               | `FAILED`                      | 返さない                       |
+| wait、transport または lifecycle の期限到達で signing outcome が確定       | `timeout` または `transport_failure`                           | `FAILED`                      | outcome を成功と推測しない     |
+| signing generation 自体の結果不明                                          | signing outcome の `RESULT_UNKNOWN`（error category ではない） | `RESULT_UNKNOWN`              | 成功・拒否・失敗として返さない |
 
 `RESULT_UNKNOWN` は error category の代替ではなく signing outcome の不明である。`DELIVERY_UNKNOWN` は §19.3 の delivery disposition であり、`RESULT_UNKNOWN`、`REJECTED` または `FAILED` に自動変換しない。
 
@@ -602,7 +602,7 @@ Browser の sender / tab / frame / document、Mobile の Deep Link / App Link / 
 - user rejection、permission mismatch、validation failure、inspection failure、authentication failure、duplicate / replay、expiry、context change または `RESULT_UNKNOWN` の後に、同じ request / target / Authorization を自動 retry してはならない。
 - retry が下位 contract で許可される場合も、新しい requestId、必要な新しい session / generation context、fresh envelope、fresh expiry、再検証、新しい explicit approval および署名ごとの authentication を伴う新しい request とする。
 - `RESULT_UNKNOWN` の後に、同じ target を署名していないと推測して自動再署名してはならない。
-- Relay / response delivery retry は、署名済み result が確定している場合の resend / retrieval / lookup だけを候補とし、新しい signing operation とはしない。
+- Relay / response delivery retry は、署名済み result が確定している場合の resend / redelivery / retrieval / lookup だけを候補とし、新しい signing operation とはしない。
 - `SUCCEEDED` から `SIGNING` に戻る retry、または既存 result の配送失敗を理由に新しい signature を生成する retry を禁止する。
 
 具体的な retry interval、回数、storage、lookup API、transport fallback および user-selected alternative path は `SDK-OPEN-003`、`RR-OPEN-002` および platform / handoff 下位仕様へ委譲する。
@@ -625,9 +625,11 @@ PENDING → DELIVERED
 PENDING → DELIVERY_UNKNOWN
 ```
 
-`SUCCEEDED + DELIVERY_UNKNOWN` は、signature が確定しているが response delivery の完了を確認できない状態である。この状態から `SIGNING` に戻らず、同じ target を再署名せず、新しい signature を生成しない。候補は既存 result の resend / retrieval / lookup のみである。
+`SUCCEEDED + DELIVERY_UNKNOWN` は、signature が確定しているが response delivery の完了を確認できない状態である。この状態から `SIGNING` に戻らず、同じ target を再署名せず、新しい signature を生成しない。候補は既存 result の resend / redelivery / retrieval / lookup のみである。
 
-`RESULT_UNKNOWN` は署名生成自体の不明、`DELIVERY_UNKNOWN` は確定済み result の配送不明である。response delivery failure を `RESULT_UNKNOWN`、`FAILED` または user rejection と推測変換してはならない。
+`RESULT_UNKNOWN` は trusted Signer が signing generation 自体の成否を確定できない場合だけが authority となる。`DELIVERY_UNKNOWN` は trusted Signer が保持する valid signed result の delivery disposition を確定できない場合だけが authority となる。SDK、Provider、Relay および transport は、timeout、outage、response absence、disconnect、recipient offline、reconnect failure、page / SDK / Relay lifecycle loss または delivery failure から両 disposition を生成・推測・確定してはならない。response delivery failure を `RESULT_UNKNOWN`、`FAILED`、user rejection または相互の別 disposition として推測変換してはならない。
+
+Signer-originated disposition は、SDK、Provider および Relay が request correlation とともに意味不変に pass-through する。これらを Handoff §10 の public error code、`INTERNAL_ERROR` または transport failure へ縮退させてはならない。具体的な concrete response representation は [Web Transaction Handoff Specification §7.2](./web-transaction-handoff-spec.md) を正本とする。
 
 ## 20. Security Invariants
 

@@ -110,7 +110,7 @@ SDK の公開 factory、instance、引数および戻り値は、[Web Transactio
 
 - 各 API invocation は、対応する一つの logical request または照会操作に結び付く。
 - 一つの invocation は一度だけ resolve または reject する。duplicate callback / response は既に完了した invocation を再完了させない。
-- `signTransaction`、`signData` および `cosignTransaction` の resolve は、Signer の request validation、inspection、明示 approval、必要な authentication、signing および SDK の response correlation が成立した signed result に限る。
+- `signTransaction`、`signData` および `cosignTransaction` の resolve は、Signer の request validation、inspection、明示 approval、必要な authentication、signing および SDK の response correlation が成立した known signed result に限る。Handoff の `deliveryDisposition` が `DELIVERY_UNKNOWN` でも signing outcome は `SUCCEEDED` であり、既存 result の意味を失わせない。
 - `connect` の resolve は、指定 Scope の公開 Account disclosure と connection 許可の結果であり、後続 signing の user approval を意味しない。
 - `isConnected`、`getActiveAccount` および `refreshActiveAccount` の結果は、署名 approval、Account ownership、Origin verification または transaction safety の証明ではない。
 - rejection の error code、error type および mapping は [Handoff §10](./web-transaction-handoff-spec.md) と [interfaces.md §10](./interfaces.md) を使用し、SDK 独自の taxonomy を追加しない。
@@ -283,7 +283,7 @@ SDK が扱う signing semantics は次の分離を維持する。
 ```text
 request received → SDK validation / construction → Provider dispatch
     → Signer validation / inspection → user approval → authentication
-    → wallet-core signing → result validation / delivery → SDK response
+    → wallet-core signing → result validation → SDK response（deliveryDisposition は別軸）
 ```
 
 SDK は `AUTHORIZED`、`SIGNING` または `SUCCEEDED` を自ら成立させない。Signer の approval、authentication および signing result は request、target、Account、Scope、Origin / caller context、permission revision、capability / version context および expiry に binding される。
@@ -373,7 +373,7 @@ Browser の実 Origin、top-level document、user activation および page life
 | signing request expiry                | request を Signer が受理・処理できる有効期限            | `interfaces.md` と `signing-protocol.md` の expiry validation に従う   |
 | message / session / permission expiry | message、handoff session または permission ごとの別期限 | request expiry と同一視しない。未定義の permission expiry は追加しない |
 
-SDK wait timeout、transport timeout または page disposal の後に、Signer が未署名、署名済み、authentication 未実行または request 未受信だと断定してはならない。署名生成の成否が確定しない場合は `RESULT_UNKNOWN` semantics を保持し、`SUCCEEDED`、`USER_REJECTED`、`SIGNING_FAILED` または「安全に再送可能」へ推測変換しない。
+SDK wait timeout、transport timeout または page disposal の後に、Signer が未署名、署名済み、authentication 未実行または request 未受信だと断定してはならない。これらの SDK / transport / lifecycle failure だけから SDK が `RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を生成・推測・確定してはならない。Signer が Handoff §7.2 の `signingOutcome` / `deliveryDisposition` を明示的に返した場合だけ、その意味を保持して pass-through し、`SUCCEEDED`、`USER_REJECTED`、`SIGNING_FAILED`、transport failure または「安全に再送可能」へ推測変換しない。
 
 ### 12.2 Cancellation
 
@@ -385,9 +385,9 @@ cancel 後に届く response、signed result、duplicate callback または `RES
 
 ### 12.3 自動 retry / fallback
 
-SDK は user rejection、permission denial、mismatch、integrity failure、caller / Origin failure、replay failure、unsupported、request expiry および result unknown を自動 retry、別 Provider、別 transport、別 operation または raw signing で迂回しない。
+SDK は user rejection、Authentication failure、Signing-capable unlock failure、Account authorization failure、permission denial / revocation、caller / Origin mismatch、integrity failure、replay / duplicate failure、semantic validation / inspection failure、Chain / Network mismatch、security-relevant context mismatch、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、transport failure または delivery failure を、自動 signing retry、re-sign、別 Provider、別 Signer、別 transport、別 operation または raw signing で迂回しない。
 
-Relay / transport の一時的な失敗に対する具体的 retry 回数、interval、resubmission、lookup または result retrieval は、既存 Handoff / Relay contract および未決事項に委譲する。retry が許可される場合も、同一 request、承認、secret、token または permission context を再利用してはならない。
+local から remote、remote から local、Provider A から Provider B、Signer A から Signer B、Relay failure から local Signer、local Provider failure から Relay Signer への automatic fallback を行わない。Relay / transport の reconnect、response redelivery または一時的な失敗に対する具体的 retry 回数、interval、resubmission、lookup または result retrieval は、既存 Handoff / Relay contract および未決事項に委譲する。retry が許可される場合も、known signed result の resend / redelivery / retrieval / lookup と signing retry を分離し、同一 request、承認、secret、token または permission context を再利用してはならない。
 
 ## 13. Error Normalization / Authority
 
@@ -419,9 +419,9 @@ SDK は下位 error を、外部アプリケーションが success、rejection�
 
 ### 13.3 `RESULT_UNKNOWN` と `DELIVERY_UNKNOWN`
 
-`RESULT_UNKNOWN` は signing result の生成可否が不明な signing outcome である。同一 target の自動 re-sign を禁止する。
+`RESULT_UNKNOWN` は trusted Signer だけが生成する signing outcome であり、Handoff §7.2 の `resultUnknown` response として保持する。SDK timeout、Relay outage、network failure、response absence、Provider disconnect、recipient offline、reconnect failure、response delivery failure または page / SDK / Relay lifecycle loss から SDK が生成・推測・確定してはならない。同一 target の自動 re-sign を禁止する。
 
-`DELIVERY_UNKNOWN` は確定済み result の配送状態であり、signing error または signed / unsigned の判定ではない。SDK はこれを signing success、signing failure、user rejection または未署名へ変換しない。既存下位 contract が result retrieval / resend を提供する場合だけ、その contract に従う。
+`DELIVERY_UNKNOWN` は trusted Signer が保持する確定済み result の delivery disposition であり、signing error または signed / unsigned の判定ではない。SDK は Handoff §7.2 の known signed result、`signingOutcome: 'SUCCEEDED'` および `deliveryDisposition: 'DELIVERY_UNKNOWN'` を保持し、signing success、signing failure、user rejection、`RESULT_UNKNOWN` または未署名へ変換しない。`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` は Handoff §10 の public error code ではない。既存下位 contract が result retrieval / resend を提供する場合だけ、その contract に従い、既知 result の redelivery / lookup と再署名を分離する。
 
 ## 14. Serialization / Validation
 
@@ -486,10 +486,10 @@ SDK は少なくとも次を常に維持する。
 6. expired、cancelled、duplicate、stale、replayed、context-lost または terminal request を再利用しない。
 7. SDK supplied summary / metadata を Signer の target inspection、trusted presentation または approval の authority にしない。
 8. SDK validation を Signer の semantic validation、explicit approval、authentication または wallet-core signing の代替にしない。
-9. timeout、cancel、disconnect、delivery success または response received から署名状態を推測しない。unknown は unknown として扱う。
+9. timeout、cancel、disconnect、delivery success または response received から署名状態・Signer disposition を推測しない。Signer-originated unknown / delivery disposition は Handoff 表現のまま扱う。
 10. unsupported、incompatible、malformed、mismatch、caller failure および replay failure を raw signing、別 operation または unsafe fallback で迂回しない。
 11. diagnostics、exception、cache、URL、event または telemetry に payload、signed payload、secret、token、credential、不要な Origin / Account 組合せまたは internal stack trace を含めない。
-12. signing success と delivery success、SDK `RESOLVED` と Signer `SUCCEEDED`、connection success と user approval をそれぞれ別の事実として扱う。
+12. signing success と delivery success、SDK `RESOLVED` と Signer `SUCCEEDED`、connection success と user approval、`RESULT_UNKNOWN` と transport failure をそれぞれ別の事実として扱う。
 
 ## 17. Component Responsibilities
 

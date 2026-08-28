@@ -396,6 +396,9 @@ manifestの`origin`完全一致、key ID、algorithm、有効期間、statusを�
 Mobile App は成功、拒否、検証失敗をいずれも暗号化した response envelope として返す。Relay の session state からユーザーの判断結果を識別できないようにする。
 
 ```ts
+type SigningOutcome = 'SUCCEEDED' | 'RESULT_UNKNOWN';
+type DeliveryDisposition = 'PENDING' | 'DELIVERED' | 'DELIVERY_UNKNOWN';
+
 type RelayResponse =
   | {
       protocol: 'mosaiclynx.relay.v1';
@@ -417,7 +420,9 @@ type RelayResponse =
       requestId: string;
       requestDigest: string;
       outcome: 'signed';
+      signingOutcome: 'SUCCEEDED';
       signedTransaction: SignedTransaction;
+      deliveryDisposition: DeliveryDisposition;
       completedAt: string;
     }
   | {
@@ -425,7 +430,17 @@ type RelayResponse =
       requestId: string;
       requestDigest: string;
       outcome: 'dataSigned';
+      signingOutcome: 'SUCCEEDED';
       signedData: SignedData;
+      deliveryDisposition: DeliveryDisposition;
+      completedAt: string;
+    }
+  | {
+      protocol: 'mosaiclynx.relay.v1';
+      requestId: string;
+      requestDigest: string;
+      outcome: 'resultUnknown';
+      signingOutcome: 'RESULT_UNKNOWN';
       completedAt: string;
     }
   | {
@@ -438,7 +453,15 @@ type RelayResponse =
     };
 ```
 
-`failed` response の `errorCode` は公開可能な安定コードだけとし、parser、Vault、OS、暗号 library の内部詳細を含めない。
+`signingOutcome` は trusted Signer が確定する signing axis であり、`deliveryDisposition` は既知の signed result に付随する delivery axis である。`resultUnknown` は通常の `rejected` / `failed` error branch ではなく、`errorCode`、signed result および deliveryDisposition を持たない。`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` は Handoff §10 の `MosaicLynxSDKErrorCode` に追加しない。
+
+`RESULT_UNKNOWN` は、wallet-core / Binding 呼び出し中の process loss など、trusted Signer が signing generation 自体の成否を確定できない場合に限る。SDK、Provider、Relay および transport は、SDK timeout、Relay outage、network failure、response absence、disconnect、recipient offline、reconnect failure、response delivery failure または page / SDK / Relay lifecycle loss から `RESULT_UNKNOWN` を生成・推測・確定しない。
+
+`DELIVERY_UNKNOWN` は、Signer が valid な signed result を保持しているが、その result の delivery disposition を確定できない場合に使用する。したがって `outcome: 'signed'` / `outcome: 'dataSigned'`、`signingOutcome: 'SUCCEEDED'`、known signed result および `deliveryDisposition: 'DELIVERY_UNKNOWN'` の組み合わせを許可する。SDK、Provider、Relay および transport はこの disposition を signing failure、`RESULT_UNKNOWN` または通常 error へ変換しない。
+
+`PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` は delivery disposition の値であり、signing lifecycle の state ではない。Relay はこの field の意味を生成・変更せず、response を opaque に搬送する。Signer-originated `signingOutcome` / `deliveryDisposition` は request correlation を維持したまま SDK、Provider および Relay を通過し、意味を失わない。
+
+`failed` response の `errorCode` は公開可能な安定コードだけとし、parser、Vault、OS、暗号 library の内部詳細を含めない。`RESULT_UNKNOWN` や `DELIVERY_UNKNOWN` を `INTERNAL_ERROR`、transport failure または `failed` に縮退させてはならない。
 
 ### 7.3 フロー
 
@@ -451,9 +474,9 @@ dApp
   → verified App Link で MosaicLynx App を起動
   → App が暗号文を取得、復号、operation別に検証
   → App で接続Account選択、署名内容確認、または切断を明示承認
-  → App が接続・署名・切断または拒否結果を暗号化して Relay へ登録
+  → App が接続・署名・切断・拒否または resultUnknown 結果を暗号化して Relay へ登録
   → 元ページの MosaicLynx SDK が response を取得、復号、整合性を検証
-  → MosaicLynx SDK が ACK 後に SignedTransaction、SignedData または共通 error を返す
+  → MosaicLynx SDK が ACK 後に known signed result（deliveryDisposition 付き）、resultUnknown または共通 error を返す
   → dApp が必要に応じて announce
 ```
 
@@ -485,8 +508,9 @@ App は Core と Chain Adapter を再利用し、Product Specification 12.4 の 
 - decode 後の canonical serialization が元 payload と byte-for-byte で一致する。
 - `expectedSignerPublicKey` がある場合、選択可能な account と一致する。
 - Mainnetでは`originProof`が同一Originのwell-known manifestに登録された未失効鍵で検証できる。
+- 同一 request / Profile-local context に対する Authentication、Signing-capable unlock、Account authorization および Explicit user approval の4条件が成立している。
 
-`initiatorOrigin` は Relay による改ざんからAEADで保護されるだけでは、ブラウザの実際のOriginを証明しない。AppはMainnetで上記`originProof`を検証し、成功時だけ「登録鍵で検証済み」と表示する。Testnetでproofがない場合は「要求元（未検証）」としてcanonical / Punycode表記を表示し、Extension承認画面の検証済みOriginと同じ保証があるように表示しない。
+`initiatorOrigin` は Relay による改ざんからAEADで保護されるだけでは、ブラウザの実際のOriginを証明しない。AppはMainnetで上記`originProof`を検証し、成功時だけ「登録鍵で検証済み」と表示する。Testnetでproofがない場合は「要求元（未検証）」としてcanonical / Punycode表記を表示し、Extension承認画面の検証済みOriginと同じ保証があるように表示しない。Relay の受信・配送、SDK / Provider state、通常の `UNLOCKED`、wallet-core password / Store validation または connection / permission は、この4条件の代替ではない。
 
 ### 7.5 Mobile Signer保証
 
@@ -720,7 +744,9 @@ MosaicLynx SDKはtransport固有errorを次の共通規則で正規化する。
 
 RelayのHTTP status、URL、token、暗号error、Provider内部例外、stack traceはMosaicLynx SDK error messageに含めない。`cause`を本番buildの公開errorへ保持しない。
 
-`signData` を含む v1 対象 operation が unsupported、期限切れ、replay、検証不能、利用者拒否または result unknown になった場合、SDK は署名 result を返さず共通 error として扱う。別 operation の成功や自動 fallback として返してはならない。
+`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` は、上表の error code ではなく §7.2 の result / delivery semantics である。`RESULT_UNKNOWN` を `INTERNAL_ERROR`、`CONTEXT_CHANGED`、transport failure またはその他の error code へ縮退させてはならない。`DELIVERY_UNKNOWN` は known signed result を保持した `SUCCEEDED` response に付随し、signing failure、`RESULT_UNKNOWN` または error code へ変換してはならない。SDK / Provider / Relay は Signer-originated value を correlation / transport / schema validation の範囲で意味不変に通過させる。
+
+`signData` を含む v1 対象 operation が unsupported、期限切れ、replay、検証不能または利用者拒否になった場合、SDK は署名 result を返さず Handoff §10 の共通 error として扱う。signing generation が unknown の場合は §7.2 の `resultUnknown` response として保持し、共通 error、別 operation の成功または自動 fallback として返してはならない。
 
 ## 11. Page lifecycle と UX
 
@@ -758,6 +784,8 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 - Relay は request body を WAF / APM が記録しない設定とし、access log から Authorization header と query を除外する。
 - request / response の AEAD 検証前に plaintext を UI、log、domain object として扱わない。
 - signed response は元 request digest、chain、network、expected signer と照合し、別 request へ転用しない。
+- `RESULT_UNKNOWN` は trusted Signer が生成した `resultUnknown` response だけで表し、SDK timeout、Relay / network failure、response absence、Provider disconnect、recipient offline、page / SDK / Relay lifecycle loss または delivery failure から生成しない。
+- `DELIVERY_UNKNOWN` は trusted Signer が保持する known signed result に付随する deliveryDisposition として保持し、既存 result の resend / redelivery / retrieval / lookup と signing retry / re-sign を分離する。
 - MosaicLynx SDKは受領したsigned payloadを固定版symbol-sdkでdeserialize / verifyし、元unsigned transactionとchain規則上対応することを検証する。MosaicLynx SDK独自のcatbuffer、署名、hash実装は使用しない。
 - Web page 自身の侵害、悪意ある dApp、端末 OS、アンロック中 App、正規配布 artifact の侵害は E2E Relay 暗号化の保証範囲外である。
 - initiator Origin文字列だけを検証根拠にしない。Mainnetはorigin proofを必須とし、Testnetでproofがない場合だけ未検証と表示する。proofはOriginの登録鍵による要求整合性を示すもので、サイト運営主体の善性、transactionの安全性、Web page非侵害までは保証しない。
@@ -777,6 +805,10 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 - 未接続の署名要求は両transportで`NOT_CONNECTED`になる。
 - `expectedSignerPublicKey` が両 transport で同じ意味を持つ。
 - Provider / Relay固有errorが共通MosaicLynx SDK errorへ変換される。
+- `resultUnknown` が `errorCode` を持たず、`signingOutcome: 'RESULT_UNKNOWN'` として検証できる。
+- `signed` / `dataSigned` が known signed result、`signingOutcome: 'SUCCEEDED'` および `deliveryDisposition` を保持し、`DELIVERY_UNKNOWN` を failure / `RESULT_UNKNOWN` へ変換しない。
+- SDK timeout、Relay outage、response absence、disconnect、page / SDK / Relay lifecycle loss または delivery failure から `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` を生成・推測しない。
+- `SUCCEEDED + DELIVERY_UNKNOWN` の recovery が既存 result の resend / redelivery / retrieval / lookup に限定され、新しい signature または alternate route を生成しない。
 - diagnostics が既定無効で、allowlist 外の情報を通知しない。
 
 ### 14.2 Crypto test
