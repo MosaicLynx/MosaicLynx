@@ -4,7 +4,7 @@
 
 この `AGENTS.md` は、MosaicLynx リポジトリで作業するエージェントの探索、変更範囲、検証、報告方法を定める。プロダクトの詳細仕様やプロトコル仕様の正本ではない。
 
-作業内容に対応する Skill が `.agents/skills/` にある場合は、その `SKILL.md` を先に読み、同じディレクトリの `.agents/project-context.md` と合わせて適用する。
+作業内容に対応する Skill が `.agents/skills/` にある場合は、その `SKILL.md` を先に読み、対象に適用される repository instructions と合わせて適用する。Skill は特定の repository instructions の見出し名やファイル形式を前提にせず、そこから対象、artifact の配置、Source of Truth、validation、repository 固有の制約を取得する。
 
 ## プロジェクト概要
 
@@ -26,22 +26,31 @@ MosaicLynx は、Symbol / NEM dApp 向けの署名機能を持つ Chrome Manifes
 - `packages/profile-backup/`: Profile backup の形式と検証。
 - `packages/sdk/`: 利用者向け `@mosaiclynx/sdk`。
 - `packages/release-evidence/`: release evidence の生成・検証。
+- `docs/`: 文書種別・用途別ディレクトリのルート。
+- `.agents/`: このリポジトリで利用する Skill と補助資料。
+- `tools/`: release evidence などの補助スクリプト。
+
+## Artifact Layout
+
+これは MosaicLynx repository の artifact 配置規約である。汎用 Skill はこの見出し名や具体的な path を他の repository の既定値として使用しない。
+
 - `docs/concept/`: コンセプトシート。
 - `docs/requirements/`: 要件定義書。
+- `docs/design/`: 基本設計書。
 - `docs/specifications/`: 実装対象の仕様書。
-- `docs/`: 文書種別・用途別ディレクトリのルート。
-- `docs/evidence/`: release evidence policy と公開鍵。
-- `docs/mobile/`: Mobile の privacy、support、store release 資料。
-- `docs/release/`: リリース手順、release evidence、脅威モデル。
 - `docs/adr/`: 承認済み Architecture Decision Record。
 - `docs/reviews/concept/`: コンセプトレビュー。
 - `docs/reviews/requirements/`: 要件レビュー。
+- `docs/reviews/design/`: 基本設計レビュー。
 - `docs/reviews/specifications/`: 仕様レビュー。
 - `docs/reviews/implementation/`: 実装レビュー。
 - `docs/reviews/readme/`: README レビュー。
 - `docs/reviews/release/`: リリース準備レビュー。
-- `.agents/`: このリポジトリ固有の作業 Skill とプロジェクトコンテキスト。
-- `tools/`: release evidence などの補助スクリプト。
+- `docs/evidence/`: release evidence policy と公開鍵。
+- `docs/release/`: リリース手順、release evidence、脅威モデル。
+- `docs/mobile/`: Mobile の privacy、support、store release 資料。
+
+新しい文書・レビュー成果物は、ユーザーが別の出力先を指定していない場合にこの配置規約を使う。既存成果物の候補が複数ある場合は自動選択せず、対象確認を行う。
 
 ## Source of Truth
 
@@ -64,21 +73,21 @@ MosaicLynx は、Symbol / NEM dApp 向けの署名機能を持つ Chrome Manifes
 - `docs/evidence/evidence-policy.json`: release evidence の検証ポリシー。
 - `docs/adr/`: 仕様・実装に影響する承認済みの設計判断。
 
-`docs/concept/`、`docs/requirements/`、`docs/specifications/` は文書種別ごとの作成先であり、対応するレビューは `docs/reviews/` 以下の同名種別ディレクトリへ保存する。アーキテクチャ、release、Mobile、evidence も用途別ディレクトリへ配置する。技術情報は既存の仕様、ADR、必要に応じた公式資料から確認する。
+`AGENTS.md` は作業規則、artifact 配置、参照先、repository 境界を定めるためのものであり、製品仕様書やプロトコル仕様書ではない。API contract、wire format、暗号方式・パラメータ、署名 byte 列、chain protocol の詳細、SDK version に依存する仕様、product capability、release gate の詳細は、上記の正本 docs、ADR、package manifest、または対象 version の公式資料で確認する。資料間の競合を `AGENTS.md` だけで解消しない。
 
-## 情報の区分
+## Repository-specific Boundaries
 
 次を混同しない。
 
 - プロダクト仕様とアーキテクチャ設計
 - Symbol と NEM
 - Mainnet と Testnet
-- プロトコル仕様と `@nemnesia/symbol-sdk` の API
+- プロトコル仕様と SDK の API
 - Relay の暗号文中継と、署名機による transaction 内容の解析
 - 仕様上の期待値と、現在の実装・テストが示す挙動
 - 将来 Mobile 対応と、現在ワークスペースに存在する実装
 
-Symbol / NEM の技術的事実を記憶だけで決めない。`docs/specifications/chain-compatibility-spec.md` と固定 vector を確認し、必要に応じて対象バージョンの公式資料や SDK を照合する。既存コードやテストだけをプロトコル仕様の根拠にしない。
+Symbol / NEM の技術的事実を記憶だけで決めない。`docs/specifications/chain-compatibility-spec.md` と対象の固定 vector を確認し、必要に応じて対象 version の公式資料や SDK を照合する。既存コードやテストだけをプロトコル仕様の根拠にしない。
 
 資料が競合する場合は、対象チェーン、network、バージョン、文書の役割、更新時点を確認する。解消できない競合や OPEN 項目は、勝手に選択せず影響範囲とともに報告する。
 
@@ -93,19 +102,17 @@ Symbol / NEM の技術的事実を記憶だけで決めない。`docs/specificat
 
 ## セキュリティとチェーン固有の注意
 
-- 秘密鍵、Mnemonic、Profile password、Vault plaintext、Relay credential、復号した暗号文をログ、例外、warning、テスト出力へ含めない。
-- 外部入力、Chrome message、Provider RPC、Relay body、backup envelope は検証前に信用しない。
-- 秘密情報を Web page、dApp、Service Worker、Relay へ不要に渡さない。署名時の復号境界は対象仕様に従う。
-- KDF、AEAD、salt、nonce、署名 byte 列、canonical serialization を独自判断で変更しない。
-- Symbol と NEM の導出・address・network constant・transaction schema・署名処理を暗黙に共通化しない。
-- Mainnet と Testnet を型、条件、表示、Profile 境界のいずれでも混在させない。
-- Protocol quantity は浮動小数で計算しない。byte 列、hex、public key、private key、signature、hash の表現と長さを確認する。
-- Relay は仕様で opaque とされた暗号文を解釈・改変しない。期限、サイズ、回数、認証、状態遷移を仕様に従って検証する。
-- Mainnet signing の release gate、Testnet 限定の backup、announce 非対応など、現在の build capability を無断で緩和しない。
+- 秘密鍵、Mnemonic、password、Vault plaintext、credential、復号データなどの秘密情報をログ、例外、warning、テスト出力へ含めない。
+- 外部入力、message、RPC、transport body、backup envelope は検証前に信用しない。
+- 秘密情報を外部主体へ不要に渡さず、復号・署名・承認の境界は承認済みの仕様・設計に従う。
+- 暗号、署名、serialization、数量、address、network の規則を独自判断で変更・補完しない。詳細は対象仕様、ADR、公式資料へ追跡する。
+- Symbol と NEM、Mainnet と Testnet など repository が扱う domain / network の境界を暗黙に共通化しない。
+- Relay など opaque と定義された transport の内容を、仕様上の権限なく解釈・改変しない。
+- product capability、release gate、announce 可否などは、対象の product / release 文書を確認せずに緩和しない。
 
 ## TypeScript / pnpm の実装規約
 
-- Node.js は `mise.toml` の指定、パッケージ管理は `pnpm@11.13.0` を基準にする。
+- Node.js は `mise.toml` の指定（現在は node 26）、パッケージ管理は `package.json` の `packageManager`（現在は `pnpm@11.24.0`）を基準にする。
 - package は ESM と strict TypeScript を基本とし、公開 package の `exports`、`main`、`types` と実際の export を一致させる。
 - workspace package 間の依存は `workspace:*` を優先し、package の責務境界を越える import を追加しない。
 - `number` と `bigint`、`Buffer` と `Uint8Array`、hex string と raw bytes を変換するときは、既存の型・仕様・fixture を根拠にする。
@@ -137,12 +144,12 @@ formatter と Markdown format check は、作成・更新した成果物の明�
 
 ドキュメントまたは `.agents` だけの変更では、作成・更新した成果物に対する formatter check を実行する。全体 formatter を実行した場合は、成果物単体の結果と分けて報告する。実行できなかった検証は `Not validated` として理由を報告する。
 
-## 文書とレビュー
+## レビュー・報告規約
 
 - `docs/specifications/` など既存の正本を、単なる作業メモやレビュー結果で上書きしない。
 - 仕様を作成・更新する場合は、プロダクト範囲、アーキテクチャ、チェーン互換性、Relay / Profile の責務境界を維持する。
 - ADR が必要な重要判断は `docs/adr/` に記録し、既存 ADR の OPEN 項目を根拠なく閉じない。
-- レビュー成果物は `docs/reviews/<concept|requirements|specifications|implementation|readme|release>/` に対象ベース名と連番を付けて保存し、既存の成果物を上書きしない。必要なディレクトリがない場合は作成する。
+- レビュー成果物は Artifact Layout に定めた `docs/reviews/<type>/` に対象ベース名と連番を付けて保存し、既存の成果物を上書きしない。必要なディレクトリがない場合は作成する。
 - レビューでは仕様適合、バグ、セキュリティ、相互運用性、未決定事項、改善提案を区別する。レビュー指摘だけを根拠に実装や仕様を拡張しない。
 
 ## 完了報告

@@ -7,7 +7,7 @@ description: MosaicLynx の TypeScript 実装、テスト、fixture、差分、c
 
 承認済み仕様を実装が正しく満たしているかを判定する。レビューを設計変更やリファクタリングの入口にしない。作業開始時に次の順で全文を読む。
 
-1. /home/harvestasya/workspace/mosaiclynx/.agents/project-context.md
+1. 適用対象の repository instructions（対象から参照可能な `AGENTS.md` など）
 2. ../review-common/review-playbook.md
 3. reviewers.md
 4. review-gates.md

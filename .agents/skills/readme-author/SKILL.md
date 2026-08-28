@@ -7,7 +7,7 @@ description: MosaicLynx のルート、package、app の README を、実際の 
 
 README は利用者が最初に参照する案内であり、実装・公開契約・運用上の制約を正確に伝える文書である。新しい仕様を決める場所ではない。作業開始時に、次の順で必要な資料を確認する。
 
-1. /home/harvestasya/workspace/mosaiclynx/.agents/project-context.md
+1. 適用対象の repository instructions（対象から参照可能な `AGENTS.md` など）
 2. ../author-common/author-playbook.md
 3. 対象 README と、その README が説明する app / package
 4. 対応する package.json、workspace 設定、tsconfig、公開 export、主要実装

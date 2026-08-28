@@ -7,7 +7,7 @@ description: MosaicLynx の README を package manifest、公開 API、実装、
 
 READMEを利用者向け文書としてレビューし、インストールから最初の利用まで進められ、記載内容を現在の実装が裏付けているかを判定する。作業開始時に次の順で全文を読む。
 
-1. /home/harvestasya/workspace/mosaiclynx/.agents/project-context.md
+1. 適用対象の repository instructions（対象から参照可能な `AGENTS.md` など）
 2. ../review-common/review-playbook.md
 3. reviewers.md
 4. review-gates.md

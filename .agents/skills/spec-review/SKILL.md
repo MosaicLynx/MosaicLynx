@@ -7,7 +7,7 @@ description: MosaicLynx の仕様書を、要求適合、API・データ契約�
 
 仕様書を設計・実装・書き直すのではなく、実装者が推測せずに安全に実装・検証できる品質かを判定する。作業開始時に次の順で全文を読む。
 
-1. /home/harvestasya/workspace/mosaiclynx/.agents/project-context.md
+1. 適用対象の repository instructions（対象から参照可能な `AGENTS.md` など）
 2. ../review-common/review-playbook.md
 3. reviewers.md
 4. review-gates.md

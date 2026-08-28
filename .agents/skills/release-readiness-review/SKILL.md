@@ -7,7 +7,7 @@ description: MosaicLynx の公開対象 npm package を、README、CHANGELOG、p
 
 公開対象 package が、現在の実装と変更内容を正しく説明し、安全に配布できるかを判定する。公開操作を行わず、レビューを完了するための最小限の読み取り検証を行う。作業開始時に次の順で全文を読む。
 
-1. /home/harvestasya/workspace/mosaiclynx/.agents/project-context.md
+1. 適用対象の repository instructions（対象から参照可能な `AGENTS.md` など）
 2. ../review-common/review-playbook.md
 3. reviewers.md
 4. review-gates.md

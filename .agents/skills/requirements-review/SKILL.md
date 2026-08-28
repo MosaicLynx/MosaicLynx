@@ -7,7 +7,7 @@ description: MosaicLynx の要件定義を、根拠追跡、範囲、責任、�
 
 要件定義書を設計・実装・書き直すのではなく、仕様設計を安全に開始できる品質かを判定する。作業開始時に次の順で全文を読む。
 
-1. /home/harvestasya/workspace/mosaiclynx/.agents/project-context.md
+1. 適用対象の repository instructions（対象から参照可能な `AGENTS.md` など）
 2. ../review-common/review-playbook.md
 3. reviewers.md
 4. review-gates.md

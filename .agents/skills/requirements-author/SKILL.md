@@ -9,7 +9,7 @@ description: MosaicLynx の要求を、目的、利用者、範囲、責任、�
 
 作業開始時に次の順で全文を確認する。
 
-1. /home/harvestasya/workspace/mosaiclynx/.agents/project-context.md
+1. 適用対象の repository instructions（対象から参照可能な `AGENTS.md` など）
 2. ../author-common/author-playbook.md
 3. scope-boundary.md
 4. docs/specifications/product-spec.md

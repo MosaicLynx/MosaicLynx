@@ -9,7 +9,7 @@ description: MosaicLynx のアイデア、会話、既存資料を、要件定�
 
 作業開始時に次の順で全文を確認する。
 
-1. /home/harvestasya/workspace/mosaiclynx/.agents/project-context.md
+1. 適用対象の repository instructions（対象から参照可能な `AGENTS.md` など）
 2. ../author-common/author-playbook.md
 3. ユーザーが明示した資料
 4. 対象に直接関係する product-spec または既存コンセプト

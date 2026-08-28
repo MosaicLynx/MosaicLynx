@@ -7,7 +7,7 @@ description: MosaicLynx の基本設計・アーキテクチャ設計を、上�
 
 基本設計を実装・仕様・書き直しの代わりにせず、下位仕様と実装へ安全に進める品質かを判定する。作業開始時に次の順で全文を読む。
 
-1. /home/harvestasya/workspace/mosaiclynx/.agents/project-context.md
+1. 適用対象の repository instructions（対象から参照可能な `AGENTS.md` など）
 2. ../review-common/review-playbook.md
 3. reviewers.md
 4. review-gates.md

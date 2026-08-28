@@ -9,13 +9,12 @@ description: MosaicLynx の TypeScript app / package を、承認済み仕様・
 
 作業開始時に次の順で確認する。
 
-1. /home/harvestasya/workspace/mosaiclynx/AGENTS.md
-2. /home/harvestasya/workspace/mosaiclynx/.agents/project-context.md
-3. ../author-common/author-playbook.md
-4. 対象機能の承認済み仕様
-5. 対象の要件、基本設計、ADR、公開API
-6. 対象コード、テスト、fixture、package manifest、関連レビュー
-7. 必要な公式protocol仕様、schema、SDK
+1. 適用対象の repository instructions（対象から参照可能な `AGENTS.md` など）
+2. ../author-common/author-playbook.md
+3. 対象機能の承認済み仕様
+4. 対象の要件、基本設計、ADR、公開API
+5. 対象コード、テスト、fixture、package manifest、関連レビュー
+6. 必要な公式protocol仕様、schema、SDK
 
 ## 対象と変更範囲
 

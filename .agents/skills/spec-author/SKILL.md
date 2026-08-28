@@ -9,7 +9,7 @@ description: MosaicLynx の承認済み要求・設計・ADRを、実装・検�
 
 作業開始時に次の順で全文を確認する。
 
-1. /home/harvestasya/workspace/mosaiclynx/.agents/project-context.md
+1. 適用対象の repository instructions（対象から参照可能な `AGENTS.md` など）
 2. ../author-common/author-playbook.md
 3. docs/specifications/product-spec.md
 4. docs/design/architecture.md と対象設計
