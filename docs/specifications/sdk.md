@@ -457,13 +457,13 @@ local から remote、remote から local、Provider A から Provider B、Signe
 
 error の authority は次のように分担する。
 
-| 層                                                                                    | 正本                                                                                                      |
-| ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| common logical category、error の一般意味、security-sensitive detail の非露出         | [interfaces.md §10](./interfaces.md)                                                                      |
-| signing failure、`RESULT_UNKNOWN`、delivery disposition および terminal semantics     | [signing-protocol.md §10、§18〜§20](./signing-protocol.md)                                                |
-| SDK / Handoff の concrete public code、`MosaicLynxSDKError`、Provider / Relay mapping | [web-transaction-handoff-spec.md §10](./web-transaction-handoff-spec.md)                                  |
-| Relay HTTP structural rejection body                                                  | Handoff / Relay contract の `RELAY_REQUEST_REJECTED`。SDK public code と同一視しない                      |
-| Mainnet signing capability gate、current release / release evidence の成立            | [interfaces.md §7.4](./interfaces.md)、[signing-protocol.md §21.1](./signing-protocol.md)、release policy | trusted Signer / release security authority。SDK は gate の evaluator / authority にならず、判定結果を意味不変に扱う |
+| 層                                                                                    | 正本                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| common logical category、error の一般意味、security-sensitive detail の非露出         | [interfaces.md §10](./interfaces.md)                                                                                                                                                                                            |
+| signing failure、`RESULT_UNKNOWN`、delivery disposition および terminal semantics     | [signing-protocol.md §10、§18〜§20](./signing-protocol.md)                                                                                                                                                                      |
+| SDK / Handoff の concrete public code、`MosaicLynxSDKError`、Provider / Relay mapping | [web-transaction-handoff-spec.md §10](./web-transaction-handoff-spec.md)                                                                                                                                                        |
+| Relay HTTP structural rejection body                                                  | Handoff / Relay contract の `RELAY_REQUEST_REJECTED`。SDK public code と同一視しない                                                                                                                                            |
+| Mainnet signing capability gate、current release / release evidence の成立            | [interfaces.md §7.4](./interfaces.md)、[signing-protocol.md §21.1](./signing-protocol.md)、release policy。trusted Signer / release security authority。SDK は gate の evaluator / authority にならず、判定結果を意味不変に扱う |
 
 SDK は新しい public error code、error category、alias または taxonomy を追加しない。特に common Interface Specification と Handoff の concrete code 集合を重複定義しない。
 
