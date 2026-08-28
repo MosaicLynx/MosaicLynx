@@ -78,7 +78,7 @@ Symbol と NEM、Mainnet と Testnet は SDK の request、connection context、
 - 外部アプリケーションが作成した signing intent の request construction、protocol boundary への変換および送信。
 - request identity の付与または共通 contract に従った採用、response correlation、重複 completion の抑止。
 - timeout、local cancellation、Provider disconnect、page lifecycle および stale response の安全側処理。
-- Provider / transport / client 側の失敗を、外部アプリケーションが区別できる概念的 error category への正規化。
+- Provider / Relay / transport / client 側の失敗を、外部アプリケーションが区別できる transport-level failure category を含む概念的 error category へ正規化すること。これは signing generation の結果または Signer-side の delivery disposition を SDK が確定することを意味しない。
 - Provider response の構造、version、request identity、operation、Account、Chain / Network および result context の検証。
 - transport の違いを、意味を変えない範囲で application-facing な共通 request / response model へ抽象化すること。
 - 秘密情報を含まない最小限の状態通知・診断情報の提供。
@@ -91,6 +91,8 @@ SDK は次を担わない。
 - wallet unlock、device authentication、permission の最終付与、Account ownership の最終認証または利用者の approve / reject。
 - transaction / message の安全性の最終判断、human-readable な trusted presentation、blind signing の許可または署名対象の承認。
 - raw signing、wallet-core の暗号処理、鍵管理、秘密情報処理または signed result の生成。
+- signing generation 自体の結果、または Signer が保持する known signed result の delivery disposition の確定。
+- Provider、Relay、transport state、timeout、response absence、disconnect、recipient offline、reconnect failure、delivery failure または page lifecycle loss から `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` を生成・推測・確定すること。
 - Browser Extension の browser-observed Origin / permission authority、Mobile App の OS security / approval、Relay server の routing / retention / operation。
 - Symbol / NEM node の選択、announce、残高・履歴その他の継続的な blockchain state 管理。
 - Provider、Relay、Mobile App または第三者 transport を、SDK 単独の判断で trust anchor とすること。
@@ -427,7 +429,7 @@ timeout 後は SDK の待機と response 適用を終了し、遅れて届いた
 
 Cancellation は少なくとも SDK の local wait、response handler および request state を終了させる意味を持つ。Provider が protocol 上の cancellation request を提供する場合、SDK はそれを明示的な transport operation として送信してよいが、受理・送信・delivery を wallet-side の cancellation completion と同一視しない。
 
-SDK は一方的な cancellation により、Signer がすでに承認・署名した可能性を否定しない。cancellation 後の遅延 response、signed result、result unknown は現在の request context に適用せず、下位仕様の failure / recovery contract に従う。
+SDK は一方的な cancellation により、Signer がすでに承認・署名した可能性を否定しない。cancellation 後の遅延 response、signed result または Signer-originated `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` は現在の request context に適用せず、下位仕様の failure / recovery contract に従う。
 
 User rejection、mismatch、integrity failure、caller / Origin failure または replay failure を、自動 retry、別 Provider または別 transport fallback で迂回しない。transport unavailable の再接続や、利用者が明示した新規操作の開始とは区別する。
 
@@ -435,25 +437,29 @@ User rejection、mismatch、integrity failure、caller / Origin failure また�
 
 ### 15.1 Response handling
 
-SDK は success、user rejection、permission denial、unsupported、incompatible version、account locked、wrong network、timeout、connection loss、transport failure、internal failure および result unknown を、request identity とともに受け取る。
+SDK は success、user rejection、permission denial、unsupported、incompatible version、account locked、wrong network、timeout、connection loss、transport failure、internal failure および Signer-originated `RESULT_UNKNOWN` を、request identity とともに受け取ることがある。また、Signer が既知の signed result を保持している場合の Signer-side `DELIVERY_UNKNOWN` を delivery disposition として受け取ることがある。SDK がこれらを受け取る場合も、request / response correlation を確認し、意味を変更せず application 側へ伝達する。
+
+`RESULT_UNKNOWN` は signing generation 自体の結果を Signer が安全に確定できない場合だけ、`DELIVERY_UNKNOWN` は Signer が既知の signed result の配送 disposition を安全に確定できない場合だけ成立する。SDK は Provider、Relay、network、transport、timeout、response absence、disconnect、recipient offline、reconnect failure、delivery failure、page lifecycle loss または SDK internal state から、いずれの disposition も生成・推測・確定しない。
 
 Success は、request、operation、signer、Account、Chain / Network、correlation および Signer が確認・承認した target との対応を SDK が確認でき、外部アプリケーションが結果を独立検証できる正常完了を表す。Provider、Relay または Mobile App が success response を返しただけでは success としない。
 
 ### 15.2 概念的 error category
 
-| Category                      | 意味                                                                                            | SDK の基本処理                                            |
-| ----------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| unavailable                   | Provider、MosaicLynx、Mobile App または対応 capability が利用できない                           | 署名成功にせず、利用不可として終了                        |
-| connection / permission       | 未接続、connection scope 不一致、permission denial、revoke                                      | 古い permission / Account を流用せず終了                  |
-| user rejection                | 利用者が拒否、approval UI を閉じた、または signing を取消した                                   | system failure と混同せず、自動 retry / fallback しない   |
-| invalid request               | application input、形式、size、context または protocol validation が不正                        | request を送らない、または failure として終了             |
-| unsupported / incompatible    | operation、Chain、Network、format、version、Provider capability が非対応                        | 別 operation / raw signing / unsafe fallback に変換しない |
-| mismatch / integrity / replay | caller、Origin、Account、Chain / Network、request / response、payload または freshness の不一致 | 自動再送せず、security failure として終了                 |
-| timeout / expired / cancelled | SDK wait、request expiry、context loss または cancellation                                      | 遅延 response を適用せず、署名状態を推測しない            |
-| transport / relay             | Provider、Relay、network、handoff または delivery の失敗                                        | result unknown を success / unsigned と推測しない         |
-| wallet-side / internal        | Signer、wallet-core、SDK または依存 component の内部失敗                                        | secret / stack trace を漏らさず、安全側に終了             |
+| Category                      | 意味                                                                                            | SDK の基本処理                                                                                           |
+| ----------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| unavailable                   | Provider、MosaicLynx、Mobile App または対応 capability が利用できない                           | 署名成功にせず、利用不可として終了                                                                       |
+| connection / permission       | 未接続、connection scope 不一致、permission denial、revoke                                      | 古い permission / Account を流用せず終了                                                                 |
+| user rejection                | 利用者が拒否、approval UI を閉じた、または signing を取消した                                   | system failure と混同せず、自動 retry / fallback しない                                                  |
+| invalid request               | application input、形式、size、context または protocol validation が不正                        | request を送らない、または failure として終了                                                            |
+| unsupported / incompatible    | operation、Chain、Network、format、version、Provider capability が非対応                        | 別 operation / raw signing / unsafe fallback に変換しない                                                |
+| mismatch / integrity / replay | caller、Origin、Account、Chain / Network、request / response、payload または freshness の不一致 | 自動再送せず、security failure として終了                                                                |
+| timeout / expired / cancelled | SDK wait、request expiry、context loss または cancellation                                      | 遅延 response を適用せず、署名状態を推測しない                                                           |
+| transport / relay             | Provider、Relay、network、handoff または delivery の失敗                                        | transport-level failure category として扱い、signing outcome または Signer-side disposition へ昇格しない |
+| wallet-side / internal        | Signer、wallet-core、SDK または依存 component の内部失敗                                        | secret / stack trace を漏らさず、安全側に終了                                                            |
 
 具体的な error code、exception class、message 文言、HTTP status、retry 回数および retry interval は下位仕様へ委譲する。外部アプリケーションが必要な分類を失わない範囲で、Provider / platform 固有 error の詳細を過度に公開しない。
+
+`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` は transport / error category ではない。前者の owner は signing generation 自体の outcome を扱う Signer、後者の owner は既知の signed result の delivery disposition を扱う Signer である。SDK は実際に取得した Signer-originated disposition の correlation と意味不変の伝達だけを担い、Relay / transport failure から両 disposition を作らない。
 
 ## 16. Concurrency / Connection Loss / Page Lifecycle
 
@@ -479,7 +485,7 @@ Provider disconnect、Extension reload、browser restart、tab navigation、page
 
 page load、unload、navigation、tab close、BFCache 等の browser lifecycle と duplicate SDK initialization を考慮する。page lifecycle をまたいで pending approval、permission、signed result または request identity を危険な形で自動復元しない。
 
-page が破棄・遷移された場合、SDK の local waiting を終了し、Provider 側で処理中の可能性を外部アプリケーションへ明示的な unknown / failure として伝える。復元を行う場合も、古い request / response を再利用せず、新しい application context と新しい request として開始する。
+page が破棄・遷移された場合、SDK の local waiting を終了し、context lost / transport failure category として扱う。これは Signer-side の `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` ではなく、SDK は page lifecycle loss から signing outcome または delivery disposition を推測・確定しない。page context の喪失は unsigned、signed、signing failed、`RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` のいずれの証明でもない。復元を行う場合も、古い request / response を再利用せず、新しい application context と新しい request として開始する。
 
 ## 17. Local / Remote Signing Abstraction
 
@@ -493,11 +499,13 @@ remote:
   SDK → Provider / handoff client → Relay → Mobile App → wallet-core
 ```
 
-共通化する対象は operation、request identity、Account / Chain / Network context、success / rejection / failure の意味および結果の相関である。共通化してはならない、または完全には隠せない差異は、latency、availability、session establishment、user activation、page / App lifecycle、timeout、cancellation および result unknown である。
+共通化する対象は operation、request identity、Account / Chain / Network context、success / rejection / failure の意味、Signer-originated disposition の意味および結果の相関である。共通化してはならない、または完全には隠せない差異は、latency、availability、session establishment、user activation、page / App lifecycle、timeout、cancellation、result delivery および transport / handoff failure category である。local / remote の transport 差異は `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の生成根拠にならない。
 
-SDK は remote signing のために Relay server の内部 protocol、credential、session store または Mobile App の privileged interface を直接公開しない。Relay が利用できない場合は signing success に変換せず、Mobile App 未提供・unsupported capability も利用可能として報告しない。
+SDK は remote signing のために Relay server の内部 protocol、credential、session store または Mobile App の privileged interface を直接公開しない。Relay が利用できない場合は transport / handoff failure category として扱い、signing success、`RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` に変換しない。Mobile App 未提供・unsupported capability も利用可能として報告しない。
 
-local が失敗したから remote へ、remote が失敗したから local へ自動 fallback する設計は、user rejection、mismatch、integrity、caller、replay failure および result unknown を迂回し得るため通常の安全動作としない。明示的な transport 選択の範囲は Requirements の未決事項として扱う。
+Signer が既知の signed result を保持している場合の delivery failure では、既存 result の redelivery、resend、retrieval または lookup を候補とする。これらは response delivery の回復であり signing retry ではないため、known result の delivery failure から再署名しない。具体的な配送・照会契約は下位仕様へ委譲する。
+
+local が失敗したから remote へ、remote が失敗したから local へ自動 fallback する設計は、user rejection、permission / authorization failure、mismatch、integrity、caller、replay failure、`RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を迂回し得るため通常の安全動作としない。transport failure を signing retry に変換せず、Provider A failure から Provider B signing への自動切替もしない。明示的な transport 選択の範囲は Requirements の未決事項として扱う。
 
 ## 18. Versioning / Compatibility / Serialization
 
@@ -557,24 +565,30 @@ SDK core は React、Vue、Angular または特定 UI framework に依存しな�
 
 ## 21. Failure / Recovery
 
-| 状況                                      | SDK の基本処理                                        | 禁止する復旧                                                    |
-| ----------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------- |
-| Provider unavailable / incompatible       | unavailable / compatibility failure として終了        | 未検証 Provider、別 operation または unsafe fallback の自動利用 |
-| permission denied / revoked               | permission failure として終了し、古い公開情報を無効化 | 接続済み・cache・capability による権限の推測                    |
-| malformed / unsupported request           | request を送らず invalid / unsupported とする         | raw signing、警告だけの bypass、別 operation への変換           |
-| user rejection                            | rejection として返す                                  | 自動 retry、別 transport、別 Provider による迂回                |
-| timeout / cancellation                    | local wait を終え、遅延 response を適用しない         | 未署名・署名済みの推測、古い承認の再利用                        |
-| Provider disconnect / page lifecycle loss | context lost / transport failure として終了           | stale request、permission、approval、response の自動復元        |
-| response mismatch / replay / duplicate    | response を破棄または security failure とする         | request identity を無視した適用・再送                           |
-| Relay / remote handoff failure            | transport failure / result unknown とする             | Relay success の推測、local signing への無断 fallback           |
-| wallet-side / internal failure            | error category を正規化し、安全側に終了               | stack trace、secret、内部 status の漏洩                         |
+| 状況                                      | SDK の基本処理                                                                                        | 禁止する復旧                                                                                          |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Provider unavailable / incompatible       | unavailable / compatibility failure として終了                                                        | 未検証 Provider、別 operation または unsafe fallback の自動利用                                       |
+| permission denied / revoked               | permission failure として終了し、古い公開情報を無効化                                                 | 接続済み・cache・capability による権限の推測                                                          |
+| malformed / unsupported request           | request を送らず invalid / unsupported とする                                                         | raw signing、警告だけの bypass、別 operation への変換                                                 |
+| user rejection                            | rejection として返す                                                                                  | 自動 retry、別 transport、別 Provider による迂回                                                      |
+| timeout / cancellation                    | local wait を終え、遅延 response を適用しない                                                         | 未署名・署名済みの推測、古い承認の再利用                                                              |
+| Provider disconnect / page lifecycle loss | context lost / transport failure として終了                                                           | stale request、permission、approval、response の自動復元                                              |
+| response mismatch / replay / duplicate    | response を破棄または security failure とする                                                         | request identity を無視した適用・再送                                                                 |
+| Relay / remote handoff failure            | transport / handoff failure category として終了                                                       | Relay success、signing outcome または Signer-side disposition の推測、local signing への無断 fallback |
+| Signer-originated `RESULT_UNKNOWN`        | Signer が signing generation 自体の結果を確定できない disposition を、correlation 後に意味不変で伝達  | 自動 re-sign、同じ request の再開、別 transport / Provider / Signer への自動 fallback                 |
+| Signer-side `DELIVERY_UNKNOWN`            | Signer が既知の signed result の配送 disposition を確定できない場合に、correlation 後に意味不変で伝達 | 既知 result の再署名、`RESULT_UNKNOWN` への変換、別 transport / Provider / Signer への自動 fallback   |
+| wallet-side / internal failure            | error category を正規化し、安全側に終了                                                               | stack trace、secret、内部 status の漏洩                                                               |
 
-SDK が request identity、permission、Origin / caller context、Chain / Network、payload integrity、version または response correlation を検証できない場合は、成功として返さない。自動 retry を行う場合も、user rejection、mismatch、integrity、caller、replay failure および result unknown を対象外とし、新しい request と新しい validation / approval の境界を維持する。
+Relay / Provider / transport failure だけでは、`RESULT_UNKNOWN` も `DELIVERY_UNKNOWN` も成立しない。Signer-originated disposition を実際に取得できた場合だけ、SDK は request identity、response correlation および context を確認し、意味を変更せず application 側へ伝達する。SDK の transport state、response absence、timeout、disconnect、recipient offline、reconnect failure、delivery failure または page lifecycle loss から disposition を生成・推測・確定しない。
+
+既知の signed result に対する配送問題の候補は redelivery、resend、retrieval または lookup であり、signing retry とは分離する。known result の delivery failure、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN` または transport failure から automatic re-sign を行わない。自動 retry を行う場合も、user rejection、security / mismatch / integrity / caller / replay failure および permission / authorization failure を対象外とし、permission / authorization failure を transport retry に変換しない。local failure → remote signing、remote failure → local signing、Provider A failure → Provider B signing の自動 fallback も行わない。
+
+新しい signing operation が必要な場合は、同じ結果や transport 状態を再利用せず、新しい request、Authentication、Signing-capable unlock、Account authorization および Explicit user approval を新たに成立させる。
 
 ## 22. SDK Security Invariants
 
 1. SDK は private key、Mnemonic、password、Wallet Store、復号済み secret、device authentication 情報または E2E secret を要求・保持・出力しない。
-2. SDK は wallet、signing authority、user approval authority、transaction validator または trust anchor ではない。
+2. SDK は wallet、signing authority、signing-result correctness / disposition authority、user approval authority、transaction validator または trust anchor ではない。
 3. Provider detection は connection、permission、Account disclosure、unlock、approval または signing capability の確定を意味しない。
 4. Capability は authorization、Account ownership、user approval または個別 request の success を意味しない。
 5. connection、account/address disclosure、signing request および user approval を分離する。
@@ -583,13 +597,14 @@ SDK が request identity、permission、Origin / caller context、Chain / Networ
 8. SDK-provided display text、label、icon または description は trusted signing representation ではない。
 9. request、response、operation、Account、Chain / Network、Provider context および必要な target binding は一意に correlation する。
 10. stale、duplicate、replayed、expired、cancelled または別 request の response を現在の request に適用しない。
-11. timeout は wallet-side cancellation completion、署名未実行または署名済み結果の不存在を保証しない。
+11. timeout、cancellation または page lifecycle loss は wallet-side cancellation completion、署名未実行、署名済み結果の不存在または signing outcome を保証・確定しない。
 12. reconnect、Provider reload、browser restart、page reload または SDK reinitialization は古い approval、permission、pending request または signed result の自動復元を意味しない。
 13. unsupported / incompatible protocol、capability、Chain / Network、operation または runtime は unsafe fallback せず安全側に失敗する。
-14. user rejection、mismatch、integrity、caller、replay failure および result unknown を自動 retry / fallback で迂回しない。
-15. Relay の配送成功、Provider の response、SDK の resolved state または connection event は署名成功・安全性・Origin verified の根拠ではない。
-16. wallet-core、Browser Extension private context、Mobile secure storage、Relay administration plane および device authentication へ SDK から直接到達できない。
-17. SDK の diagnostics、logging、cache および error normalization は、secret isolation、privacy、approval binding および fail-closed を弱めない。
+14. user rejection、security / mismatch / integrity / caller / replay failure、permission / authorization failure、`RESULT_UNKNOWN` および `DELIVERY_UNKNOWN` を自動 retry / fallback で迂回しない。transport retry と signing retry を混同しない。
+15. Relay の配送成功、response absence、Provider / connection event、SDK の resolved state または transport state は、署名成功・署名失敗・`RESULT_UNKNOWN`・`DELIVERY_UNKNOWN` または Origin verified の根拠ではない。
+16. `RESULT_UNKNOWN` は Signer が signing generation 自体の結果を確定できない場合、`DELIVERY_UNKNOWN` は Signer が既知の signed result の配送 disposition を確定できない場合に限る。SDK / Provider / Relay / transport state はその生成・推測・確定の authority ではなく、SDK は取得済みの Signer-originated disposition を意味不変に伝達するだけである。
+17. wallet-core、Browser Extension private context、Mobile secure storage、Relay administration plane および device authentication へ SDK から直接到達できない。
+18. SDK の diagnostics、logging、cache および error normalization は、secret isolation、privacy、approval binding および fail-closed を弱めない。
 
 ## 23. 下位仕様への委譲事項
 
@@ -623,15 +638,19 @@ Requirements で未確定の事項は、本書では次の範囲に留める。
 
 ## 25. Traceability
 
-| 設計判断                                                          | 主な根拠                                                                                                      | 本書での適用                |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| SDK は非特権 integration layer である                             | [SDK 要件](../requirements/sdk.md) §1〜§4、[Architecture](./architecture.md) §3・§5.5                         | §1〜§4、§6、§20             |
-| Provider detection / capability は permission / approval ではない | SDK-FR-001〜004、SDK-SEC-002・004、Browser Extension 設計 §7〜§8                                              | §5、§7、§8、§22             |
-| Origin の最終保証は trusted wallet context にある                 | SDK-FR-005、SDK-SEC-004、Browser Extension 設計 §7、Mobile App 設計 §7                                        | §6、§9、§20、§22            |
-| request / response の相関と stale / replay 防止                   | SDK-FR-008・010、SDK-SEC-005・006、[Signing Flow](./signing-flow.md) §7                                       | §12〜§16、§22               |
-| local / remote transport の意味を維持する                         | SDK-FR-009、SDK-PLAT-002・003、[Relay 設計](./relay.md) §15〜§17                                              | §17、§20、§21               |
-| Relay は trust anchor ではない                                    | SDK-SEC-007、[Relay 要件](../requirements/relay.md)、[Relay 設計](./relay.md) §3・§5                          | §6、§17、§20〜§22           |
-| wallet-core は trusted wallet 内部の cryptographic boundary       | SDK-SEC-001・002、[Security Design](./security-design.md) §3・§5、[wallet-core README](../../_snwc/README.md) | §4、§6、§10、§19、§20、§22  |
-| unsupported / mismatch / result unknown は安全側に終了する        | SDK-FR-010・011、SDK-COMP-001〜004、[Interfaces](./interfaces.md)、[Signing Flow](./signing-flow.md) §7       | §7、§13〜§15、§18、§21〜§22 |
+| 設計判断                                                              | 主な根拠                                                                                                              | 本書での適用                                                                                                     |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| SDK は非特権 integration layer である                                 | [SDK 要件](../requirements/sdk.md) §1〜§4、[Architecture](./architecture.md) §3・§5.5                                 | §1〜§4、§6、§20                                                                                                  |
+| Provider detection / capability は permission / approval ではない     | SDK-FR-001〜004、SDK-SEC-002・004、Browser Extension 設計 §7〜§8                                                      | §5、§7、§8、§22                                                                                                  |
+| Origin の最終保証は trusted wallet context にある                     | SDK-FR-005、SDK-SEC-004、Browser Extension 設計 §7、Mobile App 設計 §7                                                | §6、§9、§20、§22                                                                                                 |
+| request / response の相関と stale / replay 防止                       | SDK-FR-008・010、SDK-SEC-005・006、[Signing Flow](./signing-flow.md) §7                                               | §12〜§16、§22                                                                                                    |
+| Provider / Relay / transport failure を正規化する                     | SDK-ERR-001、SDK-AC-007〜011、[Architecture](./architecture.md) §6.2、[Relay 設計](./relay.md) §29                    | §4.1、§15.2、§17、§21〜§22。SDK / transport が transport-level category を扱い、signing disposition へ昇格しない |
+| local / remote transport の意味を維持する                             | SDK-FR-009、SDK-PLAT-002・003、[Relay 設計](./relay.md) §15〜§17                                                      | §17、§20、§21。transport 差異は Signer-side disposition の生成根拠にしない                                       |
+| Relay は trust anchor ではない                                        | SDK-SEC-007、[Relay 要件](../requirements/relay.md)、[Relay 設計](./relay.md) §3・§5                                  | §6、§17、§20〜§22                                                                                                |
+| wallet-core は trusted wallet 内部の cryptographic boundary           | SDK-SEC-001・002、[Security Design](./security-design.md) §3・§5、[wallet-core README](../../_snwc/README.md)         | §4、§6、§10、§19、§20、§22                                                                                       |
+| `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` と transport failure を分離する | [Signing Flow](./signing-flow.md) §7.3〜§7.4、[Interfaces](./interfaces.md) §6.4・§7.6、[Relay 設計](./relay.md) §29  | §4、§15〜§17、§21〜§22。前者は Signer-originated / Signer-side、後者は SDK の transport-level category           |
+| Signer-originated disposition を意味不変に伝達する                    | [Signing Flow](./signing-flow.md) §7.4・§20.3、[Interfaces](./interfaces.md) §6.4・§7.6、[Relay 設計](./relay.md) §29 | §15、§17、§21〜§22。SDK は correlation 後に pass-through する                                                    |
+| known result の recovery と re-sign を分離する                        | [Signing Flow](./signing-flow.md) §7.4・§21、[Relay 設計](./relay.md) §25・§29                                        | §17、§21〜§22。redelivery / resend / retrieval / lookup を候補とし、transport failure から自動 re-sign しない    |
+| unsupported / mismatch は安全側に終了する                             | SDK-FR-010・011、SDK-COMP-001〜004、[Interfaces](./interfaces.md)、[Signing Flow](./signing-flow.md) §7               | §7、§13〜§15、§18、§21〜§22                                                                                      |
 
 SDK 要件に記載された具体的 requirement ID と acceptance condition は SDK specification / contract test で引き継ぐ。本書はその責任境界と基本方針を定め、Provider の具体 API、wire contract および実装を新たに確定しない。
