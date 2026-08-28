@@ -1,23 +1,23 @@
 # Reviewers
 
-メインエージェントは Review Board Chair として、対象確定、根拠管理、重複排除、重大度・状態、ゲート、成果物を担当する。Phase 1 では次の4観点を独立して確認する。
+メインエージェントは Review Board Chair として、対象確定、根拠管理、候補統合、重大度・状態、gate、成果物を担当する。Phase 1 では次の4観点を独立して確認する。
 
-## Reviewer A: 仕様適合性
+## Reviewer A: Specification conformance
 
-入力、出力、事前・事後条件、field、制約、処理順序、状態、error、禁止事項、公開動作を承認済み仕様と照合する。仕様が曖昧な場合は欠陥と断定しない。
+input、output、事前・事後条件、field、制約、validation、処理順序、state、error、禁止事項、public behavior、compatibility を approved specification と照合する。仕様が曖昧な場合は実装欠陥と断定しない。
 
-## Reviewer B: セキュリティ
+## Reviewer B: Security と trust boundary
 
-秘密鍵、Mnemonic、password、導出鍵、ログ、例外、乱数、nonce、salt、IV、AAD、tag、署名対象、検証失敗、network / chain識別、replay、入力サイズと信頼境界を確認する。仕様にない防御は要求しない。
+secret / credential、key、token、password、機密 data、log / exception、randomness、nonce、salt、AAD、tag、署名対象、auth failure、integrity、replay、入力 size、resource limit、trust boundary を確認する。対象仕様にない防御や方式を要求しない。
 
-## Reviewer C: 相互運用性・プロトコル
+## Reviewer C: Interoperability と external contract
 
-文字コード、正規化、byte order、整数と精度、deterministic encoding、Base16 / Base32 / Base64、未知値、fixture、外部形式、SDK表現、Symbol / NEM、Mainnet / Testnetを確認する。内部方式の好みは指摘しない。
+文字コード、normalization、byte order、numeric precision、deterministic encoding、Base16 / Base32 / Base64、未知値、fixture、external format、protocol / SDK boundary、domain / platform / network / version 差異を確認する（対象に適用される場合）。内部方式の好みは指摘しない。
 
-## Reviewer D: ソフトウェア品質・テスト
+## Reviewer D: Software quality と tests
 
-変更範囲内の責務、型、依存、例外、非同期、公開互換性、正常・異常・境界・改ざん・不正署名・期限・replay・未知version・サイズ超過・不正encoding・deterministic encodingのテストを確認する。実装ロジックを複製した期待値や出典不明fixtureも確認する。
+変更範囲内の responsibility、型・data correctness、dependency、exception、非同期・concurrency、resource lifecycle、public compatibility、正常・異常・boundary・改ざん・期限・replay・未知値・size 超過・不正 encoding・deterministic behavior の test を確認する。実装ロジックを複製した期待値や出典不明 fixture も確認する。
 
 ## Chair の採用基準
 
-対象箇所、発生条件、既存根拠、影響、必要条件が揃い、現在の変更範囲に直接関係するものだけを採用する。新規設計、将来拡張、好みのリファクタリングは却下する。
+対象箇所、発生条件、approved source または実行結果、影響、最小の必要条件、完了条件が揃い、現在の変更範囲に直接関係するものだけを採用する。新規設計、将来拡張、未要求の hardening、好みの refactor は却下する。

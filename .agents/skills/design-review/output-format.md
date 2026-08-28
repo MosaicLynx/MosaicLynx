@@ -4,7 +4,7 @@
 
 ## Skill-specific values
 
-- Formal finding prefix: `DR`
+- Formal finding prefix: applicable repository instructions が定義する場合だけ使用する。未定義なら repository 固有 prefix を推測せず、対象内で一意な phase-scoped ID を使用する。
 - Severity: `Critical` / `Major` / `Minor`
 - Review Result: `READY` / `REVISE DESIGN`
 - Required Changes: `Critical` または `Major` の New / Open / Reopened

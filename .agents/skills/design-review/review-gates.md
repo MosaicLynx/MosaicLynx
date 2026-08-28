@@ -1,14 +1,16 @@
-# Review Gates
+# Generic Phase Review Gates
 
-不合格ゲートは Critical の正式指摘へ対応付ける。
+各ゲートは design の責務、境界、依存、lifecycle、invariant が上流要求を満たし、下流へ引き渡せるかを確認する。不合格は、根拠と影響を持つ Critical finding に対応付ける。
 
-1. 目的と範囲: 設計の目的、対象、対象外、前提が一意に理解できる。
-2. コンテキストと責任: 外部主体、コンポーネント責務、trust boundary、秘密情報境界が明確である。
-3. 依存方向: 依存が意図した方向に流れ、責務の逆流や循環がない。
-4. 主要フロー: 正常、失敗、再試行、再起動、重複、結果対応の責任が確認できる。
-5. データ所有: 状態、秘密情報、保持、更新、破棄の所有者と境界が明確である。
-6. セキュリティと相互運用性: security invariant、Symbol / NEM、Mainnet / Testnet、Relay / wallet-coreの境界を弱めていない。
-7. 上流整合性: 要件、仕様、ADR、既存設計と重大な矛盾がない。
-8. 下流実装可能性: 下位仕様・実装・検証へ必要な設計判断を推測なしに引き渡せる。
+1. Purpose / scope: design の目的、対象、non-goal、前提を一意に理解できる。
+2. Context / responsibility: external actor、component responsibility、trust boundary、secret / sensitive data boundary が明確である。
+3. Dependency direction: dependency が意図した方向に流れ、責務の逆流や循環がない。
+4. Flow / lifecycle: 正常、failure、retry、timeout、再起動、duplicate、concurrency、結果対応の責任を確認できる。
+5. Data ownership: state、secret / sensitive data、保持、更新、破棄、access の owner と境界が明確である。
+6. Security / interoperability: security invariant、external contract、domain / platform / network / protocol variation が適用される source と整合する。
+7. Upstream consistency: requirements、specification、ADR、既存 design と重大な矛盾がない。
+8. Downstream feasibility: 下位 specification、implementation、validation へ必要な design decision を推測なしに引き渡せる。
 
-すべて合格なら READY、1つ以上不合格なら REVISE DESIGN とする。API、schema、暗号パラメータなど下位工程の未決定だけでは不合格にしない。
+すべての generic gate が合格なら `READY`、1つ以上不合格なら `REVISE DESIGN` とする。API、schema、cryptographic parameter、private implementation など下位工程の未決定だけでは不合格にしない。
+
+repository instructions が追加する mandatory gate、required evidence、security / release policy、命名規約は repository-specific policy として別途適用する。この資料へ repository 固有の gate や product contract を追加しない。追加 policy が不明な場合は、確認できない状態を PASS としない。

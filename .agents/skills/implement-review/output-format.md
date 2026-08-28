@@ -4,7 +4,7 @@
 
 ## Skill-specific values
 
-- Formal finding prefix: `IR`
+- Formal finding prefix: applicable repository instructions が定義する場合だけ使用する。未定義なら repository 固有 prefix を推測せず、対象内で一意な phase-scoped ID を使用する。
 - Severity: `CRITICAL` / `HIGH` / `MEDIUM` / `LOW`
 - Review Result: `READY` / `REVISE IMPLEMENTATION`
 - Required Changes: `CRITICAL` または `HIGH` の New / Open / Reopened

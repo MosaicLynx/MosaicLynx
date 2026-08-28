@@ -1,14 +1,16 @@
-# Review Gates
+# Generic Phase Review Gates
 
-各ゲートは合否を明示し、不合格は Critical の正式指摘へ対応付ける。
+各ゲートは requirements と approved source の関係を確認する。不合格は、根拠と影響を持つ Critical finding に対応付ける。
 
-1. 目的と課題: 解決する課題、目的、必要性を説明できる。
-2. 利用者と責任: 利用者、関係者、利用場面、外部責任を説明できる。
-3. 対象範囲: 対象と対象外、対象チェーン、network、データ、環境を矛盾なく区別できる。
-4. 要件と制約: 機能、品質、セキュリティ、制約、前提、未決定事項を識別できる。
-5. 受け入れ条件: 主要要求の合否を外部から観測できる。
-6. 内部整合性: 用語、目的、範囲、要求、例、資料間に仕様設計を妨げる矛盾がない。
-7. 不可欠な前提: 現在の範囲に必要な外部連携、運用、法務、ライセンス、安全性の前提が未確認のまま残っていない。
-8. コンセプト整合性: 上流コンセプトと前段レビューのブロック判定・未解決 Critical が、要件書へ矛盾なく引き継がれている。
+1. Purpose / problem: 解決する problem、purpose、必要性を説明できる。
+2. User / responsibility: user、stakeholder、actor、利用場面、external responsibility を説明できる。
+3. Scope boundary: 対象、non-goal、domain、platform、network、environment、data、external system の境界を矛盾なく区別できる（該当する場合）。
+4. Requirements / constraints: functional、quality、security、privacy、interoperability、制約、前提、未決定事項を識別できる。
+5. Acceptance: 主要 requirement の合否を外部から観測・検証できる。
+6. Failure / safety: 必要な invalid / malformed / unsupported input、error、failure、recovery、security の要求を確認できる。
+7. Internal consistency: 用語、purpose、scope、requirements、examples、関連資料に design / specification を妨げる矛盾がない。
+8. Traceability: 上流 concept と approved source から各 requirement へ、下流 design / specification へ追跡できる。
 
-すべて合格なら READY、1つ以上不合格なら REVISE REQUIREMENTS とする。前段資料がないことだけでは不合格にせず、未確認として記録する。
+すべての generic gate が合格なら `READY`、1つ以上不合格なら `REVISE REQUIREMENTS` とする。前段資料がないことだけでは不合格にせず、未確認として記録する。ただし、必要な evidence を推測で補わない。
+
+repository instructions が追加する mandatory gate、required evidence、security / release policy、命名規約は repository-specific policy として別途適用する。この資料へ repository 固有の gate や product contract を追加しない。追加 policy が不明な場合は、確認できない状態を PASS としない。

@@ -1,19 +1,19 @@
 # Reviewers
 
-メインエージェントは Review Board Chair として、根拠の統合、重複排除、重大度・状態、ゲート、成果物を担当する。Phase 1 では次の3観点を独立して確認する。
+メインエージェントは Review Board Chair として、対象確定、根拠管理、候補統合、重大度・状態、gate、成果物を担当する。Phase 1 では次の3観点を独立して確認する。
 
 ## Reviewer A: 明確性と完全性
 
-要求の追跡性、用語、対象、対象外、責任、前提、制約、MUST / SHOULD、受け入れ条件、内部矛盾を確認する。
+要求の traceability、用語、対象、non-goal、actor、responsibility、前提、制約、MUST / SHOULD、acceptance criteria、検証可能性、内部矛盾を確認する。
 
-## Reviewer B: 利用価値とスコープ
+## Reviewer B: 利用価値と scope
 
-目的、利用者、利用場面、提供価値、ユースケース、優先度、v1境界、外部主体、コンセプトとの整合を確認する。
+purpose、problem、user / stakeholder、利用場面、value、優先度、初期 scope、external party、上流 concept との整合を確認する。requirements にない capability や将来 scope を追加しない。
 
 ## Reviewer C: 成立性と安全性
 
-要件として不可欠な品質特性、セキュリティ、認証、完全性、相互運用性、チェーン・network境界、法務・外部連携前提を確認する。具体的な方式は要求しない。
+requirements として不可欠な quality、security、privacy、authentication / authorization、integrity、interoperability、failure、domain / platform / network / external system boundary を確認する（対象に適用される場合）。具体的な algorithm、schema、component、実装方式は要求しない。
 
 ## Chair の採用基準
 
-指摘は要件レベルの問題として、既存根拠、外部影響、完了条件を説明できる場合だけ採用する。設計詳細、一般的ベストプラクティス、将来拡張は却下する。
+指摘は requirements level の問題として、対象箇所、approved source、外部影響、必要条件、完了条件を説明できる場合だけ採用する。設計詳細、一般的 best practice、将来拡張、reviewer の好みは却下する。一般的に必要そうな要求ではなく、既存根拠に基づく欠落・矛盾・検証不能性を指摘する。

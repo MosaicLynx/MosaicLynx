@@ -4,11 +4,11 @@
 
 ## Skill-specific values
 
-- Formal finding prefix: `RR`
+- Formal finding prefix: applicable repository instructions が定義する場合だけ使用する。未定義なら repository 固有 prefix を推測せず、対象内で一意な phase-scoped ID を使用する。
 - Severity: `Critical` / `Major` / `Minor`
 - Review Result: `READY` / `REVISE REQUIREMENTS`
 - Required Changes: `Critical` または `Major` の New / Open / Reopened
 - Optional Improvements: `Minor` の New / Open / Reopened
 - Deferred Findings: 仕様設計以降へ引き継ぐ指摘
 - Domain Checks: 要求の完全性、責任・範囲、MUST / SHOULD、受け入れ条件、セキュリティ、相互運用性
-- Scope and Traceability: 要求とコンセプト、product-spec、適用資料、下流工程との追跡
+- Scope and Traceability: 要求と concept、適用される approved source、下流工程との追跡
