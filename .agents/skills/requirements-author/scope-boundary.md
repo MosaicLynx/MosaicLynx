@@ -1,21 +1,28 @@
 # Requirements Scope Boundary
 
-要件候補を採用する前に、次の順で確認する。
+要件候補を採用する前に、次の問いで phase と scope を確認する。
 
-1. その候補は、目的、対象、責任、制約、品質特性、外部契約、受け入れ条件、前提のいずれかを定める必要があるか。
-2. 仕様・設計・実装で初めて決めても、既存の要求を満たせるか。
-3. 採用すると、入力資料にない機能、利用者、環境、chain、network、責任、互換性、運用を追加しないか。
-4. 既存の上流要求から論理的に不可欠な派生要求か。
+1. これは purpose、scope、responsibility、constraint、quality、external behavior、acceptance、または必要な failure behavior を明確にする要求か。
+2. これは requirements で決めるべきことか。それとも design、specification、implementation で決めるべき詳細か。
+3. ユーザーの依頼、承認済み資料、適用可能な repository instructions にない user、environment、domain、platform、network、external system、responsibility、compatibility、operational behavior を追加していないか。
+4. その要求が他の承認済み要求から論理的に導かれる場合、導出元と影響範囲を示せるか。示せない場合は未決定として残すべきではないか。
 
-2が「はい」なら要件にはせず、下流工程へ委譲する。3が「はい」で、4の根拠がないなら採用しない。既存要求に不可欠な品質や制約が不足する場合だけ、具体的な実現方式ではなく、その不足する特性を要件として記述する。
+## Requirements review candidates
 
-要件レビューで扱うべき候補は、次のどれかに言い換えられる場合だけ採用する。
+- user / stakeholder / actor / external system の責任。
+- target、scope、non-goal、environment、domain、platform、network の境界（適用される場合）。
+- 目的、外部から観測できる結果、成功条件、利用可能性。
+- security、privacy、integrity、authenticity、authorization、availability、interoperability。
+- failure、invalid / malformed / unsupported input、recovery、retry、duplicate、timeout、retention（対象に関係する場合）。
+- acceptance criteria、validation evidence、assumption、risk、undecided item。
 
-- 利用者、関係者、外部主体の責任
-- 対象・対象外・環境・chain・networkの境界
-- 機能の目的と外部から観測可能な結果
-- security、privacy、完全性、認証、可用性、相互運用性などの必要特性
-- 運用、法務、license、外部連携の不可欠な制約
-- 受け入れ条件、失敗時の安全な結果、未決定事項
+## Requirements では決めないもの
 
-API、field、型、暗号方式、KDF、nonce、serialization、database、framework、画面、テストケースを具体化する候補は、この要件定義では採用しない。
+根拠のある上流決定を反映する場合を除き、次は requirements で新たに固定しない。
+
+- API field、type、schema、wire format、serialization、canonicalization、database schema。
+- algorithm、cryptographic parameter、KDF、nonce、key encoding、signature encoding、具体的な protocol message。
+- component の分割、dependency direction、class、function、framework、library、package、deployment。
+- 実装手順、fixture の具体値、test case の実装、CI / release command。
+
+技術的な詳細が必要な場合は、requirements では目的・制約・検証可能な結果を記述し、具体化先の design / specification / implementation と参照関係を示す。

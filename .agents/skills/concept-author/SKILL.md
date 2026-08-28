@@ -1,112 +1,107 @@
 ---
 name: concept-author
-description: MosaicLynx のアイデア、会話、既存資料を、要件定義前のコンセプトへ整理する。背景、課題、対象ユーザー、提供価値、v1の境界、判断原則、成功条件、前提、リスク、未決定事項を定め、API・仕様・設計・実装は決めない。
+description: アイデア、会話、既存資料を、要件定義前の concept artifact へ整理する。背景、problem、対象 user / stakeholder、value hypothesis、scope / non-goal、responsibility、assumptions、success criteria、unresolved issues を定め、API・仕様・設計・実装は決めない。
 ---
 
 # Concept Author
 
-要件定義へ進む前に、プロジェクトが解決する課題、提供する価値、対象範囲、後続工程の判断基準をコンセプトシートへ整理する。このSkillの成果物は「なぜ作るか」「誰のためか」「何を価値とするか」「どこまでを扱うか」であり、機能仕様や実装計画ではない。
+要件定義へ進む前に、対象が解決する problem、提供する value、対象範囲、後続工程の判断基準を concept artifact へ整理する。この Skill の成果物は「なぜ扱うのか」「誰のためか」「何を価値とするか」「どこまでを扱うか」を明確にするものであり、機能仕様や実装計画ではない。
 
-作業開始時に次の順で全文を確認する。
+## 作業開始時の確認
 
-1. 適用対象の repository instructions（対象から参照可能な `AGENTS.md` など）
-2. ../author-common/author-playbook.md
-3. ユーザーが明示した資料
-4. 対象に直接関係する product-spec または既存コンセプト
+次の順に確認する。
+
+1. applicable repository instructions。成果物の配置、対象 repository / component、参照すべき正本、ローカルの制約が定義されている場合はそれに従う。
+2. `../author-common/author-playbook.md`。
+3. ユーザーが明示した依頼、会話、既存資料。
+4. 対象に直接関係する既存 concept artifact または承認済みの上流 product 文書。
+
+repository instructions に特定のフォーマットや保存場所が書かれている場合は、それを使用する。書かれていない場所、命名規則、対象 component、検証方法を慣例から推測しない。
 
 ## 対象と出力
 
-- ユーザーが出力先を指定した場合はそのパスを使う。
-- 未指定の場合は対象パッケージを確定し、docs/concept/<topic>.md に新規作成する。
-- 対象がリポジトリ全体か特定app / packageか不明、または複数にまたがる場合は出力先を推測しない。
-- 既存ファイルは明示的な更新依頼がある場合だけ変更する。候補が複数なら自動選択しない。
-- 成果物はコンセプトシートだけとし、requirements、design、specification、ADR、review、implementationを同時に作成しない。
+- ユーザーが出力先や対象 artifact を指定した場合は、それを優先する。
+- 指定がない場合は、repository instructions と既存の artifact 構成から concept artifact の保存場所と命名を特定する。
+- repository instructions と既存構成のどちらからも安全に特定できない場合は、場所を発明せず、必要な確認事項を unresolved issue として報告する。
+- 既存 artifact は、ユーザーが更新を求めた場合または対象範囲が明確な場合だけ更新する。別の artifact を無断で上書きしない。
+- 出力は concept の判断材料に限定する。requirements、design、specification、implementation の詳細を別名で混入させない。
 
 ## コンセプトの責務
 
-次を、事実・仮定・未決定事項・将来構想に分類して整理する。
+必要に応じて、次を簡潔かつ追跡可能に整理する。
 
-- 背景、課題、課題の原因、放置した場合の影響
-- 目的、対象ユーザー、関係者、主要利用場面
-- 利用者が得る提供価値と、その価値を利用する理由
-- v1で扱う能力・責任領域、対象外、外部へ委ねる責任
-- 判断原則、原則間の優先順位、成功条件
-- 成立に必要な前提、主なリスク、要件定義への引継ぎ
-- ユーザーまたは既存資料で明示された将来構想
+- 背景、context、現状の問題、解決しない場合の影響。
+- problem statement、対象 user / stakeholder、関係する actor、利用場面。
+- value hypothesis、期待する outcome、成功を判断する観測可能な条件。
+- v1 または対象 scope、明示的な non-goal、将来検討との境界。
+- user、operator、repository-defined component、external party などの責任の仮説。実際の境界が承認済み資料にない場合は仮説または未決定として扱う。
+- 判断原則、assumptions、依存する前提、主要な risk。
+- requirements 以降へ引き渡す問い、unresolved issue、検証が必要な仮説。
 
-利用場面は価値を説明できる粒度までに留め、操作手順やシステム間の処理フローへ展開しない。v1のスコープは機能一覧ではなく、能力・責任領域の境界として記述する。
+scope は機能の一覧ではなく、価値を検証するために必要な境界として記述する。対象外を明示し、未決定事項を決定済みのように表現しない。
 
-## 記載しない内容
+## Concept に記載しない内容
 
-ユーザーまたは承認済み資料で既に確定していない限り、次を新たに決定しない。
+次の内容を新たに決めない。
 
-- API、RPC、コマンド、画面、イベント、公開型
-- データ項目、schema、wire format、状態遷移、処理手順
-- validation、error、algorithm、protocol、暗号方式
-- 保存方式、通信方式、package分割、library、infra
-- 詳細なsecurity対策、test case、fixture、受け入れテスト
-- 「あると便利」「一般的に必要」「将来必要になる可能性がある」だけを根拠とする機能・責任・将来構想
+- API、RPC、UI、型、field、schema、wire format、serialization、state machine の詳細。
+- protocol、external contract、storage、transport、deployment、library、framework、class、function の選定。
+- cryptographic algorithm、parameter、key handling、encoding、signature、validation rule の仕様。
+- component の細かな dependency、実装手順、test case、CI / release command。
+- 現在の code の挙動を根拠にした、未承認の requirement、capability、互換動作。
 
-要件として後工程に必要な論点は、具体的な方式ではなく未決定事項または要件定義への引継ぎとして記録する。要件として記述できる粒度へ達したら、コンセプトの記述を止める。
+技術的な制約が value hypothesis や成立性に直接影響する場合でも、承認済み資料にある事実と、検証が必要な仮説を分けて記載する。下流で決める詳細は、確認すべき問いとして引き渡す。
 
 ## 情報の扱い
 
-- ユーザー依頼、会話、明示資料、承認済みproduct範囲を主な根拠とする。
-- 既存のコンセプトを更新する場合、変更前の記載、今回の依頼、維持・変更・削除の理由を照合する。
-- docs/knowledge や詳細技術資料は原則として参照しない。コンセプトの成立性や責任境界の確認に不可欠な場合だけ、確認した事実を追加せず補助的に使う。
-- Symbol / NEM、Mainnet / Testnet、Extension / Relay / Mobileの区別は明示資料にある境界を保つ。Mobile実装がない場合は将来範囲と明記する。
-- 課題仮説、数値、実現可能性、法務・security上の前提を確認済み事実へ昇格させない。
+- user instruction、会話、承認済み上流資料、既存 concept artifact を根拠として使用する。
+- repository instructions が参照先を示す場合は、該当する product / domain 文書、ADR、既存資料を確認する。ただし、詳細仕様を concept の根拠なしに再解釈しない。
+- domain、platform、network、external system、component の違いは、資料で区別されている場合に限り保持する。名前が似ているものを勝手に統合しない。
+- 現在存在する component と計画中の component、仮説上の stakeholder と確定した責任を区別する。
+- 事実、仮説、前提、未決定事項、risk をラベルまたは文脈で明確に分ける。
 
 ## 作成手順
 
-1. 対象、出力先、更新可否、根拠資料を確定する。
-2. 背景、課題、目的、価値、対象ユーザー、利用場面を抽出する。
-3. 背景→課題→目的→価値→スコープの因果を整理する。
-4. 対象ユーザーと主要利用場面を、価値を説明できる範囲で絞る。
-5. v1、対象外、外部責任、将来構想を分離する。
-6. 判断原則と成功条件を、機能名ではなく判断・観測可能な状態として整理する。
-7. 前提、リスク、未決定事項、要件定義への引継ぎを記録する。
-8. 各章の記述を根拠へ追跡し、未確認事項を明示する。
-9. 自己確認後、コンセプトシートだけを作成または明示的に更新する。
+1. 依頼から目的、対象 user / stakeholder、期待 outcome、制約を抽出する。
+2. 既存の上流資料と concept artifact を確認し、重複・競合・未決定事項を記録する。
+3. problem とその影響を、解決策の実装詳細を持ち込まずに記述する。
+4. value hypothesis と success criteria を、後で検証できる形にする。
+5. v1 scope、non-goal、responsibility の仮説を定める。
+6. assumptions、risks、外部依存、unresolved issues を整理する。
+7. requirements へ引き渡す問いと、requirements 以降に委譲する詳細を明示する。
+8. 事実と仮説、決定と未決定、現在と将来を再確認する。
+9. repository instructions が定める場所へ保存し、必要な検証・報告方法に従う。
 
-## 標準構成
+## 推奨構成
 
-指定がなければ、次の章を使う。
+1. Title / status / owner
+2. Background and context
+3. Problem statement
+4. Target users and stakeholders
+5. Use cases or situations
+6. Value hypothesis
+7. Scope / v1 boundary
+8. Non-goals
+9. Responsibility hypotheses
+10. Principles and assumptions
+11. Success criteria
+12. Risks and unresolved issues
+13. Handoff to requirements
 
-1. 概要
-2. 解決したい課題
-3. 目的
-4. 対象ユーザーと主要利用場面
-5. 提供価値
-6. v1のスコープと責任境界
-7. 判断原則
-8. 成功条件
-9. 前提条件と主なリスク
-10. 将来構想
-11. 未決定事項
-12. 要件定義への引継ぎ
-13. 参照資料
-
-未決定事項には、ID、論点、判断が必要な理由、判断段階、コンセプトへの影響を記載する。成功条件には、観測または検証する対象と証拠の種類を示せるが、根拠のない数値や実装レベルのテスト手順は追加しない。
+すべての節が必要とは限らないが、欠落が判断を不可能にする場合は理由を記載する。
 
 ## 図解
 
-文章だけでは対象ユーザー、課題、価値、責任境界の関係が把握しにくい場合だけ、ASCIIまたはMermaid図を追加する。図は本文の要約とし、API、状態遷移、処理フロー、データ構造、アーキテクチャを新たに表現しない。図中の要素と関係は本文または根拠資料へ追跡可能にする。
+必要な場合だけ、problem、actor、value、scope、責任の関係を示す簡潔な図を使用する。component、API、wire format、詳細 flow の設計図は作成しない。
 
 ## 自己確認
 
-- 背景から課題、目的、価値、スコープの因果が通っている。
-- 対象ユーザー、利用場面、責任境界、対象外が明確である。
-- v1、将来構想、外部責任、未決定事項を混同していない。
-- 判断原則が後続の選択に使え、機能一覧になっていない。
-- 成功条件が目的を検証でき、根拠のない数値を含まない。
-- API、仕様、設計、実装、テストを先取りしていない。
-- 追加した内容をユーザー依頼または確認済み資料へ追跡できる。
-- 未確認の事実、仮定、リスク、未決定事項が明示されている。
-- 既存ファイルの変更範囲が依頼どおりである。
+- problem、target user / stakeholder、value hypothesis、scope、non-goal、success criteria が一貫しているか。
+- 事実・仮説・assumption・risk・unresolved issue が区別されているか。
+- 要求、設計、仕様、実装の詳細を先取りしていないか。
+- repository instructions にない artifact path、component、platform、protocol、capability、責任を推測していないか。
+- 現在の code の挙動を、承認済みの product intent の代わりにしていないか。
+- 外部 actor、remote system、secret-bearing activity などの責任を、根拠なく一つの主体へ寄せていないか。
+- downstream の requirements-author へ、未解決の判断と確認すべき根拠が引き渡されているか。
 
-独立した品質判定が必要な場合は、作成後にconcept-reviewを使用する。このSkill自身はレビュー成果物を生成しない。
-
-## 作業完了後のGit運用
-
-`../author-common/author-playbook.md` の「Git運用」を適用する。
+次段階の requirements-author または repository instructions が指定するレビュー手順へ引き渡す。共通の Source of Truth、scope control、Git、validation、報告ルールは `../author-common/author-playbook.md` に従う。
