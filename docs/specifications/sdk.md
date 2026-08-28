@@ -70,19 +70,20 @@ SDK は Web Application / dApp と trusted Signer の間にある非特権の in
 
 ## 4. 用語
 
-| 用語             | 本書での意味                                                                                              |
-| ---------------- | --------------------------------------------------------------------------------------------------------- |
-| SDK              | Web Application / dApp から MosaicLynx へ request を渡す非特権 integration layer                          |
-| Provider         | SDK が発見・適合確認・連携する Extension またはその他の Signer 接続境界                                   |
-| Signer           | Browser Extension または Mobile App。検証、表示、明示承認、authentication、署名を担う authority           |
-| connection       | SDK と Provider / Signer の連携文脈。permission や signing approval とは別である                          |
-| permission       | Origin、Scope、Account 等に結び付いた Signer 側の許可。SDK が付与・拡張しない                             |
-| capability       | Provider / Signer が operation または Scope に対応可能であること。authorization ではない                  |
-| signing request  | `requestId`、operation、Scope、Account context、expiry および signing target を持つ一つの logical request |
-| local signing    | SDK から Browser Extension Provider を経由する連携                                                        |
-| remote handoff   | SDK から既存 Handoff / Relay を経由して Mobile App へ渡す連携                                             |
-| delivery success | response が配送された状態。署名成功とは別である                                                           |
-| result unknown   | 署名生成の成否を安全に確定できない状態。再署名してはならない                                              |
+| 用語                 | 本書での意味                                                                                                    |
+| -------------------- | --------------------------------------------------------------------------------------------------------------- |
+| SDK                  | Web Application / dApp から MosaicLynx へ request を渡す非特権 integration layer                                |
+| Provider             | SDK が発見・適合確認・連携する Extension またはその他の Signer 接続境界                                         |
+| Signer               | Browser Extension または Mobile App。検証、表示、明示承認、authentication、署名を担う authority                 |
+| connection           | SDK と Provider / Signer の連携文脈。permission や signing approval とは別である                                |
+| permission           | Origin、Scope、Account 等に結び付いた Signer 側の許可。SDK が付与・拡張しない                                   |
+| capability           | Provider / Signer が operation または Scope に対応可能であること。authorization ではない                        |
+| signing request      | `requestId`、operation、Scope、Account context、expiry および signing target を持つ一つの logical request       |
+| local signing        | SDK から Browser Extension Provider を経由する連携                                                              |
+| remote handoff       | SDK から既存 Handoff / Relay を経由して Mobile App へ渡す連携                                                   |
+| delivery success     | response が配送された状態。署名成功とは別である                                                                 |
+| delivery disposition | known signed result に付随する Signer-side の配送状態。Relay ACK / consumed state とは別である                  |
+| result unknown       | Signer が署名生成の成否を安全に確定できない状態。公開 API では error ではなく `outcome: 'resultUnknown'` とする |
 
 ## 5. SDK 公開 API
 
@@ -92,17 +93,33 @@ SDK の公開 factory、instance、引数および戻り値は、[Web Transactio
 
 公開 method の契約は次のとおりである。型の exact field、required / optional および encoding は同 Handoff Specification と [interfaces.md](./interfaces.md) の対応する節に従う。
 
-| Method                        | 引数                                | 戻り値                                          | 前提と意味                                                                                                                                                  |
-| ----------------------------- | ----------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isAvailable()`               | なし                                | `Promise<boolean>`                              | Handoff §5.3 の選択可能な local Provider route または Mobile Relay route が存在する場合に true を返す。connection、permission、approval、署名成功を表さない |
-| `connect(scope)`              | `MosaicLynxScope`                   | `Promise<MosaicLynxActiveAccount>`              | 指定 Scope の公開 Account disclosure / connection を Signer に要求する。利用者の connection 許可が必要である                                                |
-| `isConnected(scope)`          | `MosaicLynxScope`                   | `Promise<boolean>`                              | UI を開かず、現在の Scope の connection / permission 状態を確認する。署名 approval ではない                                                                 |
-| `getActiveAccount(scope)`     | `MosaicLynxScope`                   | `MosaicLynxActiveAccount \| undefined`          | SDK が保持する公開 Account の現在値を返す。cache は最新 permission や所有権の証明ではない                                                                   |
-| `refreshActiveAccount(scope)` | `MosaicLynxScope`                   | `Promise<MosaicLynxActiveAccount \| undefined>` | Provider / Signer に公開 Account を再照会する。署名を開始しない                                                                                             |
-| `disconnect()`                | なし                                | `Promise<void>`                                 | 現在の Origin に対する既存の connection / permission を切断する。Scope 引数で一部だけを暗黙指定しない                                                       |
-| `signTransaction(params)`     | `MosaicLynxSignTransactionParams`   | `Promise<SignedTransaction>`                    | transaction signing request を構築・dispatch し、Signer が承認・署名した対応結果だけを返す                                                                  |
-| `signData(params)`            | `MosaicLynxSignDataParams`          | `Promise<SignedData>`                           | structured message signing request を構築・dispatch し、対応する signed data だけを返す                                                                     |
-| `cosignTransaction(params)`   | `MosaicLynxCosignTransactionParams` | `Promise<MosaicLynxCosignature>`                | 既存公開 contract の範囲で cosignature request を扱う。公開必須能力や chain-specific scope は未決事項を閉じない                                             |
+公開 signing API は次の共通 discriminated union を使用する。
+
+```ts
+type MosaicLynxDeliveryDisposition = 'PENDING' | 'DELIVERED' | 'DELIVERY_UNKNOWN';
+
+type MosaicLynxSigningResult<T> =
+  | {
+      outcome: 'succeeded';
+      result: T;
+      deliveryDisposition: MosaicLynxDeliveryDisposition;
+    }
+  | {
+      outcome: 'resultUnknown';
+    };
+```
+
+| Method                        | 引数                                | 戻り値                                                | 前提と意味                                                                                                                                                  |
+| ----------------------------- | ----------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isAvailable()`               | なし                                | `Promise<boolean>`                                    | Handoff §5.3 の選択可能な local Provider route または Mobile Relay route が存在する場合に true を返す。connection、permission、approval、署名成功を表さない |
+| `connect(scope)`              | `MosaicLynxScope`                   | `Promise<MosaicLynxActiveAccount>`                    | 指定 Scope の公開 Account disclosure / connection を Signer に要求する。利用者の connection 許可が必要である                                                |
+| `isConnected(scope)`          | `MosaicLynxScope`                   | `Promise<boolean>`                                    | UI を開かず、現在の Scope の connection / permission 状態を確認する。署名 approval ではない                                                                 |
+| `getActiveAccount(scope)`     | `MosaicLynxScope`                   | `MosaicLynxActiveAccount \| undefined`                | SDK が保持する公開 Account の現在値を返す。cache は最新 permission や所有権の証明ではない                                                                   |
+| `refreshActiveAccount(scope)` | `MosaicLynxScope`                   | `Promise<MosaicLynxActiveAccount \| undefined>`       | Provider / Signer に公開 Account を再照会する。署名を開始しない                                                                                             |
+| `disconnect()`                | なし                                | `Promise<void>`                                       | 現在の Origin に対する既存の connection / permission を切断する。Scope 引数で一部だけを暗黙指定しない                                                       |
+| `signTransaction(params)`     | `MosaicLynxSignTransactionParams`   | `Promise<MosaicLynxSigningResult<SignedTransaction>>` | transaction signing request を構築・dispatch し、known signed result または Signer-originated `RESULT_UNKNOWN` を返す                                       |
+| `signData(params)`            | `MosaicLynxSignDataParams`          | `Promise<MosaicLynxSigningResult<SignedData>>`        | structured message signing request を構築・dispatch し、known signed data または Signer-originated `RESULT_UNKNOWN` を返す                                  |
+| `cosignTransaction(params)`   | `MosaicLynxCosignTransactionParams` | `Promise<MosaicLynxCosignature>`                      | 既存公開 contract の範囲で cosignature request を扱う。公開必須能力や chain-specific scope は未決事項を閉じない                                             |
 
 `MosaicLynxSDK.version` は SDK API version を返し、現行 Handoff contract の version は `1.0.0` である。`MosaicLynxSDKOptions` は Handoff §5.1 に定義された diagnostics option のみを公開する。transport、Relay URL、session credential、Account の内部 identifier または秘密情報を公開引数へ追加してはならない。
 
@@ -110,7 +127,9 @@ SDK の公開 factory、instance、引数および戻り値は、[Web Transactio
 
 - 各 API invocation は、対応する一つの logical request または照会操作に結び付く。
 - 一つの invocation は一度だけ resolve または reject する。duplicate callback / response は既に完了した invocation を再完了させない。
-- `signTransaction`、`signData` および `cosignTransaction` の resolve は、Signer の request validation、inspection、明示 approval、必要な authentication、signing および SDK の response correlation が成立した known signed result に限る。Handoff の `deliveryDisposition` が `DELIVERY_UNKNOWN` でも signing outcome は `SUCCEEDED` であり、既存 result の意味を失わせない。
+- `signTransaction` と `signData` は、通常の failure / rejection なら Handoff §10 の既存 public error code で Promise を reject し、known signed result なら `outcome: 'succeeded'` として resolve し、Signer-originated `RESULT_UNKNOWN` なら `outcome: 'resultUnknown'` として resolve する。`RESULT_UNKNOWN` を exception、SDK error code、transport failure または internal exception へ変換しない。
+- `outcome: 'succeeded'` は `result` と Signer-originated `deliveryDisposition` を必ず保持する。`deliveryDisposition: 'DELIVERY_UNKNOWN'` でも signing outcome は `SUCCEEDED` であり、既存 result を失わない。SDK 自身の response取得、ACK または transport completion を根拠に disposition を書き換えない。
+- `cosignTransaction` は既存の `MosaicLynxCosignature` contract を維持する。cosignature に同じ result union を適用するか、公開必須能力とするかは `OPEN-SDK-004` 等の既存 OPEN を解消するまで本仕様で決定しない。
 - `connect` の resolve は、指定 Scope の公開 Account disclosure と connection 許可の結果であり、後続 signing の user approval を意味しない。
 - `isConnected`、`getActiveAccount` および `refreshActiveAccount` の結果は、署名 approval、Account ownership、Origin verification または transaction safety の証明ではない。
 - rejection の error code、error type および mapping は [Handoff §10](./web-transaction-handoff-spec.md) と [interfaces.md §10](./interfaces.md) を使用し、SDK 独自の taxonomy を追加しない。
@@ -124,6 +143,23 @@ SDK は次を公開 API の成功条件にしてはならない。
 - SDK が自己申告または観測した Origin
 - private key、Mnemonic、password、unlock credential、device authentication data または Wallet Store
 - SDK が生成した approval、Signer の authentication 成功または wallet-core の内部状態
+
+### 5.4 Handoff / Provider response の公開 mapping
+
+SDK は Handoff または Extension Provider から受け取った response を、次の公開 signing result へ一意に対応付ける。
+
+| 入力 response                                                                                  | 公開 SDK result                                                                                                                     |
+| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `outcome: 'signed'`、`signingOutcome: 'SUCCEEDED'`、`signedTransaction`、`deliveryDisposition` | `outcome: 'succeeded'`、`result: SignedTransaction`、同じ `deliveryDisposition` を持つ `MosaicLynxSigningResult<SignedTransaction>` |
+| `outcome: 'dataSigned'`、`signingOutcome: 'SUCCEEDED'`、`signedData`、`deliveryDisposition`    | `outcome: 'succeeded'`、`result: SignedData`、同じ `deliveryDisposition` を持つ `MosaicLynxSigningResult<SignedData>`               |
+| `outcome: 'resultUnknown'`、`signingOutcome: 'RESULT_UNKNOWN'`                                 | `outcome: 'resultUnknown'`。signed result、deliveryDisposition、normal errorCode は持たない                                         |
+| `outcome: 'rejected'` または `outcome: 'failed'`、既存 `errorCode`                             | Handoff §10 の既存 public error authority に従う Promise reject                                                                     |
+
+Extension Provider path と Mobile Relay path は、transport によらず同じ `MosaicLynxSigningResult<T>` semantics を公開する。local が `SignedTransaction`、remote が union のように経路ごとに型や意味を変えてはならない。Provider adapter が内部 response を別の形で受け取る場合も、SDK は Signer-originated な result / disposition だけを共通型へ変換し、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` を生成・推測・確定しない。
+
+`deliveryDisposition` は Signer-side の known signed result に付随する値であり、Relay の ACK / `response_available` / `consumed` state と同一視しない。現行 Mobile Relay v1 では reverse acknowledgement contract がないため、Mobile App が response を登録した直後の disposition は原則 `PENDING` とする。SDK が response を取得・検証・ACK できても、Signer-originated `PENDING` を `DELIVERED` に書き換えない。`DELIVERED` は Signer が trusted delivery contract に基づいて確定した場合だけ公開される。
+
+`outcome: 'resultUnknown'` を受け取った利用側は、unsigned または signed と仮定せず、自動 re-sign や alternate Signer / transport fallback を行わない。新しい signing operation は fresh request と fresh な共通4条件を必要とする。`outcome: 'succeeded'` では `deliveryDisposition` の値にかかわらず `result` が known signed result であり、dApp は必要に応じて独立検証できる。
 
 ## 6. Provider Discovery / Selection / Capability
 
@@ -253,9 +289,10 @@ SDK は requester supplied summary、hash-only description、外部 lookup、Rel
 
 - `payload` は署名対象 transaction 全体であり、summary、hash、external identifier または Node lookup で代替しない。
 - `expectedSignerPublicKey` が指定された場合、SDK は形式を早期検証してよいが、実際の signer と一致することの authority は Signer である。不一致時は既存 Handoff mapping に従い、signed result を返さない。
+- known signed transaction の成功時、SDK は `MosaicLynxSigningResult<SignedTransaction>` の `outcome: 'succeeded'` branch を返す。Signer-originated `RESULT_UNKNOWN` は同じ公開型の `outcome: 'resultUnknown'` branch として返し、通常 error へ変換しない。
 - connection がない、Scope の permission が revoke 済みまたは active Account が要求に対応しない場合、SDK は暗黙接続せず `NOT_CONNECTED` または既存 mapping に従う error とする。
 - SDK は transaction type / version、aggregate inner transaction、canonicality、asset effect、fee、deadline、permission change または安全性を最終判定しない。
-- Signer が confirmation した target と response の payload / hash / signer の対応を検証できない場合、SDK は `SignedTransaction` を resolve しない。
+- Signer が confirmation した target と response の payload / hash / signer の対応を検証できない場合、SDK は `MosaicLynxSigningResult<SignedTransaction>` の succeeded branch を resolve しない。
 
 ### 9.2 Structured message signing
 
@@ -264,7 +301,7 @@ SDK は requester supplied summary、hash-only description、外部 lookup、Rel
 - SDK は既存契約に従って nonce、issuedAt および message expiry を生成し、`StructuredMessage` を構築する。
 - domain、Origin、purpose、nonce、issuedAt、expiresAt、payload および JCS / signing bytes の semantics を SDK 独自に変更しない。
 - Handoff の `RelayDataSigningRequest` が使用する `messageExpiresAt` と共通 `StructuredMessage` の `expiresAt` の対応は [interfaces.md OPEN-001](./interfaces.md) の未決事項である。SDK は片方を他方の alias として暗黙変換しない。
-- signed data は、Signer が確認・承認した同一 structured message と対応しなければ resolve しない。transaction signing、raw signing または表示不能 message へ fallback しない。
+- signed data は、Signer が確認・承認した同一 structured message と対応する `MosaicLynxSigningResult<SignedData>` として resolve する。Signer-originated `RESULT_UNKNOWN` は `outcome: 'resultUnknown'` として resolve し、transaction signing、raw signing または表示不能 message へ fallback しない。
 
 ### 9.3 Cosignature
 
@@ -283,7 +320,7 @@ SDK が扱う signing semantics は次の分離を維持する。
 ```text
 request received → SDK validation / construction → Provider dispatch
     → Signer validation / inspection → user approval → authentication
-    → wallet-core signing → result validation → SDK response（deliveryDisposition は別軸）
+    → wallet-core signing → result validation → SDK public `MosaicLynxSigningResult<T>`
 ```
 
 SDK は `AUTHORIZED`、`SIGNING` または `SUCCEEDED` を自ら成立させない。Signer の approval、authentication および signing result は request、target、Account、Scope、Origin / caller context、permission revision、capability / version context および expiry に binding される。
@@ -299,18 +336,18 @@ CREATED → VALIDATING → DISPATCHED → PENDING → RESOLVED
    └──────────────→ REJECTED / FAILED / TIMED_OUT / CANCELLED / CONTEXT_LOST
 ```
 
-| State          | SDK での意味                                                                  |
-| -------------- | ----------------------------------------------------------------------------- |
-| `CREATED`      | 外部アプリケーションが signing intent を SDK へ渡した                         |
-| `VALIDATING`   | SDK が引数、context、capability および protocol 境界を確認している            |
-| `DISPATCHED`   | Provider / handoff へ request を送信した。承認・署名開始を意味しない          |
-| `PENDING`      | response を待っている。Signer の approval / signing state は確定しない        |
-| `RESOLVED`     | correlation と必要な構造検証が完了し、公開結果を返した                        |
-| `REJECTED`     | user rejection、permission denial または Provider rejection の終端            |
-| `FAILED`       | invalid、unsupported、mismatch、transport または internal failure の終端      |
-| `TIMED_OUT`    | SDK の待機期限に到達した。wallet-side outcome は不明であり得る                |
-| `CANCELLED`    | SDK または Provider の cancellation contract により待機を終了した             |
-| `CONTEXT_LOST` | page、Provider、connection、session、permission または Scope context を失った |
+| State          | SDK での意味                                                                                               |
+| -------------- | ---------------------------------------------------------------------------------------------------------- |
+| `CREATED`      | 外部アプリケーションが signing intent を SDK へ渡した                                                      |
+| `VALIDATING`   | SDK が引数、context、capability および protocol 境界を確認している                                         |
+| `DISPATCHED`   | Provider / handoff へ request を送信した。承認・署名開始を意味しない                                       |
+| `PENDING`      | response を待っている。Signer の approval / signing state は確定しない                                     |
+| `RESOLVED`     | correlation と必要な構造検証が完了し、`MosaicLynxSigningResult<T>` または対象 operation の公開結果を返した |
+| `REJECTED`     | user rejection、permission denial または Provider rejection の終端                                         |
+| `FAILED`       | invalid、unsupported、mismatch、transport または internal failure の終端                                   |
+| `TIMED_OUT`    | SDK の待機期限に到達した。wallet-side outcome は不明であり得る                                             |
+| `CANCELLED`    | SDK または Provider の cancellation contract により待機を終了した                                          |
+| `CONTEXT_LOST` | page、Provider、connection、session、permission または Scope context を失った                              |
 
 終端 state へ到達した request は再利用しない。requestId、approval、permission snapshot、connection context、response handler または signed result を新しい request へ流用しない。
 
@@ -373,7 +410,7 @@ Browser の実 Origin、top-level document、user activation および page life
 | signing request expiry                | request を Signer が受理・処理できる有効期限            | `interfaces.md` と `signing-protocol.md` の expiry validation に従う   |
 | message / session / permission expiry | message、handoff session または permission ごとの別期限 | request expiry と同一視しない。未定義の permission expiry は追加しない |
 
-SDK wait timeout、transport timeout または page disposal の後に、Signer が未署名、署名済み、authentication 未実行または request 未受信だと断定してはならない。これらの SDK / transport / lifecycle failure だけから SDK が `RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を生成・推測・確定してはならない。Signer が Handoff §7.2 の `signingOutcome` / `deliveryDisposition` を明示的に返した場合だけ、その意味を保持して pass-through し、`SUCCEEDED`、`USER_REJECTED`、`SIGNING_FAILED`、transport failure または「安全に再送可能」へ推測変換しない。
+SDK wait timeout、transport timeout または page disposal の後に、Signer が未署名、署名済み、authentication 未実行または request 未受信だと断定してはならない。これらの SDK / transport / lifecycle failure だけから SDK が `RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を生成・推測・確定してはならない。Signer が Handoff §7.2 の `signingOutcome` / `deliveryDisposition` を明示的に返した場合だけ、その意味を保持して §5.4 の公開 `MosaicLynxSigningResult<T>` へ mapping し、`SUCCEEDED`、`USER_REJECTED`、`SIGNING_FAILED`、transport failure または「安全に再送可能」へ推測変換しない。
 
 ### 12.2 Cancellation
 
@@ -419,9 +456,9 @@ SDK は下位 error を、外部アプリケーションが success、rejection�
 
 ### 13.3 `RESULT_UNKNOWN` と `DELIVERY_UNKNOWN`
 
-`RESULT_UNKNOWN` は trusted Signer だけが生成する signing outcome であり、Handoff §7.2 の `resultUnknown` response として保持する。SDK timeout、Relay outage、network failure、response absence、Provider disconnect、recipient offline、reconnect failure、response delivery failure または page / SDK / Relay lifecycle loss から SDK が生成・推測・確定してはならない。同一 target の自動 re-sign を禁止する。
+`RESULT_UNKNOWN` は trusted Signer だけが生成する signing outcome であり、Handoff §7.2 の `resultUnknown` response を SDK public `MosaicLynxSigningResult<T>` の `outcome: 'resultUnknown'` branch として保持する。SDK timeout、Relay outage、network failure、response absence、Provider disconnect、recipient offline、reconnect failure、response delivery failure または page / SDK / Relay lifecycle loss から SDK が生成・推測・確定してはならない。同一 target の自動 re-sign を禁止する。これは Promise reject ではない。
 
-`DELIVERY_UNKNOWN` は trusted Signer が保持する確定済み result の delivery disposition であり、signing error または signed / unsigned の判定ではない。SDK は Handoff §7.2 の known signed result、`signingOutcome: 'SUCCEEDED'` および `deliveryDisposition: 'DELIVERY_UNKNOWN'` を保持し、signing success、signing failure、user rejection、`RESULT_UNKNOWN` または未署名へ変換しない。`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` は Handoff §10 の public error code ではない。既存下位 contract が result retrieval / resend を提供する場合だけ、その contract に従い、既知 result の redelivery / lookup と再署名を分離する。
+`DELIVERY_UNKNOWN` は trusted Signer が保持する確定済み result の delivery disposition であり、signing error または signed / unsigned の判定ではない。SDK は Handoff §7.2 の known signed result、`signingOutcome: 'SUCCEEDED'` および `deliveryDisposition: 'DELIVERY_UNKNOWN'` を、公開 `MosaicLynxSigningResult<T>` の `outcome: 'succeeded'`、`result` および同じ disposition として保持する。signing failure、user rejection、`RESULT_UNKNOWN` または未署名へ変換しない。`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` は Handoff §10 の public error code ではない。既存下位 contract が result retrieval / resend を提供する場合だけ、その contract に従い、既知 result の redelivery / lookup と再署名を分離する。
 
 ## 14. Serialization / Validation
 
@@ -459,7 +496,7 @@ unknown enum、unsupported operation、unknown version、malformed payload、dup
 
 ## 15. Local / Remote Handoff の共通 semantics
 
-SDK は次の二つの経路で operation、request identity、Scope、Account context、success / rejection / failure の意味を可能な範囲で共通化する。
+SDK は次の二つの経路で operation、request identity、Scope、Account context、公開 `MosaicLynxSigningResult<T>`、success / rejection / failure の意味を可能な範囲で共通化する。
 
 ```text
 local:  SDK → Provider → Browser Extension → wallet-core
@@ -469,6 +506,7 @@ remote: SDK → Handoff client → Relay → Mobile App → wallet-core
 共通化してはならない、または完全には隠せない差異は availability、latency、session establishment、user activation、page / App lifecycle、timeout、cancellation および result unknown である。
 
 - local Provider の response と remote Relay delivery を同じ trust anchor としない。
+- local Provider path と remote Relay path は、known signed result、`RESULT_UNKNOWN` および Signer-originated `deliveryDisposition` を同じ公開 union semantics へ対応付ける。
 - Relay は opaque transport であり、SDK は Relay に transaction / message の意味解釈、approval、署名または caller authority を与えない。
 - remote handoff の `sessionId`、secret、token、generation、ciphertext および endpoint は SDK の application-facing API に露出しない。
 - local 失敗から remote、remote 失敗から local へ自動 fallback しない。特に rejection、mismatch、integrity、caller、replay および result unknown を迂回しない。
@@ -489,18 +527,18 @@ SDK は少なくとも次を常に維持する。
 9. timeout、cancel、disconnect、delivery success または response received から署名状態・Signer disposition を推測しない。Signer-originated unknown / delivery disposition は Handoff 表現のまま扱う。
 10. unsupported、incompatible、malformed、mismatch、caller failure および replay failure を raw signing、別 operation または unsafe fallback で迂回しない。
 11. diagnostics、exception、cache、URL、event または telemetry に payload、signed payload、secret、token、credential、不要な Origin / Account 組合せまたは internal stack trace を含めない。
-12. signing success と delivery success、SDK `RESOLVED` と Signer `SUCCEEDED`、connection success と user approval、`RESULT_UNKNOWN` と transport failure をそれぞれ別の事実として扱う。
+12. signing success と delivery success、SDK `RESOLVED` と Signer `SUCCEEDED`、connection success と user approval、`RESULT_UNKNOWN` と transport failure をそれぞれ別の事実として扱い、Signer-originated disposition を公開 result で保持する。
 
 ## 17. Component Responsibilities
 
-| Component              | 共通 SDK 契約の利用                                                                                                                                                             | 本書が委譲する責任                                                                                                   |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| SDK                    | discovery、capability / version check、connection / permission dispatch、公開 Account、request construction、dispatch、correlation、timeout / cancellation、error normalization | Origin authority、approval、authentication、semantic inspection、raw signing、secret、Relay server、network announce |
-| Browser Extension      | Provider を通じた connection、Origin / permission authority、request validation、trusted UI、authentication、wallet-core signing、response generation                           | SDK は Extension の private context、Chrome API、UI、Vault へ入らない                                                |
-| Mobile App             | Handoff request の検証、Origin proof / source validation、permission、trusted UI、device authentication、signing、encrypted response                                            | SDK は App の secure storage、OS API、device authentication、内部 API を制御しない                                   |
-| Relay                  | opaque ciphertext の短期 handoff、session / routing、expiry、delivery lifecycle                                                                                                 | SDK は Relay を Signer、caller validator、semantic validator、trust anchor としない                                  |
-| wallet-core            | 秘密情報、Wallet Store、chain-specific cryptographic operation、raw signing                                                                                                     | SDK は wallet-core の内部 model、KDF、key storage、署名 primitive を再定義しない                                     |
-| Web Application / dApp | signing intent、SDK 呼出し、signed result の独立検証、必要な announce / network 処理                                                                                            | SDK / Provider / Relay の response だけを trust anchor にしない                                                      |
+| Component              | 共通 SDK 契約の利用                                                                                                                                                                                          | 本書が委譲する責任                                                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| SDK                    | discovery、capability / version check、connection / permission dispatch、公開 Account、request construction、dispatch、correlation、公開 signing result mapping、timeout / cancellation、error normalization | Origin authority、approval、authentication、semantic inspection、raw signing、secret、Relay server、network announce |
+| Browser Extension      | Provider を通じた connection、Origin / permission authority、request validation、trusted UI、authentication、wallet-core signing、response generation                                                        | SDK は Extension の private context、Chrome API、UI、Vault へ入らない                                                |
+| Mobile App             | Handoff request の検証、Origin proof / source validation、permission、trusted UI、device authentication、signing、encrypted response                                                                         | SDK は App の secure storage、OS API、device authentication、内部 API を制御しない                                   |
+| Relay                  | opaque ciphertext の短期 handoff、session / routing、expiry、delivery lifecycle                                                                                                                              | SDK は Relay を Signer、caller validator、semantic validator、trust anchor としない                                  |
+| wallet-core            | 秘密情報、Wallet Store、chain-specific cryptographic operation、raw signing                                                                                                                                  | SDK は wallet-core の内部 model、KDF、key storage、署名 primitive を再定義しない                                     |
+| Web Application / dApp | signing intent、SDK 呼出し、signed result の独立検証、必要な announce / network 処理                                                                                                                         | SDK / Provider / Relay の response だけを trust anchor にしない                                                      |
 
 Browser Extension 固有 Provider API、Mobile 固有 handoff、Relay endpoint、SDK package export の実装構造および wallet-core 内部 API は、それぞれの下位仕様へ委譲する。
 
@@ -512,6 +550,8 @@ Browser Extension 固有 Provider API、Mobile 固有 handoff、Relay endpoint�
 - SDK は旧 API への downgrade、unknown capability の無視、security property を弱める compatibility mode または silent conversion を実装しない。
 - compatibility matrix、deprecation、migration、formal runtime / browser support および release policy は上流の OPEN を解消した後に別仕様で定める。
 
+本仕様の現行 SDK API `1.0.0` は、`signTransaction()` と `signData()` の return type として `MosaicLynxSigningResult<T>` を使用する。従前の `Promise<SignedTransaction>` / `Promise<SignedData>` という単純な表現は本仕様の公開 contract ではなく、v2、別 package または deprecated legacy API を追加せず、この現行 v1 contract に統一する。すでに公開済みの immutable artifact に対する migration、major version または deprecation の要否は、既存 `SDK-OPEN-006` と release policy の判断に委譲し、本書では新しい version literal を定めない。
+
 ## 19. Acceptance / Conformance
 
 SDK 実装は少なくとも次を満たす場合に本仕様へ適合する。
@@ -519,13 +559,14 @@ SDK 実装は少なくとも次を満たす場合に本仕様へ適合する。
 1. Provider の availability、operation、Chain / Network、version / capability の不一致を、署名成功と区別する。
 2. connection、公開 Account disclosure、permission および各 signing request の explicit approval を別に扱う。
 3. transaction と message の operation identity を保ち、unsupported、unparsed、displayless または raw fallback を成功にしない。
-4. response が元 request の requestId、operation、Provider / session、Origin / caller、Account、Scope、signer、target および expiry に対応しない限り resolve しない。
+4. response が元 request の requestId、operation、Provider / session、Origin / caller、Account、Scope、signer、target および expiry に対応しない限り resolve しない。対応する response は、known signed result なら `outcome: 'succeeded'`、Signer-originated unknown なら `outcome: 'resultUnknown'` として公開する。
 5. 同一 SDK instance の concurrent request、duplicate callback、late response、cancelled request および Provider replacement が request 間で状態を混同しない。
 6. SDK timeout、request expiry、transport failure、user rejection、cancellation、result unknown および delivery unknown を混同しない。
 7. timeout / cancel 後に自動 re-sign、古い approval の再利用、別 transport fallback または response の別 request への適用をしない。
-8. Handoff §10 の concrete error authority を使用し、SDK 独自の error code / taxonomy を追加しない。
-9. secret、credential、full payload、signed payload および安全でない内部詳細が diagnostics / error / cache / URL に漏れない。
-10. Symbol / NEM、mainnet / testnet、malformed input、wrong signer、wrong Scope、duplicate / replay および context loss を fail-closed で扱う。
+8. Extension Provider と Mobile Relay の両方で `MosaicLynxSigningResult<SignedTransaction>` / `MosaicLynxSigningResult<SignedData>` の公開型と意味を維持し、`DELIVERY_UNKNOWN` でも `result` を保持する。
+9. Handoff §10 の concrete error authority を使用し、SDK 独自の error code / taxonomy を追加しない。
+10. secret、credential、full payload、signed payload および安全でない内部詳細が diagnostics / error / cache / URL に漏れない。
+11. Symbol / NEM、mainnet / testnet、malformed input、wrong signer、wrong Scope、duplicate / replay および context loss を fail-closed で扱う。
 
 ## 20. Traceability
 

@@ -41,12 +41,12 @@ message signing は v1 の対象であり、`signData()` による message signi
 
 ### 2.3 v1 operation 対応表
 
-| operation                                         | Relay milestone / SDK・Mobile contract                         | result / failure の扱い                                     |
-| ------------------------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------- |
-| `signTransaction`                                 | Relay milestone mandatory                                      | `SignedTransaction` または共通 error                        |
-| `signData`                                        | Relay milestone mandatory                                      | `SignedData`（署名済み structured message）または共通 error |
-| `connect` / `refreshActiveAccount` / `disconnect` | SDK / Mobile transport contract、Relay milestone non-blocking  | 既存の account / disconnect response または共通 error       |
-| `cosignTransaction`                               | optional / existing SDK contract、Relay milestone non-blocking | 既存の cosignature result または共通 error                  |
+| operation                                         | Relay milestone / SDK・Mobile contract                         | result / failure の扱い                                                                                    |
+| ------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `signTransaction`                                 | Relay milestone mandatory                                      | `MosaicLynxSigningResult<SignedTransaction>` または共通 error                                              |
+| `signData`                                        | Relay milestone mandatory                                      | `MosaicLynxSigningResult<SignedData>`（署名済み structured message または result unknown）または共通 error |
+| `connect` / `refreshActiveAccount` / `disconnect` | SDK / Mobile transport contract、Relay milestone non-blocking  | 既存の account / disconnect response または共通 error                                                      |
+| `cosignTransaction`                               | optional / existing SDK contract、Relay milestone non-blocking | 既存の cosignature result または共通 error                                                                 |
 
 同じ Mobile transport / Relay infrastructure を複数 operation が再利用しても、Relay milestone の mandatory scope は `signTransaction` と `signData` の二つから拡張されない。上表の operation は、Relay が意味内容を解釈することを意味しない。Relay は全 operation の request / response envelope を opaque として受け渡し、Mobile App が復号、operation 別の検証・表示・承認・署名を行い、dApp / SDK が result を独立検証する。
 
@@ -83,6 +83,8 @@ message signing は v1 の対象であり、`signData()` による message signi
 
 npm scope の取得可否は公開準備時に確認する。scope を取得できない場合も、製品名、interface 名、factory 名、Relay protocol 名は変更しない。package 名を変更する場合は配布文書だけを更新する。
 
+現行 SDK API `1.0.0` の公開 signing contract は `MosaicLynxSigningResult<T>` を使用する。従前の単純な `Promise<SignedTransaction>` / `Promise<SignedData>` 表現はこの v1 contract では使用せず、ここで v2、別 package または deprecated legacy API を追加しない。すでに公開済みの immutable artifact に対する migration、major version または deprecation の要否は既存の version / release policy に委譲する。
+
 MosaicLynx SDKはbrowser ESM buildと、型宣言を含むnpm packageとして配布する。remote scriptやCDNから実行時codeを取得せず、依存をbuild artifactに固定する。
 
 ## 5. 公開 API
@@ -113,6 +115,18 @@ interface SignedTransaction {
   signerPublicKey: string;
 }
 
+type MosaicLynxDeliveryDisposition = 'PENDING' | 'DELIVERED' | 'DELIVERY_UNKNOWN';
+
+type MosaicLynxSigningResult<T> =
+  | {
+      outcome: 'succeeded';
+      result: T;
+      deliveryDisposition: MosaicLynxDeliveryDisposition;
+    }
+  | {
+      outcome: 'resultUnknown';
+    };
+
 interface MosaicLynxSDK {
   readonly version: string;
 
@@ -125,8 +139,8 @@ interface MosaicLynxSDK {
 
   disconnect(): Promise<void>;
 
-  signTransaction(params: MosaicLynxSignTransactionParams): Promise<SignedTransaction>;
-  signData(params: MosaicLynxSignDataParams): Promise<SignedData>;
+  signTransaction(params: MosaicLynxSignTransactionParams): Promise<MosaicLynxSigningResult<SignedTransaction>>;
+  signData(params: MosaicLynxSignDataParams): Promise<MosaicLynxSigningResult<SignedData>>;
   cosignTransaction(params: MosaicLynxCosignTransactionParams): Promise<MosaicLynxCosignature>;
 }
 
@@ -151,14 +165,15 @@ const account = await mosaicLynx.connect({ chain: 'symbol', network: 'mainnet' }
 const payload = createTransaction({ signerPublicKey: account.publicKey });
 
 button.addEventListener('click', async () => {
-  const signedTransaction = await mosaicLynx.signTransaction({
+  const signingResult = await mosaicLynx.signTransaction({
     chain: 'symbol',
     network: 'mainnet',
     payload,
     expectedSignerPublicKey: account.publicKey,
   });
 
-  await announce(signedTransaction.payload);
+  if (signingResult.outcome === 'resultUnknown') return;
+  await announce(signingResult.result.payload);
 });
 ```
 
@@ -170,13 +185,28 @@ button.addEventListener('click', async () => {
 - `payload`はsymbol-sdkが生成したlowercase / uppercaseいずれかの偶数長hexadecimalを受け付け、内部検証前に大文字小文字以外を変換しない。decoded byte lengthは256 KiB以下とする。
 - `expectedSignerPublicKey` は任意とする。指定された場合は chain の形式へ正規化した後、実際の signer public key との完全一致を必須とする。不一致は `SIGNER_MISMATCH` とし、署名結果を返さない。
 - `expectedSignerPublicKey` がない場合、Extension は接続許可されたアクティブアカウント、Mobile App は承認画面でユーザーが選択したアカウントを使用する。
-- `signData()` は既存の公開 `MosaicLynxSignDataParams`（`chain`、`network`、`purpose`、`data`、任意の `expectedSignerPublicKey`）を受け取り、既存の `SignedData` 契約を返す。SDK が生成する nonce と有効期限を含む structured message を、既存の `RelayDataSigningRequest` の request payload として handoff する。ここでいう request payload は既存の論理要求の表現であり、新しい message signing wire schema を追加しない。
+- `signData()` は既存の公開 `MosaicLynxSignDataParams`（`chain`、`network`、`purpose`、`data`、任意の `expectedSignerPublicKey`）を受け取り、`MosaicLynxSigningResult<SignedData>` を返す。SDK が生成する nonce と有効期限を含む structured message を、既存の `RelayDataSigningRequest` の request payload として handoff する。ここでいう request payload は既存の論理要求の表現であり、新しい message signing wire schema を追加しない。
 - `connect()`は指定scopeのアクティブAccount公開Identityだけを返す。内部account IDとprofile IDは返さない。
 - `isConnected()`は承認UIを開かず、Extensionの現在値またはOrigin単位で保存したMobile公開Identityを確認する。
 - `disconnect()`は現在のOriginに対する全scopeの許可を削除する。MobileではApp側の削除完了後にだけWeb側cacheを削除する。
 - 未接続scopeからの署名要求は`NOT_CONNECTED`とし、`signTransaction()`による暗黙接続は行わない。
 - 同一MosaicLynx SDK instanceの同時要求は許可するが、各要求は独立したrequest IDとRelay sessionを持つ。MosaicLynx SDKは応答をrequest IDで分離する。
 - `signTransaction()` は App Link を開く可能性があるため、click / tap などの user activation を持つ同期的な event handler から呼び始める。事前の非同期処理で user activation を消費してから呼ぶことを対応対象としない。
+
+`signTransaction()` と `signData()` の公開 return type は `MosaicLynxSigningResult<T>` とする。通常の failure / rejection は既存 Handoff §10 の error code で Promise を reject し、known signed result は `outcome: 'succeeded'` として resolve し、Signer-originated `RESULT_UNKNOWN` は `outcome: 'resultUnknown'` として resolve する。`RESULT_UNKNOWN` を exception、SDK error code、transport failure または internal exception へ変換してはならない。`cosignTransaction()` は既存の `MosaicLynxCosignature` contract を維持し、cosignature の public scope / result union は `OPEN-SDK-004` 等の既存 OPEN を解消するまで本変更で確定しない。
+
+### 5.2.1 Handoff と公開 signing result の mapping
+
+Handoff response と SDK → dApp の公開 signing result は、次の一意な mapping を使用する。
+
+| Handoff response                                                                               | SDK public result                                                                                                    |
+| ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `outcome: 'signed'`、`signingOutcome: 'SUCCEEDED'`、`signedTransaction`、`deliveryDisposition` | `MosaicLynxSigningResult<SignedTransaction>` の `outcome: 'succeeded'`、`result`、同じ `deliveryDisposition`         |
+| `outcome: 'dataSigned'`、`signingOutcome: 'SUCCEEDED'`、`signedData`、`deliveryDisposition`    | `MosaicLynxSigningResult<SignedData>` の `outcome: 'succeeded'`、`result`、同じ `deliveryDisposition`                |
+| `outcome: 'resultUnknown'`、`signingOutcome: 'RESULT_UNKNOWN'`                                 | `MosaicLynxSigningResult<T>` の `outcome: 'resultUnknown'`。signed result、deliveryDisposition、errorCode は持たない |
+| `outcome: 'rejected'` または `outcome: 'failed'`、`errorCode`                                  | Handoff §10 の既存 public error code による Promise reject                                                           |
+
+Extension Provider path と Mobile Relay path は、dApp へ同じ `MosaicLynxSigningResult<T>` semantics を公開する。Extension Provider が内部で別の response representation を使用しても、SDK adapter は Signer-originated な known result、`RESULT_UNKNOWN` および delivery disposition だけを上記の共通型へ対応付ける。SDK adapter は `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` を生成、推測または確定しない。
 
 ### 5.3 `isAvailable()`
 
@@ -241,7 +271,7 @@ Extension Adapterは次の処理をMosaicLynx SDK内部で行う。
 2. 署名時に`getAccounts()`で要求scopeの接続済みアカウントを確認し、存在しなければ`NOT_CONNECTED`を返す。
 3. `expectedSignerPublicKey` がある場合、許可済みアカウントから一致する `accountId` を特定する。一致しなければ `SIGNER_MISMATCH` とする。
 4. Provider の `signTransaction({ chain, network, payload, accountId })` を呼ぶ。
-5. 結果payloadを固定版symbol-sdkのSymbol / NEM TransactionFactoryでdeserializeし、Facadeの`verifyTransaction()` / `hashTransaction()`でsigner、signature、hash、元要求との対応を検証して共通`SignedTransaction`を返す。
+5. 結果payloadを固定版symbol-sdkのSymbol / NEM TransactionFactoryでdeserializeし、Facadeの`verifyTransaction()` / `hashTransaction()`でsigner、signature、hash、元要求との対応を検証して、公開 `MosaicLynxSigningResult<SignedTransaction>` の succeeded branch を返す。Signer-originated `RESULT_UNKNOWN` は同じ公開型の resultUnknown branch へ対応付け、SDK adapter は生成しない。
 
 接続承認と署名承認は統合せず、Provider の別々のユーザー確認として維持する。Provider の error は 10 章の共通 error へ変換する。
 
@@ -397,7 +427,6 @@ Mobile App は成功、拒否、検証失敗をいずれも暗号化した respo
 
 ```ts
 type SigningOutcome = 'SUCCEEDED' | 'RESULT_UNKNOWN';
-type DeliveryDisposition = 'PENDING' | 'DELIVERED' | 'DELIVERY_UNKNOWN';
 
 type RelayResponse =
   | {
@@ -422,7 +451,7 @@ type RelayResponse =
       outcome: 'signed';
       signingOutcome: 'SUCCEEDED';
       signedTransaction: SignedTransaction;
-      deliveryDisposition: DeliveryDisposition;
+      deliveryDisposition: MosaicLynxDeliveryDisposition;
       completedAt: string;
     }
   | {
@@ -432,7 +461,7 @@ type RelayResponse =
       outcome: 'dataSigned';
       signingOutcome: 'SUCCEEDED';
       signedData: SignedData;
-      deliveryDisposition: DeliveryDisposition;
+      deliveryDisposition: MosaicLynxDeliveryDisposition;
       completedAt: string;
     }
   | {
@@ -461,6 +490,12 @@ type RelayResponse =
 
 `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` は delivery disposition の値であり、signing lifecycle の state ではない。Relay はこの field の意味を生成・変更せず、response を opaque に搬送する。Signer-originated `signingOutcome` / `deliveryDisposition` は request correlation を維持したまま SDK、Provider および Relay を通過し、意味を失わない。
 
+`deliveryDisposition` は Relay の storage / consumption state ではなく、Signer が trusted protocol / acknowledgement contract に基づいて確定する known signed result の delivery disposition である。Signer が known signed result を生成した時点で配送完了をまだ確定できない場合、初期値は `PENDING` とする。`DELIVERED` は Signer が自身の trusted delivery contract により既存 signed result の配送完了を安全に確定できた場合だけ許可する。
+
+現行 Mobile Relay v1 の `SDK → response取得 → decrypt / validate → ACK → Relay response_available → consumed` は Relay の transport storage / consumption state であり、Signer-side `deliveryDisposition` の authority ではない。Mobile App が SDK の ACK を観測する reverse acknowledgement contract は現行 v1 にないため、Mobile response の初期 `deliveryDisposition` は原則 `PENDING` とし、App / Signer は Relay response 登録または SDK の ACK を根拠に `DELIVERED` を生成してはならない。SDK も自身が response を取得・ACK できたことを根拠に `PENDING` を `DELIVERED` へ書き換えない。
+
+したがって、`Relay ACK / consumed state != Signer-side deliveryDisposition` である。SDK は自身の transport completion を SDK-local lifecycle として扱い、Signer-originated `PENDING`、`DELIVERED` または `DELIVERY_UNKNOWN` を変更せず公開 `MosaicLynxSigningResult<T>` へ伝達する。
+
 `failed` response の `errorCode` は公開可能な安定コードだけとし、parser、Vault、OS、暗号 library の内部詳細を含めない。`RESULT_UNKNOWN` や `DELIVERY_UNKNOWN` を `INTERNAL_ERROR`、transport failure または `failed` に縮退させてはならない。
 
 ### 7.3 フロー
@@ -476,7 +511,7 @@ dApp
   → App で接続Account選択、署名内容確認、または切断を明示承認
   → App が接続・署名・切断・拒否または resultUnknown 結果を暗号化して Relay へ登録
   → 元ページの MosaicLynx SDK が response を取得、復号、整合性を検証
-  → MosaicLynx SDK が ACK 後に known signed result（deliveryDisposition 付き）、resultUnknown または共通 error を返す
+  → MosaicLynx SDK が ACK 後に known signed result（Signer-originated deliveryDisposition 付き）を `outcome: 'succeeded'` として resolve、resultUnknown を `outcome: 'resultUnknown'` として resolve、または共通 error として reject
   → dApp が必要に応じて announce
 ```
 
@@ -794,8 +829,14 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 
 ### 14.1 MosaicLynx SDK contract test
 
-- 同じ `signTransaction()` 呼び出しが Extension と Mobile Relay の両方で共通 `SignedTransaction` を返す。
-- 同じ `signData()` 呼び出しが Extension と Mobile Relay の両方で既存の `SignedData` 契約を返し、message signing が transaction signing として扱われない。
+- 同じ `signTransaction()` 呼び出しが Extension と Mobile Relay の両方で `MosaicLynxSigningResult<SignedTransaction>` を返し、known signed result と `RESULT_UNKNOWN` を区別できる。
+- 同じ `signData()` 呼び出しが Extension と Mobile Relay の両方で `MosaicLynxSigningResult<SignedData>` を返し、message signing が transaction signing として扱われない。
+- Handoff の `signed` / `dataSigned`、`resultUnknown`、`rejected` / `failed` が、公開 signing result の succeeded、resultUnknown、Promise reject へ一意に mapping される。
+- `outcome: 'succeeded'` は known signed result と Signer-originated `deliveryDisposition` を保持し、`DELIVERY_UNKNOWN` でも `result` を破棄しない。
+- `outcome: 'resultUnknown'` は signed result、deliveryDisposition、normal errorCode を持たない。
+- Extension Provider path と Mobile Relay path が同じ公開 signing result semantics を持ち、SDK adapter が disposition を生成・推測・確定しない。
+- `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` の authority が Signer-side に限定され、Relay ACK / consumed state と混同されない。
+- SDK の response取得・ACK成功が Signer-originated `PENDING` を `DELIVERED` に変更しない。
 - 公開 API に transport 固有の option、credential、`accountId` がない。
 - Provider が存在する場合は Relay session を作成しない。
 - Provider がなく、§5.3 の current release、feature flag、release / product gate、対象 release の受信 App 提供、runtime、Web API および verified HTTPS App Link 条件を全て満たす対応 mobile browser だけが Mobile Relay を選択する。
