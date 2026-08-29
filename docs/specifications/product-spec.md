@@ -5,8 +5,10 @@
 本書は、MosaicLynx の最初の提供形態である Chrome 拡張機能のプロダクト仕様を定義する。
 
 実装方式と責務分担は [Architecture](../design/architecture.md) に定義する。
-Web ページから Extension または Mobile App へトランザクションを渡す MosaicLynx SDK と Relay の仕様は [Web Transaction Handoff Specification](./web-transaction-handoff-spec.md) に定義する。
+Web ページから Extension または Mobile App へ署名要求を渡す MosaicLynx SDK と Relay の仕様は [Web Transaction Handoff Specification](./web-transaction-handoff-spec.md) に定義する。
 鍵導出、対応 transaction schema、network constant、署名 byte 列の固定契約は [Chain Compatibility Specification](./chain-compatibility-spec.md) に定義する。
+
+本書は product behavior と scope を定め、SDK、common contract または Browser Provider の別の public API schema を定義しない。外部へ公開する Account identity、request / response、signing operation、result、error および delivery semantics は [interfaces.md](./interfaces.md)、[signing-protocol.md](./signing-protocol.md)、[web-transaction-handoff-spec.md](./web-transaction-handoff-spec.md)、[sdk.md](./sdk.md) および [browser-extension.md](./browser-extension.md) の既存契約を使用する。
 
 本書内の「MVP」は、最初に一般利用可能な状態として提供する範囲を指す。「将来対応」は設計上考慮するが、MVP の受け入れ条件には含めない。
 
@@ -18,7 +20,7 @@ MosaicLynx は、Symbol / NEM の dApp 接続と署名に特化した Signer（�
 
 最初に Chrome Extension（Manifest V3）を提供し、将来は同じ Core を利用したスマートフォンアプリへの展開を想定する。
 
-Web dApp は MosaicLynx SDK の共通 `signTransaction()` を利用する。Extension MVP では対応 Provider と直接通信する。Provider がない対応スマートフォンで E2E 暗号化 Relay を介して Mobile App と通信する経路は Mobile マイルストーンで提供し、Extension MVP の受け入れ条件へ含めない。Mobile 提供後も dApp は transport の違いを意識しない。
+Web dApp は MosaicLynx SDK の共通 `signTransaction()` / `signData()` を利用する。Extension MVP では対応 Provider と直接通信する。Provider がない対応スマートフォンで E2E 暗号化 Relay を介して Mobile App と通信する経路は Mobile マイルストーンで提供し、Extension MVP の受け入れ条件へ含めない。Mobile 提供後も dApp は transport の違いを意識しない。
 
 ## 3. 設計原則
 
@@ -33,19 +35,19 @@ Web dApp は MosaicLynx SDK の共通 `signTransaction()` を利用する。Exte
 
 ## 4. 用語
 
-| 用語                 | 意味                                                                                                                            |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| チェーン             | `Symbol` または `NEM`                                                                                                           |
-| ネットワーク         | `Mainnet` または `Testnet`                                                                                                      |
-| 接続スコープ         | チェーンとネットワークの組み合わせ。例: `Symbol Testnet`                                                                        |
-| プロファイル         | Mainnet または Testnet の一方に属し、Symbol / NEM 双方のアカウントを保持するまとまり                                            |
-| アカウント           | 一つの Chain / Network に明示的に関連付いた Key Identity、秘密鍵、表示名、アドレスおよび公開鍵                                  |
-| アクティブアカウント | 現在の署名候補として選択されているアカウント                                                                                    |
-| Origin               | dApp の接続許可を識別する `scheme://host[:port]`                                                                                |
-| Profile Vault        | 一つのプロファイルの暗号化した秘密情報と、そのロック状態を管理する領域                                                          |
-| ロック               | 秘密情報を復号・利用できず、署名できない状態                                                                                    |
-| 構造化メッセージ署名 | Origin、チェーン、ネットワーク、用途、nonce、有効期限とpayloadをcanonical encodingして署名する方式                              |
-| オフライン署名       | Signerがノードや外部metadata serviceへ通信せず、ローカルで解析・署名を完結すること。コールドウォレットまたはair-gapを意味しない |
+| 用語                 | 意味                                                                                                                                                                    |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| チェーン             | `Symbol` または `NEM`                                                                                                                                                   |
+| ネットワーク         | `Mainnet` または `Testnet`                                                                                                                                              |
+| 接続スコープ         | チェーンとネットワークの組み合わせ。例: `Symbol Testnet`                                                                                                                |
+| プロファイル         | Mainnet または Testnet の一方に属し、Symbol / NEM 双方のアカウントを保持するまとまり                                                                                    |
+| アカウント           | Product / Profile 内部で一つの Chain / Network に明示的に関連付いた Key Identity、秘密鍵、表示名、アドレスおよび公開鍵。外部公開時は Public Account Identity へ射影する |
+| アクティブアカウント | trusted host 内部で現在の署名候補として選択されている Account。外部へ返すときは validated な Public Account Identity へ射影する                                         |
+| Origin               | dApp の接続許可を識別する `scheme://host[:port]`                                                                                                                        |
+| Profile Vault        | 一つのプロファイルの暗号化した秘密情報と、そのロック状態を管理する領域                                                                                                  |
+| ロック               | 秘密情報を復号・利用できず、署名できない状態                                                                                                                            |
+| 構造化メッセージ署名 | Origin、チェーン、ネットワーク、用途、nonce、有効期限とpayloadをcanonical encodingして署名する方式                                                                      |
+| オフライン署名       | Signerがノードや外部metadata serviceへ通信せず、ローカルで解析・署名を完結すること。コールドウォレットまたはair-gapを意味しない                                         |
 
 プロファイルはネットワーク単位で分離する。一つの Mainnet プロファイルまたは Testnet プロファイルの中に、Symbol と NEM のアカウントを保持する。異なるネットワークのアカウントを同じプロファイルへ保存してはならない。
 
@@ -251,12 +253,12 @@ Symbol 用に導出した秘密鍵を NEM 用として、または NEM 用に導
 - 接続許可は Origin、プロファイル、接続スコープ、ユーザーが選択したアカウントの組み合わせで管理する。
 - 未許可の Origin から `connect()` が呼ばれた場合、接続確認画面を表示する。
 - 確認画面には未検証のサイト名、canonical Origin、ASCII / Punycode Origin、要求されたチェーン、ネットワーク、公開候補アカウントを表示する。
-- ユーザーは公開するアカウントを一つ以上明示的に選択する。既定ですべてを選択しない。
-- ユーザーが承認した場合のみ、選択したアカウントのアドレス、公開鍵、表示名を dApp へ返す。
-- 拒否した場合は、Provider の `USER_REJECTED` エラーを返す。
+- ユーザーは trusted UI で接続許可の対象となる Account collection を明示的に選択する。既定ですべてを選択しない。この collection と、dApp へ返す active Account は別の概念である。
+- ユーザーが承認した場合、外部へ返す Account は既存の `PublicAccountIdentity`（`Scope`、`address`、`publicKey`）へ限定する。表示名は trusted UI の補助表示に限り、signing identity、authorization または ownership の根拠にしない。
+- 接続または Account disclosure の拒否は、既存の Handoff / Browser の error mapping に従う。
 - 同じ Origin、プロファイル、接続スコープへの接続は、同じアカウント許可が残っている間は再確認しない。公開アカウントを増やす場合は再承認を必要とする。
-- dApp へは許可された Chain 別 Account のうち、接続時に要求された Chain のアドレスと公開鍵だけを返す。
-- ロック中の新規接続と許可変更は行わず、アンロックと承認を必要とする。既存許可に対する `getAccounts()` は許可済み公開情報だけを返してよい。
+- Provider-specific な Account collection と、SDK / Handoff の `connect(scope)` が返す singular active public Account の mapping は [browser-extension.md §5.2.2](./browser-extension.md) に従う。Product は collection を SDK の response cardinality へ暗黙変換しない。
+- ロック中の新規接続と許可変更は行わず、アンロックと承認を必要とする。Provider-specific な `getAccounts()` は許可済みの公開情報だけを collection として扱い、SDK / Handoff の singular active response への射影は [browser-extension.md §5.2.2](./browser-extension.md) に従う。
 - MVP はトップレベル frame からの要求だけを受け付け、iframe からの接続要求は拒否する。
 
 ### 11.2 許可の管理
@@ -275,10 +277,10 @@ dApp は接続時および署名要求時に対象チェーンとネットワー
 - 指定ネットワークと接続済みプロファイルのネットワークが異なる場合はエラーにする。
 - トランザクション payload から判定したチェーンまたはネットワークが要求値と異なる場合はエラーにする。
 - 対象チェーンに属さないアカウントでは署名しない。
-- 署名 Account が接続許可の `accountIds` に含まれない場合は署名しない。
-- `accountId` が指定された場合は、その Account が接続許可に含まれることを検証する。署名 Account の決定に Profile の可変な default Account を使用しない。
-- transaction の `accountId` が省略された場合は、canonical 検証済み payload の signer public key と一致する許可済み Account を一意に解決する。一致なし、複数一致、または指定 `accountId` と signer の不一致は署名前に拒否する。
-- 構造化 message の `accountId` が省略され、許可済み Account が一つならその Account へ固定する。複数なら確認画面を未選択で表示し、ユーザーが一つを明示選択するまで署名できない。
+- dApp supplied の `accountId`、`accountIds`、`activeAccountId`、display name、array order または内部 key slot を署名 Account の選択 authority としない。これらの内部参照は trusted host 内部の routing に限る。
+- 署名 Account は、current Profile、current permission、current active Account、validated `Scope`、payload signer および必要な signer role を trusted Signer が照合して解決する。
+- `expectedSignerPublicKey` は公開された signer expectation であり、internal Account selector ではない。指定時は実際の signer public key と完全一致させ、不一致時は既存 concrete error mapping に従って署名しない。
+- active Account または permission が stale、変更、revoke または Scope 不一致の場合、古い Account を success、署名 authority または新しい Account の代替として使用しない。projection と refresh の詳細は [browser-extension.md §5.2.2](./browser-extension.md)、SDK の response / error semantics は [sdk.md](./sdk.md) と [web-transaction-handoff-spec.md](./web-transaction-handoff-spec.md) に従う。
 
 ## 12. 署名
 
@@ -399,7 +401,7 @@ Symbol の unresolved address または unresolved mosaic ID が namespace alias
 
 ## 15. 保存データの論理モデル
 
-具体的な暗号化形式と Storage の分割はアーキテクチャ設計で定義する。
+具体的な暗号化形式と Storage の分割はアーキテクチャ設計で定義する。以下は trusted Extension / Profile 内部の logical model であり、page、Provider、SDK または Relay の public contract ではない。`id`、`profileId`、`accountId`、`accountIds` および `activeAccountId` は外部 requester が直接指定・取得する selector ではない。
 
 ```text
 Profiles[]
@@ -452,77 +454,15 @@ UsedMessageNonces[]
 
 ## 16. Provider
 
-### 16.1 MosaicLynx Provider
+### 16.1 Product の責任範囲
 
-Web ページへ `window.mosaicLynx` を公開する。公開 API は Promise のみとし、コールバック形式は提供しない。
+本節は Browser Provider を製品が提供する境界として参照するが、Product 独自の Provider API schema を定義しない。`window.mosaicLynx`、Provider method、event、input、result および error の page-facing contract は [browser-extension.md §5](./browser-extension.md) が定め、SDK が dApp へ公開する concrete API と result mapping は [sdk.md §5](./sdk.md) および [web-transaction-handoff-spec.md §5](./web-transaction-handoff-spec.md) が定める。
 
-```ts
-type Chain = "symbol" | "nem";
-type Network = "mainnet" | "testnet";
+Product の現行 signing behavior は、共通 logical operation `MESSAGE_SIGN`、SDK / Handoff operation `signData`、Browser Provider-specific adapter method `signMessage` の対応を使用する。Browser 固有 method の mapping、structured message、result、error および delivery semantics は [browser-extension.md §5.2.3](./browser-extension.md) を参照し、Product は別の bare result、raw signing、transaction signing fallback または selector contract を追加しない。
 
-interface SignedMessage {
-  signature: string;
-  signerPublicKey: string;
-  signingDigest: string;
-  message: {
-    domain: "mosaiclynx.message.v1";
-    origin: string;
-    chain: Chain;
-    network: Network;
-    purpose: string;
-    nonce: string;
-    issuedAt: string;
-    expiresAt: string;
-    payload: { encoding: "utf8" | "hex"; value: string };
-  };
-}
+旧 Product page-facing shape（`Account[]`、`accountId`、`accountIds`、`activeAccountId`、`recipientPublicKey`、`SignedMessage` / `SignedTransaction` の bare return および旧 `signMessage` / `signTransaction` schema）は historical / non-normative / out-of-scope とする。本書の現行 contract として読んではならず、現行 shape との compatibility alias としても許可しない。
 
-version: string
-apiVersion: string
-connect(params: { chain: Chain; network: Network }): Promise<Account[]>
-disconnect(): Promise<void>
-getAccounts(): Promise<Account[]>
-getActiveAccount(): Promise<Account | undefined>
-signMessage(params: {
-  chain: Chain;
-  network: Network;
-  purpose: string;
-  nonce: string;
-  issuedAt: string;
-  expiresAt: string;
-  payload: {
-    encoding: "utf8" | "hex";
-    value: string;
-  };
-  recipientPublicKey?: string;
-  accountId?: string;
-}): Promise<SignedMessage>
-signTransaction(params: {
-  chain: Chain;
-  network: Network;
-  payload: string;
-  accountId?: string;
-}): Promise<SignedTransaction>
-on(event, listener): void
-removeListener(event, listener): void
-```
-
-公開 API の内部通信は request / response 型 RPC とする。Provider は少なくとも次のイベントを通知する。
-
-- `accountsChanged`
-- `disconnect`
-
-イベント名・引数・エラーコードを API バージョンごとに固定し、破壊的変更時は `apiVersion` のメジャーを更新する。
-
-dApp へ `switchProfile()`、`switchChain()`、`lock()`、`unlock(password)` は公開しない。プロファイル選択、チェーン選択、ロック、アンロックは拡張機能 UI だけで行う。
-
-`connect()`、`signMessage()`、`signTransaction()` の引数には対象チェーンとネットワークを含める。Background は接続済みプロファイル、署名アカウント、トランザクション payload との一致を検証し、不一致時は署名せずエラーを返す。
-
-`signMessage()` の実際の署名対象には、API 引数に加えて固定 domain と Background が確定した Origin を含める。dApp が raw message bytes を直接署名させる API は公開しない。構造化メッセージ仕様は Provider API v2 として固定する。
-
-返却値には署名だけでなく、実際に署名した完全な構造化メッセージ、signer public key、signing digest を含める。検証側 dApp は Origin、chain、network、purpose、expiresAt を照合し、nonceを一度だけ受理しなければならない。Wallet側のreplay cacheは、取得済み署名を検証先へ再送する攻撃を単独では防げないことを開発者文書へ明記する。
-
-MVP の `apiVersion` は `2.0.0` とする。v1 の raw message API は互換提供しない。
+Product から Web page / dApp へ公開する Account は `PublicAccountIdentity` に限る。Provider collection、active Account、SDK singular response、signing result および error の外部可視 mapping は、上記の既存 authority に従う。
 
 ## 17. 非機能要件
 
