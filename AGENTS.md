@@ -144,6 +144,27 @@ formatter と Markdown format check は、作成・更新した成果物の明�
 
 ドキュメントまたは `.agents` だけの変更では、作成・更新した成果物に対する formatter check を実行する。全体 formatter を実行した場合は、成果物単体の結果と分けて報告する。実行できなかった検証は `Not validated` として理由を報告する。
 
+### pnpm Validation command policy
+
+- 原則として、repository-defined な pnpm scripts / commands を使用する。
+- pnpm 実行時に sandbox または execution environment の制約によって `ERR_SQLITE_ERROR: unable to open database file` が発生した場合、その pnpm launcher / environment failure 自体は、対象コードまたは文書の validation failure として扱わない。
+- ただし、エラー内容を確認し、対象コード・設定・依存関係そのものの不具合ではなく、pnpm の database access に起因する環境制約であることを確認する。
+- `node_modules` が存在し、対象 command に対応する repository-local executable が利用可能な場合は、`./node_modules/.bin/<command>` を直接実行して、可能な範囲で同等の validation を継続する。例えば Prettier では次を使用する。
+
+  ```sh
+  ./node_modules/.bin/prettier --check .
+  ```
+
+- direct executable を使用する場合も、元の pnpm script に追加引数、複数 command、environment variable、pre/post script などが含まれていないか確認する。
+- pnpm script と direct executable が意味的に同等でない場合は、「完全な代替 validation」とは報告しない。
+- repository-local executable でも必要な validation を実行できない場合のみ、環境制約による未検証項目として明示する。pnpm の環境エラーを理由に validation 自体を省略して PASS としてはいけない。
+- fallback を使用した場合は、完了報告に次を明記する。
+  - 失敗した pnpm command
+  - environment error
+  - 代替として実行した local executable / command
+  - 代替 validation の結果
+  - 元 command と完全に同等でない場合の未検証範囲
+
 ## レビュー・報告規約
 
 - `docs/specifications/` など既存の正本を、単なる作業メモやレビュー結果で上書きしない。
