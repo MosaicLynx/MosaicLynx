@@ -76,3 +76,5 @@ repository instructions がない、または必要な情報を定義してい�
 ## Git 運用
 
 Git の変更、commit、push はユーザーの依頼と repository instructions の範囲で行う。既存のユーザー変更や unrelated change を混ぜず、repository が定める commit message、確認、push 前の手順があれば従う。変更がない場合は新規 commit を作成しない。
+
+変更がある commit を作成する場合は、commit title に変更対象の repository-root-relative な component / area path を `[path]` の形式で含める。path の粒度・表記は repository instructions から取得し、file name / extension や固定の repository path を generic Skill 側で発明しない。例えば対象領域が `component/area` と確定している場合は、`docs: [component/area] <概要>` の形式にする。path を一意に確定できない場合は、推測したまま commit せず、対象範囲を確認する。title の後には空行と、日本語で `- ` から始まる本文を少なくとも1項目置く。
