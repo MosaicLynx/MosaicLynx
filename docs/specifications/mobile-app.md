@@ -16,14 +16,14 @@
 
 ### 1.1 規範性と authority
 
-判断の authority は次の順序で扱う。
+authority は文書全体の順位ではなく、対象となる contract を所有する Specification または policy によって決まる。
 
-1. 本仕様が Mobile-specific に明示する契約。
-2. [共通 Interface / Data Model Specification](./interfaces.md)、[Signing Protocol Specification](./signing-protocol.md)、[Web Transaction Handoff Specification](./web-transaction-handoff-spec.md)、[Profile / Account Specification](./profile-account-spec.md) および [Chain Compatibility Specification](./chain-compatibility-spec.md)。
-3. [Mobile App 基本設計](../design/mobile-app.md)、[共通アーキテクチャ設計](../design/architecture.md)、[共通セキュリティ設計](../design/security-design.md)、[署名フロー基本設計](../design/signing-flow.md)、[Interfaces 基本設計](../design/interfaces.md)、[Relay 基本設計](../design/relay.md) および [SDK 基本設計](../design/sdk.md)。
-4. [共通要件](../requirements/requirements.md)、[Mobile App 要件](../requirements/mobile-app.md)、[Relay 要件](../requirements/relay.md) および [SDK 要件](../requirements/sdk.md)。
+- Common contract の authority は、それぞれの contract を所有する既存 Specification にある。共通 request / response、common field、common state、error、signing result、`RESULT_UNKNOWN`、`deliveryDisposition`、serialization、Chain / Network semantics、Profile / Account common semantics、Handoff protocol、version / capability および release / evidence contract は、本書で上書きしない。具体的には [共通 Interface / Data Model Specification](./interfaces.md)、[Signing Protocol Specification](./signing-protocol.md)、[Web Transaction Handoff Specification](./web-transaction-handoff-spec.md)、[Profile / Account Specification](./profile-account-spec.md)、[Chain Compatibility Specification](./chain-compatibility-spec.md) および適用される release / evidence の Specification / policy が各自の authority である。
+- Mobile-specific contract は、Mobile 上で common contract をどのように適用するか、Mobile-specific lifecycle、Mobile trusted host、platform boundary、Mobile-specific validation、trusted Mobile UI、additional security restriction、fail-closed condition および実装に必要な Mobile-specific constraint を定める。本書は common contract の代替や override authority ではない。
+- Mobile-specific specialization を定める場合も、common contract を弱めず、common field、common state または common semantics を変更せず、common contract と両立する追加制約として定める。
+- Common Specification と本書の間に矛盾が見つかった場合は、Mobile 側で上書き・選択せず、該当 common Specification を authority とする。矛盾は未解決の cross-document issue として既存の OPEN / §19 の委譲先で扱い、解消されるまで本書独自の field、state、error、version または capability を追加しない。
 
-上記文書の共通契約と本書の記述が競合する場合、本書で独自に上書きせず、共通 Specification の authority に従い、未解決の競合は §19 に記載する。
+上流の Requirements / Design は traceability と判断根拠であり、common contract の authority を変更しない。
 
 ## 2. Scope、前提および非責務
 
@@ -294,14 +294,16 @@ Mobile App は Relay から取得した request が正しいように見える�
 
 次の状態軸を相互に変換してはならない。
 
-| 軸                          | Mobile App / Signer が生成または確定する意味                                                                                                          | Relay が観測・管理する意味                                                                               |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| request / signing lifecycle | `RECEIVED`、`VALIDATED`、`INSPECTED`、`AWAITING_USER`、`AUTHENTICATING`、`AUTHORIZED`、`SIGNING`、`SUCCEEDED`、`RESULT_UNKNOWN` および terminal state | Relay の transport state では表現しない                                                                  |
-| delivery disposition        | known signed result に付随する `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN`                                                                             | Relay は生成・変更・推測・確認しない                                                                     |
-| Relay transport lifecycle   | —                                                                                                                                                     | `pending`、`response_available`、`consumed`、`cancelled`、`expired`。lowercase の transport state        |
-| transport failure           | —                                                                                                                                                     | unavailable、timeout、state loss、credential failure、network failure 等の Relay / client transport 事実 |
+| 軸                          | Mobile App / Signer が生成または確定する意味                                                                                                                    | Relay が観測・管理する意味                                                                               |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| request / signing lifecycle | common signing state である `RECEIVED`、`VALIDATED`、`INSPECTED`、`AWAITING_USER`、`AUTHORIZED`、`SIGNING`、`SUCCEEDED`、`RESULT_UNKNOWN` および terminal state | Relay の transport state では表現しない                                                                  |
+| delivery disposition        | known signed result に付随する `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN`                                                                                       | Relay は生成・変更・推測・確認しない                                                                     |
+| Relay transport lifecycle   | —                                                                                                                                                               | `pending`、`response_available`、`consumed`、`cancelled`、`expired`。lowercase の transport state        |
+| transport failure           | —                                                                                                                                                               | unavailable、timeout、state loss、credential failure、network failure 等の Relay / client transport 事実 |
 
 Relay の `response_available`、HTTP 2xx、ACK、`consumed`、purge または response retrieval は Mobile の `SUCCEEDED`、`DELIVERED`、`RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を意味しない。逆に Mobile の `SUCCEEDED + PENDING` は Relay の `response_available` と併存できる。
+
+`AUTHENTICATING` は上表の request / signing lifecycle に含まれない。これは Mobile App 内部だけの local UI / authentication substep であり、common signing state、public state、wire state、response field、Relay state、永続化 state または SDK contract に serialize / expose してはならない。common exact state set を拡張せず、common signing protocol の state transition、`RESULT_UNKNOWN` または `deliveryDisposition` の意味も変更しない。
 
 ### 9.4 Relay state loss と generation
 
@@ -451,12 +453,22 @@ Relay の response upload、ACK、retrieval、`consumed` または purge は rec
 
 ### 13.1 Request / signing lifecycle
 
-Mobile App は既存 Signing Protocol の state set を使用する。`AUTHENTICATING` は Mobile の device authentication / user-presence substep であり、新しい wire operation ではない。
+Mobile App の external signing lifecycle は、既存 Interfaces / Signing Protocol が定める common exact state set をそのまま使用する。次の図は common signing lifecycle であり、Mobile-specific state や local substep を含めない。
 
 ```text
 RECEIVED → VALIDATED → INSPECTED → AWAITING_USER
-  → AUTHENTICATING → AUTHORIZED → SIGNING → SUCCEEDED
+  → AUTHORIZED → SIGNING → SUCCEEDED
 ```
+
+Authentication は引き続き四条件の一つとして必要であるが、Mobile App 内部では次の local substep として扱う。
+
+```text
+AWAITING_USER (common state)
+  → [AUTHENTICATING: Mobile local UI / device authentication / user presence]
+  → AUTHORIZED (common state)
+```
+
+`AUTHENTICATING` は common signing state、public state または wire state ではない。response field、Relay state、永続化 state または SDK contract に serialize / expose せず、Interfaces / Signing Protocol の common exact state set を拡張せず、common signing protocol の state transition を変更しない。local substep が失敗、stale、revoked、locked または context mismatch になった場合も、既存の common failure / terminal semantics に従い、old Authentication または authorization を再利用しない。
 
 | State            | Mobile App における意味                                                                                                                  |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
@@ -464,7 +476,6 @@ RECEIVED → VALIDATED → INSPECTED → AWAITING_USER
 | `VALIDATED`      | 外形、identity、source / handoff、integrity、expiry、recipient、permission、Profile / Account、Scope を検証した。                        |
 | `INSPECTED`      | chain-specific parse / validate / canonicalize と confirmation model 生成を完了した。                                                    |
 | `AWAITING_USER`  | trusted foreground UI で target を表示し、個別の user action を待っている。                                                              |
-| `AUTHENTICATING` | 当該 request に binding された device authentication / user presence を実行している。                                                    |
 | `AUTHORIZED`     | 四条件が同じ request / target / Profile-local context に対して独立にすべて成立した。一回限りの短寿命状態。                               |
 | `SIGNING`        | pre-sign revalidation 済み target を wallet-core に渡し、結果を待っている。                                                              |
 | `SUCCEEDED`      | known signed result と signer / request / target / four-condition context の対応を検証した。                                             |
@@ -475,7 +486,7 @@ RECEIVED → VALIDATED → INSPECTED → AWAITING_USER
 | `INVALIDATED`    | Profile、Account、source、session、generation、target、permission、四条件または lifecycle context が失効・変更・不明になった。           |
 | `RESULT_UNKNOWN` | signing generation 自体の成否を trusted Mobile Signer が確定できない。署名結果ではない。                                                 |
 
-`REJECTED`、`FAILED`、`EXPIRED`、`CANCELLED`、`INVALIDATED` および `RESULT_UNKNOWN` から、同じ request / authorization を使って `AWAITING_USER`、`AUTHORIZED`、`AUTHENTICATING` または `SIGNING` へ戻してはならない。新しい signing は新しい request identity と四条件を必要とする。
+`REJECTED`、`FAILED`、`EXPIRED`、`CANCELLED`、`INVALIDATED` および `RESULT_UNKNOWN` から、同じ request / authorization を使って `AWAITING_USER`、`AUTHORIZED` または `SIGNING` へ戻してはならない。これらの terminal state から Mobile local substep `AUTHENTICATING` を再開してもならない。新しい signing は新しい request identity と四条件を必要とする。
 
 ### 13.2 Lock state
 
@@ -563,6 +574,12 @@ Profile 全体 backup / restore、端末移行、OS-protected key の移行お�
 
 Diagnostics は既定で無効とする。有効にする場合も、既存 Handoff の allowlist に適合する非秘密 event だけを扱う。
 
+本節でいう observability / auxiliary output は、log、warning、exception、diagnostics、analytics、telemetry、crash report、support output、Relay metadata その他の補助的な出力を指す。`§12.1`、Interfaces および Handoff が定める normative Handoff response と、その response を SDK / dApp へ伝える public result は、この禁止対象の `response` には含めない。正常 response は既存共通 contract の response union に従い、同 contract が要求・許可する public result / correlation field を含めることができる。
+
+たとえば既存 contract が定める場合に限り、`requestId`、`requestDigest`、signed transaction / signed data、signature、transaction hash、signer public key、public Account identity および `deliveryDisposition` を正常 response に含めてよい。これは既存 Handoff / Interfaces の field を使用する許可であり、本書が新しい response field を追加するものではない。`signed`、`dataSigned`、`resultUnknown`、`rejected` および `failed` の各 response union は、既存の response mapping と error contract に従う。
+
+正常 response であっても、Mnemonic、private key、derived secret key、Profile password、decrypted Wallet Store、E2E secret、transport secret / credential、internal key reference、secret-bearing intermediate buffer その他 common Specification が禁止する secret を含めてはならない。public result を正常 response に含められることは、同じ値を observability / auxiliary output に記録してよいことを意味しない。
+
 許可される event 情報は次の範囲に限る。
 
 - phase: `transport_selected`、`approval_requested`、`response_received`、`completed` または `failed`。
@@ -570,10 +587,10 @@ Diagnostics は既定で無効とする。有効にする場合も、既存 Hand
 - event timestamp。
 - 既存の安定した public `errorCode`（該当時）。
 
-次を log、例外、warning、diagnostics、analytics、telemetry、crash report、support output、Relay metadata または response に含めてはならない。
+次を observability / auxiliary output に含めてはならない。normative Handoff response 自体は除外するが、それを observability / auxiliary output として複製してはならない。
 
 - Mnemonic、private key、derived key、Profile password、decrypted Wallet Store、session secret、transport credential、authorization secret。
-- full request / response、plaintext、ciphertext 全文、payload、signed payload、raw transaction、message contents、hash、public key、address、requestId、sessionId、generationId、URL、Origin、stack trace、parser dump または internal reference。
+- full request、normative Handoff response の observability / auxiliary output への全体複製、plaintext、ciphertext 全文、payload、signed payload、raw transaction、message contents、hash、public key、address、requestId、sessionId、generationId、URL、Origin、stack trace、parser dump または internal reference。
 
 外部由来の文字列や画像を表示する場合も、executable content として扱わず、log / error へそのまま複製しない。Support / security report に秘密情報、handoff URL、token、session secret または full transaction payload を含めない。
 
