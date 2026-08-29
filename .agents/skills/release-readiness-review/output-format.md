@@ -4,12 +4,12 @@
 
 ## Skill-specific values
 
-- Formal finding prefix: `RL`
-- Severity: `Critical` / `Major` / `Minor`
-- Review Result: `READY` / `READY WITH MINOR FIXES` / `NOT READY` / `TARGET CONFIRMATION REQUIRED`
+- Formal finding prefix: applicable repository instructions が定義する場合だけ使用する。未定義なら repository 固有 prefix を推測せず、対象内で一意な release-scoped ID を使用する。
+- Severity: `Critical` / `Major` / `Minor` / `Nit`
+- Review Result: `READY` / `READY WITH MINOR FIXES` / `NOT READY` / `TARGET CONFIRMATION REQUIRED` / `RELEASE POLICY CONFIRMATION REQUIRED`
 - Required Changes: 公開を妨げる `Critical` / `Major` の New / Open / Reopened
-- Optional Improvements: 公開を妨げない `Minor` の New / Open / Reopened
-- Deferred Findings: 次回リリースまたは後工程へ引き継ぐ指摘・未決定事項
-- Domain Checks: Version Assessment、Documentation Check、Package Metadata Check、配布物、SemVer、capability、security
-- Scope and Traceability: package、差分、公開 API、README、CHANGELOG、仕様、release docs、evidence の対応
-- Automatic Changes: 明示依頼があり安全な metadata / docs を変更した場合だけ記録する。publish、commit、tag、registry変更は記録上の完了と混同しない
+- Optional Improvements: 公開を妨げない `Minor` / `Nit` の New / Open / Reopened
+- Deferred Findings: 次回 release、upstream / downstream process、または repository policy の確認へ引き継ぐ finding・未決定事項
+- Domain Checks: Release Scope、Version Assessment、Publication Target、Metadata、Public Contract、Compatibility、Dependencies、Build / Distribution Artifact、Documentation、Security / Supply Chain、Validation / Evidence
+- Scope and Traceability: release target、intended version、manifest、public contract、artifact、dependencies、documentation、approved release policy、validation、evidence の対応
+- Automatic Changes: 通常は「なし」とする。明示依頼と repository instructions の許可があり、対象範囲内の release documentation / metadata を変更した場合だけ記録する。publish、tag、registry、approval、release branch の操作をレビュー完了と混同しない
