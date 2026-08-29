@@ -360,7 +360,7 @@ interface DefaultAccountIds {
 
 ニーモニックだけではなく、プロファイル全体を暗号化してエクスポートできるようにする。
 
-完全バックアップに含めるもの:
+将来の完全バックアップで対象候補となるもの（最終的な対象範囲は `OPEN-PROFILE-001` で決定する）:
 
 - プロファイル情報
 - ネットワーク
@@ -376,15 +376,17 @@ interface DefaultAccountIds {
 - 署名時再認証ルール（署名ごとに固定）
 - その他プロファイル単位の設定
 
-バックアップ全体は、プロファイルパスワードを使って暗号化する。
+バックアップ全体は、プロファイルパスワードを使って暗号化する。この Profile password を backup の暗号化 / 復号に使用する関係は本仕様の既存 credential boundary として維持し、Product または将来 platform が別の backup password を追加してはならない。backup format、crypto policy、restore verification および backup-related state の未決事項は `OPEN-PROFILE-001` で管理する。
 
 ---
 
 ## 17. バックアップ形式
 
-暗号化方式、KDF設定、バージョン情報をバックアップファイルに同梱する。
+将来の backup format は、暗号化方式、KDF設定および version / migration の扱いを定義しなければならない。これらの metadata の presence、placement および具体形式は `OPEN-PROFILE-001` で決定する。
 
-復号前に暗号化方式を判定する必要があるため、暗号化メタデータは暗号化された本文の外側に置く。
+以下の `BackupEnvelope` は未確定の概念例であり、current wire contract、実装必須の schema または canonical backup format ではない。暗号 algorithm、KDF、AEAD、salt / nonce policy、version / migration、metadata および envelope の最終契約は `OPEN-PROFILE-001` の decision まで確定しない。
+
+概念上、復号前に暗号化方式を判定できるように encryption metadata を扱う必要がある。ただし、metadata を暗号化された本文の外側に置くかを含む最終配置は `OPEN-PROFILE-001` で決定する。
 
 概念例:
 
@@ -412,29 +414,25 @@ interface BackupEnvelope {
 }
 ```
 
-暗号化アルゴリズムやKDFの具体的な方式は、実装時に安全な方式を選定する。
-
-バックアップ形式は、将来のマイグレーションを考慮して必ずバージョン管理する。
+暗号化アルゴリズム、KDF、AEAD、salt / nonce policy および backup format の version / migration policy は、実装開始前に `OPEN-PROFILE-001` の decision として安全性・互換性を含めて選定する。具体方式は本仕様の現時点では未決である。
 
 ---
 
 ## 18. プロファイル復元
 
-完全バックアップからプロファイルを復元できるようにする。
+完全バックアップからプロファイルを復元できるようにする。restore の integrity verification、schema / version compatibility、Account / key identity consistency、verification state および restore commit condition の最終契約は `OPEN-PROFILE-001` で管理する。既存プロファイルを保護し、検証前に current Profile state を変更しない安全下限は維持する。
 
-復元前に、同一プロファイルが既に存在するかを判定する。
+将来 capability では、既存 Profile との重複によって既存 state を上書きまたはマージしない。重複判定の入力、identity の表現、重複時の結果および import lifecycle の最終契約は `OPEN-PROFILE-001` で決定する。
 
-既存プロファイルと重複する場合は、上書きやマージをせずエラーにする。
+以下は重複・identity handling の非 normative な概念例であり、現行の error、wire または verification contract ではない。
 
 ```text
 このプロファイルは既に登録されています。
 ```
 
-同一判定には、ニーモニックそのものを直接比較しない。
+概念上、同一判定にはニーモニックそのものを直接比較せず、ニーモニックから決定的に導出できる識別情報とネットワークの組み合わせを使う。
 
-ニーモニックから決定的に導出できる識別情報とネットワークの組み合わせを使う。
-
-概念例:
+概念例（最終的な verification identity / schema は `OPEN-PROFILE-001` で決定する）:
 
 ```ts
 interface ProfileIdentity {
@@ -612,3 +610,16 @@ HDアカウントの除外はセット単位で実行する。
 ```
 
 これらの不変条件は、UIだけではなくドメイン層および永続化層でも検証すること。
+
+## 27. 未決事項
+
+本仕様の Profile 全体 backup / restore は、将来の個別 platform / release で capability を提供する場合の canonical owner を本仕様とする。Browser Extension 初回 milestone / release、MVP 完了条件および現時点の実装必須事項には含めない。Product Specification は本節を参照し、backup contract を override しない。
+
+### OPEN-PROFILE-001: Future Profile backup contract
+
+- **Owner:** Profile / Account Specification。将来 backup capability を提供する platform / release は、本 OPEN が close され、適用される Profile / Account contract が定められた後に限り、この owner を参照する。
+- **Decision point:** 最初の backup export / import capability をいずれかの platform / release で提供する前。format、crypto、restore および deletion policy を本仕様に記録し、Product / platform 側の記述はその決定を参照する。
+- **Unresolved contract:** backup の対象 data と secret content boundary、export / import lifecycle、format / envelope、crypto algorithm、KDF、AEAD、salt / nonce policy、format / crypto version、migration compatibility、restore integrity / schema / Account identity / key consistency verification、restore commit condition、backup verification state / metadata の意味。
+- **Profile deletion policy:** backup verification state と Profile deletion の関係、Mainnet-specific deletion policy、未検証または未作成 backup の場合に deletion を拒否・許可する条件は未決とする。現時点で必ず拒否または必ず許可のいずれも決定しない。
+- **Existing boundary:** Profile password を完全 backup の暗号化 / 復号に使用する既存契約、plaintext Mnemonic / private key を backup file に出力しないこと、invalid / corrupted / incompatible backup を安全側に拒否すること、検証前に current Profile state を変更しないこと、backup 作成だけを restore verification 成功と扱わないこと、および password 忘失を管理者 reset / secret reissue で迂回しないことは維持する。
+- **Not decided by this OPEN:** AES-256-GCM、Argon2id、その他の crypto library / algorithm、具体的な backup file serialization、storage backend、cloud provider、UI flow または Profile deletion gate の採用を、この OPEN の追加自体から推測してはならない。

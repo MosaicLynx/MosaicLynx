@@ -74,7 +74,7 @@ Web dApp は MosaicLynx SDK の共通 `signTransaction()` / `signData()` を利�
 - MosaicLynx SDK と E2E 暗号化 Relay による同一スマートフォン上のトランザクション受け渡し
 - 生体認証、パスキーによるアンロック
 - 対応言語の追加
-- Profile backup export / import など、将来提供する backup capability
+- Profile backup export / import など、将来提供する backup capability。具体契約は [Profile / Account Specification の `OPEN-PROFILE-001`](./profile-account-spec.md#open-profile-001-future-profile-backup-contract) に従う
 - 詳細監査記録、組織 policy、外部 WORM / audit anchor
 
 ### 5.3 対象外
@@ -205,17 +205,15 @@ XYM / XEM の残高は表示しない。
 - 削除前に、対象名、ネットワーク、失われる Symbol / NEM のアカウント数を表示して再確認する。
 - 削除した秘密情報と接続許可は復元できないことを明示する。
 
-### 9.1 暗号化 backup と復旧
+### 9.1 将来の Profile backup と復旧
 
-本節の Profile backup export / import は、将来の個別 platform / release で提供する場合の下流仕様として扱い、Browser Extension の初回 milestone / release の必須機能・完了条件には含めない。
+本節の Profile backup export / import は、将来の個別 platform / release で提供する場合の product capability として扱い、Browser Extension の初回 milestone / release の必須機能・完了条件には含めない。backup の technical / lifecycle contract の canonical owner は [Profile / Account Specification](./profile-account-spec.md) であり、未決事項は同仕様の [`OPEN-PROFILE-001`](./profile-account-spec.md#open-profile-001-future-profile-backup-contract) で追跡する。
 
-- Profile 管理から、Vault、公開索引、Account source、derivation path、`nextAccountIndex`、Permission を一つの暗号化 backup envelope として export できる。平文のニーモニックまたは秘密鍵を file へ出力しない。
-- backup は現在の Profile password から導出した backup key で AES-256-GCM 暗号化し、MosaicLynx backup format、Profile ID、network、schema / crypto version、作成時刻を AAD に含める。Vault 暗号文の単純コピーではなく、export ごとに一意な salt と nonce を使う。
-- import は schema、KDF 最低値、AEAD、Profile network、全 Account identity、derivation path、重複 ID を検証し、既存 Profile を上書きせず新しい Profile ID へ copy-on-write で復元する。
-- 復元後、全 `mnemonicDerived` Account をニーモニックから再導出し、全 `importedPrivateKey` Account を復号して、保存済み Symbol / NEM public key と address が一致しなければ commit しない。
-- backup 作成だけを復旧成功とみなさない。ユーザーは Testnet または別の空環境で restore verification を実行でき、非秘密 metadata として `lastBackupAt`、`lastRestoreVerifiedAt`、backup に含まれる Account 数を保持する。
-- 削除確認には backup 状態、最終 restore verification、imported private key Account 数、Permission 数を表示する。Mainnet Profile で backup 未確認の場合は Profile 削除を拒否する。
-- password 忘失時の迂回復号、秘密の再発行、管理者 reset は提供しない。ニーモニックまたは暗号化 backup とその password のいずれもない場合は復旧不能であることを初回作成時と設定画面に表示する。
+- Product は、将来 backup capability を提供する場合の availability、export / import を開始できる UI、利用者への safety messaging および Profile deletion に関する product-level policy を定める。Profile の backup / restore state は Profile / Account Specification が定義する state を参照する。
+- backup capability を提供する場合も、backup file に plaintext のニーモニックまたは private key を出力せず、秘密情報を保護する形式で扱う。この安全下限を除き、backup format、envelope schema、暗号 algorithm、KDF、AEAD、salt / nonce、AAD、verification algorithm および metadata field は本書で定義しない。
+- backup 作成だけを restore verification の成功とみなさない。Product は Profile owner が定義した verification state を UI に表示し、warning または将来の product policy の入力として使用できるが、独自の verification semantics、state 名または algorithm を追加しない。
+- Mainnet Profile の削除に backup verification をどう関係付けるか、未確認時に削除を拒否するか許可するか、および Mainnet-specific policy は [`OPEN-PROFILE-001`](./profile-account-spec.md#open-profile-001-future-profile-backup-contract) に委譲する。現時点で「必ず削除拒否」または「必ず削除可能」のいずれも確定しない。
+- Profile password / backup credential の関係は Profile / Account Specification に従い、Product は別の backup password contract を新設しない。password 忘失時の迂回復号、秘密の再発行または管理者 reset により安全境界を迂回しない。
 
 ## 10. アカウント管理
 
@@ -406,7 +404,6 @@ Symbol の unresolved address または unresolved mosaic ID が namespace alias
 ```text
 Profiles[]
 ├── id, name, network, revision, nextAccountIndex
-├── lastBackupAt?, lastRestoreVerifiedAt?
 ├── ProfileVault
 │   ├── vaultVersion
 │   ├── revision
@@ -440,6 +437,8 @@ UsedMessageNonces[]
 ├── nonceHash, origin, profileId, accountId
 └── state: reserved | used, expiresAt
 ```
+
+Future backup の state および metadata は [Profile / Account Specification](./profile-account-spec.md) が所有し、本 Product の内部 logical model は backup の field 名や verification state を定義しない。
 
 要件は次のとおりとする。
 
