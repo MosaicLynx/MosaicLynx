@@ -262,7 +262,7 @@ request payload の Origin が observed Origin と異なる場合、payload の�
 
 request は top-level Origin、requesting document、tab identity、frame identity（該当する場合）および document generation に binding する。Browser / Extension が top-level と requesting frame の関係、document identity または navigation 後の current context を安全に一意化できない場合、署名を許可せず fail-closed とする。
 
-same tab の reload、same-Origin navigation、cross-Origin navigation、frame replacement、tab close または popup / window context の変更で、request の caller binding と approval continuity を再検証する。新しい document や別 Origin へ古い approval、signed result、permission または response callback を配送しない。
+same tab の reload、same-Origin navigation、cross-Origin navigation、frame replacement、tab close または popup / window context の変更で、request の caller binding と approval continuity を再検証する。新しい document や別 Origin へ古い approval、signed result、permission または response callback を配送しない。これらの Browser event は signing generation または Signer-side delivery disposition の成否を単独では決定しない。
 
 ### 7.3 Common four-condition signing authorization
 
@@ -456,7 +456,7 @@ REJECTED | FAILED | EXPIRED | CANCELLED | INVALIDATED | RESULT_UNKNOWN
 | `EXPIRED`        | request または適用される target / message context の期限切れ                                                                                                                                              |
 | `CANCELLED`      | signing を開始せず処理を終了できた cancellation                                                                                                                                                           |
 | `INVALIDATED`    | caller、permission、lifecycle、target、integrity 等の binding が失われた状態                                                                                                                              |
-| `RESULT_UNKNOWN` | signing 自体が実行されたか、または成功したかを安全に確定できない状態                                                                                                                                      |
+| `RESULT_UNKNOWN` | trusted Signer が signing generation 自体の成否（signed / unsigned）を安全に確定できない状態。UI、page、Provider、transport または lifecycle event だけではこの state にしない                            |
 
 ### 12.2 Browser-specific state との分離
 
@@ -639,13 +639,13 @@ Decrypted secret は wallet-core が必要とする boundary に限定し、Exte
 
 - background / Service Worker restart または停止
 - extension reload、update、browser restart
-- popup / approval window close、focus loss、tab close
+- popup / approval window close、focus loss、tab close、page / document close または destruction
 - page navigation、reload、Origin change、frame destruction / replacement
-- Provider replacement、Content Script replacement、document generation change
+- Provider disconnect / replacement、response channel loss、Content Script replacement、document generation change
 - Profile switch、Account change / deletion、Network / Chain change
 - lock、permission revoke、permission revision change、wallet-core context loss
 
-安全に current caller、permission、target、approval、Authentication、Signing-capable unlock、Account authorization、Profile / Account、protocol context および response recipient を再構築できない場合、古い authorization を再利用せず `INVALIDATED` または applicable unknown outcome として扱う。4条件の一つでも再構成・再確認できない場合は wallet-core を呼び出さない。再構築できないことを、署名未実行、user rejection または signing failure の証明にしない。
+安全に current caller、permission、target、approval、Authentication、Signing-capable unlock、Account authorization、Profile / Account、protocol context および response recipient を再構築できない場合、古い authorization を再利用せず、signing generation が未開始なら既存の cancellation、invalidation または applicable failure semantics に従う。Browser lifecycle event、Provider disconnect または response channel loss 自体は `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の根拠ではない。signing generation 開始後も、close / lifecycle event だけから `RESULT_UNKNOWN` を推測せず、trusted Signer が generation outcome 自体を独立に確定できない場合だけ Signing Protocol の semantics を適用する。4条件の一つでも再構成・再確認できない場合は wallet-core を呼び出さない。再構築できないことを、署名未実行、user rejection または signing failure の証明にしない。
 
 ### 20.2 Service Worker / background restart
 
@@ -655,16 +655,16 @@ MV3 等の Service Worker / background の具体 runtime API、keep-alive、pers
 - current sender / tab / frame / document、permission revision、Profile / Account、request target
 - signed result、response correlation、delivery status、signing outcome
 
-restart 前の authorization を安全に再構成できない場合は invalidation する。`SIGNING` 中の process / wallet-core response loss は `RESULT_UNKNOWN` の定義を使用し、同じ target を自動再署名しない。確定済み result の delivery だけが不明なら Signer-originated な `SUCCEEDED + DELIVERY_UNKNOWN` として signing outcome と分離する。Lifecycle loss、Provider response loss または page delivery failure だけでこの disposition を生成しない。
+restart 前の authorization を安全に再構成できない場合は invalidation する。`SIGNING` 中に process loss、wallet-core invocation interruption または result buffer loss が発生した場合も、その event 自体から `RESULT_UNKNOWN` を生成せず、trusted Signer が generation outcome 自体を独立に確定できない場合だけ Signing Protocol の `RESULT_UNKNOWN` semantics を使用する。同じ target を自動再署名しない。trusted Signer が known signed result を既に確定して保持している場合は、その result を lifecycle event により `RESULT_UNKNOWN` へ変更しない。Signer 自身がその known result の delivery disposition を確定できない場合だけ、`SUCCEEDED + DELIVERY_UNKNOWN` として signing outcome と分離する。Lifecycle loss、Provider disconnect、Provider response loss、page delivery failure、ACK absence または timeout だけでこの disposition を生成しない。
 
 ## 21. Navigation、Tab、Frame、Provider change
 
 request 中に Origin change、same-Origin reload、cross-Origin navigation、tab close、frame replacement または Provider replacement が生じた場合、current browser caller context と request の binding を再検証する。
 
 - old document の approval を new document、new Origin、new frame または別 tab に移さない。
-- old document へ返すべき response が delivery unknown になっても、別 document の request に適用しない。
+- old document へ返すべき response を配送できなくても、その事実から `DELIVERY_UNKNOWN` を生成せず、別 document の request に適用しない。
 - frame が破棄され、top-level / frame relationship を一意に確認できない場合は signing を継続しない。
-- popup / approval window の close は、未署名なら applicable cancellation / expiry、署名成否が不明なら `RESULT_UNKNOWN`、確定 result の配送だけが不明なら `DELIVERY_UNKNOWN` とする。
+- popup / approval window close、tab close、page / document close、Provider disconnect または response channel loss は、その event 自体では `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の原因にならない。signing generation 未開始なら既存の cancellation、invalidation または applicable failure semantics に従い、generation 開始後は trusted Signer が generation outcome 自体を確定できない場合だけ `RESULT_UNKNOWN` とする。known signed result は known result のまま保持し、page / Provider へ返せないことだけでは `DELIVERY_UNKNOWN` にしない。
 - page-provided requestId や callback object が残っていても、新しい document の caller proof、permission または approval として再利用しない。
 
 ## 22. Response generation、correlation、delivery
@@ -690,10 +690,12 @@ response recipient、Provider instance、document または caller context が�
 ### 22.2 Signing outcome と delivery disposition
 
 - known signed result の signing outcome は `SUCCEEDED` であり、`PENDING`、`DELIVERED` または `DELIVERY_UNKNOWN` の Signer-originated `deliveryDisposition` を同じ result に付随させる。`deliveryDisposition` は signing state ではない。
-- `RESULT_UNKNOWN` は Signer が署名生成自体の成否を安全に確定できない場合だけに用いる。signed result と delivery disposition を持たず、通常の error、signing failure または未署名へ変換しない。
-- `DELIVERY_UNKNOWN` は known signed result が存在し、delivery の確定だけが不明な場合に用いる。`RESULT_UNKNOWN`、signing failure または error code へ変換しない。
-- Provider page-facing result、Provider → SDK adapter、Promise settlement、Content Script、page delivery、browser lifecycle、Relay response、HTTP status または transport completion は、これらの意味を生成、推測、確定または書き換えない。response が page に届いたことだけで `DELIVERED` としない。
+- `RESULT_UNKNOWN` は trusted Signer が署名生成自体の成否を安全に確定できない場合だけに用いる。signed result と delivery disposition を持たず、通常の error、signing failure または未署名へ変換しない。popup / approval window close、tab / page close、Provider disconnect、SDK timeout、response absence または lifecycle loss だけではこの outcome を生成・推測しない。
+- `DELIVERY_UNKNOWN` は trusted Signer が known signed result を保持し、Signer-side delivery disposition 自体を安全に確定できない場合だけに用いる。`RESULT_UNKNOWN`、signing failure または error code へ変換しない。page / Provider delivery failure、response loss、ACK absence、timeout、tab close または transport failure だけではこの disposition を生成・推測しない。
+- Provider page-facing result、Provider → SDK adapter、Promise settlement、Content Script、page delivery、Provider disconnect、browser lifecycle、Relay response、HTTP status または transport completion は、これらの意味を生成、推測、確定または書き換えない。response が page に届いたことだけで `DELIVERED` としない。
 - Provider → SDK adapter は [web-transaction-handoff-spec.md §5.2.1、§7.2](./web-transaction-handoff-spec.md) に従い、known result と同じ disposition を `MosaicLynxSigningResult<T>` の `outcome: 'succeeded'` branch へ、Signer-originated `RESULT_UNKNOWN` を `outcome: 'resultUnknown'` branch へ意味不変に渡す。SDK adapter はこれらを生成しない。
+
+trusted Signer が known signed result を保持している場合、UI、tab、page、Provider または response channel の close / loss によって `RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` へ変換しない。既存の known-result recovery semantics が適用される場合に限り、既存 result の resend、redelivery、retrieval または lookup として扱い、re-sign、new signing、alternate Signer / Provider、Relay / Mobile fallback または transport switch と混同しない。具体的な recovery API / policy は既存 authority と OPEN-BEX-004 に委譲し、本書で追加しない。
 
 ## 23. Request concurrency、duplicate、replay
 
@@ -712,16 +714,16 @@ response recipient、Provider instance、document または caller context が�
 
 次を別の事実として扱う。
 
-| 事象                                                           | Browser Extension の semantics                                                                                                  |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| SDK local timeout                                              | SDK が待機を終了した事実。signing success、未署名または rejection を意味しない                                                  |
-| Provider request timeout / request expiry                      | request を `EXPIRED` 等の applicable terminal state とし、古い approval を再利用しない                                          |
-| user reject                                                    | `REJECTED`。明示的な利用者拒否に限る                                                                                            |
-| approval UI close / tab close                                  | 未署名で安全に終了できた場合は applicable cancellation / expiry。signing 成否不明なら `RESULT_UNKNOWN`                          |
-| explicit cancellation                                          | `SIGNING` 前に安全に終了できた場合は `CANCELLED`。signing 未実行の証明に自動変換しない                                          |
-| lock / permission revoke / context change                      | old authorization を invalidation。別 Account / Scope へ移さない                                                                |
-| wallet-core / extension crash                                  | signing outcome が不明なら `RESULT_UNKNOWN`。自動再署名しない                                                                   |
-| Signer が known signed result を保持し delivery を確定できない | `SUCCEEDED + DELIVERY_UNKNOWN`。transport / page delivery の事実だけで生成せず、signing error / user rejection / 未署名としない |
+| 事象                                                                                   | Browser Extension の semantics                                                                                                                                                                                                                                     |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| SDK local timeout                                                                      | SDK が待機を終了した事実。signing success、未署名または rejection を意味しない                                                                                                                                                                                     |
+| Provider request timeout / request expiry                                              | request を `EXPIRED` 等の applicable terminal state とし、古い approval を再利用しない                                                                                                                                                                             |
+| user reject                                                                            | `REJECTED`。明示的な利用者拒否に限る                                                                                                                                                                                                                               |
+| approval UI close / tab close / page close                                             | close event 自体では `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` にしない。signing generation 未開始なら既存の cancellation、invalidation または applicable failure semantics。開始後は trusted Signer が generation outcome 自体を確定できない場合だけ `RESULT_UNKNOWN` |
+| explicit cancellation                                                                  | `SIGNING` 前に安全に終了できた場合は `CANCELLED`。signing 未実行の証明に自動変換しない                                                                                                                                                                             |
+| lock / permission revoke / context change                                              | old authorization を invalidation。別 Account / Scope へ移さない                                                                                                                                                                                                   |
+| wallet-core / extension crash                                                          | crash event 自体では `RESULT_UNKNOWN` にしない。trusted Signer が generation outcome 自体を確定できない場合だけ `RESULT_UNKNOWN`。自動再署名しない                                                                                                                 |
+| Signer が known signed result を保持し Signer-side delivery disposition を確定できない | `SUCCEEDED + DELIVERY_UNKNOWN`。page / Provider delivery、transport、response loss または lifecycle の事実だけで生成せず、signing error / user rejection / 未署名としない                                                                                          |
 
 具体的 timeout 値、retry interval、queue persistence、recovery API および existing result retrieval は SDK / Handoff / platform OPEN を維持する。timeout / cancellation 後の retry が許可される場合も、新しい requestId、fresh envelope、再検証、新しい approval および authentication を要求する。
 
@@ -729,7 +731,7 @@ response recipient、Provider instance、document または caller context が�
 
 ### 24.2 Cancellation と signing の境界
 
-`SIGNING` 前の cancellation は signing を開始せず `CANCELLED` とする。`SIGNING` 中の cancellation は wallet-core の結果と process continuity を確認できる場合だけ applicable outcome を決める。`SUCCEEDED` 後の cancellation は確定した signature を取り消さず、既存 result delivery semantics に従う。
+`SIGNING` 前の cancellation は signing を開始せず `CANCELLED` とする。`SIGNING` 中の cancellation は close / cancellation event 自体から `RESULT_UNKNOWN` を推測せず、trusted Signer が generation outcome 自体を確定できない場合だけ Signing Protocol の semantics を適用する。`SUCCEEDED` 後の cancellation は確定した signature を取り消さず、既存 result delivery semantics に従う。known signed result がある場合、page / Provider への配送不能だけから `DELIVERY_UNKNOWN` を生成しない。
 
 ## 25. Account / Profile / permission change
 
