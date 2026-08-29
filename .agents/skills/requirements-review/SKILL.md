@@ -40,7 +40,7 @@ code、test、公式資料は、現在の実装状態、成立性、外部事実
 - 各 requirement が purpose、problem、actor、stakeholder、上流資料へ trace できるか。
 - scope、non-goal、environment、domain、platform、network、external system、責任、前提、制約、未決定事項が明確か（適用される場合）。
 - MUST / SHOULD、外部から観測可能な結果、acceptance criteria、validation evidence が明確か。
-- functional、non-functional、security、privacy、integrity、authentication / authorization、availability、interoperability の必要な要求が抜けていないか。
+- functional、non-functional、security、privacy、integrity、authentication / authorization、availability / reliability、interoperability、operational、observability / operability、deployment / environment、compliance / policy の要求・制約が、適用される根拠の範囲で抜けていないか。
 - failure、invalid / malformed / unsupported input、recovery、retry、duplicate、timeout、resource limit を必要な範囲で扱っているか。
 - requirement 本文、上流 concept、関連資料との用語・目的・scope の矛盾がないか。
 - secret-bearing / signing-capable component、remote / external system、trust boundary、責任の要求が approved source に反していないか。
@@ -59,7 +59,7 @@ requirements の欠落と、単に reviewer が望む追加要求を区別する
 
 `review-gates.md` の generic phase gate を適用した後、repository instructions が定める追加 mandatory gate、required evidence、review policy を適用する。repository-specific gate が不明、または必要な evidence を確認できない場合は、合格や READY とせず、未確認として記録する。
 
-generic gate の結果は `READY` または `REVISE REQUIREMENTS` とする。Critical の unresolved issue、scope / responsibility の判定不能、traceability / acceptance の重大な失敗がある場合は後者とする。Major / Minor を次工程へ安全に引き継げる場合は、repository policy に反しない限り READY として Deferred / Optional に整理する。
+generic gate と finding の判定は `../review-common/review-playbook.md` の `Severity と Gate の共通定義` に従う。blocking 条件がある場合は `REVISE REQUIREMENTS`、mandatory evidence / context が不足して確認が必要な場合は `REQUIREMENTS CONFIRMATION REQUIRED`、それ以外は `READY` とする。Major は generic gate では原則 blocking、Minor は通常 non-blocking だが、件数・組合せや repository-specific mandatory policy による例外を記録する。
 
 レビュー中に requirements、concept、specification、design、code、test、README、repository policy を変更しない。未確認事項、未実行の validation、前段 finding の状態を成功扱いにしない。
 
@@ -67,7 +67,7 @@ generic gate の結果は `READY` または `REVISE REQUIREMENTS` とする。Cr
 
 - requirement ごとに根拠、actor、責任、外部結果、acceptance、validation へ追跡できるか。
 - purpose、scope、non-goal、constraint、assumption、undecided が一貫しているか。
-- security、privacy、integrity、interoperability、failure、malformed / unsupported input を必要な範囲で確認したか。
+- security、privacy、integrity、availability / reliability、interoperability、operational / observability / operability、deployment / environment、compliance / policy、failure、malformed / unsupported input を、適用される根拠の範囲で確認したか。
 - design / specification detail を要求していないか。欠落と未要求の追加を区別しているか。
 - current code、test、一般慣例だけで新しい requirement を発明していないか。
 - domain / platform / network / external system の差異を、approved source が必要とする場合だけ扱っているか。

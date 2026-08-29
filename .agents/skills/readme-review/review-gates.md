@@ -8,6 +8,6 @@
 4. Consistency: README、public contract、manifest、実装、仕様、設定、test、license、links に利用を妨げる矛盾がない。
 5. Structure: 最初の利用に必要な情報が、内部仕様や不要な詳細に埋もれていない。
 
-すべての generic gate が合格し、ERROR / WARN がなければ `READY` とする。NIT だけなら `READY WITH MINOR FIXES`、ERROR / WARN または利用・理解を妨げる欠陥があれば `REVISE README` とする。
+すべての applicable generic gate が評価済みで blocking failure または confirmation required 条件がなければ `READY` とする。ERROR / WARN、または利用・理解を妨げる欠陥があり blocking 条件に該当すれば `REVISE README`、mandatory evidence / context が不足して確認が必要なら `README CONFIRMATION REQUIRED` とする。NIT だけなら `READY WITH MINOR FIXES` とする。ERROR / WARN の横断 severity は `../review-common/review-playbook.md` の mapping に従う。
 
 repository instructions が追加する mandatory gate、required evidence、security / release policy、命名規約は repository-specific policy として別途適用する。この資料へ repository 固有の gate や product contract を追加しない。追加 policy が不明な場合は、確認できない状態を PASS としない。

@@ -62,7 +62,7 @@ finding は、対象箇所、発生条件、approved source または実行結�
 
 repository instructions が定める非破壊 validation を確認し、実行した command、scope、結果、未実行理由を記録する。未確認の repository-specific gate、required evidence、環境依存 test がある場合は、generic gate が通っていても repository policy の合格や READY としない。
 
-`review-gates.md` の generic phase gate を適用する。generic gate の結果は `READY` または `REVISE IMPLEMENTATION` とし、CRITICAL の契約違反、security invariant violation、scope violation、重大な regression、validation failure がある場合は後者とする。HIGH 以下を安全に引き継げる場合は、repository policy に反しない限り READY として Deferred / Optional に整理する。
+`review-gates.md` の generic phase gate を適用する。gate と finding の判定は `../review-common/review-playbook.md` の `Severity と Gate の共通定義` に従い、blocking 条件がある場合は `REVISE IMPLEMENTATION`、mandatory evidence / context が不足して確認が必要な場合は `IMPLEMENTATION CONFIRMATION REQUIRED`、それ以外は `READY` とする。`MEDIUM` / `LOW`（共通 mapping では `Minor` / `Nit`）の unresolved finding だけでは通常 non-blocking だが、件数・組合せや repository-specific mandatory policy による例外を記録する。
 
 レビュー中に implementation、specification、requirements、design、test、fixture、README、設定、repository policy を変更しない。
 

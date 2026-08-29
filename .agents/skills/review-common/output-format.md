@@ -1,6 +1,6 @@
 # Review Output Format
 
-すべてのレビュー成果物は Markdown とし、以下の章構成・順序を共通で使用する。レビュー種別ごとに異なる正式指摘の接頭辞、重大度、Review Result の値、Domain Checks の内容は各 Skill の `output-format.md` に従う。該当項目がない場合も「なし」と明記する。
+すべてのレビュー成果物は Markdown とし、以下の章構成・順序を共通で使用する。レビュー種別ごとに異なる正式指摘の接頭辞、phase-specific severity、Review Result の値、Domain Checks の内容は各 Skill の `output-format.md` に従う。severity の影響比較と gate の blocking / confirmation required 判定は `review-common/review-playbook.md` の共通定義に従う。該当項目がない場合も「なし」と明記する。
 
 ## 共通構成
 

@@ -12,7 +12,7 @@ purpose、problem、user / stakeholder、利用場面、value、優先度、初�
 
 ## Reviewer C: 成立性と安全性
 
-requirements として不可欠な quality、security、privacy、authentication / authorization、integrity、interoperability、failure、domain / platform / network / external system boundary を確認する（対象に適用される場合）。具体的な algorithm、schema、component、実装方式は要求しない。
+requirements として不可欠な quality、security、privacy、authentication / authorization、integrity、availability / reliability、interoperability、operational、observability / operability、deployment / environment、compliance / policy、failure、domain / platform / network / external system boundary を確認する（approved source または system context により対象へ適用される場合）。一般的に必要という理由だけで新しい requirement を要求せず、具体的な algorithm、schema、component、実装方式も要求しない。
 
 ## Chair の採用基準
 

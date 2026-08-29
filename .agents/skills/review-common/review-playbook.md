@@ -84,10 +84,48 @@ Chair は Phase 1 の候補を重複排除し、各候補へ次の反証を行�
 
 1. 対象種別の review-gates を適用する。
 2. repository instructions が追加する gate と必須 validation を確認する。
-3. 不合格 gate は、対象 Skill が定める重大度の正式指摘へ結び付ける。
+3. gate の不合格、finding の severity、未確認の evidence / context を、以下の共通定義に照らして分類する。すべての gate failure を同じ severity の finding に変換しない。
 4. 採用指摘へ正式 ID と状態を付ける。
 5. 共通 output-format と対象 Skill の output-format に従って新規成果物を作成する。既存成果物は移動、削除、上書きしない。
 6. 実行していない検証、未確認の repository gate、環境依存の確認を成功扱いにしない。
+
+## Severity と Gate の共通定義
+
+`severity` は個々の finding の impact を表し、`gate` はレビュー対象全体を次工程、利用開始、または release へ進めてよいかを表す。severity は gate 判定の主要な入力だが、gate は severity の単純な別名でも、`gate = max severity` のモデルでもない。
+
+### 共通 severity mapping
+
+次の影響ベースの意味を、全 review phase の横断比較に使用する。phase 固有のラベルや例は維持してよいが、同じ影響に対して phase を理由に強さを逆転させない。
+
+- `Critical`: 対象を安全または正しく進めることができない重大問題。security boundary の重大破綻、secret exposure、correctness の根本破綻、irreversible data loss / corruption、重大な contract violation、release artifact integrity compromise など。
+- `Major`: 次フェーズへ進む前に修正すべき重要問題。requirement / design / specification の重大欠落、responsibility contradiction、interoperability failure、major compatibility regression、required validation failure、重要な traceability failure など。
+- `Minor`: 全体の成立性を壊さないが、品質・明確性・保守性・整合性のため修正が望ましい問題。限定的な ambiguity、non-blocking inconsistency、低影響の documentation / metadata defect、軽微な traceability gap など。
+- `Nit`: 意味・安全性・correctness に実質影響しない editorial / cosmetic issue。
+
+phase-specific severity は、次の既定 mapping で比較する。
+
+| phase-specific model    | 共通 severity への既定 mapping                                                     |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| `Critical` / `CRITICAL` | `Critical`                                                                         |
+| `Major` / `HIGH`        | `Major`                                                                            |
+| `Minor` / `MEDIUM`      | `Minor`                                                                            |
+| `Nit` / `NIT`           | `Nit`                                                                              |
+| README の `ERROR`       | `Critical`                                                                         |
+| README の `WARN`        | `Major`                                                                            |
+| implementation の `LOW` | `Nit`（editorial / cosmetic に限る）。実質的な品質欠陥は `MEDIUM` / `Minor` とする |
+
+この mapping は phase 固有の impact を置き換えない。phase-specific な例が共通定義より強い影響を示す場合は、影響に対応する上位の共通 severity として扱う。repository instructions が明示的に severity model を override する場合は、その policy を優先する。
+
+### Gate disposition
+
+- unresolved `Critical` は blocking とする。
+- unresolved `Major` は generic gate では原則 blocking とする。repository-specific policy が明示的に別の扱いを定める場合だけ、その policy に従う。
+- unresolved `Minor` は generic gate では通常 blocking ではない。ただし、件数・組合せ、または repository-specific mandatory policy により blocking / confirmation required になる場合がある。
+- unresolved `Nit` は blocking にしない。
+- severity finding がなくても、missing mandatory evidence、insufficient context、unresolved scope violation、repository-specific mandatory gate failure、required validation failure は gate を blocking または confirmation required にできる。evidence / context が不足して判定できない場合は confirmation required、失敗が確認できて修正が必要な場合は blocking として記録する。repository-specific policy がその分類を定める場合は優先する。
+- すべての applicable gate が評価済みで blocking failure または confirmation required の条件がない場合だけ `READY` 相当とする。non-blocking な `Minor` / `Nit` は、phase-specific output の `Optional Improvements` や条件付き ready として残せる。
+
+各 phase の `review-gates.md` と `SKILL.md` は、この定義を参照して phase 固有の判定名へ変換する。phase 固有の gate 名が異なること自体は問題ではない。
 
 ## 成果物の整形と検証
 
@@ -123,13 +161,9 @@ Chair は Phase 1 の候補を重複排除し、各候補へ次の反証を行�
 
 Finding Status には今回確認した正式指摘を一覧化する。Required Changes と Optional Improvements には現在対応が必要なものだけを置き、Resolved Findings と Deferred Findings には状態に対応する過去指摘を置く。
 
-文書レビューでは原則として Critical、Major、Minor を使用し、実装レビューでは対象 Skill が指定する severity を使用する。
+文書レビューでは原則として `Critical`、`Major`、`Minor` を使用し、実装レビューでは対象 Skill が指定する phase-specific severity を使用する。影響の意味、横断 mapping、gate への反映は、上記の共通定義に従う。
 
-- Critical: 品質 gate を不合格にし、次工程、merge、release または利用開始を妨げる。
-- Major: 現在の範囲に具体的な問題があり修正を推奨するが、単独では品質 gate を不合格にしない。
-- Minor: 現在の範囲に関係する小さな明確性・検証可能性・保守上の欠陥。新機能の提案には使わない。
-
-対象 Skill または repository instructions がより細かい定義を持つ場合は、その定義を優先する。
+対象 Skill がより細かい phase-specific の例を持つ場合も、共通 severity の意味と gate disposition を逆転させない。repository instructions が明示的に severity model または mandatory gate を override する場合は、その policy を優先する。
 
 ## 機密情報と安全性
 

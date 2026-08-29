@@ -12,7 +12,7 @@
 - user / stakeholder / actor / external system の責任。
 - target、scope、non-goal、environment、domain、platform、network の境界（適用される場合）。
 - 目的、外部から観測できる結果、成功条件、利用可能性。
-- security、privacy、integrity、authenticity、authorization、availability、interoperability。
+- security、privacy、integrity、authenticity、authorization、availability / reliability、interoperability、operational / observability / operability、deployment / environment、compliance / policy（適用される場合）。
 - failure、invalid / malformed / unsupported input、recovery、retry、duplicate、timeout、retention（対象に関係する場合）。
 - acceptance criteria、validation evidence、assumption、risk、undecided item。
 

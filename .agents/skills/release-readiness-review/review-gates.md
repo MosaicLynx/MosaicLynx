@@ -1,6 +1,6 @@
 # Generic Release Review Gates
 
-各 gate は、release candidate が intended version と distribution target に対して配布可能かを、確認可能な evidence から判定する。repository-specific policy をこの資料へ埋め込まない。
+各 gate は、release candidate が intended version と distribution target に対して配布可能かを、確認可能な evidence から判定する。gate の判定、finding の severity、mandatory evidence / context の不足は、`../review-common/review-playbook.md` の共通定義に従う。repository-specific policy をこの資料へ埋め込まない。
 
 1. Release scope: target、artifact、intended version、publication / distribution target、release scope が一意に確定している。
 2. Version / metadata: versioning policy、manifest / metadata、public entry / export、support information、license、publication setting が矛盾しない。
@@ -16,9 +16,9 @@
 ## 判定
 
 - target、version、scope、distribution target が確定できない場合は `TARGET CONFIRMATION REQUIRED`。
-- generic release blocker、Critical / Major finding、required validation failure、artifact / metadata mismatch、secret exposure、重大な compatibility failure、明示的な release policy violation がある場合は `NOT READY`。
+- generic release blocker、Critical / Major finding、required validation failure、artifact / metadata mismatch、secret exposure、重大な compatibility failure、明示的な release policy violation がある場合は `NOT READY`。severity がなくても、共通定義の blocking 条件に該当する failure は同じ扱いとする。
 - generic gate は通るが、repository-specific mandatory gate、required evidence、approval、registry / branch / tag rule が不明な場合は `RELEASE POLICY CONFIRMATION REQUIRED`。この状態を `READY` としない。
-- release を妨げない Minor / Nit だけが残る場合は `READY WITH MINOR FIXES`。
+- release を妨げない Minor / Nit だけが残る場合は `READY WITH MINOR FIXES`。Minor の件数・組合せまたは repository-specific mandatory policy により blocking となる場合は `NOT READY` または policy が定める confirmation required とする。
 - generic gate と、確認可能な repository policy がすべて合格している場合だけ `READY`。
 
 ## Repository-specific policy

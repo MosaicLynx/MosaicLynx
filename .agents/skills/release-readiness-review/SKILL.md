@@ -135,9 +135,9 @@ release blocking となる実装不具合は、approved source、実行結果、
 
 判定は次のいずれかとする。
 
-- `READY`: generic gate と確認可能な mandatory policy がすべて合格。
-- `READY WITH MINOR FIXES`: release を妨げない Minor / Nit だけが残る。
-- `NOT READY`: Critical / Major、generic release blocker、required validation failure、manifest / artifact mismatch、secret exposure、重大な compatibility failure、明示的な release policy violation がある。
+- `READY`: common の blocking / confirmation required 条件がなく、generic gate と確認可能な mandatory policy がすべて合格。
+- `READY WITH MINOR FIXES`: release を妨げない Minor / Nit だけが残る。Minor の件数・組合せまたは repository-specific mandatory policy により blocking となる場合はこの判定にしない。
+- `NOT READY`: Critical / Major、generic release blocker、required validation failure、manifest / artifact mismatch、secret exposure、重大な compatibility failure、明示的な release policy violation、その他 common の blocking 条件がある。
 - `TARGET CONFIRMATION REQUIRED`: release target、version、scope、publication target が一意に確定できない。
 - `RELEASE POLICY CONFIRMATION REQUIRED`: generic readiness は評価できるが、mandatory repository release policy または required evidence が不明で完全な判定ができない。
 

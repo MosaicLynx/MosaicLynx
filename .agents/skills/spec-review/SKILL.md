@@ -63,7 +63,7 @@ review finding は新しい product requirement の根拠ではない。不足�
 
 `review-gates.md` の generic phase gate を適用した後、repository instructions が定める追加 mandatory gate、required evidence、review policy を適用する。repository-specific gate が不明、または必要な evidence を確認できない場合は、合格や READY とせず、未確認として記録する。
 
-generic gate の結果は `READY` または `REVISE SPECIFICATION` とする。Critical の unresolved issue、contract の重大な欠落、security / interoperability / compatibility の判定不能、traceability failure がある場合は後者とする。Major / Minor を implementation へ安全に引き継げる場合は、repository policy に反しない限り READY として Deferred / Optional に整理する。
+generic gate と finding の判定は `../review-common/review-playbook.md` の `Severity と Gate の共通定義` に従う。blocking 条件がある場合は `REVISE SPECIFICATION`、mandatory evidence / context が不足して確認が必要な場合は `SPECIFICATION CONFIRMATION REQUIRED`、それ以外は `READY` とする。Major は generic gate では原則 blocking、Minor は通常 non-blocking だが、件数・組合せや repository-specific mandatory policy による例外を記録する。
 
 レビュー中に specification、requirements、design、ADR、code、test、fixture、README、repository policy を変更しない。未確認事項、未実行の validation、前段 finding の状態を成功扱いにしない。
 

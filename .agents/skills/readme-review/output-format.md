@@ -6,7 +6,7 @@
 
 - Formal finding prefix: applicable repository instructions が定義する場合だけ使用する。未定義なら repository 固有 prefix を推測せず、対象内で一意な phase-scoped ID を使用する。
 - Severity: `ERROR` / `WARN` / `NIT`
-- Review Result: `READY` / `READY WITH MINOR FIXES` / `REVISE README`
+- Review Result: `READY` / `READY WITH MINOR FIXES` / `REVISE README` / `README CONFIRMATION REQUIRED`
 - Required Changes: `ERROR` / `WARN` の New / Open / Reopened
 - Optional Improvements: `NIT` の New / Open / Reopened
 - Deferred Findings: README の責務を越え、製品・仕様・実装側で決める事項

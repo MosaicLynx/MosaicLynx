@@ -59,7 +59,7 @@ design review の finding は新しい requirement や方式の決定ではな�
 
 `review-gates.md` の generic phase gate を適用した後、repository instructions が定める追加 mandatory gate、required evidence、review policy を適用する。repository-specific gate が不明、または必要な evidence を確認できない場合は、合格や READY とせず、未確認として記録する。
 
-generic gate の結果は `READY` または `REVISE DESIGN` とする。Critical の unresolved issue、責務・trust boundary・data ownership の重大な不備、上流整合性や下流引継ぎの失敗がある場合は後者とする。Major / Minor を下流へ安全に引き継げる場合は、repository policy に反しない限り READY として Deferred / Optional に整理する。
+generic gate と finding の判定は `../review-common/review-playbook.md` の `Severity と Gate の共通定義` に従う。blocking 条件がある場合は `REVISE DESIGN`、mandatory evidence / context が不足して確認が必要な場合は `DESIGN CONFIRMATION REQUIRED`、それ以外は `READY` とする。Major は generic gate では原則 blocking、Minor は通常 non-blocking だが、件数・組合せや repository-specific mandatory policy による例外を記録する。
 
 レビュー中に design、requirements、specification、ADR、code、test、README、repository policy を変更しない。未確認事項、未実行の validation、過去 finding の状態を成功扱いにしない。
 

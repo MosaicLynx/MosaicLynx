@@ -57,7 +57,7 @@ README review の finding は新しい product requirement や support policy �
 
 `review-gates.md` の generic phase gate を適用した後、repository instructions が定める追加 mandatory gate、required evidence、review policy を適用する。repository-specific gate が不明、または必要な evidence を確認できない場合は、合格や READY とせず、未確認として記録する。
 
-generic gate の結果は `READY`、`READY WITH MINOR FIXES`、`REVISE README` とする。ERROR / WARN、current capability と記述の重大な不一致、利用開始を妨げる不足がある場合は後者とする。NIT だけで安全に次工程へ進める場合は READY WITH MINOR FIXES とし、repository policy に従う。
+generic gate と finding の判定は `../review-common/review-playbook.md` の `Severity と Gate の共通定義` に従う。blocking 条件がある場合は `REVISE README`、mandatory evidence / context が不足して確認が必要な場合は `README CONFIRMATION REQUIRED`、それ以外は `READY` とする。NIT だけで安全に進められる場合は `READY WITH MINOR FIXES` とし、repository policy に従う。ERROR / WARN の横断 severity は common mapping に従う。
 
 レビュー成果物だけを、repository instructions が定める方法で作成する。未確認事項、未実行の validation、外部リンクや sample の未検証を成功扱いにしない。
 

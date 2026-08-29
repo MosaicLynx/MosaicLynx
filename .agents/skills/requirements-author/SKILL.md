@@ -34,10 +34,11 @@ concept やユーザー依頼を、設計・仕様・実装が検証可能な re
 - purpose、対象 user / stakeholder、actor、利用場面、外部システムとの関係。
 - scope、non-goal、対象環境、前提、制約、依存関係。
 - actor / component / operator ごとの responsibility と、責任を越えて期待してはいけないこと。
-- functional requirement、non-functional requirement、security / privacy / integrity / availability requirement。
+- functional requirement、non-functional requirement、security / privacy / integrity requirement。
 - 外部から観測できる input、output、状態、結果、互換性、相互運用性の要求。ただし field、schema、wire format の詳細は仕様へ委譲する。
 - validation、acceptance criteria、failure / error 時の安全な結果、再試行・重複・期限などの要求（対象に関係する場合）。
-- performance、capacity、lifecycle、operational、compliance などの制約（承認済み資料に根拠がある場合）。
+- performance、capacity、lifecycle、operational、observability / operability、deployment / environment、compliance / policy などの要求・制約（対象に適用され、承認済み資料または applicable repository instructions に根拠がある場合）。
+- availability / reliability requirement と interoperability requirement（対象に適用され、根拠がある場合）。
 - assumptions、trade-off、risk、依存先、unresolved / undecided item。
 
 要求は、必要性と達成状態が明確で、検証可能な粒度にする。実装手段、ライブラリ、class、function、具体的なデータ構造を要求文へ紛れ込ませない。
@@ -71,7 +72,7 @@ requirements で決めるのは、目的、外部から観測できる結果、�
 
 1. 依頼、concept、関連資料から目的、actor、scope、制約、未決定事項を抽出する。
 2. applicable repository instructions が示す artifact と Source of Truth を確認する。
-3. requirement を functional、quality、security、operational、interoperability などの観点に分類する。
+3. requirement を functional、quality、security、availability / reliability、operational、observability / operability、deployment / environment、compliance / policy、interoperability などの観点に分類する（適用され、根拠がある場合）。
 4. actor、責任、外部から観測できる結果、acceptance criteria を記述する。
 5. failure、invalid / unsupported input、認証・認可、整合性、可用性、境界条件を対象に応じて記述する。
 6. 各 requirement に根拠、検証方法、依存、assumption、未決定事項を付与する。
@@ -89,20 +90,21 @@ requirements で決めるのは、目的、外部から観測できる結果、�
 6. Responsibility boundaries
 7. Functional requirements
 8. Non-functional / security / privacy requirements
-9. External, platform, domain, or interoperability requirements (when applicable)
-10. Constraints and dependencies
-11. Failure / error / recovery requirements
-12. Acceptance criteria and validation approach
-13. Traceability and evidence
-14. Risks and unresolved decisions
-15. Handoff to design / specification
+9. External, platform, domain, deployment / environment, or interoperability requirements (when applicable)
+10. Operational, observability / operability, availability / reliability, or compliance / policy constraints (when applicable)
+11. Constraints and dependencies
+12. Failure / error / recovery requirements
+13. Acceptance criteria and validation approach
+14. Traceability and evidence
+15. Risks and unresolved decisions
+16. Handoff to design / specification
 
 ## 自己確認
 
 - 各 requirement が目的、actor、責任、観測可能な結果、検証方法へ追跡できるか。
 - requirement と design / specification / implementation detail が分離されているか。
 - scope、non-goal、assumption、constraint、undecided が混同されていないか。
-- invalid / unsupported / malformed input、失敗時の結果、security、privacy、interoperability を必要な範囲で扱っているか。
+- invalid / unsupported / malformed input、失敗時の結果、security、privacy、availability / reliability、interoperability、operational / observability / operability、deployment / environment、compliance / policy を、適用される根拠の範囲で扱っているか。
 - domain / platform / network / external system の差異を、適用される場合だけ根拠に基づいて扱っているか。
 - current implementation、review finding、repository 慣例から新しい要求を推測していないか。
 - repository instructions にない path、component、toolchain、protocol、capability、validation command を発明していないか。

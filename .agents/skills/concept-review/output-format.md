@@ -6,7 +6,7 @@
 
 - Formal finding prefix: applicable repository instructions が定義する場合だけ使用する。未定義なら repository 固有 prefix を推測せず、対象内で一意な phase-scoped ID を使用する。
 - Severity: `Critical` / `Major` / `Minor`
-- Review Result: `READY` / `REVISE CONCEPT`
+- Review Result: `READY` / `REVISE CONCEPT` / `CONCEPT CONFIRMATION REQUIRED`
 - Required Changes: `Critical` または `Major` の New / Open / Reopened
 - Optional Improvements: `Minor` の New / Open / Reopened
 - Deferred Findings: 要件定義以降へ引き継ぐ指摘
