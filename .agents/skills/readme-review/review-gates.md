@@ -1,13 +1,11 @@
-# Generic Phase Review Gates
+# Review Gates
 
-各ゲートは README が利用者向け documentation として正確で、最初の利用を妨げず、対象の現在の capability と制約を誤解なく伝えるかを確認する。
+1. **正確性**: package / crate 名、install、import、API、引数、戻り値、対応環境、機能説明が manifest、実装、仕様と一致する。
+2. **利用可能性**: 利用者が必要な前提を満たして最初の利用まで進める。
+3. **制約の正確性**: 未実装、future、deferred、chain / network、security、capability、保証範囲を誤解なく区別できる。
+4. **整合性**: README、公開 API、仕様、設定、テスト、license、関連 release docs に利用を妨げる矛盾がない。
+5. **構成**: 最初の利用に必要な情報が詳細・内部仕様に埋もれていない。
+6. **Translation / multi-document parity**: canonical README と translation README、root README と package README の間で public facts / contract に利用者を誤認させる意味の矛盾がない。
 
-1. Accuracy: name、installation、import、API、引数、戻り値、configuration、version、対応環境、capability の説明が source と一致する。
-2. Usability: 利用者が必要な prerequisite を満たし、最初の利用まで進める。
-3. Constraint accuracy: current、unsupported、planned、security、platform、compatibility、保証範囲を誤解なく区別する。
-4. Consistency: README、public contract、manifest、実装、仕様、設定、test、license、links に利用を妨げる矛盾がない。
-5. Structure: 最初の利用に必要な情報が、内部仕様や不要な詳細に埋もれていない。
-
-すべての applicable generic gate が評価済みで blocking failure または confirmation required 条件がなければ `READY` とする。ERROR / WARN、または利用・理解を妨げる欠陥があり blocking 条件に該当すれば `REVISE README`、mandatory evidence / context が不足して確認が必要なら `README CONFIRMATION REQUIRED` とする。NIT だけなら `READY WITH MINOR FIXES` とする。ERROR / WARN の横断 severity は `../review-common/review-playbook.md` の mapping に従う。
-
-repository instructions が追加する mandatory gate、required evidence、security / release policy、命名規約は repository-specific policy として別途適用する。この資料へ repository 固有の gate や product contract を追加しない。追加 policy が不明な場合は、確認できない状態を PASS としない。
+`ERROR` / `WARN` がなければ品質ゲート合格。`NIT` だけでは不合格にしない。ERROR / WARN が
+あれば `REVISE README`、NIT だけなら `READY WITH MINOR FIXES`、指摘がなければ `READY` とする。

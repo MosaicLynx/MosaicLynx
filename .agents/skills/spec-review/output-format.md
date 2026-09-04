@@ -4,11 +4,12 @@
 
 ## Skill-specific values
 
-- Formal finding prefix: applicable repository instructions が定義する場合だけ使用する。未定義なら repository 固有 prefix を推測せず、対象内で一意な phase-scoped ID を使用する。
+- Formal finding prefix: `SR`
 - Severity: `Critical` / `Major` / `Minor`
-- Review Result: `READY` / `REVISE SPECIFICATION` / `SPECIFICATION CONFIRMATION REQUIRED`
-- Required Changes: `Critical` または `Major` の New / Open / Reopened
-- Optional Improvements: `Minor` の New / Open / Reopened
-- Deferred Findings: 実装・検証以降へ引き継ぐ未決定事項・確認事項
-- Domain Checks: API・データ契約、validation、error、状態、処理、security、相互運用性、検証可能性
-- Scope and Traceability: 要件・コンセプト・ADR・前段レビューと仕様箇所の対応
+- Review Result: `READY` / `REVISE SPECIFICATION`
+- Required Changes: `Critical` の New / Open / Reopened（Gate 不合格に対応する差戻し事項）
+- Optional Improvements: `Major` / `Minor` の New / Open / Reopened（Critical がなければ `READY` のまま引継ぎ可能）
+- Upstream Feedback: `Specification Review → Design` を通常とし、問題の発生源が Requirements の場合だけ `Specification Review → Requirements` とする。Specification を安全に評価・完了できない場合は Specification 側の formal finding を別途記録し、既存の Specification Gate / Severity policy を適用して feedback へ trace する。feedback から新しい Design Decision、Requirement、Specification contract を確定せず、同じ問題を二重計上しない
+- Deferred Findings: 実装・検証、対象範囲外、または後続確認へ引き継ぐ未決定事項・確認事項。上流の正式資料への feedback は含めない
+- Domain Checks: API・データ契約、validation、error、状態、処理、security、相互運用性、検証可能性。Security は適用した protected asset exposure、authentication / authorization、signing authority、signing target / canonical bytes、chain / network binding、cryptographic contract、nonce / salt / randomness、AAD / domain separation、Wallet Store / persistence、serialization、malformed / tampered input、fail-closed、atomic visible result、external wallet-core Binding（対象に含む場合）、unknown / version、interoperability、security testability を必要な範囲で確認する。
+- Scope and Traceability: 要件・コンセプト・設計・前段レビューと仕様箇所の対応

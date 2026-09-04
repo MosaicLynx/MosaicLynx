@@ -1,87 +1,100 @@
 ---
 name: implement-review
-description: 実装、テスト、fixture、設定、依存、差分、commit、Pull Request を、approved specification への適合、security、secret handling、異常系、互換性、テスト十分性、回帰、品質、validation coverage の観点でレビューする。コードは修正しない。
+description: >-
+  MosaicLynx の TypeScript 実装、Extension、SDK、Relay、chain adapter、backup / protocol package、
+  テスト、fixture、差分を、仕様適合、security、Symbol / NEM 相互運用性、責務境界、異常系、
+  テスト品質の観点でレビューする。コードは修正しない。
 ---
 
-# Implementation Review
+# Implementation Review Board
 
-approved specification、requirements、design、ADR を実装が正しく満たしているかを判定する。レビューを設計変更、仕様補完、リファクタリング、未要求の hardening の入口にしない。対象は code、test、fixture、configuration、dependency、差分、関連する実行結果である。
+承認済み仕様、要件、設計および既存の安全性境界を、実装が実際に満たしているかを判定する。
+source code、テスト、fixture、依存、公開 export、Extension / Provider / Relay の境界まで確認するが、
+レビュー中にコード、仕様、テスト、fixture、README、設定を修正しない。設計の好みや仕様外の
+機能追加を指摘へ変換しない。
 
-## 作業開始時の確認
+Implementation Review は、`Specification: what exact behavior must be observed` に対して、
+`Implementation Review: does the actual code satisfy that contract safely?` を確認する。既存の
+security invariant、protected asset の機密性・完全性、trust boundary、cryptographic primitive の
+安全条件、TypeScript / JavaScript / Binding 境界の安全条件を破る具体的な defect は、仕様に個別の
+防御手段が列挙されていなくても指摘する。これは新しい要求ではなく、既存の安全性を破る実装欠陥の確認である。
 
-次の順に確認する。
+## 作業開始時に読む資料
 
-1. applicable repository instructions。対象範囲、repository map、対象 language / runtime / component、review artifact の配置、Source of Truth、repository-specific gate、validation、報告規約を取得する。
-2. `../review-common/review-playbook.md`。
-3. `reviewers.md`、`review-gates.md`、`output-format.md`。
-4. ユーザーが明示した file、component、package、application、差分、commit、Pull Request、参照資料。
-5. 対応する approved specification、requirements、design、ADR、既存 test / fixture、必要な公式資料。
+1. `AGENTS.md`
+2. `../review-common/review-playbook.md`
+3. `reviewers.md`、`review-gates.md`、`output-format.md`、`security-checklist.md`
+4. 対象の差分、対象 app / package の `package.json`、`tsconfig.json`、公開 export、`src/`、テスト、fixture、build script
+5. 対応する `docs/specifications/`、`docs/requirements/`、`docs/design/`、適用可能な ADR
+6. `docs/specifications/chain-compatibility-spec.md` と必要な公式 protocol / schema / SDK 資料
+7. 外部 wallet-core / Binding が差分または契約対象に含まれる場合だけ、その外部 repository instructions と契約
 
-特定の language、runtime、package manager、persistence backend、protocol、SDK、platform、component の存在を前提にしない。repository instructions と既存構成から確認できない detail は推測せず、insufficient evidence として扱う。
+`AGENTS.md` に対象フェーズの Phase Context が登録されている場合だけ、初期探索と共通前提の把握に
+利用する。Context は正式資料の代替や単独の finding 根拠にせず、正式資料と競合した場合は正式資料を優先する。
 
 ## 対象と成果物
 
-- ユーザーが明示した対象と変更範囲だけをレビューする。対象が曖昧な場合は範囲を広げず、確認事項を報告する。
-- 変更範囲、直接の依存、適用 source、関連 test、実行結果を確定する。repository 全体の無関係な品質評価は行わない。
-- review artifact の保存場所、命名、連番、finding prefix は repository instructions が定義する場合だけ使用する。定義がなければ固定形式を発明しない。
-- 既存の固定名、連番成果物、specification feedback、レビュー成果物を移動、削除、上書きしない。
+- ユーザーが明示した app、package、ファイル、機能、差分、commitだけを対象にする。
+- MosaicLynx の実装対象は `apps/*` と `packages/*`。`_snwc` は外部 wallet-core であり、対象に明示されない限り root の差分として扱わない。
+- 対象が曖昧なら範囲を推測で広げず、対象確認で終了する。
+- 変更範囲、直接の依存、対応仕様・要件・設計、関連テストを確定する。
+- 成果物は `docs/reviews/implementation/<ベース名>-review-NNN.md` に新規作成する。既存成果物や仕様フィードバックを移動・削除・上書きしない。正式 ID は IR 接頭辞で連番にする。
 
 ## 根拠の範囲
 
-変更差分、実装、test、fixture、configuration、manifest、approved specification、requirements、design、ADR、repository instructions、実行結果を相互に照合する。
-
-公式 protocol / platform / dependency docs は、repository instructions または approved source が必要とする場合に、外部事実・互換性・API の確認へ使う。既存 code、test、SDK の挙動だけを requirement、specification、protocol の根拠にしない。
-
-repository-specific security policy、release policy、required evidence、persistence / shared-state policy は instructions または approved docs から取得する。定義がない場合は、一般慣例を必須 gate にしない。
-
-未確認の環境、registry、外部サービス、長時間 test、依存先、shared state は成功扱いにしない。秘密情報、credential、復号データ、実運用の値を成果物や出力へ含めない。
+差分、実装、テスト、fixture、承認済み仕様、要件、`docs/design/`、適用可能な ADR、必要な公式資料を
+照合する。既存コードやテストがそうなっていることだけを、仕様や protocol の根拠にしない。
+未確認の external node、network、registry、長時間テスト、Browser runtime、外部 Binding runtime は
+成功扱いにしない。秘密情報、復号データ、credential を成果物や出力へ含めない。
 
 ## レビュー観点
 
-- approved specification、requirements、design、ADR への適合と外部可視動作。
-- input / output、事前・事後条件、validation、normalization、state、error、禁止事項、compatibility。
-- malformed / truncated / unsupported / unknown input、境界値、duplicate、timeout、retry、partial failure、fail-closed。
-- security、secret handling、authentication / authorization、integrity、replay、expiry、tamper、resource limit、trust boundary。
-- cryptography、signature、canonicalization、serialization、encoding、numeric / byte / text 表現（対象に存在する場合）。
-- 適用される domain、platform、network、protocol、version、external format の差異と interoperability。
-- resource lifecycle、cleanup、concurrency、cancel、依存方向、component responsibility、公開互換性。
-- 正常系、異常系、境界、security、回帰、deterministic behavior、conformance を独立して確認する test の十分性。
-- formatter、lint、compiler / static analysis、unit / integration / end-to-end / conformance test、build など repository-defined validation の coverage と実行結果。
+- 承認済み仕様・要件・設計への適合と外部可視動作
+- 入力検証、validation、error、warning、atomicity、replacement Store、failure path
+- `security-checklist.md` に基づく、対象変更に適用可能な protected asset、secret lifecycle、secret ownership、暗号、乱数、署名、Wallet Store、parser、Extension / Provider、Relay、外部 Binding、failure atomicity、依存、テスト、known vector の確認
+- 秘密情報のログ・例外・error・warning・不要なコピーへの漏えい、JavaScript runtime 上の boundary、具体的な cryptographic misuse
+- 暗号、KDF、AEAD、AAD、nonce、salt、署名対象、canonical bytes、serialization、および custom cryptographic arithmetic
+- Symbol / NEM、Mainnet / Testnet、SDK と protocol、address / key / signature の表現
+- TypeScript の型・公開互換性・依存、Extension の privileged boundary、Provider / dApp origin、Relay の opaque payload、外部 Binding の型・ownership境界
+- 正常、malformed、boundary、wrong password / chain / network、truncated、duplicate、tamper、unknown version、deterministic、interop のテスト
 
-## Phase boundary と finding
+仕様にない API、設定、error、fallback、互換動作、将来拡張、一般論だけの防御、任意の hardening は
+指摘しない。private key / Mnemonic の漏えい、不要な secret copy、nonce reuse、RNG failure、AEAD
+認証結果の無視、仕様と違う signing bytes、攻撃者入力による例外・resource exhaustion、Extension / SDK /
+Relay / 外部 wallet-core の境界違反、Symbol / NEM または Mainnet / Testnet の混同による誤署名など、
+既存の security property を具体的に破る defect は指摘する。仕様が曖昧で正否を決められない場合は、
+実装欠陥と `Specification ambiguity` / `Specification gap` / `Implementation → Specification feedback` を分離する。
 
-各候補について、現在の差分が approved source に違反しているか、実装・test・validation が契約を満たさないことを示せるかを確認する。仕様が曖昧、根拠がない、一般的に望ましいだけの場合は code defect と断定しない。
+## 実行と検証
 
-finding は、対象箇所、発生条件、approved source または実行結果、問題、影響、最小の必要条件、完了条件を第三者が確認できる場合だけ採用する。新しい API、capability、error、fallback、互換層、設計方式、将来拡張、好みの refactor、未要求の防御を要求しない。
+`../review-common/review-playbook.md` の Phase 0〜3 を適用する。Reviewer A〜D を別パスで確認し、
+各候補を根拠・影響・完了条件で反証してからゲートを適用する。Reviewer B は secret、crypto、
+JavaScript runtime、attack surface を深く確認し、変更から attack surface と secret path を先に特定して
+`security-checklist.md` の該当項目だけを適用する。Reviewer C は canonical bytes、chain / network、
+Symbol / NEM、protocol interoperability、Reviewer D は negative test、differential、known vector、
+独立 oracle、fixture 品質で重複確認してよい。重複 finding は Chair が統合する。
 
-仕様未決定と実装違反を分離する。実装から requirement / design / specification を逆生成せず、必要な判断は unresolved または upstream / downstream handoff として記録する。
+仕様・設計・要件の不足や曖昧さは、発生源に応じた `Implementation Review → Specification / Design / Requirements`
+の `Upstream Feedback` に記録し、`Deferred Findings` と混在させない。サブエージェントを使った場合だけ
+実際の識別子と完了状態を監査情報へ記録し、使わない場合は自己レビューの4パスを記録する。
 
-## 実行と判定
+必要な非破壊検証は、ルート `AGENTS.md` の `## 検証` と対象の実際の script に従う。変更分類または
+ユーザーが明示した検証範囲に該当する場合だけ、対象 package の test / typecheck、Extension build、
+Relay integration、release evidence などを実行する。docs-only または agent / skill-only の差分では、
+実装テストを自動実行せず、文書・Skill の構造、参照、Markdown、必要な validator、差分・状態を確認する。
+対象変更がない検証は `NOT APPLICABLE / SKIPPED (no relevant change)` とし、レビューの failure とは扱わない。
 
-`review-common/review-playbook.md` の Phase 0〜3 と、`reviewers.md` の独立観点を適用する。サブエージェントを使わない場合は、実施した自己レビューの観点別パスだけを記録する。
+## 判定
 
-repository instructions が定める非破壊 validation を確認し、実行した command、scope、結果、未実行理由を記録する。未確認の repository-specific gate、required evidence、環境依存 test がある場合は、generic gate が通っていても repository policy の合格や READY としない。
+判定は `READY` または `REVISE IMPLEMENTATION` とする。
 
-`review-gates.md` の generic phase gate を適用する。gate と finding の判定は `../review-common/review-playbook.md` の `Severity と Gate の共通定義` に従い、blocking 条件がある場合は `REVISE IMPLEMENTATION`、mandatory evidence / context が不足して確認が必要な場合は `IMPLEMENTATION CONFIRMATION REQUIRED`、それ以外は `READY` とする。`MEDIUM` / `LOW`（共通 mapping では `Minor` / `Nit`）の unresolved finding だけでは通常 non-blocking だが、件数・組合せや repository-specific mandatory policy による例外を記録する。
+- `CRITICAL` / `HIGH` の New / Open / Reopened finding が1件以上ある場合は `Required Change` とし、`REVISE IMPLEMENTATION` とする。
+- `MEDIUM` / `LOW` のみ、または解決済み・Deferred のみの場合は `Optional / non-blocking` とし、`READY` とできる。
 
-レビュー中に implementation、specification、requirements、design、test、fixture、README、設定、repository policy を変更しない。
+重大度は、exploitability、reachability、protected asset への影響、precondition、trust boundary、recovery、
+downstream effect を総合して判断する。単に暗号、秘密情報、外部 Binding を含むことだけを理由に
+`CRITICAL` / `HIGH` としない。固定スコア方式や任意の coverage 数値目標を新設しない。
 
-## Security と secret handling
+## 作業完了後の Git 運用
 
-- secret、credential、key、token、password、復号済み plaintext、機密な input / output が log、例外、warning、debug、fixture、example、telemetry へ漏れていないか確認する。
-- untrusted input、remote / external / opaque data、client / privileged boundary、storage / shared-state boundary の validation と責任を確認する。
-- authentication、authorization、integrity、replay、expiry、tamper、rate / size limit、resource exhaustion、fail-closed を approved source に照合する。
-- cryptography が対象にある場合は、approved source の algorithm、parameter、key lifecycle、AAD、salt、nonce、tag、encoding、randomness、constant-time 等の要件と実装を照合する。
-- error、retry、timeout、cancel、partial failure、cleanup の経路で秘密情報や保護対象データが露出しないか確認する。
-
-## 自己確認
-
-- finding ごとに対象、事実、根拠、影響、必要条件、完了条件があるか。
-- specification compliance、security、secret handling、trust boundary、malformed / unsupported input、fail-closed、interoperability、compatibility、regression を必要な範囲で確認したか。
-- deterministic behavior、serialization、canonicalization、numeric / byte correctness、lifecycle、concurrency を対象に応じて確認したか。
-- repository-defined language / runtime / dependency / persistence / protocol と、固定した一般論を混同していないか。
-- test が正常系だけでなく、異常系、境界、改ざん、認証失敗、期限、duplicate、未知値、回帰を必要な範囲で検出するか。
-- repository-specific gate、required evidence、validation が不明な場合に PASS としていないか。
-- review artifact に秘密情報や未実行の確認を成功扱いで記載していないか。
-
-レビュー成果物だけを、repository instructions が定める方法で作成する。共通の finding、severity、evidence、regression、Git、validation ルールは `../review-common/review-playbook.md` に従う。
+`../review-common/review-playbook.md` の「成果物と Git」を適用する。

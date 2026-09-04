@@ -1,159 +1,127 @@
 ---
 name: release-readiness-review
-description: package、library、SDK、distributable artifact、registry-published component の release readiness を、version、metadata、public contract、dependencies、build artifact、documentation、security、validation evidence、repository release policy の観点で確認する。publish、tag、registry、source code は変更しない。
+description: MosaicLynx の公開対象 package、Extension、Relay、WASM / Native Binding などの実在する distribution surface と、それらを束ねる release evidence / workflow を公開前に照合する。publish、tag、source code の変更は行わない。
 ---
 
 # Release Readiness Review
 
-software package または distributable artifact が、意図した version と公開先に対して正しく、安全に、再現可能な形で配布できるかを判定する。通常の implementation review の代わりにコード品質全体を評価するのではなく、release candidate、publication metadata、配布物、公開 contract、release evidence に焦点を当てる。
+MosaicLynx の公開対象、package、Extension、Relay、必要に応じて外部 wallet-core Binding と、それらを
+束ねる release evidence / workflow が、現在の実装、公開契約、配布物、security boundary、運用前提と一致し、
+安全に公開できるかをレビューする。公開操作、tag、remote、registry、source code の変更は行わない。
 
-## 作業開始時の確認
+## 作業開始時に読む資料
 
-次の順に確認する。
+1. `AGENTS.md`
+2. `../review-common/review-playbook.md`
+3. `reviewers.md`、`review-gates.md`、`output-format.md`
+4. `agents/openai.yaml`
+5. 対象 repository の manifest、README、license、CHANGELOG、変更差分
+6. `docs/release/release-process.md`、`docs/release/mainnet-release-evidence.md`、`docs/evidence/evidence-policy.json`
+7. 対象に対応する仕様、設計、レビュー成果物、workflow、packaging / evidence script
 
-1. applicable repository instructions。release target、versioning、publication target、release policy、required evidence、validation、review artifact の配置、報告規約を取得する。
-2. `../review-common/review-playbook.md`。
-3. `reviewers.md`、`review-gates.md`、`output-format.md`。
-4. ユーザーが明示した target、intended version、publication / distribution target、範囲、参照資料。
-5. repository の manifest、build / packaging configuration、release docs、CI configuration、approved product / release policy、既存の release evidence。
+対象 repository に存在しない固定 path や生成物を前提にせず、存在を確認した資料だけを根拠として扱う。
+`_snwc` は外部 wallet-core であり、MosaicLynx の release set に明示されない限り root の公開 package として扱わない。
 
-特定の ecosystem、manifest filename、directory、registry、branch、tag、evidence format、命名、finding prefix が存在することを前提にしない。repository instructions と既存構成から確認できない release policy は推測しない。
+## 対象と release set の確定
 
-## 対象と release scope
+- package、app、Extension、artifact、README または release set が明示された場合は、その指定を優先する。
+- repository-wide release readiness、production release、複数 surface の公開前 review が指定された場合は、実在する app / package、release workflow、SBOM、provenance、release evidence を discovery して一つの `composite release target` として扱う。
+- 現在の workspace では、`packages/sdk` の publish 設定と、Extension / Relay / test-dapp などの private app / package を manifest で区別する。将来 Mobile を実装済み surface と仮定しない。
+- 外部 wallet-core / Native C ABI / WASM Binding は、release contract や対象 asset に明示された場合だけ surface として確認する。
+- composite target では各 surface の責任境界と artifact を個別に確認する。
+- 指定がなく候補が複数ある場合だけ自動選択せず、`TARGET CONFIRMATION REQUIRED` とする。
+- package version、asset 数、package 名などは Skill に固定せず、manifest、release manifest、workflow、証拠から discovery して照合する。
 
-- 主対象は package、library、SDK、distributable artifact、registry-published component など、利用者へ配布される software release である。
-- repository instructions が適用範囲を定める場合に限り、application、binary、bundle、container などの distribution target に拡張する。
-- ユーザーが target、version、差分、release candidate を明示した場合は、それだけを対象にする。
-- 未指定の場合は、repository instructions、既存 release configuration、manifest、release candidate、変更範囲から候補を特定する。特定の directory pattern や package 構成を既定値にしない。
-- 候補が 0 件、複数件、intended version が不明、publication target が不明、または scope が一意に定まらない場合は、packaging、publish、registry、release 判定を進めず、`TARGET CONFIRMATION REQUIRED` として確認事項を報告する。
-- release scope 外の package、artifact、generated file、debug / test output、secret、unintended dependency が candidate に混入していないか確認する。
-- review artifact の保存場所、命名、連番、finding prefix は repository instructions が定義する場合だけ使用する。未定義なら固定形式を発明しない。
+## Release surface discovery
 
-## 根拠の範囲
+レビュー開始時に、対象 repository の構造から次を必要な範囲で discovery する。
 
-release request、applicable repository instructions、approved release policy / docs / ADR、manifest、公開 contract、source、test、build output、package archive / bundle、CI result、validation result、既存 evidence を根拠として区別する。
+- root `package.json`、workspace package、lockfile、`apps/**/package.json`、`packages/**/package.json`
+- package の `private`、`publishConfig`、`files`、`exports`、`main`、`types`、scripts
+- TypeScript 公開 API / declaration、Extension bundle、Relay image / archive、生成 asset、外部 Binding asset（存在する場合）
+- root / package README、license、CHANGELOG、public release docs
+- `.github/workflows/**` と environment / permission / publish boundary
+- `tools/` の release evidence script、evidence policy、manifest、公開鍵、checksum、SBOM、license、provenance
+- archive、npm package、Extension build、Relay distribution とその検証 fixture
 
-manifest、code、test、archive の現在状態は release evidence である。現在そう動くことだけで、supported capability、version policy、release approval、security promise を発明しない。product contract、protocol、platform、compatibility の正否は approved source へ追跡する。
+固定のディレクトリ名や asset 数を必須条件にせず、発見した surface、生成手順、証拠、未確認範囲を
+`Review Target` と `Scope and Traceability` に記録する。
 
-外部 ecosystem、registry、dependency、platform の公式資料は、repository instructions または approved source が必要とする場合に、外部事実を確認するために使う。未確認の環境、registry、長時間 validation、外部サービス、生成物を成功扱いにしない。
+## 確認範囲
 
-## Versioning と compatibility
+対象確定後、次を発見した実体に対して確認する。
 
-- intended version、manifest version、release note、tag / publication metadata、artifact metadata の一貫性を確認する。
-- repository-defined versioning policy を優先する。SemVer を採用している場合は、breaking change、backward-compatible feature、bug fix、prerelease / stable の compatibility と version increment を確認する。
-- SemVer を採用していない場合は、その repository-defined rule、ordering、compatibility、prerelease distinction を検証し、SemVer の慣例を勝手に適用しない。
-- public API、exported name、型、data format、error contract、default behavior、configuration、runtime / platform support、dependency contract の変更が version policy と整合するか確認する。
-- version の根拠が曖昧な場合は、version を変更せず、候補、影響、未決定理由を記録する。
+1. manifest、version、license、repository、description、依存関係、runtime 条件、private / publish 設定
+2. TypeScript 公開 API、declaration、Extension / Provider surface、Relay endpoint、外部 Binding export（対象に含む場合）
+3. README、CHANGELOG、license、release docs、translation / package README の public fact と契約の整合
+4. package / archive / bundle の含有ファイル、secret、fixture、temporary data、不要な開発物
+5. browser / Node runtime、Extension loading、Relay deployment、unsupported target、failure path
+6. release workflow、tag / source / version binding、OIDC、provenance、SBOM、license、durable release evidence、retry / recovery
+7. public surface の obsolete wording、placeholder、local path、credential、unsupported / deferred capability の過剰記載
 
-## Package と distribution metadata
+## npm / package review
 
-対象 ecosystem に存在する場合だけ、次の metadata を確認する。
+公開 package が発見された場合、次を確認する。列挙した metadata は全 package に必須と決めるものではなく、
+存在する値、必要な不足、repository との不一致を評価する。
 
-- package / artifact name、version、description、license、repository / source metadata、homepage、support metadata。
-- entry point、export surface、module / type metadata、runtime / platform requirement、configuration、publication setting。
-- files / inclusion rule、generated output、source map、license / notice、required documentation。
-- runtime、development、peer、optional、bundled などの dependency classification と、publication 後の解決可能性。
+### Identity / metadata
 
-特定の manifest field、package manager、registry、archive command をすべての repository に要求しない。対象 ecosystem が npm の場合は、利用可能な manifest、exports、files、package archive、dependency metadata を確認してよいが、npm 固有の field や scope を普遍的前提にしない。
+name、version、description、license、repository、engines、publishConfig、files、type、main / module / types、
+exports を manifest と `npm pack --dry-run` または既存 evidence に照合する。private package を公開対象として扱わない。
 
-## Public API と external contract
+### Public API / runtime
 
-- candidate の public API、export、command、configuration、data / error contract が、intended version と approved source に一致するか確認する。
-- declared support range、runtime / platform compatibility、dependency compatibility、backward compatibility、deprecation / migration information を確認する。
-- package metadata が示す入口と実際の artifact の入口、export、型、resource が一致するか確認する。
-- release candidate が意図しない public name、internal file、debug interface、unsupported capability を公開していないか確認する。
-- compatibility regression は、対象範囲、既存利用者、version policy、approved contract に基づき影響を評価する。一般的な「より良い API」提案は finding にしない。
+- runtime exports、TypeScript declarations、public subpaths、default export の有無
+- sync / async contract、binary type、documented API、公開 API の名前・型・制約
+- browser、bundler、Extension、Node、package-local asset、remote download の有無
+- SDK / Provider と Extension、Relay、外部 wallet-core の責任境界
 
-## Build と distributable artifact
+## 配布物と security
 
-- repository instructions が定める build、package generation、archive / bundle inspection、reproducibility check を使用する。
-- build が成功し、intended artifact が生成され、manifest と artifact の metadata が一致するか確認する。
-- required runtime file、public entry、型、license、notice、README、release note、生成 file が含まれているか確認する（対象に該当する場合）。
-- source-only file、test fixture、debug output、source map、credential、secret、environment data、不要な executable / archive が意図せず含まれていないか確認する。
-- generated artifact と source / configuration / version の consistency、archive / bundle の内容、ファイル権限・実行性を、対象 ecosystem と policy に応じて確認する。
+`npm pack --dry-run`、Extension build、Relay archive または release evidence から expected / unexpected files を確認する。
+source map、fixture、test data、development script、local path、credential、private key、Mnemonic、temporary data、
+binary、WASM、README、license、package metadata を対象にする。意図的な test secret が repository test にあること自体は
+blocker とせず、公開 tarball・bundle・durable release asset への混入を blocker とする。
 
-具体的な packaging command を固定しない。未生成、未検査、検査範囲不明の artifact を配布可能と扱わない。
+Vault、Profile、signing、Relay、backup の説明が、秘密情報を不要に配布・公開・復号するよう誤認させないか確認する。
+external wallet-core の鍵管理・署名責任、Extension の承認、dApp の announce、Relay の opaque transport を混同しない。
 
-## Dependencies
+## Supply-chain / release operation
 
-- dependency の runtime / development / peer / optional / bundled 分類が publication model と一致するか確認する。
-- version range、lock / manifest consistency、workspace / local dependency の release 時解決性、transitive dependency、unsupported runtime を確認する（対象に該当する場合）。
-- repository instructions / approved release policy が定める prohibited dependency、vulnerability threshold、license、integrity、bundling rule を適用する。
-- policy が定められていない dependency risk を、一般論だけで release blocker にしない。ただし明白な破損、未解決 dependency、manifest / artifact mismatch は根拠付きで指摘する。
+発見された release workflow と evidence に対して、次を review domain とする。
 
-## Documentation と利用可能性
+- trigger、tag / source commit / version binding、protected environment、permissions、least privilege、publish boundary
+- npm Trusted Publishing / OIDC、long-lived token fallback、registry identity、package / version collision behavior
+- SBOM format / identity、strict license policy、unknown license、third-party license text、digest binding
+- Actions artifact と durable release record の区別、exact asset set、manifest、checksum、release-record
+- evidence collect / manifest / verify / gate の失敗、workflow rerun、二重 publish、version collision、recovery の fail-closed behavior
 
-対象に必要な範囲で、README、installation、usage、public API documentation、migration、changelog / release notes、supported / unsupported capability、known limitation、security guidance を確認する。
+## Public hygiene と documentation consistency
 
-changelog、migration information、特定の documentation file を全 repository の必須条件にしない。required / optional の区別は repository release policy から取得する。将来機能、外部 dependency の能力、未検証の example を current supported capability として記述していないか確認する。
+README、package metadata、license、CHANGELOG、public docs、packed artifact、durable release artifact に対して、
+obsolete stage wording、placeholder、TODO / FIXME の公開影響、temporary wording、local filesystem path、private path、
+internal instruction、credential、token、private key、Mnemonic、sensitive sample、copyright、author、version、public link、
+unsupported / deferred feature の誤記を確認する。
 
-## Security と supply chain
+複数 README、root README、package README、translation、CHANGELOG、manifest、public API、release docs の間で、package name、
+version、environment、target、install、import、API、chain / network、secret handling、signing、export、unsupported / deferred
+feature、release status、security guarantee が利用者を誤認させないことを確認する。文章の逐語一致は要求せず、public fact と
+contract の semantic parity を要求する。
 
-- secret、credential、private key、token、password、environment data、dangerous test fixture が source、manifest、archive、bundle、生成物、log、evidence に混入していないか確認する。
-- source map、debug artifact、test output、unexpected binary / executable / archive、security-sensitive configuration が意図せず公開されていないか確認する。
-- dependency integrity、artifact provenance、release source と artifact の対応、build reproducibility、signing、attestation、SBOM を確認する。ただし後者は repository release policy が要求する場合だけ必須 gate とする。
-- vulnerability policy、security regression、license / notice、provenance / integrity evidence の不足を、applicable policy と approved source に照合する。
-- repository policy に存在しない security control を新しい product requirement として発明しない。ただし明白な secret exposure、artifact tampering、integrity failure は release blocker として扱う。
+## SemVer と validation
 
-## Validation evidence
+公開 API、Provider 契約、Relay / backup / wire format、Extension の既定動作の破壊は、対象 repository の version / tag policy と
+照合して major / minor / patch の妥当性を確認する。根拠が曖昧な場合は version を変更せず未決定として記録する。
 
-repository instructions と release policy が要求する範囲で、次を確認する。
+通常の validation は `AGENTS.md` の `## 検証` と対象 package / app の script に従う。この review は release evidence と公開 gate を
+確認するため、コード差分がなくても `pnpm evidence:collect`、`pnpm evidence:manifest`、`pnpm evidence:verify`、`pnpm evidence:gate`、
+対象 package test / build などを gate に必要な範囲で要求できる。実行した場合は理由を記録し、未実行の registry、external node、
+browser、長時間検証を成功扱いにしない。pnpm の環境エラーは repository-defined validation failure と混同せず、`AGENTS.md` の fallback
+方針に従って local executable の結果と未検証範囲を分けて記録する。
 
-- unit / integration / compatibility / conformance test、lint、formatter、static analysis、type / compiler validation。
-- build、package generation、archive / bundle inspection、installation / smoke check、distribution check。
-- release evidence、provenance、signature、attestation、SBOM、vulnerability scan、reproducibility evidence（要求される場合）。
-- 実行 command、対象範囲、version、環境、結果、未実行理由、外部依存の状態。
+## 境界、判定、成果物
 
-実行していない validation、未確認の evidence、未接続の registry、失敗を隠した CI result を成功扱いにしない。repository-specific mandatory validation が不明な場合は、generic readiness と policy unknown を分離して報告する。
-
-## Severity
-
-severity は package 名、ecosystem、registry、environment の名称ではなく、release impact で判断する。
-
-- `Critical`: secret / credential exposure、悪意または意図しない executable content、重大な supply-chain compromise、release artifact の根本的な integrity failure。
-- `Major`: incompatible public API、incorrect package / artifact contents、required validation failure、manifest / artifact mismatch、明示的な release policy violation、supported environment での動作不能。
-- `Minor`: release を妨げない metadata の欠落、optional documentation の不足、低影響の packaging inconsistency。
-- `Nit`: purely editorial / cosmetic な問題。
-
-既存の repository-specific severity model がある場合は、repository instructions を優先する。severity を理由に未要求の変更や新しい product requirement を発明しない。
-
-## 実行と変更境界
-
-デフォルトは読み取り専用のレビューとする。release target、source、test、configuration、manifest、artifact、tag、remote、registry、release policy を変更せず、publish、tag、registry 操作、承認、release branch 操作も実行しない。ユーザーが別途修正を明示し、repository instructions が許可する場合だけ、対象範囲内の release documentation / metadata の変更可否を個別に確認する。source code、test、lock、dependency、artifact の置換を release review の暗黙の作業にしない。
-
-## Phase boundary と implement-review との分離
-
-`implement-review` は主に implementation correctness、specification compliance、code-level security、test adequacy、behavior を確認する。この Skill は version、packaging、publication metadata、distributable artifact、public release compatibility、dependency、release documentation、evidence、supply-chain、publication readiness を確認する。
-
-release blocking となる実装不具合は、approved source、実行結果、既存 review の状態へ追跡できる場合に release finding として参照する。実装の設計・仕様・リファクタリングそのものを、この Skill の finding として新たに要求しない。
-
-## 実行と判定
-
-`review-common/review-playbook.md` の Phase 0〜3 と、`reviewers.md` の独立観点を適用する。サブエージェントを使わない場合は、実施した自己レビューの観点別パスだけを記録する。
-
-`review-gates.md` の generic release gate を適用した後、repository instructions / approved release policy が定める追加 mandatory gate、required evidence、approval、branch / tag / registry rule を適用する。repository-specific gate が不明な場合は、確認できない状態を無視して完全な release-ready と判定しない。
-
-判定は次のいずれかとする。
-
-- `READY`: common の blocking / confirmation required 条件がなく、generic gate と確認可能な mandatory policy がすべて合格。
-- `READY WITH MINOR FIXES`: release を妨げない Minor / Nit だけが残る。Minor の件数・組合せまたは repository-specific mandatory policy により blocking となる場合はこの判定にしない。
-- `NOT READY`: Critical / Major、generic release blocker、required validation failure、manifest / artifact mismatch、secret exposure、重大な compatibility failure、明示的な release policy violation、その他 common の blocking 条件がある。
-- `TARGET CONFIRMATION REQUIRED`: release target、version、scope、publication target が一意に確定できない。
-- `RELEASE POLICY CONFIRMATION REQUIRED`: generic readiness は評価できるが、mandatory repository release policy または required evidence が不明で完全な判定ができない。
-
-デフォルトの review workflow では package、source、test、configuration、manifest version、tag、remote、registry、artifact、release policy を変更しない。別途明示された修正依頼を扱う場合も、release review の scope、認可、影響、再検証を分離して確認する。publish、tag、registry 操作、承認、release branch 操作を実行しない。
-
-## 自己確認
-
-- release target、artifact、intended version、publication target、scope 外混入が一意に確認できているか。
-- version policy、SemVer（採用時）、prerelease / stable、public API、compatibility が根拠へ追跡できるか。
-- manifest、metadata、entry / export、files、dependencies、generated artifact、archive / bundle の consistency を確認したか。
-- build、package generation、inspection、tests、static validation、release evidence の結果と未実行範囲を正確に記録したか。
-- secret、credential、private data、debug / test artifact、unexpected executable、integrity / provenance risk を確認したか。
-- README、installation、usage、release note、migration、supported / unsupported capability、limitation が current release と一致するか。
-- repository-specific registry、tag、branch、SBOM、provenance、signing、vulnerability、approval policy を推測していないか。
-- policy unknown を READY としていないか。generic readiness と repository policy confirmation を分離しているか。
-- release review の finding が、implement-review の code review や新しい product requirement に逸脱していないか。
-- finding ごとに対象、事実、evidence、影響、必要条件、完了条件、severity、status があるか。
-
-レビュー成果物だけを、repository instructions が定める方法で作成する。共通の finding、severity、evidence、regression、Git、validation ルールは `../review-common/review-playbook.md` に従う。
+- レビュー中は README、コード、manifest、仕様、設定、test、fixture、生成物、lockfile、remote、registry を変更しない。
+- source、公開 API、製品仕様、release implementation の変更をレビュー指摘から直接実施しない。
+- 判定は `READY`、`READY WITH MINOR FIXES`、`NOT READY`、`TARGET CONFIRMATION REQUIRED`。公開阻害事項は `NOT READY`、阻害しない Minor のみなら `READY WITH MINOR FIXES` とする。
+- 成果物は共通 `output-format.md` の章構成を使い、composite target の発見結果、surface ごとの確認、evidence、未確認範囲、finding lifecycle、gate、残存リスクを追跡可能にする。

@@ -1,10 +1,55 @@
 # Author Playbook
 
-Author 系 Skill 共通の作成規則。各 Skill は、この文書を読んだうえで、対象文書種別の責務・出力形式と、適用対象の repository instructions を適用する。
+作成系 Skill 共通の規則。各 Skill は、この文書に加えて対象文書種別の責務と出力形式を適用する。
+
+## このリポジトリの前提
+
+- リポジトリ名は `MosaicLynx`。Chrome Extension、TypeScript SDK、Relay、chain adapter、backup / protocol package を含む pnpm monorepo である。
+- 現在の実装対象は `apps/*` と `packages/*`。`_snwc` は `symbol-nem-wallet-core` の外部コンポーネントであり、MosaicLynx の root package 実装として扱わない。
+- 作業指針はリポジトリルートの `AGENTS.md` を読む。`AGENTS.md` は作業方法の根拠であり、製品仕様や Symbol / NEM の技術仕様の正本ではない。
+- コンセプトは `docs/concept/`、要件は `docs/requirements/`、設計・設計判断は `docs/design/`、仕様は `docs/specifications/`、レビューは `docs/reviews/` に置く。
+- コード、テスト、fixture、生成物は対象 app / package の `package.json`、`tsconfig.json`、`src/`、`test/`、build script から発見する。未確認の固定 path を前提にしない。
+
+## Phase Context の扱い
+
+Phase Context は任意の非規範的な派生情報であり、正式資料の圧縮キャッシュである。
+新しい開発フェーズ、要求、設計判断、仕様または Source of Truth ではない。
+
+### 発見と参照順序
+
+`AGENTS.md` の任意の `Phase Contexts` 登録を確認する。対象フェーズの登録がある場合だけ、
+登録された既存パスを、対象文書へ入る前の初期理解・探索用に読む。登録がない場合は
+Context を探索・作成せず、通常どおり正式資料を直接読む。
+
+Author の基本参照順序は次のとおりとする。各文書種別の Skill が定める追加の playbook や
+入力資料はこの順序へ適用する。
+
+1. `AGENTS.md`
+2. この Author common playbook
+3. `AGENTS.md` に対象フェーズの Phase Context が登録されている場合だけ、その Context
+4. 対象文書とユーザーが明示した資料
+5. 対象へ直接必要な承認済み正式上流資料
+6. 必要な場合だけ、その他の正式資料・公式資料・既存成果物
+
+Context を読んでも、対象文書または直接必要な正式上流資料を省略しない。Context の
+authoritative source map は所在を探すために使い、記載内容を検証済みの正本として扱わない。
+
+### 正式資料へのフォールバック
+
+次の場合は必ず正式資料へ戻って確認する。
+
+- Context に情報がない、曖昧である、鮮度が不明である
+- Context と対象文書または正式資料が競合している
+- 新しい Requirement、Design または Specification を決定する
+- security invariant、trust boundary、responsibility boundary に影響する
+- traceability またはその他の normative contract を確定する
+
+競合時は正式資料を優先し、Context の記載を根拠に補完・平均化・逆流させない。Context の
+stale または inconsistent な疑いは、正式資料を根拠に作業を続けられる場合でも別途報告する。
 
 ## 作成の目的
 
-成果物は、上流の事実・要求・判断を次工程が使える形に整理する。入力にない機能、責任、制約、数値、方式、将来構想を、文書の網羅性のために発明しない。
+成果物は、確認済みの事実・要求・判断を次工程が使える形へ整理する。入力にない機能、責任、制約、数値、方式、将来構想を網羅性のために発明しない。
 
 文書種別を混同しない。
 
@@ -13,68 +58,64 @@ Author 系 Skill 共通の作成規則。各 Skill は、この文書を読ん�
 - design: どの責務・境界・依存方向で構成するか
 - specification: 外部から観測できる具体的な契約、データ、validation、error、security
 - implementation: 承認済み仕様をコードとテストへ反映する
-- README: 現在利用できる製品・package の使い方
+- README: 現在利用できる product、app、package の使い方
 
-上流の文書を下流の形式へ無断変換したり、下流の不足を上流文書へ逆流させたりしない。
-
-## Repository instructions の利用
-
-作業開始時に、ユーザーが明示した資料と、対象に適用される repository instructions を確認する。repository instructions から、対象 artifact の位置、Source of Truth、ローカル制約、必要な validation、報告規約を取得する。
-
-repository instructions がない、または必要な情報を定義していない場合は、ユーザーが指定した範囲と確認できる既存資料だけを使用する。出力先、正本、製品上の責任、検証 gate を推測で補わない。
+上流文書の不足を下流の形式へ無断変換したり、下流の不足を上流文書へ逆流させたりしない。
 
 ## 対象と変更境界
 
 1. ユーザーが明示した対象、出力先、更新範囲を最優先する。
-2. 未指定時は repository instructions の候補探索規則で対象を一意に決定する。候補が複数または 0 件なら推測で選ばない。
-3. 既存ファイルは、明示的な更新依頼がない限り上書きしない。更新時も依頼範囲外の再構成・改名を行わない。
-4. 成果物の種類を増やさない。レビュー、ADR、要件、仕様、設計、コード、テストを同時に作らない。
+2. 未指定時は各 Skill の候補探索規則で対象を一意に決定する。候補が複数または0件なら推測しない。
+3. 既存ファイルは、明示的な更新依頼がある場合だけ更新する。更新時も依頼範囲外の改名・再構成を行わない。
+4. 成果物の種類を増やさない。レビュー、要件、仕様、設計、コード、テストを同時に作らない。
 5. 既存のユーザー変更、固定名の成果物、連番成果物を移動・削除・上書きしない。
 
-## 情報源
+## 根拠
 
-根拠の優先順位は、ユーザー依頼、承認済み上流文書、適用可能な ADR、対象文書、対象分野の公式仕様・SDK、既存実装・テストの順とする。repository instructions が定める Source of Truth と責任境界を優先して確認する。
+根拠の優先順位は、ユーザー依頼、対象フェーズの承認済み上流文書、同一フェーズの既存成果物、適用可能な設計判断、対象文書、公式仕様・schema・SDK、既存実装・テストの順とする。下流資料は、各 Skill が条件付き参照を定める場合またはユーザーが明示した場合だけ補助的に使い、新しい上流成果物の根拠にはしない。
 
-既存コード・テスト・SDK の挙動は、現在の実態や実現可能性の確認には使えるが、プロダクト要求、外部仕様、設計判断を新規に決める根拠にはしない。
+`docs/specifications/chain-compatibility-spec.md` など、`AGENTS.md` が示す対象仕様と公式資料を必要な範囲で読む。既存コード・テスト・SDKの挙動は現状や実現可能性の確認には使えるが、プロジェクト要求や Symbol / NEM protocol の正本にはしない。
 
-各重要な記述は、確認済み事実、承認済み判断、派生した整理、仮定、未決定事項、将来構想のどれかに分類する。資料の競合は対象、version、資料の役割、影響とともに未決定として残す。
+資料間の競合は、chain、network、version、資料の役割、更新時点、影響とともに未決定事項として残す。解消できない競合を実装・仕様・設計上の都合で採用しない。
 
-レビュー結果を参照する場合は、対象の最新の公開レビュー成果物だけを状態・引継ぎの確認に使う。レビューの指摘だけを根拠に新しい要求や設計を追加しない。
+## 共通の境界
+
+- Symbol と NEM、Mainnet と Testnet、Extension と SDK、Relay と signer、SDK と protocol を暗黙に共通化しない。
+- `symbol-nem-wallet-core` の Wallet Store、秘密情報処理、chain-specific key、raw signing は外部契約として扱い、MosaicLynx 側で再実装・再定義しない。Binding の詳細を扱う場合だけ、対象の外部契約と `docs/design/` の該当設計を確認する。
+- Wallet Store と Pending Profile は opaque byte 列として扱い、仕様がない限り内容を推測・編集しない。
+- Mnemonic、秘密鍵、Profile password、復号済み payload、credential を成果物、例、ログ、エラー、テスト出力に含めない。
+- 暗号、署名 byte 列、KDF、AEAD、salt、nonce、数量、canonical serialization を根拠なしに変更・補完しない。
 
 ## 作成手順
 
-1. 対象文書、上流資料、既存成果物、適用される repository instructions、ADR を確定する。
+1. 対象文書、対象フェーズの上流資料、同一フェーズの既存成果物および Skill が指定する補助資料を確定する。
 2. 入力を事実、要求、制約、仮定、未決定、将来構想へ分類する。
 3. 対象文書種別の責務に該当する情報だけを採用する。
 4. 各採用内容を出典または上流項目へ追跡できるようにする。
-5. 不足しているが後工程で決められる内容は、方式を発明せず引継ぎまたは未決定事項へ置く。
+5. 後工程で決められる内容は方式を発明せず、引継ぎまたは未決定事項へ置く。
 6. 本文、図表、例、用語、リンクの内部整合性を確認する。
-7. 対象外文書やコードを変更せず、指定された成果物だけを作成・更新する。
-8. 完了前に各 Skill 固有の自己確認を行う。
+7. 指定された成果物だけを作成・更新し、自己確認と必要な形式確認を行う。
 
-## 成果物の整形と検証
+## 整形と検証
 
-- formatter と format check は、repository instructions が指定するものを、作成・更新した成果物の明示的なパスに対して実行する。
-- コードや設定を含む場合も、formatter の対象は依頼された変更ファイルまたは明示された成果物に限定する。
-- repository 全体を走査する format check は、ユーザーが明示した場合または repository の release / quality gate が対象に含める場合だけ実行する。
-- 実行していない検証や、環境依存で確認できない事項を成功扱いにしない。
+検証前に実際の変更ファイルとユーザーが依頼した検証範囲を確認し、ルート `AGENTS.md` の
+`## 検証` を適用する。作業フェーズだけで検証範囲を決めない。
 
-## 境界と安全性
+- `docs/**`、README 等の docs-only 作業では、Markdown、リンク、relative reference、
+  traceability、文書間整合性、差分・状態確認だけを対象にし、app / package の実装テストを
+  自動実行しない。
+- `AGENTS.md` と `.agents/**` だけの agent / skill-only 作業では、Skill の構造・参照・
+  Markdown・必要な validator だけを対象にし、実装テストを実行しない。
+- app / package の検証は、実際の変更分類または明示された依頼範囲に該当するものだけを
+  追加する。Extension、Relay、SDK、chain adapter、backup / protocol、release evidence の
+  package script と root `AGENTS.md` の追加確認を使用する。変更対象外の検証を「念のため」実行しない。
+- 対象変更がない検証は `NOT APPLICABLE / SKIPPED (no relevant change)` と報告できる。
+  実行していない検証、確認できない外部環境、未解決の仕様を成功として記録しない。
 
-外部入力、秘密情報、認証、完全性、serialization、相互運用性などの repository 固有の制約は、適用される repository instructions、承認済み仕様、ADR、公式資料へ追跡する。仕様にない安全性・責任・互換性を、一般論だけで追加しない。
+## 完了と Git
 
-秘密情報、credential、復号データ、実運用の秘密値を、成果物、例、ログ、エラー、テスト出力へ含めない。具体的な秘密情報の種類や境界は、repository instructions と正本資料に従う。
-
-## 完了条件
-
-- 成果物が対象文書種別の責務に収まっている。
-- 内容が上流資料と追跡可能で、推測・仮定・未決定事項が明示されている。
+- 成果物が対象文書種別の責務に収まり、根拠へ追跡できる。
 - 対象外の機能、方式、API、実装、将来構想を混入させていない。
-- 下流工程へ渡す未決定事項と判断時期が明確である。
-- 実行していない検証や確認を、実施済みとして記載していない。
-
-## Git 運用
-
-Git の変更、commit、push はユーザーの依頼と repository instructions の範囲で行う。既存のユーザー変更や unrelated change を混ぜず、repository が定める commit message、確認、push 前の手順があれば従う。変更がない場合は新規 commit を作成しない。
-
-変更がある commit を作成する場合は、commit title に変更対象の repository-root-relative な component / area path を `[path]` の形式で含める。path の粒度・表記は repository instructions から取得し、file name / extension や固定の repository path を generic Skill 側で発明しない。例えば対象領域が `component/area` と確定している場合は、`docs: [component/area] <概要>` の形式にする。path を一意に確定できない場合は、推測したまま commit せず、対象範囲を確認する。title の後には空行と、日本語で `- ` から始まる本文を少なくとも1項目置く。
+- 未決定事項と下流への引継ぎを、事実や決定済み事項と分けている。
+- `git status` と差分を確認し、無関係な変更を含めない。
+- ユーザーが明示的に依頼しない限り、commit、push、tag、publish、remote変更を行わない。

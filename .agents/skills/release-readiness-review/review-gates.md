@@ -1,33 +1,21 @@
-# Generic Release Review Gates
+# Review Gates
 
-各 gate は、release candidate が intended version と distribution target に対して配布可能かを、確認可能な evidence から判定する。gate の判定、finding の severity、mandatory evidence / context の不足は、`../review-common/review-playbook.md` の共通定義に従う。repository-specific policy をこの資料へ埋め込まない。
+次の domain を、発見した release surface と composite release set に対して適用する。
 
-1. Release scope: target、artifact、intended version、publication / distribution target、release scope が一意に確定している。
-2. Version / metadata: versioning policy、manifest / metadata、public entry / export、support information、license、publication setting が矛盾しない。
-3. Public contract / compatibility: declared public API、external contract、runtime / platform support、dependency compatibility に重大な未承認変更や compatibility regression がない。
-4. Build / artifact: build と distributable artifact の生成・検査が成功し、required file が存在し、source / configuration / version と整合する。
-5. Package integrity: secret、credential、private data、debug / test artifact、unintended executable / archive、不要な source-only file が意図せず配布されない。
-6. Dependencies: dependency metadata、classification、version range、lock / manifest consistency、publication 時の解決性が確認でき、適用 policy に違反しない。
-7. Documentation: release に必要な README、installation、usage、public API documentation、migration、release note、limitation、security guidance が current release と整合する（該当する場合）。
-8. Validation / evidence: required validation、artifact inspection、compatibility check、release evidence の結果を確認でき、失敗や未実行を成功扱いにしていない。
-9. Security / provenance: artifact integrity、source と artifact の対応、dependency integrity、provenance、vulnerability、signing、attestation、SBOM を、適用される policy の範囲で確認できる。
-10. Policy conformance: repository instructions / approved release policy から取得した明示的な release 条件に違反していない。具体的な条件自体は generic gate に含めない。
+1. **Target / release-set identification**: 公開対象、surface、release set、責任境界を一意に discovery できる。
+2. **Public documentation consistency**: README、translation、package docs、CHANGELOG、release docs が public facts と契約を矛盾なく説明する。
+3. **Package metadata**: name、version、license、repository、private / publish 設定、依存分類、runtime metadata が実体と一致する。
+4. **Public API / compatibility**: TypeScript、Provider、Extension、Relay / backup / protocol、外部 Binding（対象に含む場合）の API、型、ownership、互換性が一致する。
+5. **Distribution contents**: npm package、Extension bundle、Relay archive、外部 Binding asset（対象に含む場合）に必要な物だけが含まれ、secret や不要な開発物がない。
+6. **Platform / runtime support**: supported target、baseline、Node / browser / Extension routing、Relay deployment、failure path が証拠で裏付けられる。
+7. **Security / secret handling**: secret handling、signing、export、security guarantee、fail-closed boundary が過剰記載や漏えいなく説明される。
+8. **SBOM / license evidence**: SBOM、inventory、strict policy、unknown license、third-party license text、digest が検証可能である。
+9. **Provenance / release identity**: OIDC / provenance が package、version、workflow、tag、source commit、environment に結び付く。
+10. **Durable publication**: Actions artifact と durable release record を区別し、exact asset set、manifest、checksum を永続保存できる。
+11. **Retry / recovery**: partial failure と rerun が二重 publish、version collision、evidence 不整合を起こさず fail closed に回復できる。
+12. **Validation evidence**: 実行済み結果、未実行範囲、外部依存、full validation の根拠が事実どおり追跡できる。
+13. **Public hygiene**: obsolete wording、placeholder、local path、private reference、誤った metadata / copyright、unsupported claim が公開面に残らない。
 
-## 判定
-
-- target、version、scope、distribution target が確定できない場合は `TARGET CONFIRMATION REQUIRED`。
-- generic release blocker、Critical / Major finding、required validation failure、artifact / metadata mismatch、secret exposure、重大な compatibility failure、明示的な release policy violation がある場合は `NOT READY`。severity がなくても、共通定義の blocking 条件に該当する failure は同じ扱いとする。
-- generic gate は通るが、repository-specific mandatory gate、required evidence、approval、registry / branch / tag rule が不明な場合は `RELEASE POLICY CONFIRMATION REQUIRED`。この状態を `READY` としない。
-- release を妨げない Minor / Nit だけが残る場合は `READY WITH MINOR FIXES`。Minor の件数・組合せまたは repository-specific mandatory policy により blocking となる場合は `NOT READY` または policy が定める confirmation required とする。
-- generic gate と、確認可能な repository policy がすべて合格している場合だけ `READY`。
-
-## Repository-specific policy
-
-repository instructions / approved release policy から、次のような追加条件を必要な場合だけ取得する。
-
-- required test suite、vulnerability threshold、license / dependency rule。
-- SBOM、provenance、signing、attestation、reproducibility の必須性と形式。
-- release evidence の保存方法、approval、branch / tag / registry policy。
-- publication target、distribution channel、environment-specific release condition。
-
-追加条件の有無、形式、判定基準を推測しない。確認できない mandatory policy は `RELEASE POLICY CONFIRMATION REQUIRED` として記録する。
+Critical / Major の blocker があれば `NOT READY`、阻害しない Minor だけなら
+`READY WITH MINOR FIXES`、すべて合格なら `READY` とする。対象不明の場合だけ
+`TARGET CONFIRMATION REQUIRED` とする。

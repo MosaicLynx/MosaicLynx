@@ -1,15 +1,27 @@
-# Generic Phase Review Gates
+# Review Gates
 
-各ゲートは specification が approved requirements / design を、実装・検証・相互運用可能な external contract へ具体化しているかを確認する。gate の判定、finding の severity、mandatory evidence / context の不足は、`../review-common/review-playbook.md` の共通定義に従う。
+Gate を不合格にする finding は `Critical` の正式指摘へ対応付ける。`Critical` が1件以上存在する場合は `REVISE SPECIFICATION`、`Critical` がなく `Major` / `Minor` のみの場合は `READY` とする。
 
-1. Purpose / scope: requirements を満たす対象、対象外、actor、責任、前提を一意に理解できる。
-2. Contract: input、output、data representation、validation、normalization、error、禁止事項、state を確認できる。
-3. Processing / failure: 必要な正常、failure、boundary、ordering、retry、duplicate、unsupported、state result を確認できる。
-4. Internal consistency: 用語、requirements、例、図表、関連資料に実装を妨げる矛盾がない。
-5. Verifiability: approved requirements の合否、boundary、failure、compatibility を独立して検証できる。
-6. Security / interoperability: 必要な secret handling、authentication / authorization、integrity、serialization、encoding、signature / cryptographic contract、external / opaque boundary が source に基づき判定できる。
-7. Upstream consistency: concept、requirements、design、ADR、前段レビューの block / unresolved Critical と矛盾しない。
+1. 目的と範囲: 要件を満たす対象、対象外、利用者、責任を一意に理解できる。
+2. 契約: 入力、出力、データ、validation、error、状態、禁止事項を確認できる。
+3. 処理と例外: 現在の範囲に必要な正常時、失敗時、境界、順序、状態結果を確認できる。
+4. 内部整合性: 用語、要求、例、図表、関連資料に実装を妨げる矛盾がない。
+5. 検証可能性: 既存要求の合否、境界、失敗を独立して検証できる。
+6. 安全性と相互運用性: 適用される protected asset exposure、authentication / authorization、signing authority、signing target / canonical bytes、chain / network、cryptographic contract、nonce / salt / randomness、AAD / domain separation、Wallet Store / persistence、serialization、malformed / tampered input、fail-closed、atomic visible result、error、external wallet-core Binding（対象に含む場合）、unknown / version、interoperability、security testability が外部から判定できる。
+7. 上流整合性: コンセプト、要件、前段レビューのブロック判定や未解決 Critical と矛盾しない。
 
-すべての applicable generic gate が評価済みで blocking failure または confirmation required 条件がなければ `READY` とする。blocking 条件があれば `REVISE SPECIFICATION`、mandatory evidence / context が不足して確認が必要なら `SPECIFICATION CONFIRMATION REQUIRED` とする。Minor の unresolved finding だけでは通常 gate を blocking にしないが、件数・組合せまたは repository-specific mandatory policy による例外は記録する。上流資料や feedback がないことだけでは不合格にせず、未確認として記録する。ただし、未決定の仕様を推測で埋めて合格扱いにしない。
+Security checklist の項目は独立した Gate ではなく、主に Gate 2（契約）、Gate 3（処理と例外）、Gate 5（検証可能性）、Gate 6（安全性と相互運用性）、Gate 7（上流整合性）へ対応付ける。チェック項目が存在することだけで不合格にはしない。
 
-repository instructions が追加する mandatory gate、required evidence、security / release policy、命名規約は repository-specific policy として別途適用する。この資料へ repository 固有の gate や product contract を追加しない。追加 policy が不明な場合は、確認できない状態を PASS としない。
+次のような根本欠陥は、既存 Gate の impact、ambiguity、downstream blocking に照らし、Critical になり得る。
+
+- signing target / canonical bytes が一意でない
+- chain / network binding が不明である
+- secret を返してよいか、どの boundary を越えてよいか不明である
+- cryptographic contract が合理的な実装間で分岐する
+- tampered data の扱いまたは fail-closed contract が不明である
+- Wallet Store の security-sensitive field / encoding が一意でない
+- external wallet-core Binding の ownership・length・error 境界が安全に実装できない（対象に含む場合）
+
+これは自動分類ではない。根拠、外部影響、実装・検証の阻害を確認して重大度を決める。Major を自動的に Gate failure へ変更しない。
+
+上流資料やフィードバックがないことだけでは Gate 不合格にせず、未確認として記録する。Gate 不合格に対応する Critical がない場合、Major / Minor のみを理由に差し戻さない。

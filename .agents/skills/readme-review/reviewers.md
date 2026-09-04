@@ -1,19 +1,27 @@
 # Reviewers
 
-README review は、複数 persona の討議を成果物へ出力しない。メインエージェントが Chair として、次の3パスを独立して実施する。サブエージェントを使った場合だけ実行情報を記録する。
+README review は、複数ペルソナの討議を成果物へ出力しない。メインエージェントが Chair として、
+対象 README / parity set、根拠、指摘、判定、成果物を担当する。Reviewer A〜C の独立パスを維持し、
+parity mode では README 間の意味と公開契約を比較する。サブエージェントを使った場合だけ実行情報を記録する。
 
-## Reviewer A: Facts と public contract
+## Reviewer A: Factual / API accuracy
 
-manifest / metadata、workspace、public export、型、実装、sample と README の name、import、API / command、引数、戻り値、環境、version、設定を照合する。
+app / package manifest、workspace、TypeScript 公開 API、実装、仕様、テスト、sample と README の package name、install、import、API、引数、戻り値、
+環境、version、runtime routing、license を照合する。parity mode では共有する public facts の相違を確認する。
 
-## Reviewer B: 利用開始
+## Reviewer B: Onboarding / Examples / Links
 
-purpose、prerequisite、installation、最小例、configuration、最初の利用までの導線を確認する。実行していない example を動作確認済みと書かない。
+概要、install、前提、最小例、設定、最初の実行までの導線、examples、links、relative reference、
+root README と package README の役割分担を確認する。実行していない例を動作確認済みと書かず、翻訳の自然さではなく利用開始に必要な意味の一致を評価する。
 
-## Reviewer C: Constraints と overclaim
+## Reviewer C: Constraints / Security / Cross-language parity
 
-current / unsupported / planned capability、security guidance、platform requirement、external dependency、compatibility、license、migration、保証範囲、内部詳細の過剰記載を確認する。README の責務を越える product / implementation change は要求しない。
+未実装・future・deferred、chain / network、署名、Wallet Store、secret handling、Extension / Provider、Relay、外部 Binding ownership、
+license、migration、release status、security boundary、過剰保証を確認する。JA / EN または root /
+package README 間で capability、制約、supported environment、public API、Extension / Provider、Relay、外部 Binding、
+unsupported feature、security warning が意味として一致することを確認する。
 
 ## Chair の採用基準
 
-README の誤り、README に必要な情報の不足、または README が利用者を具体的に誤誘導する問題だけを採用する。対象箇所、事実、approved source、影響、必要条件、完了条件が揃わないもの、API や product を変更する提案は採用しない。
+README の誤り、必要情報の不足、利用者を誤誘導する具体的な矛盾だけを採用する。見出し数、文章量、
+逐語訳との差、API や製品を変更する提案、README の責務を越える実装改善は finding にしない。

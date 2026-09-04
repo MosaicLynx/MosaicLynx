@@ -1,112 +1,133 @@
 ---
 name: implement-author
-description: 承認済み requirements、specification、design、ADR に従って対象 code / test を実装または修正する。契約適合、scope control、error handling、security、data correctness、resource lifecycle、concurrency、compatibility、validation を確認し、仕様にない外部可視動作を追加しない。
+description: MosaicLynx の TypeScript 実装、Extension、SDK、Relay、chain adapter、backup / protocol package を、承認済み仕様・要件・設計に従って実装または修正する。外部 wallet-core 契約と binding 境界を含む変更に使用し、仕様にない外部可視動作を追加しない。
 ---
 
-# Implement Author
+# Implementation Author
 
-承認済み specification、requirements、design、ADR に従って code / test を実装または修正する。実装の目的は、定義済みの外部契約、責任境界、security invariant、validation、compatibility を満たすことであり、未承認の capability や仕様を実装から発明することではない。
+承認済み仕様を MosaicLynx の TypeScript コードとテストへ反映する。対象は `apps/*` と
+`packages/*` であり、対象 package の manifest、公開 export、実装、テスト、fixture の責務を
+守る。`_snwc` の `symbol-nem-wallet-core` 実装は外部コンポーネントであり、MosaicLynx 側で
+鍵管理・暗号・導出・raw signing を再実装しない。仕様にない外部可視動作を推測で実装しない。
 
-## 作業開始時の確認
+## 作業開始時に読む資料
 
-次の順に確認する。
+1. `AGENTS.md`
+2. `../author-common/author-playbook.md`
+3. 対象機能の `docs/specifications/` と `docs/design/`
+4. `docs/requirements/`、適用可能な ADR、対応する公開レビュー
+5. 対象 app / package の `package.json`、`tsconfig.json`、公開 export、`src/`、テスト、fixture、build script
+6. `docs/specifications/chain-compatibility-spec.md` と、Symbol / NEM の事実確認に必要な公式資料
+7. 外部 wallet-core / Binding の契約を対象にする場合だけ、`_snwc` の repository instructions と MosaicLynx 側の該当設計・仕様
 
-1. applicable repository instructions。対象 component、repository map、変更範囲、validation command、artifact / review の配置、ローカル規約を取得する。
-2. `../author-common/author-playbook.md`。
-3. 承認済み specification、requirements、design、ADR、既存の external contract。
-4. 対象 code、test、fixture、configuration、manifest、公開 export、生成物、既存 review evidence。
-5. 必要に応じて、対象 domain / platform / protocol / external system の公式資料。ただし repository instructions または approved source が参照を要求する場合に限る。
+`docs/design/` の設計判断と仕様に競合があれば、実装で補完せず未決定事項または仕様フィードバックとして分離する。
 
-repository instructions にない language、package manager、build tool、component boundary、artifact path、validation command、protocol、compatibility policy を推測しない。既存構成から安全に分かる事実は確認して利用し、不明な事項は unresolved として報告する。
+## 対象と変更範囲
 
-## 対象と implementation gate
+- ユーザーが明示した app、package、ファイル、機能だけを対象にする。
+- MosaicLynx の実装対象は `apps/*` と `packages/*`。未指定で複数の app / package が候補になる場合は対象を推測しない。
+- `_snwc` は外部 wallet-core であり、root repository の TypeScript package として扱わない。そこを直接変更する依頼では、対象ディレクトリの instructions を別途適用する。
+- 生成物、`dist/`、WASM asset、extension bundle は実際の package script と仕様が正本である場合だけ更新し、生成物を直接編集して正本にしない。
+- 仕様、README、設計、テスト、fixtureを変更する必要がある場合は、依頼範囲と各ファイルの正本を確認する。レビュー成果物を作成・上書きしない。
+- 新しい依存関係、公開 API、設定、JSON / backup / Relay field、fallback、互換動作を、便利さや将来拡張だけを理由に追加しない。
 
-- ユーザーが対象 file / component / package / application を指定した場合は、その範囲を優先する。未指定の場合は repository instructions と既存構成から最小の対象を特定する。
-- 変更前に、対象仕様の status、適用範囲、external behavior、依存する ADR、既存実装との差異を確認する。
-- 次の契約を実装前に確認する。対象に該当するものだけを適用し、source にない項目は推測しない。
-  - input / output、field、type、range、size、encoding、ordering、default、normalization。
-  - validation、state、lifecycle、ownership、resource limit、timeout、retry、duplicate、idempotency。
-  - success、error、exception、partial result、unsupported / unknown / malformed / truncated input の挙動。
-  - deterministic representation、canonicalization、serialization、byte / text 表現、numeric precision。
-  - domain、platform、network、external system、protocol、version、identity の差異（適用される場合）。
-  - cryptography、signature、key、authentication、integrity が対象にある場合の algorithm、parameter、AAD、salt、nonce、tag、encoding、randomness、failure、replay / tamper behavior。
-  - test vector、fixture、conformance、互換性、migration、backward compatibility。
-- 契約が不足・競合・未承認の場合は、最も自然な挙動を選んで実装を進めず、影響範囲とともに報告する。
+## 実装前ゲート
 
-## 実装の責務
+コードを書く前に、対象仕様から次を確認する。
 
-- approved source の外部可視契約と責任境界に適合する最小の変更を行う。
-- 外部入力、境界を越えるデータ、設定、保存データ、復元データを、仕様が要求する前に信用しない。
-- validation を境界に置き、invalid / unsupported / malformed input を fail-closed に扱う。エラー後に部分的な成功、秘密情報の漏えい、状態の不整合を残さない。
-- 既存の public API、data format、state、compatibility を変更する場合は、approved source と利用者影響を確認する。
-- 既存の責務境界を越える便利な helper、fallback、暗黙の変換、互換 layer、仕様にない default を追加しない。
-- data ownership、resource lifecycle、cleanup、timeout、retry、concurrency、cancel、再起動時の挙動を設計・仕様に従って実装する。
-- deterministic behavior が要求される箇所では、入力・順序・encoding・時刻・randomness による非決定性を管理する。
+- 入力、出力、公開 export、型、必須性、ownership、error、warning
+- Profile、Account、Wallet Store、Pending Profile、backup の opaque 契約、replacement、atomicity、version、resource limit
+- validation、正規化、状態、重複、処理順序、失敗時の結果
+- Mnemonic、private key、public key、signature、address、hash の表現・長さ・raw bytes / text 境界
+- 署名対象 byte 列、canonical serialization、encoding、byte order、数量、Chain、Network
+- Relay の encrypted payload と、署名機による transaction 内容解析の責務分離
+- 暗号化対象、AAD、nonce、salt、tag、KDF、乱数、認証失敗、秘密情報の保持期間
+- Extension の privileged boundary、Provider / dApp 境界、承認 UI、SDK の transport 非依存契約
+- Native C ABI / WASM Binding は対象に含む場合だけ、その external wallet-core 契約、入力形式、出力 ownership、error 境界
+- unknown type / version / field、malformed、truncated、duplicate、wrong chain / network の扱い
+- 固定 vector、fixture、適合試験、実行すべき package script
 
-## Security と secret handling
+外部可視動作や安全性に影響する事項が根拠なく決められない場合は、実装を続けず、
+`docs/reviews/implementation/<対象ベース名>-feedback-NNN.md` に仕様フィードバックとして新規作成する。
+対象ベース名ごとの最大番号の次を使い、既存成果物を上書きしない。内部実装の選択だけなら、
+外部動作を変えない範囲で選び、不要な公開抽象化を追加しない。
 
-- secret、credential、key、token、password、mnemonic、復号済み plaintext、署名対象の機密データを log、例外、warning、debug 出力、fixture、example、telemetry に含めない。
-- untrusted input、remote / external system、opaque data、client boundary、storage boundary を repository-defined responsibility に従って扱う。
-- authentication、authorization、integrity、replay、expiry、tamper、rate / size limit、resource exhaustion の要件を実装で抜かさない。
-- cryptography が対象にある場合は approved specification の primitive、parameter、key lifecycle、AAD、salt、nonce、tag、encoding、constant-time または乱数要件に従う。独自の方式、再利用可能な固定値、曖昧な変換を導入しない。
-- エラー経路、retry、timeout、cancel、partial failure でも secret や保護対象データが露出しないことを確認する。
+## 実装上の規則
 
-## Domain / protocol / platform boundaries
+### 仕様適合
 
-- 複数の domain、protocol、platform、network、version がある場合、source が定める差異を暗黙に共通化しない。対象の識別、validation、encoding、compatibility、failure をそれぞれ確認する。
-- protocol の仕様、SDK / library の API、repository の wrapper、現在の実装を区別する。SDK や既存コードが受け入れることだけを、protocol や product requirement の根拠にしない。
-- byte 列、hex / text、numeric type、precision、endianness、canonical representation の変換は、approved source、型、fixture、既存 contract に追跡する。
-- external / remote / opaque component の責任を越えて内容を解釈・変更しない。secret-bearing / signing-capable component の責任を別 component へ複製しない。
+- 仕様の必須、禁止、任意を区別してコードへ反映する。
+- 外部入力を使用前に検証し、検証済みの型だけを下流へ渡す。
+- strict TypeScript、既存の ESM / export、workspace dependency、既存の error / result パターンを維持する。
+- `number` / `bigint`、`Buffer` / `Uint8Array`、hex string / raw bytes の変換は仕様・既存型・fixtureへ追跡する。
+- 正常系、異常系、境界、状態、error、replacement の結果を仕様どおりに実装する。
+- 入力 Store、backup、Relay payload を直接変更せず、仕様が定める成功時の replacement と失敗時の未変更条件を守る。
+- `symbol-nem-wallet-core` が所有する結果、error、opaque data を SDK、Extension、Relay、chain adapter または Binding で勝手に変換・拡張しない。
+- 署名、保存、export、削除、announce を認証・検証・対象一致の前に実行しない。Relay は opaque transport の責務を越えて内容を解釈しない。
 
-## Language / toolchain / component 境界
+### セキュリティ
 
-- language、compiler、static analyzer、formatter、linter、test runner、build system、runtime の選択は repository instructions と既存構成に従う。
-- 対象 language の型・静的制約、resource ownership、エンコード API、並行性モデルを尊重する。型検査や静的解析を提供する repository では、実行可能な validation の一部として扱う。
-- runtime / platform 差異、server / client / worker / library 境界、生成 code、公開 export、依存方向は repository-defined boundary を越えない。
-- 新しい dependency、設定、公開 API、互換 layer、migration は、approved source と変更範囲に必要性がある場合だけ追加する。
+- 秘密鍵、Mnemonic、Profile password、導出鍵、平文 Store、復号データをログ、例外、warning、debug出力へ出さない。
+- 秘密情報を不要な主体へ渡さず、SDK / Provider / Extension / Relay の境界で仕様にない secret copy を増やさない。
+- 暗号、署名、serialization、乱数、AEAD、KDF、nonce、salt は仕様と既存の固定依存に従い、独自方式を追加しない。
+- 認証失敗、改ざん、破損、wrong chain / network、invalid length では処理と状態変更を継続しない。
+- Browser host、dApp、Relay、external node からの入力を信用せず、承認・signing authority・Account の対応を確認する。
 
-## Tests
+### Symbol / NEM
 
-対象に応じて、次を独立した期待値で検証する。
+- Symbol と NEM、Mainnet と Testnet を暗黙に共通化しない。
+- `@nemnesia/symbol-sdk` `3.3.2-pure.2` は現行の互換性基準であり、SDK の利便 API の挙動だけを protocol 仕様とみなさない。
+- public key、private key、signature、hash、address の長さと表現、raw bytes と hex / text を確認する。
+- HD導出、署名対象、address生成、network値、byte order は `docs/specifications/chain-compatibility-spec.md`、公式資料、固定 fixtureへ追跡する。
+- ブロックチェーン数量の計算に浮動小数を使わない。
 
-- 正常系、代表値、最小・最大・空・境界値、組み合わせ、deterministic output、round-trip / conformance。
-- missing、wrong type、invalid range / size / encoding、malformed、truncated、duplicate、unknown、unsupported input。
-- authentication / authorization failure、tamper、replay、expiry、timeout、cancel、retry、concurrency、resource limit。
-- domain / platform / network / protocol / version の不一致、互換性、外部 system の failure（適用される場合）。
-- secret leakage、fail-closed behavior、partial failure 後の状態、cleanup、再起動・再実行時の lifecycle。
-- cryptography、serialization、canonicalization、byte / text 表現が対象にある場合の test vector / fixture と実装間の一致。
+### 外部 wallet-core / Binding 境界
 
-テストは実装そのものを再記述するだけでなく、approved specification の観測可能な契約を検証する。既存 test が仕様と矛盾する場合は、テストを都合よく合わせず、根拠と影響を報告する。
+- MosaicLynx は外部 wallet-core の鍵管理、秘密情報処理、chain-specific key、raw signing の実装責任を代替しない。
+- Native C ABI / WASM Binding を扱う場合も、仕様に定められた buffer、DTO、error、ownership の境界変換に限定し、秘密情報管理や署名意味判断を重複実装しない。
+- WASM の `Uint8Array` や JavaScript 側のコピーが自動 zeroize されるとは扱わず、公開範囲を仕様どおりに保つ。
 
-## 作成手順
+## テスト方針
 
-1. 対象範囲、approved source、実装状態、関連 component、既存の変更を確認する。
-2. implementation gate を満たす契約、invariant、error、compatibility、validation を抽出する。
-3. 最小の実装差分を設計し、責務境界、dependency direction、data ownership を確認する。
-4. 境界入力、security、failure、lifecycle、concurrency、determinism を先に考慮する。
-5. code と必要な test / fixture / configuration だけを変更する。
-6. compiler / static analysis、formatter、lint、unit / integration / end-to-end / conformance test、build など、repository instructions が定める適切な validation を実行する。
-7. 差分を approved source、scope、public behavior、security、backward compatibility と照合する。
-8. validation 未実行、仕様との未解決差異、残存 risk を明示して報告する。
+対象仕様に応じ、必要なテストを対象 package / app の既存パターンで追加・更新する。
 
-## 禁止事項
+- 正常、最小、境界、Mainnet / Testnet、Symbol / NEM、deterministic output
+- malformed、truncated、invalid length、resource limit、duplicate、unknown version / enum / field
+- wrong password、wrong chain / network、invalid mnemonic / private key、tampered store、invalid tag
+- atomicity、重複登録、password change、削除、export、replacement Store、再利用禁止
+- Extension の Provider / approval / origin 境界、Relay の opaque encrypted payload、SDK の transport 差異
+- 署名 byte 列、address、公開鍵、HD導出の独立した fixed vector / interop fixture
 
-- user instruction、approved source、repository instructions にない capability、API、設定、fallback、error、互換動作を発明しない。
-- code の現在挙動、既存 test、一般的な framework / SDK の慣例だけで、requirement、design、specification を正当化しない。
-- domain / platform / network / protocol / component の境界を、名前や実装の都合だけで統合しない。
-- secret、credential、復号済み data、private input をログ、例外、テスト出力、生成 artifact へ漏らさない。
-- validation を省略したまま成功と報告しない。repository-specific gate が不明な場合に勝手に PASS としない。
-- 対象外の refactor、formatting、dependency update、rename、lockfile update を、実装に必要な変更として混入させない。
+期待値を実装ロジックの単純な複製で生成しない。fixtureの出典を記録し、秘密値をテスト出力や
+fixture に含めない。coverageの任意の数値目標を新設しない。
+
+## 実装手順と検証
+
+1. 対象、仕様、変更境界、既存ユーザー変更を確認する。
+2. 仕様から外部可視動作と検証条件を抽出する。
+3. 実装前ゲートで不足・矛盾・未決定事項を分類する。
+4. 必要なら仕様フィードバックを作成し、決定前の外部動作を実装しない。
+5. 対象 app / package の責務、依存方向、公開 export、テストを確認して最小変更を実装する。
+6. 仕様に対応する正常系・異常系・境界テストを追加・更新する。
+7. ルート `AGENTS.md` の `## 検証` と対象 package / app の script に従い、変更に該当する formatter、lint、typecheck、test、build だけを実行する。
+8. 未実行の検証、未確認の protocol 事実、残存リスク、仕様フィードバックを報告する。
+
+docs-only または agent / skill-only の作業では、コード、manifest、dependency、build configuration、
+test、fixture に変更がない限り、app / package の実装テストを実行しない。Extension、Relay、SDK、
+chain adapter、backup / protocol、release evidence に影響する場合は、ルート `AGENTS.md` と対象
+package の filter script を適用する。環境や外部 node が不足する場合は未実行理由を明記する。
 
 ## 自己確認
 
-- implementation が approved requirements / specification / design / ADR に trace できるか。
-- external contract、input / output、validation、error、state、lifecycle、compatibility が守られているか。
-- malformed / unsupported input、fail-closed、security、trust boundary、secret handling、resource limit、concurrency を必要な範囲で検証したか。
-- deterministic behavior、serialization、canonicalization、numeric / byte / text correctness が曖昧でないか。
-- domain / platform / network / protocol / version / component boundary を source に従って扱っているか。
-- test が正常系だけでなく、境界値、異常系、tamper / auth / timeout / duplicate など対象に必要なケースを含むか。
-- repository instructions にない path、toolchain、component、validation command、product capability を推測していないか。
-- 未実行の validation、未解決の仕様、残存 risk、外部可視性への影響を正確に報告したか。
+- 変更した外部可視動作が承認済み仕様へ追跡できる。
+- Extension / SDK / Relay / chain adapter / external wallet-core の責務、依存、秘密情報境界を守っている。
+- Symbol / NEM、Mainnet / Testnet、SDK / protocol、raw bytes / text を混同していない。
+- Wallet Store / Pending Profile / Relay payload の opaque 契約、atomicity、replacement を守っている。
+- 仕様にない機能、API、field、error、fallback、将来拡張を追加していない。
+- 正常系だけでなく該当する異常系・境界・相互運用性を検証している。
+- 秘密情報がコード、ログ、例外、error、warning、fixture、test outputへ出ていない。
+- 実行した検証と未検証範囲を区別して報告できる。
 
-実装後は、repository instructions が指定するレビュー手順へ引き渡す。共通の Source of Truth、scope control、Git、validation、報告ルールは `../author-common/author-playbook.md` に従う。
+## 作業完了後の Git 運用
+
+`../author-common/author-playbook.md` の「完了と Git」を適用する。

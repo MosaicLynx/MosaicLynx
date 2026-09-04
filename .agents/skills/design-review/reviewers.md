@@ -1,23 +1,25 @@
 # Reviewers
 
-メインエージェントは Review Board Chair として、対象確定、根拠管理、候補統合、重大度・状態、gate、成果物を担当する。Phase 1 では次の4観点を独立して確認する。
+メインエージェントは Review Board Chair として、根拠管理、候補統合、重大度・状態、ゲート、成果物を担当する。Phase 1 では次の4観点を独立して確認する。Reviewer B が Security primary reviewer であり、他の Reviewer は自分の担当領域に現れる security implication だけを cross-check する。
 
 ## Reviewer A: 構造と責務
 
-purpose、scope、system context、component responsibility、data ownership、dependency direction、循環依存、境界、変更責任を確認する。
+目的、範囲、コンテキスト、コンポーネント責務、依存方向、境界、循環依存、所有権を確認する。trust boundary、ownership、dependency direction、Extension / SDK / Relay / 外部 wallet-core / Binding responsibility に security implication があれば、構造と責務の範囲で独立に cross-check する。
 
-## Reviewer B: Security と trust boundary
+## Reviewer B: Security Reviewer（成立性と安全性）
 
-secret / sensitive data、untrusted input、trust boundary、authentication / authorization、integrity、fail-closed、secret-bearing / signing-capable activity、remote / external / opaque system の責任を確認する。具体的な cryptographic algorithm は、approved source に根拠がある場合を除き要求しない。
+`security-checklist.md` を参照し、protected assets、trust boundaries、secret ownership、responsibility boundaries、secret lifecycle、authentication / authorization、signing authority、failure / rollback / replacement、Extension / SDK / Relay / 外部 wallet-core / Binding 境界、attacker-controlled input、chain / network separation、security invariants、downstream security handoff を Design レベルで確認する。秘密情報の生成・保持・使用・破棄・公開範囲と、各境界での validation、ownership、失敗責任が逆流していないかを確認する。
 
-## Reviewer C: Flow、lifecycle、concurrency、運用
+対象 threat は Concept、Requirements、対象 Design、明示された protected asset / trust boundary またはユーザー要求から合理的に追跡できるものに限定する。checklist の項目だけを根拠に新しい Requirement、Design Decision、threat、invariant、finding を発明しない。暗号方式、KDF / AEAD、nonce / salt / tag、key length、wire format、API、具体的 error code、TypeScript の memory lifetime / zeroization、Native C ABI / WASM Binding の具体形式、parser / fuzz / test の方式は要求しない。
 
-主要 flow、state、lifecycle、初期化、終了、再起動、failure、retry、timeout、duplicate、concurrency、resource、retention、availability、operational responsibility、外部連携を確認する。対象外の将来運用機能を追加しない。
+## Reviewer C: フローと運用
 
-## Reviewer D: Traceability と downstream handoff
+主要フロー、lifecycle、状態、再試行、重複、再起動、障害、保持、可用性、外部連携、運用責任を確認する。lifecycle、failure、retry、replacement、restart / recovery に security implication があれば、フローと運用の範囲で独立に cross-check する。対象外の将来運用機能は追加しない。
 
-requirements、specification、ADR、repository instructions への traceability、下位仕様への委譲、validation、implementation feasibility、未決定事項を確認する。API field、schema、function signature、private implementation の詳細不足は、design 欠陥としない。
+## Reviewer D: 追跡と下流実装可能性
+
+要求・仕様・既存設計へのtraceability、下位仕様への委譲、検証可能性、実装者が推測すべき設計判断の有無を確認する。security invariant、responsibility、downstream handoff が Specification へ一意に渡るかを、追跡と下流実装可能性の範囲で独立に cross-check する。APIやclassの詳細不足は設計欠陥としない。
 
 ## Chair の採用基準
 
-基本設計で決めるべき responsibility、dependency、boundary、ownership、flow、lifecycle、invariant、または approved source との矛盾であり、対象箇所、根拠、影響、必要条件、完了条件を説明できるものだけを採用する。方式の好み、未要求の capability、下位工程の詳細は却下する。
+基本設計で決めるべき責務、依存、境界、フロー、品質特性、または既存判断との矛盾であり、根拠・影響・完了条件を説明できるものだけを採用する。Security finding は、既存の正式資料へ追跡でき、Design で決める ownership / responsibility / trust boundary / lifecycle / authorization / failure model / invariant の欠落または矛盾であり、下流方式だけでは安全に解消できず、複数の合理的な security architecture を許す場合に限る。Reviewer A / C / D の cross-check はそれぞれの担当領域に限定し、`security-checklist.md` 全件を再適用しない。Security の重複候補は Chair が統合する。重大度は checklist 項目ではなく、実際の impact と downstream blocking で決める。

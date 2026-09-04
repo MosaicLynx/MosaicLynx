@@ -1,102 +1,102 @@
 ---
 name: readme-author
-description: repository、component、package、application の README を、実装、公開 contract、仕様、設定、テスト、metadata と一致するように作成・更新する。installation、usage、supported / unsupported capability、platform requirement、security、limitations、examples を事実に基づいて記述し、将来機能を現在機能として決めない。
+description: MosaicLynx の root、app、package README を、package manifest、公開 API、実装、仕様、テスト、license と照合して作成・更新する。README で仕様や将来機能を新規に決定しない。
 ---
 
 # README Author
 
-README を、利用者が対象を正しく理解・導入・利用できる documentation artifact として作成・更新する。README は実装、公開 contract、approved specification、設定、test、metadata が示す現在の事実を説明するものであり、未承認の product decision や将来計画を決める場所ではない。
+README は、利用者が MosaicLynx の product、app、package を安全に使い始めるための案内である。
+実装・公開契約・現在の制約を正確に伝え、仕様や設計を新規に決定する場所にはしない。
 
-## 作業開始時の確認
+## 作業開始時に読む資料
 
-次の順に確認する。
+次の順で、対象に必要な範囲を確認する。
 
-1. applicable repository instructions。対象 README、artifact の配置、対象 component、公開範囲、validation、ローカル規約を取得する。
-2. `../author-common/author-playbook.md`。
-3. ユーザーが明示した依頼、対象 README、関連 README、既存の documentation。
-4. 対象 component の manifest、公開 export、実装、configuration、test、build / distribution 設定、approved specification、ADR。
-5. 必要に応じて、対象 platform、domain、external system、dependency の公式資料。公式資料の内容を対象の capability と誤認しない。
+1. `AGENTS.md`
+2. `../author-common/author-playbook.md`
+3. 対象 README と対象 app / package の `package.json`、`tsconfig.json`
+4. 実際の公開 export、TypeScript declaration、`src/`、関連テスト、sample、build script
+5. 対応する `docs/specifications/`、`docs/design/`、`docs/requirements/`、適用可能な ADR
+6. 必要な license、release docs、公式 protocol / schema / SDK 資料
+7. 既存レビューとユーザーが指定した修正内容
 
-特定の repository layout、language、package manager、platform、domain、product capability、README path を前提にしない。対象と出力先を repository instructions または既存構成から安全に特定できない場合は、場所や機能を発明せず確認事項として報告する。
+`_snwc` の `symbol-nem-wallet-core`、Native C ABI、WASM Binding は外部コンポーネントである。
+対象 README がその利用契約を説明する場合だけ、外部 repository の instructions と契約を補助的に確認する。
 
-## 対象と出力
+## 対象と変更境界
 
-- ユーザーが README と出力先を指定した場合は、それを優先する。
-- 指定がない場合は、repository instructions と既存構成から対象 README と利用者を特定する。
-- 既存 README は対象範囲と根拠が明確な場合だけ更新する。無関係な docs、仕様、コードを同時に変更しない。
-- 新規 README の場所、リンク、命名は repository instructions または既存構成に従う。固定 path を推測しない。
-- README に記述した重要な事実は、対象の実装・公開 contract・approved source のいずれかへ追跡できるようにする。
+- ユーザーが指定した README、app、package、機能の範囲だけを対象にする。
+- 指定がなければ既存の root `README.md` を対象とする。新規 README の出力先は対象 app / package の既存配置またはユーザー指定で確定する。
+- README 以外のコード、manifest、仕様、設計、テストを変更して整合性を作らない。差異は事実、正本、要確認事項に分けて報告する。
+- 現在の実装対象は `apps/*` と `packages/*`。仕様・READMEに記載された将来 Mobile を、実装済み app / package と説明しない。
+- 既存 README の全面置換、章削除、リンク削除は、利用者への影響と根拠を確認してから行う。
 
-## README の責務
+## README に記載する内容
 
-対象に該当する範囲で、次を正確かつ利用者に分かる順序で説明する。
+対象に必要な範囲で、次を利用者向けに整理する。
 
-- 対象の purpose、scope、主な利用者、現在提供している capability。
-- installation、prerequisite、runtime / platform requirement、configuration、environment、dependency。
-- quick start、usage、公開 API / command / interface、input / output、代表的な example。
-- supported、unsupported、experimental、planned の区別。
-- error、validation、resource / lifecycle、互換性、version、制限、既知の注意事項。
-- security、privacy、secret / credential handling、trust boundary、運用上の安全な利用方法。
-- 関連する specification、design、ADR、API reference、examples、validation / test の参照先。
+- product、app、package が提供する機能と対象範囲
+- package name、install、import、supported runtime、build / test の実在する手順
+- 最小限の実行例と、公開 API の実在する名前、引数、戻り値、失敗時の扱い
+- Profile、Account、Wallet Store、Pending Profile、backup、Relay encrypted payload の重要な利用契約
+- Symbol / NEM、Mainnet / Testnet、chain / network、transaction / data signing の区別
+- 現在利用できる機能、対象外、未実装・将来範囲、外部 wallet-core、node、dApp へ委ねる責任
+- Mnemonic、秘密鍵、Profile password、署名 payload、Store を扱う際の security 注意
+- 実際に存在する license と、詳細な仕様・設計・API契約・release docs へのリンク
 
-README は利用者が必要とする外部可視情報を扱う。内部実装の詳細、未承認の仕様、実装から推測した将来 capability、レビュー finding を新しい product requirement として書かない。
+公開 API 一覧を作る場合は、manifest の `exports`、実際の source export、declaration、既存テストで
+確認できる項目だけを載せる。`dist/` や生成 bundle は、package script と公開手順で正本か確認する。
 
-## 事実確認の原則
+## 事実確認
 
-- implementation、公開 export / contract、manifest / metadata、configuration、test、approved specification の記述を相互に照合する。
-- 現在実装されているもの、仕様上 supported なもの、計画中のもの、外部依存が提供するだけのものを区別する。
-- code や test の現在挙動だけで、仕様・security promise・support policy・互換性を逆生成しない。
-- 外部 platform、domain、network、protocol、service の一般的な能力を、対象が提供する capability として記述しない。
-- version、entry point、公開名、configuration key、command、出力例は、対象の現在の source と一致させる。古い例や推測した値を残さない。
-- 不明・競合・未検証の事実は断定せず、README に書かないか、適切な unresolved / limitation として扱う。
+- package 名、version、private / publish 設定、依存関係、scripts、exports は対象 `package.json` と lockfile で確認する。
+- 公開 API、戻り値、error、warning、型、runtime 前提は `src/`、declaration、仕様書、テストで確認する。
+- Extension の loading、Provider、approval UI、origin、storage の説明は `apps/extension` の実装・仕様・テストで確認する。
+- Relay の起動、Redis、opaque encrypted payload、短期保管、reverse proxy の説明は `apps/relay` と Relay docs で確認する。
+- SDK、chain adapter、backup / protocol の利用例は対応 package の export、実装、仕様、テストで確認する。
+- 外部 wallet-core の鍵管理・署名・Binding 契約は、MosaicLynx が実装しているかのように説明しない。
+- build、test、lint、typecheck、evidence のコマンドは実際の script と `AGENTS.md` に従う。存在しない npm / pnpm script を書かない。
+- 実装、仕様、README が異なる場合は、承認済み仕様を優先し、現在の実装が未達なら README だけで隠さない。
+- 実行していない例や検証を、動作確認済みと表現しない。
 
-## 境界と安全性
+## プロジェクト固有の境界
 
-- domain、platform、network、protocol、version の差異は、対象に適用される approved source が区別している場合に保持する。
-- remote / external / opaque system、client boundary、secret-bearing / signing-capable component、storage boundary の責任は、repository instructions と正本 docs に従って説明する。
-- API、data format、cryptographic behavior、protocol、platform capability の詳細は、正本を複製せず参照先を示す。README に必要な利用者向け制約だけを正確に要約する。
-- secret、credential、key、password、復号済み plaintext、実データを example、fixture、screenshot、log、command 出力に含めない。安全な placeholder を使う。
-- supported / unsupported capability、failure、security guidance、compatibility を、利用者の誤解を招く曖昧な表現で隠さない。
+- Symbol と NEM の鍵、公開鍵、address、署名、transaction 処理を一括りにしない。
+- Mainnet と Testnet を暗黙に変換しない。Profile の Network と指定 Chain の組合せを仕様どおりに説明する。
+- 外部 `symbol-nem-wallet-core` が鍵管理、Mnemonic validation、暗号化、導出、署名、Wallet Store を所有する場合、MosaicLynx の SDK、Extension、Relay または Binding が同じ処理を所有するように書かない。
+- `sign` が raw byte 列を解釈しない契約なら、Transaction 構築・表示・announce を提供するように誤解させない。
+- Wallet Store、Pending Profile、private key、Mnemonic をアプリケーションが編集・ログ出力する例を載せない。
+- 秘密情報、実運用 credential、復号済みデータを、例、ログ、fixture、スクリーンショットへ含めない。
 
-## 作成手順
+## 作業手順
 
-1. 対象 README、利用者、目的、公開範囲、更新 scope を確定する。
-2. repository instructions と既存構成から参照先、validation、配置、命名を確認する。
-3. manifest、public contract、実装、設定、test、approved source から現在の事実を収集する。
-4. installation、usage、configuration、capability、limitations、security、compatibility を対象に応じて整理する。
-5. examples と command を実際に検証可能な最小例にし、secret や未確定値を含めない。
-6. implementation、仕様、metadata、README の不一致を分類し、README で勝手に仕様を修正しない。
-7. 外部 docs / ADR / API reference へのリンクと、対象 artifact 内の相対リンクが有効か確認する。
-8. repository instructions が定める formatter、lint、link check、test、build などの適切な validation を実行する。
-9. 未検証事項、仕様との競合、残存する limitation を明示して報告する。
+1. 対象 README、読者、変更目的を確定する。
+2. manifest、公開 surface、実装、仕様、scripts、テストから現在の事実を収集する。
+3. 既存記載を、正確、古い、根拠なし、欠落に分類する。
+4. 概要、対応範囲、導入、最小利用、API、制約・安全性、開発・検証、関連資料の順に整理する。
+5. コード例、コマンド、リンク、用語、license を根拠と照合する。
+6. 外部可視仕様を README だけで拡張していないことを確認し、README だけを更新する。
 
-## 推奨構成
+## 標準構成
 
-1. Title and purpose
-2. Status / supported scope
-3. Prerequisites and installation
-4. Quick start
-5. Usage / API / interface
-6. Configuration
-7. Examples
-8. Supported / unsupported capability
-9. Security and privacy guidance
-10. Limitations, errors, compatibility, and versioning
-11. Development / validation (when useful to the audience)
-12. Related specifications and references
+対象に不要な章は省くが、次を基準にする。
 
-対象利用者に不要な節は省略する。ただし、利用に影響する制約、security、unsupported behavior を省略しない。
+1. 概要と対象
+2. 現在の対応範囲と対象外
+3. 導入・最小利用例
+4. 主要 API とデータの扱い
+5. 制約とセキュリティ
+6. 開発・検証コマンド
+7. license と関連資料
 
-## 自己確認
+## 完了条件
 
-- README の purpose、installation、usage、configuration、examples が対象の現在の実装と一致しているか。
-- public API / contract、metadata、version、supported / unsupported capability、platform requirement が source に追跡できるか。
-- 実装・仕様・計画・外部 dependency の提供能力を混同していないか。
-- security、privacy、secret handling、trust boundary、error、limitation、compatibility を必要な範囲で説明しているか。
-- domain / platform / network / protocol の差異を、適用される場合だけ正確に扱っているか。
-- 将来機能、未承認の API、推測した path / command / configuration / capability を現在の事実として書いていないか。
-- 相対リンク、外部リンク、code example、command、placeholder、formatting が検証可能か。
-- repository instructions にない validation command、support policy、product requirement を発明していないか。
-- 未検証の内容や実装との不一致を、確認済みと報告していないか。
+- README の重要な主張が manifest、コード、仕様、設計、テスト、script のいずれかへ追跡できる。
+- Extension / SDK / Relay / chain adapter / backup / protocol と外部 wallet-core の境界、現在機能 / 将来機能が明確である。
+- Symbol / NEM、Mainnet / Testnet、raw bytes / text、SDK / protocol、announce の責任を誤認させない。
+- 秘密情報を含まず、未実行の検証を成功扱いしていない。
+- README 以外のファイルを変更していない。
 
-README 更新後は、repository instructions が指定するレビュー手順へ引き渡す。共通の Source of Truth、scope control、Git、validation、報告ルールは `../author-common/author-playbook.md` に従う。
+## 作業完了後の Git 運用
+
+`../author-common/author-playbook.md` の「完了と Git」を適用する。
