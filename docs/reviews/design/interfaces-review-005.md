@@ -46,6 +46,8 @@
 
 `READY`
 
+Review Gate: `READY`
+
 ## 5. Summary
 
 `interfaces.md` は、共通 Interface の意味・責任・検証を platform transport、exact API、DTO、wire encoding および実装アルゴリズムから分離している。SDK / Provider / Browser / Mobile / Relay / wallet-core の authority は概ね分離され、Profile-local context、Account authority、Chain / Network、target-derived summary、四条件 gate、secret isolation、fail-closed、replay / duplicate rejection、`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` の区別および concurrent request isolation は interface-level invariant として追跡できる。
