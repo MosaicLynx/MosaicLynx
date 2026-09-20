@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { isActiveAccountForProfile, isEnabledProfileScope } from '../src/background/profile-eligibility.js';
+import {
+  hasRemainingActiveAccount,
+  isActiveAccountForProfile,
+  isEnabledProfileScope,
+} from '../src/background/profile-eligibility.js';
 import type { PublicAccount, PublicProfile } from '../src/vault.js';
 
 const profile = {
@@ -47,5 +51,13 @@ describe('profile signing eligibility', () => {
     expect(isActiveAccountForProfile(account('active'), profile.id)).toBe(true);
     expect(isActiveAccountForProfile(account('excluded'), profile.id)).toBe(false);
     expect(isActiveAccountForProfile(account('active'), 'another-profile')).toBe(false);
+  });
+
+  it('requires another active account before deleting the selected one', () => {
+    expect(hasRemainingActiveAccount([account('active')], profile.id, 'account-1')).toBe(false);
+    expect(
+      hasRemainingActiveAccount([account('active'), { ...account('active'), id: 'account-2' }], profile.id, 'account-1')
+    ).toBe(true);
+    expect(hasRemainingActiveAccount([account('excluded')], profile.id, 'account-1')).toBe(false);
   });
 });

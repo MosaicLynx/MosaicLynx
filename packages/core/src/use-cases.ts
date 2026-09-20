@@ -125,7 +125,7 @@ export class AccountService {
     const account = await this.accounts.getById(accountId);
     if (!account || account.profileId !== profileId)
       throw new MosaicLynxError('ACCOUNT_NOT_FOUND', 'Account was not found.');
-    if (account.source.kind === 'mnemonicDerived' && profile.hdAccountIds.length === 1)
+    if (profile.accountIds.length <= 1)
       throw new MosaicLynxError('LAST_ACCOUNT', 'The last account cannot be deleted.');
     const accountIds = profile.accountIds.filter((id) => id !== accountId);
     await this.profiles.save({

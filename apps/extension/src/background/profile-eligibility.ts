@@ -7,3 +7,12 @@ export const isEnabledProfileScope = (profile: PublicProfile, scope: MosaicScope
 
 export const isActiveAccountForProfile = (account: PublicAccount, profileId: string): boolean =>
   account.profileId === profileId && account.status === 'active';
+
+export const hasRemainingActiveAccount = (
+  accounts: readonly PublicAccount[],
+  profileId: string,
+  removedAccountId: string
+): boolean =>
+  accounts.some(
+    (account) => account.profileId === profileId && account.status === 'active' && account.id !== removedAccountId
+  );

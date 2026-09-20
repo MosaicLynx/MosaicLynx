@@ -470,6 +470,8 @@ export const importExtensionProfileBackup = async (
   password: string
 ): Promise<ExtensionStore> => {
   const restored = await importProfileBackup(webCryptoDriver, serialized, password);
+  if (restored.profile.network !== 'testnet' || restored.permissions.some((grant) => grant.scope.network !== 'testnet'))
+    throw new Error('Only Testnet backups are available in this build.');
   const profileId = crypto.randomUUID();
   const accountIds = new Map(restored.accounts.map((account) => [account.id, crypto.randomUUID()]));
   for (const account of restored.accounts) {

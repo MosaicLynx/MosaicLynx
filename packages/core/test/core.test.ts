@@ -97,6 +97,35 @@ describe('Core profile, account, permission and message boundaries', () => {
     ).rejects.toMatchObject({ code: 'PROFILE_SCOPE_MISMATCH' });
   });
 
+  it('does not delete the last imported account', async () => {
+    const profiles = new MemoryProfiles();
+    const accounts = new MemoryAccounts();
+    const profile = await new ProfileService(profiles, clock, ids).create(
+      'testnet',
+      'Imported only',
+      'account-imported',
+      'vault-imported'
+    );
+    await accounts.save({
+      id: 'account-imported',
+      profileId: profile.id,
+      name: 'Imported',
+      identities: { symbol: identity('S'), nem: identity('N') },
+      source: { kind: 'importedPrivateKey', secretRef: 'secret' },
+      status: 'active',
+      revision: 1,
+      createdAt: clock.now().toISOString(),
+      updatedAt: clock.now().toISOString(),
+    });
+
+    await expect(
+      new AccountService(profiles, accounts, clock).remove(profile.id, 'account-imported')
+    ).rejects.toMatchObject({
+      code: 'LAST_ACCOUNT',
+    });
+    await expect(accounts.getById('account-imported')).resolves.toBeDefined();
+  });
+
   it('scopes permissions by origin, profile, chain, network and account set', async () => {
     const permissions = new PermissionService(new MemoryPermissions(), clock);
     const mainnet = createChainScope('nem', 'mainnet');

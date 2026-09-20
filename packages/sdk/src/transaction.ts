@@ -20,6 +20,8 @@ export const verifySignedTransaction = (
       : verifyNemSignedTransaction(params, result);
   } catch (error) {
     if (error instanceof TypeError) throw error;
+    // Do not expose chain SDK errors, which may contain untrusted transaction details.
+    // oxlint-disable-next-line preserve-caught-error
     throw new Error('Signed transaction validation failed.');
   }
 };

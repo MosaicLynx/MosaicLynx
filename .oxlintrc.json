@@ -1,0 +1,51 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error"
+  },
+  "plugins": ["typescript"],
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/coverage/**",
+    "**/node_modules/**",
+    "_nem/**",
+    "_sns/**",
+    "_snwc/**",
+    "_symbol/**"
+  ],
+  "rules": {
+    "no-useless-assignment": "error",
+    "preserve-caught-error": "error",
+    "typescript/no-unused-vars": ["error", { "ignoreRestSiblings": true }]
+  },
+  "overrides": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "rules": {
+        "no-undef": "off"
+      }
+    },
+    {
+      "files": ["tools/**/*.mjs"],
+      "globals": {
+        "Buffer": "readonly",
+        "console": "readonly",
+        "process": "readonly"
+      }
+    },
+    {
+      "files": ["apps/link-fallback/{scripts,test}/**/*.mjs"],
+      "globals": {
+        "URL": "readonly"
+      }
+    },
+    {
+      "files": ["apps/link-fallback/public/**/*.js"],
+      "globals": {
+        "document": "readonly",
+        "URLSearchParams": "readonly",
+        "window": "readonly"
+      }
+    }
+  ]
+}

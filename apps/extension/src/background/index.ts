@@ -22,10 +22,12 @@ import {
   type PermissionGrant,
   type PublicAccount,
   type PublicProfile,
+  STORAGE_KEYS,
   loadStore,
   saveStore,
 } from '../vault.js';
 import { AccountSelectionError, messageAccountCandidates, transactionAccount } from './account-selection.js';
+import { pageOrigin } from './page-origin.js';
 import { isActiveAccountForProfile, isEnabledProfileScope } from './profile-eligibility.js';
 
 interface BridgeRequest {
@@ -36,6 +38,8 @@ interface PendingApproval {
   readonly request: ApprovalRequest;
   readonly resolve: (resolution: ApprovalResolution) => void;
   windowId?: number;
+  readonly tabId?: number;
+  readonly tabGeneration?: number;
   sidePanelTabId?: number;
   readonly timeoutId: number;
   resolved: boolean;
@@ -49,6 +53,7 @@ interface PendingApproval {
 const adapters = { symbol: new SymbolChainAdapter(), nem: new NemChainAdapter() } as const;
 const approvals = new Map<string, PendingApproval>();
 const sidePanelPorts = new Map<number, chrome.runtime.Port>();
+const tabGenerations = new Map<number, number>();
 const homePanelPath = 'src/popup/index.html';
 let nonceMutex: Promise<void> = Promise.resolve();
 
@@ -62,14 +67,9 @@ const originAscii = (origin: string): string => new URL(origin).origin;
 const requirePageOrigin = (sender: chrome.runtime.MessageSender): string => {
   if (sender.id !== chrome.runtime.id || sender.frameId !== 0 || !sender.tab?.id || !sender.url)
     return providerError('UNAUTHORIZED_ORIGIN', 'Only a top-level web document can use MosaicLynx.');
-  try {
-    const parsed = new URL(sender.url);
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:')
-      return providerError('UNAUTHORIZED_ORIGIN', 'This page scheme is unsupported.');
-    return parsed.origin;
-  } catch {
-    return providerError('UNAUTHORIZED_ORIGIN', 'The sender origin is invalid.');
-  }
+  const origin = pageOrigin(sender.url);
+  if (!origin) return providerError('UNAUTHORIZED_ORIGIN', 'This page scheme is unsupported.');
+  return origin;
 };
 
 const isTrustedExtensionPage = (sender: chrome.runtime.MessageSender): boolean => {
@@ -148,6 +148,27 @@ const permittedAccounts = (
     .map((id) => accountsForProfile(store, profile.id).find((account) => account.id === id))
     .filter((account): account is PublicAccount => Boolean(account));
 
+const publicAccountsForOrigin = (store: ExtensionStore, origin: string): readonly MosaicAccount[] => {
+  try {
+    const profile = activeProfile(store);
+    return store.permissions
+      .filter(
+        (grant) =>
+          grant.origin === origin &&
+          grant.profileId === profile.id &&
+          grant.network === profile.network &&
+          profile.enabledChains.includes(grant.chain)
+      )
+      .flatMap((grant) =>
+        permittedAccounts(store, profile, grant).map((account) =>
+          projectAccount(profile, account, { chain: grant.chain, network: grant.network })
+        )
+      );
+  } catch {
+    return [];
+  }
+};
+
 const requirePermission = (
   store: ExtensionStore,
   origin: string,
@@ -171,6 +192,73 @@ const emit = async (origin: string, event: 'accountsChanged' | 'disconnect', pay
     })
   );
 };
+
+const permissionSnapshot = (value: unknown): readonly PermissionGrant[] =>
+  Array.isArray(value) ? (value as readonly PermissionGrant[]) : [];
+
+const activeProfileIdSnapshot = (value: unknown): string | undefined => {
+  if (!value || typeof value !== 'object') return undefined;
+  const settings = (value as { readonly settings?: unknown }).settings;
+  if (!settings || typeof settings !== 'object') return undefined;
+  const activeProfileId = (settings as { readonly activeProfileId?: unknown }).activeProfileId;
+  return typeof activeProfileId === 'string' ? activeProfileId : undefined;
+};
+
+const permissionBinding = (grant: PermissionGrant): string =>
+  JSON.stringify({
+    origin: grant.origin,
+    profileId: grant.profileId,
+    chain: grant.chain,
+    network: grant.network,
+    accountIds: [...grant.accountIds].sort(),
+  });
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'local') return;
+  const permissionChange = changes[STORAGE_KEYS.permissions];
+  const metaChange = changes[STORAGE_KEYS.meta];
+  if (!permissionChange && !metaChange) return;
+  const before = permissionSnapshot(permissionChange?.oldValue);
+  const after = permissionSnapshot(permissionChange?.newValue);
+  const profileChanged =
+    metaChange !== undefined &&
+    activeProfileIdSnapshot(metaChange.oldValue) !== activeProfileIdSnapshot(metaChange.newValue);
+  if (profileChanged && !permissionChange) {
+    const previousProfileId = activeProfileIdSnapshot(metaChange?.oldValue);
+    void loadStore().then((store) => {
+      const origins = new Set(
+        store.permissions
+          .filter(
+            (grant) => grant.profileId === previousProfileId || grant.profileId === store.settings.activeProfileId
+          )
+          .map((grant) => grant.origin)
+      );
+      for (const origin of origins) {
+        const accounts = publicAccountsForOrigin(store, origin);
+        void emit(origin, accounts.length ? 'accountsChanged' : 'disconnect', accounts.length ? accounts : undefined);
+      }
+    });
+    return;
+  }
+  const origins = new Set([...before.map((grant) => grant.origin), ...after.map((grant) => grant.origin)]);
+  for (const origin of origins) {
+    const previous = before
+      .filter((grant) => grant.origin === origin)
+      .map(permissionBinding)
+      .sort()
+      .join('|');
+    const current = after
+      .filter((grant) => grant.origin === origin)
+      .map(permissionBinding)
+      .sort()
+      .join('|');
+    if (!profileChanged && (!previous || previous === current)) continue;
+    void loadStore().then((store) => {
+      const accounts = publicAccountsForOrigin(store, origin);
+      return emit(origin, accounts.length ? 'accountsChanged' : 'disconnect', accounts.length ? accounts : undefined);
+    });
+  }
+});
 
 const sidePanelForTab = async (tabId: number): Promise<chrome.runtime.Port | undefined> => {
   try {
@@ -208,6 +296,7 @@ const requestApproval = async (
       resolve,
       timeoutId,
       resolved: false,
+      ...(tabId !== undefined ? { tabId, tabGeneration: tabGenerations.get(tabId) ?? 0 } : {}),
       ...(preparedMessage
         ? { messageAccountId: preparedMessage.accountId, messageNonceHash: preparedMessage.nonceHash }
         : {}),
@@ -281,6 +370,31 @@ const finishApproval = (id: string, resolution: ApprovalResolution): void => {
 chrome.windows.onRemoved.addListener((windowId) => {
   for (const [id, pending] of approvals) if (pending.windowId === windowId) finishApproval(id, { approved: false });
 });
+
+const invalidateTabApprovals = (tabId: number): void => {
+  tabGenerations.set(tabId, (tabGenerations.get(tabId) ?? 0) + 1);
+  for (const [id, pending] of approvals) if (pending.tabId === tabId) finishApproval(id, { approved: false });
+};
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  invalidateTabApprovals(tabId);
+  tabGenerations.delete(tabId);
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === 'loading' || changeInfo.url !== undefined) invalidateTabApprovals(tabId);
+});
+
+const approvalContextIsCurrent = async (pending: PendingApproval): Promise<boolean> => {
+  if (pending.tabId === undefined || pending.tabGeneration === undefined) return true;
+  if ((tabGenerations.get(pending.tabId) ?? 0) !== pending.tabGeneration) return false;
+  try {
+    const tab = await chrome.tabs.get(pending.tabId);
+    return tab.id === pending.tabId && pageOrigin(tab.url ?? '') === pending.request.origin;
+  } catch {
+    return false;
+  }
+};
 
 const nonceDigest = async (origin: string, profileId: string, accountId: string, nonce: string): Promise<string> => {
   const bytes = new TextEncoder().encode(`${origin}\0${profileId}\0${accountId}\0${nonce}`);
@@ -369,6 +483,8 @@ const prepareMessageApproval = (id: string, accountId: string): Promise<string> 
 
   pending.messageAccountId = accountId;
   pending.messagePreparation = (async () => {
+    if (!(await approvalContextIsCurrent(pending)))
+      return providerError('CONTEXT_CHANGED', 'The requesting document changed during approval.');
     const selected = request.availableAccounts.find((account) => account.id === accountId);
     if (!selected) return providerError('ACCOUNT_NOT_FOUND', 'The selected account was not offered for this request.');
 
@@ -412,6 +528,8 @@ const prepareTransactionApproval = (id: string): Promise<void> => {
   if (pending.transactionPreparation) return pending.transactionPreparation;
 
   pending.transactionPreparation = (async () => {
+    if (!(await approvalContextIsCurrent(pending)))
+      return providerError('CONTEXT_CHANGED', 'The requesting document changed during approval.');
     const current = await loadStore();
     const currentProfile = current.profiles.find((profile) => profile.id === request.profile.id);
     const currentPermission = permissionFor(current, request.origin, request.profile.id, request.scope);
@@ -666,7 +784,7 @@ const handleMessage = async (origin: string, params: unknown, tabId: number): Pr
     JSON.stringify(signed.message) !== JSON.stringify(structured.message)
   )
     return providerError('INTERNAL_ERROR', 'The signed message does not match the approved request.');
-  let verified = false;
+  let verified: boolean;
   try {
     const publicKey = new PublicKey(signed.signerPublicKey);
     const signature = new Signature(signed.signature);
@@ -676,7 +794,7 @@ const handleMessage = async (origin: string, params: unknown, tabId: number): Pr
         : new NemFacade(input.network).static.Verifier;
     verified = new Verifier(publicKey).verify(structured.signingBytes, signature);
   } catch {
-    verified = false;
+    return providerError('INTERNAL_ERROR', 'The message signature failed independent verification.');
   }
   if (!verified) return providerError('INTERNAL_ERROR', 'The message signature failed independent verification.');
   await markMessageNonceUsed(resolution.nonceHash);
@@ -751,7 +869,6 @@ const handleRequest = async (origin: string, request: RpcRequest, tabId: number)
       const store = await loadStore();
       const remaining = store.permissions.filter((grant) => grant.origin !== origin);
       await saveStore({ ...store, permissions: remaining });
-      await emit(origin, 'disconnect', undefined);
       return undefined;
     }
     case 'account_list': {
@@ -760,7 +877,10 @@ const handleRequest = async (origin: string, request: RpcRequest, tabId: number)
       return store.permissions
         .filter(
           (grant) =>
-            grant.origin === origin && grant.profileId === profile.id && profile.enabledChains.includes(grant.chain)
+            grant.origin === origin &&
+            grant.profileId === profile.id &&
+            grant.network === profile.network &&
+            profile.enabledChains.includes(grant.chain)
         )
         .flatMap((grant) =>
           permittedAccounts(store, profile, grant).map((account) =>
@@ -820,41 +940,53 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) =>
       sendResponse({ ok: false });
       return;
     }
-    const pending = approvals.get(envelope.id);
-    if ('signedTransaction' in envelope.resolution || 'cosignature' in envelope.resolution) {
-      const expectedType = 'signedTransaction' in envelope.resolution ? 'transaction' : 'cosignature';
-      if (pending?.request.type !== expectedType || !pending.transactionPrepared) {
-        finishApproval(envelope.id, {
+    const approvalId = envelope.id;
+    const resolution = envelope.resolution;
+    void (async () => {
+      const pending = approvals.get(approvalId);
+      if (pending && !(await approvalContextIsCurrent(pending))) {
+        finishApproval(approvalId, {
           approved: false,
-          error: { code: 'CONTEXT_CHANGED', message: 'The transaction approval was not prepared.' },
+          error: { code: 'CONTEXT_CHANGED', message: 'The requesting document changed during approval.' },
         });
         sendResponse({ ok: false });
         return;
       }
-      finishApproval(envelope.id, envelope.resolution);
-      sendResponse({ ok: true });
-      return;
-    }
-    if ('signedMessage' in envelope.resolution) {
-      if (
-        pending?.request.type !== 'message' ||
-        pending.messageAccountId !== envelope.resolution.accountId ||
-        !pending.messageNonceHash
-      ) {
-        finishApproval(envelope.id, {
-          approved: false,
-          error: { code: 'CONTEXT_CHANGED', message: 'The message approval was not prepared for this account.' },
-        });
-        sendResponse({ ok: false });
+      if ('signedTransaction' in resolution || 'cosignature' in resolution) {
+        const expectedType = 'signedTransaction' in resolution ? 'transaction' : 'cosignature';
+        if (pending?.request.type !== expectedType || !pending.transactionPrepared) {
+          finishApproval(approvalId, {
+            approved: false,
+            error: { code: 'CONTEXT_CHANGED', message: 'The transaction approval was not prepared.' },
+          });
+          sendResponse({ ok: false });
+          return;
+        }
+        finishApproval(approvalId, resolution);
+        sendResponse({ ok: true });
         return;
       }
-      finishApproval(envelope.id, { ...envelope.resolution, nonceHash: pending.messageNonceHash });
+      if ('signedMessage' in resolution) {
+        if (
+          pending?.request.type !== 'message' ||
+          pending.messageAccountId !== resolution.accountId ||
+          !pending.messageNonceHash
+        ) {
+          finishApproval(approvalId, {
+            approved: false,
+            error: { code: 'CONTEXT_CHANGED', message: 'The message approval was not prepared for this account.' },
+          });
+          sendResponse({ ok: false });
+          return;
+        }
+        finishApproval(approvalId, { ...resolution, nonceHash: pending.messageNonceHash });
+        sendResponse({ ok: true });
+        return;
+      }
+      finishApproval(approvalId, resolution);
       sendResponse({ ok: true });
-      return;
-    }
-    finishApproval(envelope.id, envelope.resolution);
-    sendResponse({ ok: true });
-    return;
+    })().catch(() => sendResponse({ ok: false }));
+    return true;
   }
   if (envelope.kind === 'mosaiclynx:approval:prepare-message') {
     if (!isTrustedExtensionPage(sender) || !envelope.id || !envelope.accountId) {

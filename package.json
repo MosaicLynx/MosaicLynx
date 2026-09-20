@@ -17,20 +17,18 @@
     "evidence:gate": "pnpm --filter @mosaiclynx/release-evidence build && node tools/evidence/index.mjs gate",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint .",
+    "lint": "oxlint --deny-warnings",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/node": "^26.4.0",
-    "eslint": "^10.9.1",
     "markdown-link-check": "^3.15.0",
     "markdownlint-cli2": "^0.23.2",
+    "oxlint": "^1.80.0",
     "prettier": "^3.9.6",
     "typescript": "^7.0.2",
-    "typescript-eslint": "^8.68.0",
     "vitest": "^4.1.11"
   }
 }

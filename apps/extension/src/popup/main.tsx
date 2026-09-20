@@ -26,6 +26,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useTranslation } from 'react-i18next';
 
+import { hasRemainingActiveAccount } from '../background/profile-eligibility.js';
 import { activeChainForEnabledChains } from '../profile-state.js';
 import { MAINNET_SIGNING_ENABLED } from '../release-capabilities.js';
 import { revokeTrustedPage, trustedPagesForProfile } from '../trusted-pages.js';
@@ -169,8 +170,7 @@ const App = () => {
     const port = chrome.runtime.connect({ name: 'mosaiclynx:side-panel' });
     let active = true;
     const register = (windowId: number | undefined): void => {
-      if (active && windowId !== undefined)
-        port.postMessage({ kind: 'mosaiclynx:side-panel:ready', windowId });
+      if (active && windowId !== undefined) port.postMessage({ kind: 'mosaiclynx:side-panel:ready', windowId });
     };
     void chrome.windows.getCurrent().then((window) => register(window.id));
     const heartbeat = window.setInterval(() => {
@@ -557,7 +557,7 @@ const App = () => {
     if (!active || !activeAccount) return;
     setError('');
     setNotice('');
-    if (activeAccount.source.kind === 'mnemonicDerived' && active.hdAccountIds.length <= 1) {
+    if (!hasRemainingActiveAccount(store.accounts, active.id, activeAccount.id)) {
       setError(t('lastAccountCannotBeDeleted'));
       return;
     }

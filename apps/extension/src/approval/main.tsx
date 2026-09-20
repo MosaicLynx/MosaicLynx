@@ -126,7 +126,6 @@ const App = () => {
     if (!approval || !password || expired) return;
     setBusy(true);
     setError(undefined);
-    let privateKey = '';
     try {
       const store = await loadStore();
       const envelope = store.vaults.find((vault) => vault.profileId === approval.profile.id);
@@ -151,7 +150,7 @@ const App = () => {
           throw new ApprovalError(
             preparation.error?.code === 'CONTEXT_CHANGED' ? 'approvalProfileChanged' : 'approvalRequestFailed'
           );
-        privateKey = privateKeyFor(approval.profile, approval.account, contents);
+        const privateKey = privateKeyFor(approval.profile, approval.account, contents);
         if (approval.type === 'transaction') {
           const signedTransaction = adapters[approval.scope.chain].signTransaction(
             approval.scope.network,
@@ -197,7 +196,7 @@ const App = () => {
                 ? 'approvalProfileChanged'
                 : 'approvalRequestFailed'
           );
-        privateKey = privateKeyFor(approval.profile, selectedAccount, contents);
+        const privateKey = privateKeyFor(approval.profile, selectedAccount, contents);
         const structured = createStructuredMessage(approval.origin, approval.messageParams);
         const key = new PrivateKey(privateKey);
         const signingAccount =
@@ -221,7 +220,6 @@ const App = () => {
     } catch (cause) {
       setError(cause instanceof ApprovalError ? cause.translationKey : 'approvalRequestFailed');
     } finally {
-      privateKey = '';
       setPassword('');
       setBusy(false);
     }
