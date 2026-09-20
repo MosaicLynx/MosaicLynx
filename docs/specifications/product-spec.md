@@ -40,7 +40,7 @@ Web dApp は MosaicLynx SDK の共通 `signTransaction()` / `signData()` を利�
 | チェーン             | `Symbol` または `NEM`                                                                                                                                                   |
 | ネットワーク         | `Mainnet` または `Testnet`                                                                                                                                              |
 | 接続スコープ         | チェーンとネットワークの組み合わせ。例: `Symbol Testnet`                                                                                                                |
-| プロファイル         | Mainnet または Testnet の一方に属し、Symbol / NEM 双方のアカウントを保持するまとまり                                                                                    |
+| プロファイル         | Mainnet または Testnet と、Symbol または NEM の一方に属するアカウント・権限のまとまり                                                                                   |
 | アカウント           | Product / Profile 内部で一つの Chain / Network に明示的に関連付いた Key Identity、秘密鍵、表示名、アドレスおよび公開鍵。外部公開時は Public Account Identity へ射影する |
 | アクティブアカウント | trusted host 内部で現在の署名候補として選択されている Account。外部へ返すときは validated な Public Account Identity へ射影する                                         |
 | Origin               | dApp の接続許可を識別する `scheme://host[:port]`                                                                                                                        |
@@ -49,7 +49,7 @@ Web dApp は MosaicLynx SDK の共通 `signTransaction()` / `signData()` を利�
 | 構造化メッセージ署名 | Origin、チェーン、ネットワーク、用途、nonce、有効期限とpayloadをcanonical encodingして署名する方式                                                                      |
 | オフライン署名       | Signerがノードや外部metadata serviceへ通信せず、ローカルで解析・署名を完結すること。コールドウォレットまたはair-gapを意味しない                                         |
 
-プロファイルはネットワーク単位で分離する。一つの Mainnet プロファイルまたは Testnet プロファイルの中に、Symbol と NEM のアカウントを保持する。異なるネットワークのアカウントを同じプロファイルへ保存してはならない。
+プロファイルはネットワークとチェーンの組み合わせごとに分離する。一つのプロファイルは一つの Network と一つの Chain に属し、作成後にどちらも変更できない。Symbol と NEM の両方を利用する場合はチェーンごとに別のプロファイルを作成する。異なる Network または Chain のアカウント、秘密情報、デフォルト設定、権限を同じプロファイルへ保存してはならない。
 
 ## 5. 対応範囲
 
@@ -133,6 +133,7 @@ Web dApp は MosaicLynx SDK の共通 `signTransaction()` / `signData()` を利�
 
 - プロファイル名
 - ネットワーク
+- チェーン（Symbol または NEM）
 - パスワード
 - パスワード確認
 - パスワードのヒント（任意）
@@ -169,8 +170,8 @@ Web dApp は MosaicLynx SDK の共通 `signTransaction()` / `signData()` を利�
 1. 共通設定を入力する。
 2. ニーモニックを入力する。
 3. 単語数、辞書、チェックサムを検証する。
-4. 派生する最初のアカウントと、Symbol / NEM それぞれのアドレスを確認表示する。
-5. プロファイルと各対象 Chain の最初の Account / Key Identity を保存する。
+4. 派生する最初のアカウントと、選択した Chain のアドレスを確認表示する。
+5. プロファイルと選択した Chain の最初の Account / Key Identity を保存する。
 6. 完了画面からアンロック画面へ移動する。
 
 無効なニーモニックは保存しない。入力値は処理完了後にメモリから可能な範囲で破棄する。
@@ -202,7 +203,7 @@ XYM / XEM の残高は表示しない。
 - 新しいプロファイルを追加できる。
 - 現在使用中ではないプロファイルを削除できる。
 - 使用中のプロファイルは削除できない。
-- 削除前に、対象名、ネットワーク、失われる Symbol / NEM のアカウント数を表示して再確認する。
+- 削除前に、対象名、ネットワーク、Chain、失われるアカウント数を表示して再確認する。
 - 削除した秘密情報と接続許可は復元できないことを明示する。
 
 ### 9.1 将来の Profile backup と復旧
@@ -219,13 +220,13 @@ XYM / XEM の残高は表示しない。
 
 ### 10.1 一覧と操作
 
-- プロファイルに属する Chain 別 Account / Key Identity を一覧表示する。
-- プロファイルのニーモニックから対象 Chain を明示し、Chain ごとの導出契約で次の未使用 account index の Account を追加できる。
+- プロファイルに属する Profile.chain の Account / Key Identity を一覧表示する。
+- プロファイルのニーモニックから Profile.chain を明示し、その Chain の導出契約で次の未使用 account index の Account を追加できる。
 - 秘密鍵をインポートしてアカウントを追加できる。
 - アカウント名を変更できる。
-- Chain ごとにデフォルト Account を選択できる。
+- Profile ごとにデフォルト Account を一つ選択できる。
 - アカウントを削除できる。
-- プロファイルには有効 Chain ごとに最低1つの Account を必要とし、最後の Account は削除できない。
+- プロファイルには Profile.chain の Account を最低1つ必要とし、最後の Account は削除できない。
 
 ### 10.2 鍵の由来
 
@@ -403,7 +404,7 @@ Symbol の unresolved address または unresolved mosaic ID が namespace alias
 
 ```text
 Profiles[]
-├── id, name, network, revision, nextAccountIndex
+├── id, name, network, chain, revision, nextAccountIndex
 ├── ProfileVault
 │   ├── vaultVersion
 │   ├── revision
@@ -411,8 +412,7 @@ Profiles[]
 │   └── encryptedMnemonic / encryptedPrivateKeys
 └── Accounts[]
     ├── id, name, revision
-    ├── identities.symbol: address, publicKey
-    ├── identities.nem: address, publicKey
+    ├── identity: chain, address, publicKey
     ├── source: mnemonicDerived | importedPrivateKey
     ├── accountIndex?
     ├── derivationPath?
@@ -421,7 +421,6 @@ Profiles[]
 PublicSettings
 ├── language, theme, autoLockDuration
 ├── activeProfileId
-├── activeChain
 ├── activeAccountId
 └── schemaVersion
 
@@ -611,7 +610,8 @@ MVP は単独ユーザーによるローカル承認型であり、それだけ�
 
 ## 18. MVP 受け入れ条件
 
-- Mainnet / Testnet のプロファイルを作成でき、Symbol / NEM それぞれの Chain 別 Account / Key Identity から対応するアドレスと公開鍵を取得できる。
+- Mainnet / Testnet と Symbol / NEM の組み合わせごとにプロファイルを作成でき、選択した Profile.chain の Account / Key Identity から対応するアドレスと公開鍵を取得できる。
+- 一つのプロファイルに Symbol と NEM の Account / Key Identity を混在させず、両方を利用する場合はチェーンごとに別プロファイルを選択できる。
 - 拡張機能を再起動しても暗号化データと設定を復元できる。
 - 正しい認証なしに秘密情報を復号・署名できない。
 - 未接続 Origin からアカウント情報を取得・署名できない。
@@ -689,15 +689,16 @@ rotation手順は、(1) incident/change ticket、(2)新鍵ceremonyとattestation
 
 本表は本書の product-level contract が、承認済み Requirements、Design、下位 Specification および canonical owner / OPEN へ追跡できることを示す。共通 envelope、Chain-specific byte 規則、Profile backup format および release policy の詳細を本書が再定義するものではない。
 
-| Requirement / acceptance                                                                                    | Design                                                                              | 本仕様                | Canonical owner / OPEN                                                                                                                                                     |
-| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CR-001`、`CR-002`、`CR-003`、`CR-004`、`CR-005`、`CR-007`、`CR-016`、`CR-AC-001`〜`CR-AC-006`、`CR-AC-017` | Architecture §6.1〜§6.4、Signing Flow §4〜§9、§16、Browser Extension Design §7〜§10 | §11〜§13、§17、§18    | product-level user-visible behavior は本書、四条件と共通署名 lifecycle は Signing Protocol / Interfaces                                                                    |
-| `CR-008`、`CR-013`、`CR-AC-007`、`CR-AC-010`                                                                | Architecture §6.6〜§6.8、Security Design §6、§13、Browser Extension Design §16      | §6、§9、§12、§15、§17 | Wallet Store・raw signing は wallet-core、Profile metadata は Profile / Account Specification                                                                              |
-| `CR-011`、`CR-015`、`CR-AC-009`、`CR-AC-018`                                                                | Architecture §6.1〜§6.5、Security Design §3〜§5、Relay Design §3〜§5                | §2、§3、§11、§16、§17 | SDK は Handoff / SDK Specification、Relay は Relay Specification、Signer authority は Browser / Mobile Specification                                                       |
-| `CR-006`、`CR-012`、`CR-NFR-009`〜`CR-NFR-012`、`CR-AC-004`、`CR-AC-011`〜`CR-AC-015`                       | Interfaces Design §6〜§9、Signing Flow §7、§19〜§23、Security Design §10            | §11〜§13、§18         | common request / response・result / delivery は Interfaces、Web transport は Handoff。`OPEN-001`〜`OPEN-005` は各 canonical owner で追跡                                   |
-| `CR-007-TX`、`CR-007-MSG`、`CR-NFR-005`、`CR-AC-003`、`CR-AC-005`、`CR-AC-006`                              | Architecture §6.7、Signing Flow §8〜§15、Security Design §11                        | §12、§17、§18         | Symbol / NEM の schema・serialization・signing bytes は Chain Compatibility Specification                                                                                  |
-| `CR-NFR-006`、`CR-AC-008`                                                                                   | Architecture §3、§16、Security Design §16                                           | §19                   | current approval count・policy parameter・evidence evaluation は ADR 0001、`evidence-policy.json`、Mainnet release evidence。Lite と strict の差分は current policy に従う |
-| `CR-014`                                                                                                    | Architecture §6.6、Security Design §6、Mobile Design §11、§19                       | §9、§15、§19          | Profile backup contract は Profile / Account Specification `OPEN-PROFILE-001`。Browser Extension 初回 milestone の必須完了条件ではない                                     |
+| Requirement / acceptance                                                                                    | Design                                                                              | 本仕様                    | Canonical owner / OPEN                                                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CR-017`、`CR-AC-020`                                                                                       | Architecture の Profile / Account 境界、Security Design の Profile isolation        | §4、§7、§9、§10、§15、§18 | 一つの Profile は一つの Network と一つの Chain に固定する。Symbol と NEM の併用は別 Profile とし、既存 mixed Profile / backup の移行・互換は現行開発範囲に含めない         |
+| `CR-001`、`CR-002`、`CR-003`、`CR-004`、`CR-005`、`CR-007`、`CR-016`、`CR-AC-001`〜`CR-AC-006`、`CR-AC-017` | Architecture §6.1〜§6.4、Signing Flow §4〜§9、§16、Browser Extension Design §7〜§10 | §11〜§13、§17、§18        | product-level user-visible behavior は本書、四条件と共通署名 lifecycle は Signing Protocol / Interfaces                                                                    |
+| `CR-008`、`CR-013`、`CR-AC-007`、`CR-AC-010`                                                                | Architecture §6.6〜§6.8、Security Design §6、§13、Browser Extension Design §16      | §6、§9、§12、§15、§17     | Wallet Store・raw signing は wallet-core、Profile metadata は Profile / Account Specification                                                                              |
+| `CR-011`、`CR-015`、`CR-AC-009`、`CR-AC-018`                                                                | Architecture §6.1〜§6.5、Security Design §3〜§5、Relay Design §3〜§5                | §2、§3、§11、§16、§17     | SDK は Handoff / SDK Specification、Relay は Relay Specification、Signer authority は Browser / Mobile Specification                                                       |
+| `CR-006`、`CR-012`、`CR-NFR-009`〜`CR-NFR-012`、`CR-AC-004`、`CR-AC-011`〜`CR-AC-015`                       | Interfaces Design §6〜§9、Signing Flow §7、§19〜§23、Security Design §10            | §11〜§13、§18             | common request / response・result / delivery は Interfaces、Web transport は Handoff。`OPEN-001`〜`OPEN-005` は各 canonical owner で追跡                                   |
+| `CR-007-TX`、`CR-007-MSG`、`CR-NFR-005`、`CR-AC-003`、`CR-AC-005`、`CR-AC-006`                              | Architecture §6.7、Signing Flow §8〜§15、Security Design §11                        | §12、§17、§18             | Symbol / NEM の schema・serialization・signing bytes は Chain Compatibility Specification                                                                                  |
+| `CR-NFR-006`、`CR-AC-008`                                                                                   | Architecture §3、§16、Security Design §16                                           | §19                       | current approval count・policy parameter・evidence evaluation は ADR 0001、`evidence-policy.json`、Mainnet release evidence。Lite と strict の差分は current policy に従う |
+| `CR-014`                                                                                                    | Architecture §6.6、Security Design §6、Mobile Design §11、§19                       | §9、§15、§19              | Profile backup contract は Profile / Account Specification `OPEN-PROFILE-001`。Browser Extension 初回 milestone の必須完了条件ではない                                     |
 
 ## 20.1 OPEN と mirror
 

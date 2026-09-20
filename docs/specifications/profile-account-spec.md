@@ -37,43 +37,34 @@ MainnetとTestnetを併用する場合は、別々のプロファイルを作成
 
 ## 3. 使用チェーン
 
-プロファイルごとに以下を選択できる。
+プロファイル作成時に、以下のいずれか一つのチェーンを選択する。
 
 - Symbol
 - NEM
-- SymbolとNEMの両方
 
 ```ts
 type Chain = 'symbol' | 'nem';
 
 interface WalletProfile {
-  enabledChains: Chain[];
+  chain: Chain;
+  defaultAccountId: string;
 }
 ```
 
-有効チェーンはプロファイル作成後も設定画面から変更できる。
-
-最低1つのチェーンは有効でなければならない。
-
-チェーンを無効化した場合、そのチェーンのアカウントデータは削除せず、画面上で非表示にする。
-
-再度有効化した場合は、以前のアカウント、デフォルト設定、秘密鍵などを復元して表示する。
+`chain` はプロファイル作成後に変更できない。Symbol と NEM の両方を利用する場合は、チェーンごとに別のプロファイルを作成する。異なるチェーンの Account / Key Identity、秘密鍵、デフォルト設定または権限を一つのプロファイルへ保持してはならない。
 
 ---
 
 ## 4. HDアカウントセット
 
-HDアカウントセットは、同じ導出インデックスに対応する Chain 別 Account を管理上まとめる単位である。Symbol と NEM の Account / Key Identity はそれぞれ独立しており、同じ index や同じ mnemonic を持つことは秘密鍵を共有することを意味しない。各 Chain の Account は、対象 Chain を明示した chain-specific 導出契約から生成する。
+HDアカウントセットは、Profile の `chain` に対応する一つの Account / Key Identity を管理する単位である。Account は、対象 Chain を明示した chain-specific 導出契約から生成する。Symbol と NEM を利用する場合も、チェーンごとに別の Profile と HD アカウントセットを使用する。
 
 例:
 
 ```text
 HDアカウント #0
-├─ Symbolアカウント
-└─ NEMアカウント
+└─ Profile.chain のアカウント
 ```
-
-両チェーンが有効な場合、1つのHDアカウントセットに Symbol と NEM の別々の Account / Key Identity を持つ。
 
 ```ts
 interface HdAccountSet {
@@ -83,17 +74,12 @@ interface HdAccountSet {
   accountIndex: number;
   status: 'active' | 'excluded';
 
-  accounts: {
-    symbol?: ChainAccount;
-    nem?: ChainAccount;
-  };
+  account: ChainAccount;
 
   createdAt: string;
   excludedAt?: string;
 }
 ```
-
-チェーンを後から追加した場合、既存の全HDアカウントセットについて、同じインデックスから追加チェーン側のアカウントを生成する。
 
 ---
 
@@ -101,7 +87,7 @@ interface HdAccountSet {
 
 プロファイルには、アクティブなHDアカウントセットが最低1つ必要。
 
-また、各有効チェーンには、そのHDアカウントセットに対応するアカウントが存在しなければならない。
+また、各HDアカウントセットには Profile の `chain` に対応するアカウントが一つ存在しなければならない。
 
 最後に残っているHDアカウントセットは除外できない。
 
@@ -117,19 +103,14 @@ HDアカウントの削除操作は、完全削除ではなく管理対象から
 active → excluded
 ```
 
-両チェーンが有効な場合、HDアカウントセット全体を除外する。
-
-片方のチェーンのHDアカウントだけを除外することはできない。
-
 例:
 
 ```text
 HDアカウント #1
-├─ Symbol #1
-└─ NEM #1
+└─ Profile.chain のアカウント #1
 ```
 
-Symbol側の画面から除外操作を実行した場合でも、NEM側を含むセット全体を除外する。
+HDアカウントセットを除外する場合は、そのセットのアカウント全体を除外する。
 
 ---
 
@@ -147,10 +128,7 @@ interface ExcludedHdAccountSet {
   name: string;
   excludedAt: string;
 
-  addresses?: {
-    symbol?: string;
-    nem?: string;
-  };
+  address?: string;
 }
 ```
 
@@ -159,7 +137,7 @@ interface ExcludedHdAccountSet {
 - HDインデックス
 - 表示名
 - 除外日時
-- 必要に応じて各チェーンのアドレス
+- 必要に応じて Profile の `chain` のアドレス
 
 秘密鍵は保持しない。
 
@@ -193,13 +171,13 @@ nextAccountIndex = maxUsedAccountIndex + 1;
 
 除外済みHDアカウントを復活させる機能を用意する。
 
-復活時は、保持しているHDインデックスを使い、プロファイルのニーモニックから各有効 Chain の Account / Key Identity を、その Chain を明示した導出契約で再導出する。
+復活時は、保持しているHDインデックスを使い、プロファイルのニーモニックから Profile の `chain` に対応する Account / Key Identity を、その Chain を明示した導出契約で再導出する。
 
 処理内容:
 
 1. プロファイルを認証する
 2. ニーモニックを復号する
-3. 保存済みのHDインデックスから、対象 Chain ごとの導出契約で秘密鍵を再導出する
+3. 保存済みのHDインデックスから、Profile の `chain` に対応する導出契約で秘密鍵を再導出する
 4. 公開鍵とアドレスを再計算する
 5. 保存済みアドレスがある場合は整合性を検証する
 6. 秘密鍵を再暗号化して保存する
@@ -251,7 +229,7 @@ HDアカウントを除外した場合、そのHDアカウントセットに属�
 
 インポートアカウントはHDアカウントセットには属さない。
 
-アカウントが利用できる Chain は、所属 Profile の `enabledChains` と、Account に明示された Chain Identity の関連付けで決定する。Profile で Symbol / NEM の両方が有効でも、それぞれ別の Account / Key Identity を利用する。
+アカウントが利用できる Chain は、所属 Profile の `chain` と、Account に明示された Chain Identity の関連付けで決定する。Account の `chain` は Profile の `chain` と一致しなければならず、異なる Chain の Account を同じ Profile へ登録してはならない。
 
 秘密鍵の形式またはSDKによるIdentity導出が不正な場合は、暗号化Vaultやアカウント一覧を変更せず、64桁の16進数が必要であることを表示する。
 
@@ -259,16 +237,13 @@ HDアカウントを除外した場合、そのHDアカウントセットに属�
 
 ## 12. デフォルトアカウント
 
-デフォルトアカウントはチェーンごとに設定する。
+デフォルトアカウントは Profile ごとに一つ設定する。
 
 ```ts
-interface DefaultAccountIds {
-  symbol?: string;
-  nem?: string;
-}
+defaultAccountId: string;
 ```
 
-初期値は、各チェーンで最初に作成されたHDアカウントとする。
+初期値は、Profile で最初に作成されたHDアカウントとする。
 
 設定画面から、以下のどちらもデフォルトに選択できる。
 
@@ -277,12 +252,12 @@ interface DefaultAccountIds {
 
 デフォルトアカウントが除外または削除された場合は、自動的に別のアカウントへ変更する。
 
-推奨優先順位:
+デフォルトアカウントを再選択する場合の推奨優先順位:
 
-1. 同じチェーンのアクティブなHDアカウント
-2. 同じチェーンの秘密鍵インポートアカウント
+1. Profile.chain のアクティブなHDアカウント
+2. Profile.chain の秘密鍵インポートアカウント
 
-有効チェーンには最低1つのHDアカウントが存在するため、通常は未設定にはならない。
+Profile には最低1つのHDアカウントが存在するため、通常は未設定にはならない。
 
 ---
 
@@ -364,7 +339,7 @@ interface DefaultAccountIds {
 
 - プロファイル情報
 - ネットワーク
-- 有効チェーン
+- Profile の `chain`
 - 暗号化対象となるニーモニック
 - HDアカウントセット
 - 除外済みHDアカウント情報
@@ -555,9 +530,8 @@ OSが提供する安全な領域を利用する。
 プロファイル設定画面には、少なくとも以下を配置する。
 
 - プロファイル名
-- 有効チェーン
-- Symbolのデフォルトアカウント
-- NEMのデフォルトアカウント
+- Profile の `chain`
+- Profile のデフォルトアカウント
 - 自動ロック時間
 - 署名時再認証ルール（表示のみ、署名ごとに固定）
 - パスワード変更
@@ -598,15 +572,16 @@ HDアカウントの除外はセット単位で実行する。
 
 ```text
 1. プロファイルは必ずニーモニックを持つ
-2. プロファイルには最低1つの有効チェーンがある
-3. プロファイルには最低1つのアクティブなHDアカウントセットがある
-4. 各有効チェーンには最低1つのHDアカウントがある
-5. HDアカウントはセット単位で追加・除外・復活する
-6. 新規HDアカウントでは過去に使用済みのインデックスを再利用しない
-7. 除外済みHDアカウントの秘密鍵は保持しない
-8. ネットワークはプロファイル作成後に変更できない
-9. 同一プロファイルの重複復元はエラーにする
-10. パスワード変更は全秘密情報の再暗号化として実行する
+2. プロファイルは必ず一つの `chain` を持つ
+3. プロファイルの `chain` は作成後に変更できない
+4. プロファイルには最低1つのアクティブなHDアカウントセットがある
+5. 各HDアカウントセットには Profile の `chain` に対応するHDアカウントが一つある
+6. HDアカウントはセット単位で追加・除外・復活する
+7. 新規HDアカウントでは過去に使用済みのインデックスを再利用しない
+8. 除外済みHDアカウントの秘密鍵は保持しない
+9. ネットワークはプロファイル作成後に変更できない
+10. 同一プロファイルの重複復元はエラーにする
+11. パスワード変更は全秘密情報の再暗号化として実行する
 ```
 
 これらの不変条件は、UIだけではなくドメイン層および永続化層でも検証すること。
@@ -630,6 +605,7 @@ HDアカウントの除外はセット単位で実行する。
 
 | Requirement / acceptance                                                 | Design                                                                             | 本仕様             | Canonical owner / OPEN                                                                                                                                                                  |
 | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CR-017`、`CR-AC-020`                                                    | Architecture の Profile / Account 境界、Security Design の Profile isolation       | §2〜§12、§24、§26  | 一つの Profile は一つの Network と一つの Chain に固定する。Symbol と NEM の併用は別 Profile とし、既存 mixed Profile / backup の移行・互換は現行開発範囲に含めない                      |
 | `CR-005`、`CR-009`、`CR-AC-003`、`CR-AC-010`                             | Architecture §6.6〜§6.8、Interfaces Design §6、Security Design §6、§9              | §1〜§12、§25、§26  | Profile Network と Application Account association は本書。Chain identity / address は Chain Compatibility Specification、Wallet Store は wallet-core                                   |
 | `CR-008`、`CR-013`、`CR-NFR-002`、`CR-NFR-004`、`CR-AC-007`、`CR-AC-010` | Architecture §6.8、Security Design §6、§13、Mobile Design §11、§19                 | §10、§13、§20、§26 | secret processing、Wallet Store、raw signing は wallet-core。Profile password と Application lifecycle は本書                                                                           |
 | `CR-003`、`CR-016`、`CR-AC-017`                                          | Signing Flow §4、§5、§16、Security Design §7〜§9、Browser / Mobile Design §10〜§12 | §20〜§23、§26      | Authentication、unlock、Account authorization、approval の共通 gate は Signing Protocol / Interfaces。Profile-local authentication context は本書と platform Specification              |

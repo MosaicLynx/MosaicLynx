@@ -142,7 +142,7 @@ OS と `wallet-core` は限定された責任範囲で trusted だが、OS が c
 ### 6.1 Profile の選択
 
 - Profile の `network` は作成時に `mainnet` または `testnet` の一つへ固定され、変更できない。
-- Symbol と NEM の利用可否は Profile の `enabledChains` と、各 Account の chain-specific identity で管理する。
+- Profile は作成時に Symbol または NEM の一方の Chain に固定する。Symbol と NEM の両方を利用する場合は、Chain ごとに別 Profile を選択する。
 - request の network と一致しない Profile を選択して署名してはならない。
 - 外部 request の `profileId`、internal account reference、Account 名または expected signer は、Profile の選択・鍵選択・authorization の authority ではない。
 - Mobile App は Profile を外部 request に合わせて暗黙に切り替えてはならない。利用者が trusted UI で Profile を明示選択した場合も、selected Profile / Network を再表示し、target を再検証し、新しい approval context を要求する。
