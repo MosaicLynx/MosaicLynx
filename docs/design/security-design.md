@@ -57,16 +57,18 @@ SDK、dApp / Web page、Deep Link 入力、Relay、Symbol / NEM ノード、外�
 
 ### 3.2 主体ごとの責任
 
-| 主体                           | 担う責任                                                                                                                    | 担わない責任                                                       |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Browser Extension / Mobile App | 外部入力の検証、caller / permission / session、署名対象の解析・表示、利用者承認、再認証、署名 orchestration、結果の対応確認 | Wallet Core の暗号・KDF・Wallet Store 内部仕様の再実装             |
-| Wallet Core                    | 鍵管理、暗号処理、Wallet Store 契約、公開 identity、承認済み raw bytes の署名                                               | 利用者向け表示、dApp 接続、permission、承認判断、Relay、OS 固有 UI |
-| SDK                            | 外部アプリとの受け渡し、結果 correlation、公開契約、失敗の安全な伝達                                                        | 秘密情報の取得・保存・復号、最終的な意味解析、表示、認証、署名     |
-| Relay                          | 暗号化された要求・結果の配送と短期状態の構造検証                                                                            | 秘密情報、意味解釈、署名、認証、承認の代行、announce               |
-| dApp / Web page                | 要求の発行、受信結果の独立検証、必要な network 処理                                                                         | 秘密情報の取得、Signer の認証・承認の省略                          |
-| Node / 外部 API                | 補助的な network 情報の提供                                                                                                 | 署名可否、承認、署名結果の正当性の単独根拠                         |
+| 主体                           | 担う責任                                                                                                                    | 担わない責任                                                                                       |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Browser Extension / Mobile App | 外部入力の検証、caller / permission / session、署名対象の解析・表示、利用者承認、再認証、署名 orchestration、結果の対応確認 | Wallet Core の暗号・KDF・Wallet Store 内部仕様の再実装                                             |
+| Wallet Core                    | 鍵管理、暗号処理、Wallet Store 契約、公開 identity、承認済み raw bytes の署名                                               | 利用者向け表示、dApp 接続、permission、承認判断、Relay、OS 固有 UI                                 |
+| SDK                            | 外部アプリとの受け渡し、結果 correlation、公開契約、失敗の安全な伝達                                                        | 秘密情報の取得・保存・復号、最終的な意味解析、表示、認証、署名                                     |
+| Relay                          | E2E protected な opaque 要求・結果の配送と短期状態の構造検証                                                                | 平文・E2E session secret / derived encryption material、意味解釈、署名、認証、承認の代行、announce |
+| dApp / Web page                | 要求の発行、受信結果の独立検証、必要な network 処理                                                                         | 秘密情報の取得、Signer の認証・承認の省略                                                          |
+| Node / 外部 API                | 補助的な network 情報の提供                                                                                                 | 署名可否、承認、署名結果の正当性の単独根拠                                                         |
 
 Relay や SDK が侵害されても、秘密鍵を取得できず、利用者の確認・再認証を経ない署名へ直結しない構造を MUST とする。
+
+Relay 経路の message confidentiality は、Relay が復号できない E2E protected opaque envelope を前提とする。E2E session secret またはそこから得られる encryption material は SDK / Mobile App 等の client-side owner に属し、Relay は受領、復号、永続化、hash 化、導出またはログ出力を行わない。Relay endpoint authorization credential は E2E secret とは別の最小権限の transport credential として扱い、署名権限や復号権限を与えない。
 
 ## 4. Threat Model
 
@@ -249,7 +251,7 @@ Relay は信頼しない。Relay は配送のみを担当し、private key / mne
 
 Relay から届くデータはすべて untrusted input として Signer が再検証する。Relay が要求を書き換え、差し替え、遅延、重複または結果を取り違えても、完全性・requestId・期限・caller・permission・payload の検証により検出または拒否できなければならない。Relay 障害・侵害だけでは資産移動が成立してはならない。
 
-TLS を必須とし、Relay 上のデータ保持は必要最小限とする。TLS、opaque envelope、認証、期限、サイズ、回数、状態遷移、保存期間および protocol format の詳細は Relay 設計へ委譲する。
+TLS を必須とし、Relay 上の metadata、transport credential の検証用情報および opaque envelope の保持は必要最小限とする。TLS、opaque envelope、認証、credential representation、期限、サイズ、回数、状態遷移、保存期間および protocol format の詳細は Relay / Handoff 設計へ委譲する。
 
 ### 11.2 Node / network
 
@@ -269,11 +271,11 @@ SDK と外部 API は信頼しない。SDK は秘密情報、認証、最終的�
 
 ### 12.1 情報分類
 
-| 分類      | 例                                                                    | 取扱い                                                                                           |
-| --------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Secret    | private key、mnemonic、復号用鍵、パスコード由来の秘密情報             | 必要な期間だけ trusted host / Wallet Core 境界で扱う。外部送信・ログ出力・永続平文保存を禁止する |
-| Sensitive | Account と caller の紐付け、permission、session、Relay の一時識別情報 | 必要最小限のみ保持し、外部送信・ログ出力は原則行わない。期限切れ・revoke・lock で無効化する      |
-| Public    | address、public key、network、公開済みオンチェーン情報                | 公開可能だが、目的なく記録・公開しない。Secret / Sensitive と結び付く文脈は保護する              |
+| 分類      | 例                                                                                                                  | 取扱い                                                                                                                                                    |
+| --------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Secret    | private key、mnemonic、復号用鍵、E2E session secret、そこから得られる encryption material、パスコード由来の秘密情報 | 必要な期間だけ client-side の trusted boundary / Wallet Core 境界で扱う。Relay を含む untrusted boundary への受領・復号・ログ出力・永続平文保存を禁止する |
+| Sensitive | Account と caller の紐付け、permission、session、Relay の一時識別情報                                               | 必要最小限のみ保持し、外部送信・ログ出力は原則行わない。期限切れ・revoke・lock で無効化する                                                               |
+| Public    | address、public key、network、公開済みオンチェーン情報                                                              | 公開可能だが、目的なく記録・公開しない。Secret / Sensitive と結び付く文脈は保護する                                                                       |
 
 ### 12.2 Logging / telemetry
 
@@ -354,8 +356,9 @@ Relay、Node、外部 API の障害を理由に検証を省略せず、必須情
 - セキュリティ更新不能な旧版を無期限に許容しない。
 - migration で Secret を平文退避せず、移行後に暗号データの互換性・完全性を検証する。
 - 開発版、debug 版、正式版を明確に分離する。
+- Mainnet capability は、適用される current release policy / evidence gate が成立した場合だけ有効化する。必須 evidence の欠落・不整合・期限切れ・検証不能、承認・署名・trusted key の失敗または policy 判定不能では Mainnet を有効化せず、Testnet-only または unavailable の安全側状態を維持する。
 
-具体的な GitHub Actions SHA pin、SBOM、成果物署名、release gate、配布停止および旧版廃止の手順は release / operation 設計へ委譲する。本書の原則を満たさない build capability を、UI を隠すだけで有効化してはならない。
+具体的な GitHub Actions SHA pin、SBOM、成果物署名、evidence policy、trusted key、build embedding、runtime evaluator、配布停止および旧版廃止の手順は [Mainnet release evidence](../release/mainnet-release-evidence.md) と release / operation 設計へ委譲する。本書の原則を満たさない build capability を、UI を隠すだけで有効化してはならない。
 
 ## 17. Security Invariants
 
@@ -373,18 +376,19 @@ Relay、Node、外部 API の障害を理由に検証を省略せず、必須情
 10. 安全性を確認できない場合は Fail Closed とする。
 11. 認証・署名確認 UI は MosaicLynx 自身が制御する。
 12. セキュリティ異常時は署名可能状態を解除し、以前の承認状態を再利用しない。
+13. Mainnet capability は current release policy / evidence gate に従って fail-closed にし、evidence または policy を判定できない場合は Mainnet を有効化しない。
 
 ## 18. 下位設計への委譲事項
 
-| 対象                | 委譲する事項                                                                                                                      | 維持すべき共通条件                                                                                      |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Wallet Core         | 暗号アルゴリズム、KDF、DEK / KEK、Wallet Store 内部仕様、秘密情報の一時処理、raw signing                                          | host が暗号を再実装せず、承認済み payload だけを渡し、平文 Secret を永続化しない                        |
-| Browser Extension   | Chrome API、origin 観測、privileged layer、UI、再ロード、Storage、具体的な自動 lock 時間、clipboard / screenshot の platform 限界 | Browser 本体 UI、per-origin permission、毎回再認証、外部コンテンツ分離、再起動時 lock                   |
-| Mobile App          | Deep Link / App Link、OS Secure Storage、生体認証、PIN、lifecycle、screen capture、preview、Sensitive UI の画面露出 policy、UI    | caller 検証、毎回の確認・再認証、OS を限定的に信頼、未確認要求の再開禁止、Sensitive UI の露出リスク評価 |
-| Relay               | protocol format、opaque envelope、TLS、認証、TTL、サイズ、回数、Redis、保存・削除                                                 | Relay を信頼せず、秘密情報・承認・署名・意味解釈を持たせない                                            |
-| SDK / Provider      | API、wire format、transport、caller binding、error mapping、retry                                                                 | Secret を扱わず、認証・承認・semantic inspection・fail-closed を Signer から奪わない                    |
-| Chain integration   | Symbol / NEM の対応 type / version、parse、validate、表示、canonicalization                                                       | chain と network を混同せず、unknown / parse failure / 表示不能を拒否する                               |
-| Release / Operation | CI/CD、SHA pin、SBOM、成果物署名、incident response、旧版廃止                                                                     | 改ざん検出、厳格な security review、侵害時の署名停止、平文 migration 禁止                               |
+| 対象                | 委譲する事項                                                                                                                      | 維持すべき共通条件                                                                                         |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Wallet Core         | 暗号アルゴリズム、KDF、DEK / KEK、Wallet Store 内部仕様、秘密情報の一時処理、raw signing                                          | host が暗号を再実装せず、承認済み payload だけを渡し、平文 Secret を永続化しない                           |
+| Browser Extension   | Chrome API、origin 観測、privileged layer、UI、再ロード、Storage、具体的な自動 lock 時間、clipboard / screenshot の platform 限界 | Browser 本体 UI、per-origin permission、毎回再認証、外部コンテンツ分離、再起動時 lock                      |
+| Mobile App          | Deep Link / App Link、OS Secure Storage、生体認証、PIN、lifecycle、screen capture、preview、Sensitive UI の画面露出 policy、UI    | caller 検証、毎回の確認・再認証、OS を限定的に信頼、未確認要求の再開禁止、Sensitive UI の露出リスク評価    |
+| Relay               | protocol format、opaque envelope、TLS、認証、TTL、サイズ、回数、Redis、保存・削除                                                 | Relay を信頼せず、平文・E2E session secret / derived encryption material、承認、署名・意味解釈を持たせない |
+| SDK / Provider      | API、wire format、transport、caller binding、error mapping、retry                                                                 | Secret を扱わず、認証・承認・semantic inspection・fail-closed を Signer から奪わない                       |
+| Chain integration   | Symbol / NEM の対応 type / version、parse、validate、表示、canonicalization                                                       | chain と network を混同せず、unknown / parse failure / 表示不能を拒否する                                  |
+| Release / Operation | CI/CD、SHA pin、SBOM、成果物署名、release evidence / policy、Mainnet evaluator、incident response、旧版廃止                       | 改ざん検出、Mainnet gate の fail-closed、厳格な security review、侵害時の署名停止、平文 migration 禁止     |
 
 ## 19. 未決事項
 
