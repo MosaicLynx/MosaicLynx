@@ -656,7 +656,7 @@ docs/evidence/mainnet/<version>/
 └── release-keys/{inventory,ceremony,rotation,revocation-drill}/
 ```
 
-`evidence-manifest.json`はrelease version、git commit、dirty=false、source archive digest、artifact digest、SBOM digest、lockfile digest、symbol-sdk version/integrity、chain compatibility version、fixture contract version、parser version、対象OS/browser、各証跡path/digest、生成時刻、二名以上のsecurity/release承認者をJCSで保持し、offline release keyで署名する。証跡内にproduction秘密、mnemonic、private key、full user payload、個人情報を含めない。
+`evidence-manifest.json`はrelease version、git commit、dirty=false、source archive digest、artifact digest、SBOM digest、lockfile digest、symbol-sdk version/integrity、chain compatibility version、fixture contract version、parser version、対象OS/browser、各証跡path/digest、生成時刻および現行policyが要求する承認情報をJCSで保持し、offline release keyで署名する。現行Lite policyではrelease approvalを1件、security approvalを必須とせず（required=0）、同一承認者の複数roleを許可する。strict policyへ移行した場合だけ、policyが要求する複数role・承認者条件および追加証跡を適用する。証跡内にproduction秘密、mnemonic、private key、full user payload、個人情報を含めない。
 
 ### 19.1 規範fixtureとdifferential / fuzz
 
@@ -684,3 +684,23 @@ incident planは少なくとも鍵漏えい、悪性/破損update、parser bypas
 release keyは日常開発端末に置かず、hardware-backed/offline環境で2-of-3以上の管理者承認を必要とする。inventoryにはkey ID、用途（manifest / Store / App / Origin）、algorithm、custodian、作成日、有効期限、backup、revocation方法を記録する。定期rotationは12か月以内、custodian離任、algorithm/policy変更、紛失・侵害疑い時は即時とする。
 
 rotation手順は、(1) incident/change ticket、(2)新鍵ceremonyとattestation、(3)旧鍵で署名した新旧key binding、(4)二重署名移行release、(5)Store/OS/manifest trust更新、(6)clean環境で検証、(7)旧鍵revocation、(8)offline backup更新、(9)利用者告知、(10)recovery drillと証跡manifest更新の順とする。旧鍵を失ってcross-signできない場合は既定のStore/OS account recoveryと独立公開channelでfingerprintを告知し、Web pageだけの鍵置換を信用しない。release signer、Store publisher、最終approverを同一人物にしない。
+
+## 20. Traceability
+
+本表は本書の product-level contract が、承認済み Requirements、Design、下位 Specification および canonical owner / OPEN へ追跡できることを示す。共通 envelope、Chain-specific byte 規則、Profile backup format および release policy の詳細を本書が再定義するものではない。
+
+| Requirement / acceptance                                                                                    | Design                                                                              | 本仕様                | Canonical owner / OPEN                                                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CR-001`、`CR-002`、`CR-003`、`CR-004`、`CR-005`、`CR-007`、`CR-016`、`CR-AC-001`〜`CR-AC-006`、`CR-AC-017` | Architecture §6.1〜§6.4、Signing Flow §4〜§9、§16、Browser Extension Design §7〜§10 | §11〜§13、§17、§18    | product-level user-visible behavior は本書、四条件と共通署名 lifecycle は Signing Protocol / Interfaces                                                                    |
+| `CR-008`、`CR-013`、`CR-AC-007`、`CR-AC-010`                                                                | Architecture §6.6〜§6.8、Security Design §6、§13、Browser Extension Design §16      | §6、§9、§12、§15、§17 | Wallet Store・raw signing は wallet-core、Profile metadata は Profile / Account Specification                                                                              |
+| `CR-011`、`CR-015`、`CR-AC-009`、`CR-AC-018`                                                                | Architecture §6.1〜§6.5、Security Design §3〜§5、Relay Design §3〜§5                | §2、§3、§11、§16、§17 | SDK は Handoff / SDK Specification、Relay は Relay Specification、Signer authority は Browser / Mobile Specification                                                       |
+| `CR-006`、`CR-012`、`CR-NFR-009`〜`CR-NFR-012`、`CR-AC-004`、`CR-AC-011`〜`CR-AC-015`                       | Interfaces Design §6〜§9、Signing Flow §7、§19〜§23、Security Design §10            | §11〜§13、§18         | common request / response・result / delivery は Interfaces、Web transport は Handoff。`OPEN-001`〜`OPEN-005` は各 canonical owner で追跡                                   |
+| `CR-007-TX`、`CR-007-MSG`、`CR-NFR-005`、`CR-AC-003`、`CR-AC-005`、`CR-AC-006`                              | Architecture §6.7、Signing Flow §8〜§15、Security Design §11                        | §12、§17、§18         | Symbol / NEM の schema・serialization・signing bytes は Chain Compatibility Specification                                                                                  |
+| `CR-NFR-006`、`CR-AC-008`                                                                                   | Architecture §3、§16、Security Design §16                                           | §19                   | current approval count・policy parameter・evidence evaluation は ADR 0001、`evidence-policy.json`、Mainnet release evidence。Lite と strict の差分は current policy に従う |
+| `CR-014`                                                                                                    | Architecture §6.6、Security Design §6、Mobile Design §11、§19                       | §9、§15、§19          | Profile backup contract は Profile / Account Specification `OPEN-PROFILE-001`。Browser Extension 初回 milestone の必須完了条件ではない                                     |
+
+## 20.1 OPEN と mirror
+
+- `OPEN-001`〜`OPEN-005` は本書が新しい field、version、capability または permission expiry を決めず、Interfaces / Handoff / SDK / Mobile / Relay の canonical owner として記載された下位仕様へ委譲する。
+- `OPEN-PROFILE-001` は Profile / Account Specification が所有し、本書の backup capability 記述はその決定を参照する。
+- Mainnet release の approval 数、strict migration および evidence の required / not-required は本書の独自判断ではなく、current `evidence-policy.json` と ADR 0001 を参照する。

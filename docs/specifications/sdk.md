@@ -96,21 +96,7 @@ SDK の公開 factory、instance、引数および戻り値は、[Web Transactio
 
 公開 method の契約は次のとおりである。型の exact field、required / optional および encoding は同 Handoff Specification と [interfaces.md](./interfaces.md) の対応する節に従う。
 
-公開 signing API は次の共通 discriminated union を使用する。
-
-```ts
-type MosaicLynxDeliveryDisposition = 'PENDING' | 'DELIVERED' | 'DELIVERY_UNKNOWN';
-
-type MosaicLynxSigningResult<T> =
-  | {
-      outcome: 'succeeded';
-      result: T;
-      deliveryDisposition: MosaicLynxDeliveryDisposition;
-    }
-  | {
-      outcome: 'resultUnknown';
-    };
-```
+公開 signing API は Handoff §5.1 の canonical `MosaicLynxSigningResult<T>` と `MosaicLynxDeliveryDisposition` を使用する。本書はこれらの型、union branch、field、requiredness または値の意味を再宣言しない。`MosaicLynxDeliveryDisposition` は Interfaces §6.3 の `DeliveryDisposition` と wire-identical に対応し、Relay response の `deliveryDisposition` を SDK が生成・推測・書き換えない。
 
 | Method                        | 引数                                | 戻り値                                                | 前提と意味                                                                                                                                                                                    |
 | ----------------------------- | ----------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

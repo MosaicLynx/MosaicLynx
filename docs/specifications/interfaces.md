@@ -171,6 +171,10 @@ Capability は「対応可能性」を表し、authorization、Account ownership
 
 ## 6. Request / Response Envelope
 
+本章は、MosaicLynx の共通 request / response envelope、common field、public identity、result / delivery union の canonical specification owner である。`RelayRequestBase`、`RelayOperation`、`RelayResponseBase`、`RelayRequest`、`RelayResponse`、`PublicAccountIdentity` および `DeliveryDisposition` の意味、型、必須性、union の組合せを変更する場合は本章を更新し、Handoff、SDK、Browser、Mobile、Relay は本章へ追跡する。Web Transaction Handoff Specification §7 は Web / Relay transport の operation-specific validation、暗号、HTTP、lifecycle を定めるが、同名の common type または field を独立した別 contract として再定義しない。
+
+本章と下位仕様に同一 field の記述がある場合、本章が common semantic / wire authority である。下位仕様の alias は wire-identical な参照表現に限り、requiredness、型、enum、result union、Account identity または delivery semantics を変更してはならない。矛盾がある場合は本章を優先し、下位仕様を修正する。
+
 ### 6.1 共通の論理契約
 
 すべての外部署名 request は、少なくとも次の意味を持つ。これは transport-independent な論理契約であり、各 transport の wire object に context 等の新しい wrapper field を要求するものではない。
@@ -823,7 +827,7 @@ Relay と wallet-core は共通 model の一部を transport / cryptographic bou
 
 ## 17. Traceability
 
-重要な契約のみを次に追跡する。
+重要な契約のみを次に追跡する。共通 request / response envelope、public Account identity、result / delivery union の canonical owner は本仕様 §6 であり、Handoff §7、SDK、Browser、Mobile、Relay の各記述はこの行へ戻る。
 
 | Requirement                                                | Design                                                                 | 本仕様                                                                                                                                 |
 | ---------------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |

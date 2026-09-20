@@ -623,3 +623,22 @@ HDアカウントの除外はセット単位で実行する。
 - **Profile deletion policy:** backup verification state と Profile deletion の関係、Mainnet-specific deletion policy、未検証または未作成 backup の場合に deletion を拒否・許可する条件は未決とする。現時点で必ず拒否または必ず許可のいずれも決定しない。
 - **Existing boundary:** Profile password を完全 backup の暗号化 / 復号に使用する既存契約、plaintext Mnemonic / private key を backup file に出力しないこと、invalid / corrupted / incompatible backup を安全側に拒否すること、検証前に current Profile state を変更しないこと、backup 作成だけを restore verification 成功と扱わないこと、および password 忘失を管理者 reset / secret reissue で迂回しないことは維持する。
 - **Not decided by this OPEN:** AES-256-GCM、Argon2id、その他の crypto library / algorithm、具体的な backup file serialization、storage backend、cloud provider、UI flow または Profile deletion gate の採用を、この OPEN の追加自体から推測してはならない。
+
+## 28. Traceability
+
+本表は Profile / Account の外部契約を、承認済み Requirements、Design、関連 Specification および canonical owner / OPEN へ追跡するための表である。本書は Profile metadata と Profile 全体 backup contract の owner であり、Wallet Store の内部形式、Chain-specific signing bytes、共通 handoff envelope または release policy を再定義しない。
+
+| Requirement / acceptance                                                 | Design                                                                             | 本仕様             | Canonical owner / OPEN                                                                                                                                                                  |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CR-005`、`CR-009`、`CR-AC-003`、`CR-AC-010`                             | Architecture §6.6〜§6.8、Interfaces Design §6、Security Design §6、§9              | §1〜§12、§25、§26  | Profile Network と Application Account association は本書。Chain identity / address は Chain Compatibility Specification、Wallet Store は wallet-core                                   |
+| `CR-008`、`CR-013`、`CR-NFR-002`、`CR-NFR-004`、`CR-AC-007`、`CR-AC-010` | Architecture §6.8、Security Design §6、§13、Mobile Design §11、§19                 | §10、§13、§20、§26 | secret processing、Wallet Store、raw signing は wallet-core。Profile password と Application lifecycle は本書                                                                           |
+| `CR-003`、`CR-016`、`CR-AC-017`                                          | Signing Flow §4、§5、§16、Security Design §7〜§9、Browser / Mobile Design §10〜§12 | §20〜§23、§26      | Authentication、unlock、Account authorization、approval の共通 gate は Signing Protocol / Interfaces。Profile-local authentication context は本書と platform Specification              |
+| `CR-NFR-003`、`CR-NFR-010`、`CR-NFR-011`、`CR-AC-013`、`CR-AC-014`       | Signing Flow §7、§20〜§23、Security Design §10、§15                                | §8、§9、§19、§26   | Profile revision、lock、index non-reuse は本書。request / session expiry、replay、delivery は Interfaces / Handoff / Relay                                                              |
+| `CR-014`、`MR-009`、`MR-010`、`MR-AC-008`、`MR-AC-011`                   | Architecture §6.6、Security Design §6、Mobile Design §11、§19、§27                 | §15〜§18、§26、§27 | Profile-wide backup / restore contract は本書 `OPEN-PROFILE-001`。Product / Mobile は capability と safety boundary を参照し、format / crypto / restore policy を独自に override しない |
+| `CR-NFR-006`、`CR-AC-008`、`MR-013`、`MR-AC-009`                         | Architecture §3、§16、Security Design §16、Mobile Design §23〜§24                  | §1〜§3、§24、§27   | Mainnet release / evidence gate は ADR 0001、`evidence-policy.json`、Mainnet release evidence。Profile backup 未決事項を current gate の具体条件として本書から固定しない                |
+
+### 28.1 下流参照と OPEN mirror
+
+- Product Specification は本書の `OPEN-PROFILE-001` を backup contract の canonical owner として参照する。
+- Mobile Specification は `MR-OPEN-006` と `MOB-OPEN-006` を本書の backup / migration contract へ戻し、未承認の OS wrapping、hardware capability、restore verification を current Mainnet gate として固定しない。
+- Interfaces、Handoff、SDK および Chain Compatibility Specification は Profile ID、Wallet Store ID、key slot、internal Account reference または backup envelope の意味を推測せず、本書と wallet-core の owner 境界を維持する。

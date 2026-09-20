@@ -609,24 +609,15 @@ Mobile App は gate status を検証可能な input として消費し、次の�
 
 Gate failure / unknown は Mainnet だけを disabled / unavailable にする。安全に許可された Testnet-only operation、Profile / Account 管理、署名要求の安全な拒否および既存 Testnet handoff を、Mainnet gate failure を理由に不必要に停止しない。
 
-### 17.2 現行 Mobile v1 の platform capability
+### 17.2 Platform capability contract
 
-現行 Handoff の Mobile Signer contract では、Symbol / NEM の raw signing を iOS Secure Enclave / Android StrongBox の P-256 署名 capability へ自動変換しない。Mobile v1 の direct hardware signing は非対応であり、hardware-backed capability の存在だけで direct hardware signer と表示してはならない。
+Mobile App は、release authority が承認した platform capability と Mainnet gate の結果を消費する。Mobile App 仕様自身は、OS version、hardware API、OS-backed wrapping、attestation、direct hardware signing、backup / restore または security signal の具体的な採否を新たに決めない。OS availability、wallet-core capability、Binding success、Relay connection、App の起動成功または Store 公開だけから Mainnet capability を推測してはならない。
 
-Handoff が Mainnet capability の条件として定める current Mobile v1 の要件は、少なくとも次の全てである。
+current policy に基づく platform capability report または gate status が missing、invalid、expired、mismatch、unverifiable または unknown の場合、Mobile App は Mainnet signing を有効化せず fail-closed とする。実行中に承認済み capability または gate status が失われた場合も同様に Mainnet signing を停止する。Profile を削除せず、同じ理由だけで安全に許可された Testnet-only operation を不必要に停止しない。
 
-1. OS-backed Vault wrapping が利用できる。
-2. device lock と signature ごとの user presence が有効である。
-3. iOS の Secure Enclave 実操作、または Android の hardware attestation を検証できる。
-4. root / jailbreak の重大な signal がない。
-5. support 対象 OS と security update 範囲に含まれる。
-6. 要求される backup export と別環境 restore verification が完了している。
-7. Mainnet handoff の有効な Origin proof がある。
-8. Mainnet release evidence gate が合格している。
+具体的な OS / hardware / wrapping / attestation / support matrix、runtime enforcement、Store release との関係は、`MR-OPEN-003` / `MOB-OPEN-003`、`MR-OPEN-006` / `MOB-OPEN-006`、`MR-OPEN-008` / `MOB-OPEN-008`、Mobile Design §27 および release authority の承認済み capability contract に委譲する。Profile 全体 backup / restore と端末移行の仕様上の authority は `OPEN-PROFILE-001` であり、Mainnet gate の evidence と一般的な backup capability を混同しない。
 
-一つでも runtime で失われた場合、既存 Profile を削除せず signing capability を lock し、Mainnet signing を拒否する。Testnet-only の安全な operation は、同じ失敗だけを理由に停止しない。非対応端末・attestation 不明・software-only storage・support policy 外の端末では、実際に確認できた保証範囲だけを表示する。
-
-現在の公開 Mobile build は `docs/mobile/mobile-store-release.md` に従い Testnet-only であり、Mainnet をサポートしない。この状態を `isAvailable()`、Relay connection、wallet-core signing success または App の起動成功から変更してはならない。
+Binding または platform capability が提供する保証範囲は、実際に承認・検証できた範囲だけを表示する。未確認の capability を direct hardware signer、hardware-backed Vault または同等の保証へ昇格して表示してはならない。現在の公開 Mobile build が Testnet-only であることは release material に従い、未決定の platform contract を根拠に変更してはならない。
 
 ### 17.3 Release evidence の扱い
 
@@ -725,24 +716,24 @@ Mobile App の実装は、少なくとも次を満たす場合に本仕様へ適
 11. Relay が plaintext、transaction / message meaning、secret、approval、four-condition status、signed result、`RESULT_UNKNOWN` または `deliveryDisposition` を取得・生成・変更できない。Mobile は Relay structural validation と semantic / approval validation を区別する。
 12. background / suspend / resume、device lock、process termination、OS kill、Relay generation change、local / remote state mismatch の各経路で旧 approval、Authentication、unlock、Account authorization、target または secret が自動再利用されない。resume は fresh validation、再表示、fresh approval および必要な再認証を行う。
 13. Mnemonic、private key、derived key、Profile password、decrypted Wallet Store、session secret、transport credential、payload、signed payload、public identity、ID、URL、Origin および stack trace が指定された diagnostics / log / error 境界へ漏れない。diagnostics allowlist 以外の event が出力されない。
-14. wallet-core の既存 Binding、Wallet Store、key lifecycle、raw signing および Chain-specific cryptography を Mobile Application が再実装せず、approved target のみを渡す。Binding / OS capability を hardware direct signing と誤表示しない。
+14. wallet-core の既存 Binding、Wallet Store、key lifecycle、raw signing および Chain-specific cryptography を Mobile Application が再実装せず、approved target のみを渡す。Binding / platform capability の実際の保証範囲を表示し、未確認の capability を direct hardware signing 等へ昇格して表示しない。具体的な direct hardware support は `MOB-OPEN-003` / `MR-OPEN-003` の解消まで確定しない。
 15. Mainnet gate の required evidence、trusted key、policy、platform capability、Origin proof または gate status が missing / invalid / expired / unknown の場合に Mainnet signing が無効であり、Testnet-only operation は安全な範囲で継続できる。現行公開 Mobile build は Testnet-only である。
 16. Mobile Relay response の mapping が Handoff の existing response union、requestDigest、requestId、operation、signer、Account、Scope、target および expiry へ対応し、dApp が結果を独立検証できる。Mobile App が announce または node selection を行わない。
 
 ## 21. Traceability
 
-| 本仕様の領域                                            | Requirements                                                                               | Design                                                                       | Existing Specification / authority                                                                       |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Scope、責務および Mobile milestone                      | `CR-001`、`CR-006`、`CR-007`、`CR-011`、`MR-001`、`MR-012`                                 | Architecture §5.2、§6.4；Mobile Design §2〜§5、§25                           | Interfaces §16；Signing Protocol §18；Handoff §2、§7                                                     |
-| Trust boundary と Relay non-authority                   | `CR-008`、`CR-010`、`CR-011`、`CR-015`；`RR-003`、`RR-009`                                 | Security Design §3〜§5；Architecture §8〜§9；Mobile Design §6、§8、§25       | Relay Specification §4、§9、§20；Handoff §7、§13                                                         |
-| Profile / Account / Network binding                     | `CR-005`、`CR-009`、`CR-013`、`MR-004`、`MR-007`                                           | Architecture §6.6〜§6.8；Mobile Design §9、§18〜§19                          | Interfaces §5、§8、§9；Profile / Account Specification §2〜§12、§26                                      |
-| Authentication、unlock、Account authorization、approval | `CR-003`、`CR-004`、`CR-016`、`CR-AC-017`；`MR-005`、`MR-006`                              | Security Design §7〜§8；Signing Flow §4、§16；Mobile Design §4.1、§10、§12.3 | Signing Protocol §7〜§9；Profile / Account Specification §20；Interfaces §9.7                            |
-| Transaction / message inspection                        | `CR-002`、`CR-004`、`CR-007-TX`、`CR-007-MSG`、`CR-NFR-005`、`MR-004`                      | Signing Flow §9〜§15；Mobile Design §5.6、§12.2                              | Signing Protocol §9〜§15；Interfaces §9.2〜§9.5；Chain Compatibility Specification                       |
-| Handoff / link / Origin proof                           | `CR-001`、`CR-NFR-008`、`CR-NFR-009`；`MR-002`、`MR-003`                                   | Mobile Design §7；Interfaces Design §7.3                                     | Handoff §7.1〜§7.5、§8〜§11；Interfaces §5、§7                                                           |
-| Result / delivery semantics                             | `CR-006`、`CR-010`、`CR-012`、`CR-NFR-012`；`RR-002`、`RR-NFR-002`                         | Signing Flow §7.3〜§7.4、§19；Mobile Design §8.3、§14、§22                   | Interfaces §6.3、§9.6、§10.3、§13；Signing Protocol §16、§19；Handoff §7.2、§9.6                         |
-| Lifecycle、duplicate、replay、concurrency、state loss   | `CR-NFR-003`、`CR-NFR-009`〜`CR-NFR-011`；`MR-005`、`MR-006`；`RR-004`、`RR-006`、`RR-007` | Mobile Design §14〜§17、§21〜§22；Security Design §10、§15                   | Signing Protocol §6〜§8、§19〜§20；Relay Specification §6〜§7、§11〜§16、§20                             |
-| Secret handling / wallet-core                           | `CR-008`、`CR-013`、`CR-NFR-002`、`CR-NFR-004`；`MR-003`、`MR-007`〜`MR-010`；`RR-008`     | Architecture §6.8〜§6.9；Security Design §6；Mobile Design §11、§18〜§19     | Profile / Account Specification §10、§13、§20；Interfaces §5.3、§16；wallet-core external contract       |
-| Mainnet gate / Testnet-only                             | `CR-NFR-006`、`CR-AC-008`、`MR-013`、`MR-AC-009`                                           | Architecture §3、§6.9、§16；Mobile Design §3.3、§23〜§24                     | Interfaces §7.4；Handoff §7.5、§13〜§14；ADR 0001；Mainnet release evidence；current mobile release docs |
+| 本仕様の領域                                            | Requirements                                                                               | Design                                                                       | Existing Specification / authority                                                                                                                              |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Scope、責務および Mobile milestone                      | `CR-001`、`CR-006`、`CR-007`、`CR-011`、`MR-001`、`MR-012`                                 | Architecture §5.2、§6.4；Mobile Design §2〜§5、§25                           | Interfaces §16；Signing Protocol §18；Handoff §2、§7                                                                                                            |
+| Trust boundary と Relay non-authority                   | `CR-008`、`CR-010`、`CR-011`、`CR-015`；`RR-003`、`RR-009`                                 | Security Design §3〜§5；Architecture §8〜§9；Mobile Design §6、§8、§25       | Relay Specification §4、§9、§20；Handoff §7、§13                                                                                                                |
+| Profile / Account / Network binding                     | `CR-005`、`CR-009`、`CR-013`、`MR-004`、`MR-007`                                           | Architecture §6.6〜§6.8；Mobile Design §9、§18〜§19                          | Interfaces §5、§8、§9；Profile / Account Specification §2〜§12、§26                                                                                             |
+| Authentication、unlock、Account authorization、approval | `CR-003`、`CR-004`、`CR-016`、`CR-AC-017`；`MR-005`、`MR-006`                              | Security Design §7〜§8；Signing Flow §4、§16；Mobile Design §4.1、§10、§12.3 | Signing Protocol §7〜§9；Profile / Account Specification §20；Interfaces §9.7                                                                                   |
+| Transaction / message inspection                        | `CR-002`、`CR-004`、`CR-007-TX`、`CR-007-MSG`、`CR-NFR-005`、`MR-004`                      | Signing Flow §9〜§15；Mobile Design §5.6、§12.2                              | Signing Protocol §9〜§15；Interfaces §9.2〜§9.5；Chain Compatibility Specification                                                                              |
+| Handoff / link / Origin proof                           | `CR-001`、`CR-NFR-008`、`CR-NFR-009`；`MR-002`、`MR-003`                                   | Mobile Design §7；Interfaces Design §7.3                                     | Handoff §7.1〜§7.5、§8〜§11；Interfaces §5、§7                                                                                                                  |
+| Result / delivery semantics                             | `CR-006`、`CR-010`、`CR-012`、`CR-NFR-012`；`RR-002`、`RR-NFR-002`                         | Signing Flow §7.3〜§7.4、§19；Mobile Design §8.3、§14、§22                   | Interfaces §6.3、§9.6、§10.3、§13；Signing Protocol §16、§19；Handoff §7.2、§9.6                                                                                |
+| Lifecycle、duplicate、replay、concurrency、state loss   | `CR-NFR-003`、`CR-NFR-009`〜`CR-NFR-011`；`MR-005`、`MR-006`；`RR-004`、`RR-006`、`RR-007` | Mobile Design §14〜§17、§21〜§22；Security Design §10、§15                   | Signing Protocol §6〜§8、§19〜§20；Relay Specification §6〜§7、§11〜§16、§20                                                                                    |
+| Secret handling / wallet-core                           | `CR-008`、`CR-013`、`CR-NFR-002`、`CR-NFR-004`；`MR-003`、`MR-007`〜`MR-010`；`RR-008`     | Architecture §6.8〜§6.9；Security Design §6；Mobile Design §11、§18〜§19     | Profile / Account Specification §10、§13、§20；Interfaces §5.3、§16；wallet-core external contract                                                              |
+| Mainnet gate / Testnet-only                             | `CR-NFR-006`、`CR-AC-008`、`MR-013`、`MR-AC-009`                                           | Architecture §3、§6.9、§16；Mobile Design §3.3、§23〜§24、§27                | Interfaces §7.4；Handoff §7.5、§13〜§14；ADR 0001；Mainnet release evidence；`MR-OPEN-008` / `MOB-OPEN-008`、`MR-OPEN-006` / `MOB-OPEN-006`、`OPEN-PROFILE-001` |
 
 ### 21.1 Traceability の読み方
 

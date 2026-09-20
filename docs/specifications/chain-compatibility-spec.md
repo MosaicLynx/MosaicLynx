@@ -196,3 +196,22 @@ packages/chain-nem/test/vectors/
 ## 8. symbol-sdk更新手順
 
 symbol-sdk更新PRは旧版と新版の全schema serialization、Facade signing bytes、network constant、BIP32 pathを差分比較する。差分がない場合もSBOM、package integrity、fixture結果、fuzz corpus結果、reviewer 2名の承認を保存する。差分がある場合はProvider APIまたはchain compatibility versionを更新し、既存Vaultの鍵を再導出して上書きしない。
+
+## 9. Traceability
+
+本表は Chain / Network / transaction compatibility の外部契約を、承認済み Requirements、Design、関連 Specification および canonical owner / OPEN へ追跡するための表である。本書は Product の product scope、Profile の backup contract、共通 handoff envelope または wallet-core の内部形式を再定義しない。
+
+| Requirement / acceptance                                                             | Design                                                                 | 本仕様     | Canonical owner / OPEN                                                                                                                                                                    |
+| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CR-005`、`CR-NFR-005`、`CR-AC-003`                                                  | Architecture §6.7、Interfaces Design §3.3、Signing Flow §4、§8〜§15    | §2〜§5     | Chain / Network identity、address network、schema compatibility は本書。Profile Network association は Profile / Account Specification                                                    |
+| `CR-002`、`CR-004`、`CR-007-TX`、`CR-007-MSG`、`CR-AC-002`、`CR-AC-005`、`CR-AC-006` | Signing Flow §8〜§15、Security Design §11、Browser / Mobile Design §10 | §4、§5、§7 | allowlist、全 field inspection、canonicality、blind-signing rejection は本書。trusted UI / approval は platform Specification                                                             |
+| `CR-006`、`CR-NFR-009`、`CR-NFR-012`、`CR-AC-004`、`CR-AC-012`                       | Signing Flow §7、§19〜§23、Interfaces Design §6、§9                    | §5〜§7     | signed result の request / signer / network 対応は Signer / Interfaces / Handoff が所有し、本書は chain-specific verification を所有                                                      |
+| `CR-008`、`CR-013`、`CR-NFR-004`、`CR-AC-010`                                        | Architecture §6.8、Security Design §6、§13                             | §2、§6     | key derivation、Wallet Store、raw signing は wallet-core / Chain integration の外部契約。本書は MosaicLynx 側で再実装しない                                                               |
+| `CR-NFR-006`、`CR-AC-008`                                                            | Architecture §3、§16、Security Design §16                              | §7         | Mainnet capability の evidence / approval policy は ADR 0001、`evidence-policy.json`、Mainnet release evidence。Chain fixture は gate evidence の入力であり gate policy の owner ではない |
+| `CR-007-TX`、`CR-007-MSG`、`CR-AC-015`                                               | SDK Design §7、Signing Flow §14、Interfaces Design §9                  | §4、§6、§8 | Aggregate / multisig / cosignature の公開 operation scope は Interfaces `OPEN-006` と platform / SDK Specification。allowlist外は本書で拒否し、暗黙に拡張しない                           |
+
+### 9.1 OPEN と下流引継ぎ
+
+- 本書にない transaction type / version、schema、field、network または signing byte 規則は、SDK / Browser / Mobile / Handoff から推測して追加しない。
+- Interfaces `OPEN-006` が公開する Aggregate / multisig / cosignature operation scope を決定するまで、本書の allowlist と固定 vector は変更しない。
+- symbol-sdk version、fixture contract version、parser version の更新は、§8 の手順と Mainnet release evidence の同一 revision 更新を必要とする。

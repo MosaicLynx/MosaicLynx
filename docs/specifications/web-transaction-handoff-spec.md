@@ -91,6 +91,8 @@ MosaicLynx SDKはbrowser ESM buildと、型宣言を含むnpm packageとして�
 
 ### 5.1 型定義
 
+本節は SDK 公開 API の canonical owner である。`MosaicLynxSDK`、`MosaicLynxActiveAccount`、`MosaicLynxDeliveryDisposition` および `MosaicLynxSigningResult` は dApp に公開する SDK projection として本節で定義するが、Relay wire contract の別 schema ではない。`MosaicLynxActiveAccount` は Interfaces §6.3 の `PublicAccountIdentity` と field-for-field に対応し、`MosaicLynxDeliveryDisposition` は Interfaces §6.3 の `DeliveryDisposition` と同じ値・意味を持つ。Relay request / response の common field、requiredness、union および wire semantics を変更する場合は Interfaces §6 を先に更新し、SDK / Handoff の projection はその変更へ追跡する。
+
 ```ts
 type MosaicLynxChain = 'symbol' | 'nem';
 type MosaicLynxNetwork = 'mainnet' | 'testnet';
@@ -292,7 +294,7 @@ MosaicLynx SDK は handoff creation の直前に current generation context を�
 
 `generationId` は `RelayRequestBase` と `RelayAAD` の認証対象に含める。したがって、generation metadata だけを current 値へ差し替えても、旧 ciphertext の AEAD 認証は成立しない。App / SDK は generation mismatch、AAD binding またはその他の認証失敗を安全側に拒否し、該当 request を利用者承認画面へ進めず、署名せず、success result を返さない。Relay の delivery success は署名成功を意味しない。retry は新しい generation context、request / session identity、暗号化 envelope および利用者承認を生成する。
 
-MosaicLynx SDKは次のobjectをRFC 8785 JCSでcanonicalizeし、SHA-256 digestを計算してから暗号化する。
+MosaicLynx SDKは Interfaces Specification §6.2 の canonical `RelayRequest` envelope を RFC 8785 JCSでcanonicalizeし、SHA-256 digestを計算してから暗号化する。Interfaces §6.2 の `RelayRequestBase`、`RelayOperation` および common field は本書から参照し、本書で独立した同名 type として再定義しない。
 
 ```ts
 interface OriginProof {
@@ -301,84 +303,20 @@ interface OriginProof {
   algorithm: 'Ed25519';
   signature: string; // paddingなしbase64url
 }
-
-interface RelayRequestBase {
-  protocol: 'mosaiclynx.relay.v1';
-  generationId: string;
-  requestId: string;
-  initiatorOrigin: string;
-  createdAt: string;
-  expiresAt: string;
-}
-
-interface RelayConnectRequest extends RelayRequestBase {
-  operation: 'connect';
-  chain: 'symbol' | 'nem';
-  network: 'mainnet' | 'testnet';
-  originProof?: OriginProof;
-}
-
-interface RelayRefreshActiveAccountRequest extends RelayRequestBase {
-  operation: 'refreshActiveAccount';
-  chain: 'symbol' | 'nem';
-  network: 'mainnet' | 'testnet';
-  originProof?: OriginProof;
-}
-
-interface RelaySigningRequest extends RelayRequestBase {
-  operation: 'signTransaction';
-  chain: 'symbol' | 'nem';
-  network: 'mainnet' | 'testnet';
-  originProof?: OriginProof;
-  payload: string;
-  expectedSignerPublicKey?: string;
-}
-
-interface RelayDisconnectRequest extends RelayRequestBase {
-  operation: 'disconnect';
-}
-
-interface RelayDataSigningRequest extends RelayRequestBase {
-  operation: 'signData';
-  chain: 'symbol' | 'nem';
-  network: 'mainnet' | 'testnet';
-  purpose: string;
-  nonce: string;
-  issuedAt: string;
-  messageExpiresAt: string;
-  payload: { encoding: 'utf8' | 'hex'; value: string };
-  expectedSignerPublicKey?: string;
-  originProof?: OriginProof;
-}
-
-type RelayCosignRequest =
-  | (RelayRequestBase & {
-      operation: 'cosignTransaction';
-      chain: 'symbol';
-      network: MosaicLynxNetwork;
-      parentPayload: string;
-      detached: boolean;
-      expectedSignerPublicKey?: string;
-      originProof?: OriginProof;
-    })
-  | (RelayRequestBase & {
-      operation: 'cosignTransaction';
-      chain: 'nem';
-      network: MosaicLynxNetwork;
-      payload: string;
-      parentPayload: string;
-      expectedSignerPublicKey?: string;
-      originProof?: OriginProof;
-    });
-
-type RelayRequest =
-  | RelayConnectRequest
-  | RelayRefreshActiveAccountRequest
-  | RelaySigningRequest
-  | RelayDataSigningRequest
-  | RelayCosignRequest
-  | RelayDisconnectRequest;
 ```
+
+Handoff の operation-specific field は、canonical `RelayRequest` union に次のように対応する。表にない field、alias、union branch は追加しない。
+
+| operation                          | required operation-specific field                                                 | optional field / condition                                                                  |
+| ---------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `connect` / `refreshActiveAccount` | `chain`、`network`                                                                | `originProof`。Mobile Mainnet の proof 要件は下記の Handoff / release gate authority に従う |
+| `signTransaction`                  | `chain`、`network`、`payload`                                                     | `expectedSignerPublicKey`、`originProof`                                                    |
+| `signData`                         | `chain`、`network`、`purpose`、`nonce`、`issuedAt`、`messageExpiresAt`、`payload` | `expectedSignerPublicKey`、`originProof`                                                    |
+| `cosignTransaction` / Symbol       | `chain`、`network`、`parentPayload`、`detached`                                   | `expectedSignerPublicKey`、`originProof`                                                    |
+| `cosignTransaction` / NEM          | `chain`、`network`、`payload`、`parentPayload`                                    | `expectedSignerPublicKey`、`originProof`                                                    |
+| `disconnect`                       | `operation`                                                                       | Scope field は既存 handoff contract では持たず、`initiatorOrigin` で対象 Origin を binding  |
+
+`RelayRequestBase`、common `protocol` / `generationId` / `requestId` / `initiatorOrigin` / `createdAt` / `expiresAt`、operation enum および union の canonical declaration は Interfaces §6.2 のみが所有する。上表は Handoff が所有する operation-specific validation と web transport mapping であり、別の TypeScript type または wire shape を定義しない。
 
 Mobile Mainnet要求では`originProof`を必須とする。Mainnetの`initiatorOrigin`はpublic DNSへ解決するHTTPS・既定port 443に限定する。MosaicLynx SDKはrequestId生成後、同一Originの`POST /.well-known/mosaiclynx/sign-request`へ次のJCS objectを`Content-Type: application/json`、`credentials: "omit"`、`redirect: "error"`、`cache: "no-store"`で送る。
 
@@ -424,64 +362,20 @@ manifestの`origin`完全一致、key ID、algorithm、有効期間、statusを�
 
 ### 7.2 論理応答
 
-Mobile App は成功、拒否、検証失敗をいずれも暗号化した response envelope として返す。Relay の session state からユーザーの判断結果を識別できないようにする。
+Mobile App は Interfaces Specification §6.3 の canonical `RelayResponse` union に従い、成功、拒否、検証失敗をいずれも暗号化した response envelope として返す。Relay の session state からユーザーの判断結果を識別できないようにする。本節は `RelayResponseBase`、`RelayResponse`、`PublicAccountIdentity`、`DeliveryDisposition` または common outcome union を再定義しない。
 
-```ts
-type SigningOutcome = 'SUCCEEDED' | 'RESULT_UNKNOWN';
+Handoff の operation mapping は次のとおりである。
 
-type RelayResponse =
-  | {
-      protocol: 'mosaiclynx.relay.v1';
-      requestId: string;
-      requestDigest: string;
-      outcome: 'connected';
-      account: MosaicLynxActiveAccount;
-      completedAt: string;
-    }
-  | {
-      protocol: 'mosaiclynx.relay.v1';
-      requestId: string;
-      requestDigest: string;
-      outcome: 'disconnected';
-      completedAt: string;
-    }
-  | {
-      protocol: 'mosaiclynx.relay.v1';
-      requestId: string;
-      requestDigest: string;
-      outcome: 'signed';
-      signingOutcome: 'SUCCEEDED';
-      signedTransaction: SignedTransaction;
-      deliveryDisposition: MosaicLynxDeliveryDisposition;
-      completedAt: string;
-    }
-  | {
-      protocol: 'mosaiclynx.relay.v1';
-      requestId: string;
-      requestDigest: string;
-      outcome: 'dataSigned';
-      signingOutcome: 'SUCCEEDED';
-      signedData: SignedData;
-      deliveryDisposition: MosaicLynxDeliveryDisposition;
-      completedAt: string;
-    }
-  | {
-      protocol: 'mosaiclynx.relay.v1';
-      requestId: string;
-      requestDigest: string;
-      outcome: 'resultUnknown';
-      signingOutcome: 'RESULT_UNKNOWN';
-      completedAt: string;
-    }
-  | {
-      protocol: 'mosaiclynx.relay.v1';
-      requestId: string;
-      requestDigest: string;
-      outcome: 'rejected' | 'failed';
-      errorCode: MosaicLynxSDKErrorCode;
-      completedAt: string;
-    };
-```
+| outcome               | required public field                                                               | prohibited / authority                                            |
+| --------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `connected`           | canonical `account: PublicAccountIdentity`                                          | signing result、`errorCode` は禁止                                |
+| `disconnected`        | common response field のみ                                                          | account、signing result、`errorCode` は禁止                       |
+| `signed`              | `signingOutcome: 'SUCCEEDED'`、`signedTransaction`、canonical `deliveryDisposition` | account、`errorCode` は禁止                                       |
+| `dataSigned`          | `signingOutcome: 'SUCCEEDED'`、`signedData`、canonical `deliveryDisposition`        | account、`errorCode` は禁止                                       |
+| `resultUnknown`       | `signingOutcome: 'RESULT_UNKNOWN'`                                                  | signed result、`deliveryDisposition`、account、`errorCode` は禁止 |
+| `rejected` / `failed` | canonical `errorCode`                                                               | 成功 result は禁止                                                |
+
+`RelayResponseBase`、`protocol` / `requestId` / `requestDigest` / `completedAt`、outcome union、`PublicAccountIdentity`、`DeliveryDisposition` の型・必須性・wire field は Interfaces §6.3 の canonical declaration を使用する。Handoff は `MosaicLynxActiveAccount` または `MosaicLynxDeliveryDisposition` を common contract と異なる独立型として定義しない。既存実装上の別名が必要な場合も、wire-identical な非規範的 alias としてのみ扱う。
 
 `signingOutcome` は trusted Signer が確定する signing axis であり、`deliveryDisposition` は既知の signed result に付随する delivery axis である。`resultUnknown` は通常の `rejected` / `failed` error branch ではなく、`errorCode`、signed result および deliveryDisposition を持たない。`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` は Handoff §10 の `MosaicLynxSDKErrorCode` に追加しない。
 
@@ -548,26 +442,19 @@ App は Core と Chain Adapter を再利用し、Product Specification 12.4 の 
 
 `initiatorOrigin` は Relay による改ざんからAEADで保護されるだけでは、ブラウザの実際のOriginを証明しない。AppはMainnetで上記`originProof`を検証し、成功時だけ「登録鍵で検証済み」と表示する。Testnetでproofがない場合は「要求元（未検証）」としてcanonical / Punycode表記を表示し、Extension承認画面の検証済みOriginと同じ保証があるように表示しない。Relay の受信・配送、SDK / Provider state、通常の `UNLOCKED`、wallet-core password / Store validation または connection / permission は、この4条件の代替ではない。
 
-### 7.5 Mobile Signer保証
+### 7.5 Mobile Signer保証と Mainnet gate authority
 
-Mobile v1のSymbol/NEM鍵は、両chainが要求する固定版symbol-sdkのEd25519 variant、決定的import/restore、同一private key共有を全て満たす必要がある。iOS Secure Enclaveの公開署名APIはP-256、Android StrongBoxの必須署名algorithmもP-256であり、CryptoKitの通常`Curve25519.Signing`をSecure Enclave署名と混同しない。Androidのsecure wrapped importはKeystoreが対応するalgorithmへ限定され、任意のSymbol/NEM raw keyを直接署名keyとして扱える根拠にしない。したがってMobile v1は全対応OSで`Hardware-backed`直接署名を**非対応**とし、実機capabilityを理由に自動昇格しない。将来の直接署名はchainごとの固定vector、import、attestation、署名byte一致を満たす別仕様変更を必要とする。
+Mobile v1 の Handoff は、Symbol / NEM の raw signing capability を OS の特定 hardware API、OS version、wrapping algorithm、attestation level または direct hardware signing へ自動的に写像しない。Handoff は未承認の platform capability、backup / restore 条件または hardware choice を current contract として固定せず、実際に承認された platform / release contract の結果だけを受け取る。
 
-| OS / 端末                                                                             | runtime判定                                                                               | Symbol/NEM直接署名 | Vault wrapping                                                                                                          | v1保証表示                                            | Mainnet既定              |
-| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------ |
-| iOS 16+、`SecureEnclave.isAvailable=true`、device passcode有効                        | Secure Enclave P-256 key生成、Keychain access control、biometry current setの実操作に成功 | 不可               | Secure Enclave P-256 key agreementからHKDFで得るKEKによりVault keyをAES-GCM wrap。chain keyは承認後だけApp memoryへ復号 | `OS-backed Software Vault (Secure Enclave protected)` | 条件付き有効             |
-| iOS 16+、Secure Enclaveなし／passcodeなし／biometryなし                               | Keychain protectionとuser-presenceの実操作結果                                            | 不可               | password + Argon2idのみ。Keychain保存だけでhardware-backedと表示しない                                                  | `Software Vault`                                      | 無効、設定でも有効化不可 |
-| Android 9+ (API 28+)、`KeyInfo.securityLevel=STRONGBOX`かつ有効なhardware attestation | AES-256-GCM key、user authentication、attestation chain/revocationを検証                  | 不可               | StrongBox AES keyでVault keyをwrap                                                                                      | `OS-backed Software Vault (StrongBox protected)`      | 条件付き有効             |
-| Android 9+、`securityLevel=TRUSTED_ENVIRONMENT`かつhardware attestation有効           | 同上。StrongBox要求のfallback結果を明示                                                   | 不可               | TEE AES keyでVault keyをwrap                                                                                            | `OS-backed Software Vault (TEE protected)`            | 条件付き有効             |
-| Android 9+、security level software／attestation不明・失敗／user authなし             | `KeyInfo`とattestation検証結果                                                            | 不可               | password + Argon2idのみ                                                                                                 | `Software Vault`                                      | 無効、設定でも有効化不可 |
-| unsupported OS、root/jailbreakを確認、OS security updateがsupport policy外            | support matrix、integrity risk signal                                                     | 不可               | 新規Vault作成・importを許可しない                                                                                       | `Unsupported`                                         | 不可                     |
+Mobile Mainnet の Handoff では、`originProof` の検証と current release / evidence gate の結果を Signer が確認する。gate status、platform capability、support policy、Profile / Account context、四条件または必要な proof を確認できない場合は Mainnet signing を有効化せず、Testnet-only の安全な経路を維持する。Relay delivery、SDK availability、OS availability、wallet-core signing success または App 起動成功を gate の代替にしない。
 
-wrapping keyはProfileごと・installationごとに生成し、`profileId, vaultVersion, chainCompatibilityVersion, wrappingKeyId`をAADへ含める。生体認証／device credentialはOSのuser-presence gateとしてMainnet署名ごとに要求する。biometric data、passcode、assertion、attestation credentialをWebまたはRelayへ返さない。unwrap後のVault keyとchain private keyは署名controllerの上書き可能bufferだけに置き、署名・検証後に参照を破棄する。これはOSやApp process侵害下の平文memoryを防ぐ保証ではない。
+次の exact choice は本書の owner ではない。
 
-import / restoreはmnemonicまたは暗号化backupをApp memoryで復号して全Identityを再導出・照合した後、現在端末で新しいwrapping keyを生成しcopy-on-writeで再wrapする。Secure Enclave / Keystore key自体をbackup、同期、端末間移送せず、旧端末のhardware keyがない状態で「hardware keyを復元した」と表示しない。端末移行後は全AccountのSymbol/NEM public key/address、Profile network、derivation path、backup schemaが一致するまでcommitしない。imported private keyも同じ再wrap対象であり、元秘密または暗号化backupなしに端末bound wrapping keyだけから復旧できない。
+- OS version、端末範囲、Secure Enclave / Keystore / StrongBox、attestation、root / jailbreak signal、user presence および Vault wrapping の具体条件は Mobile Requirements / Design と platform capability contract に委譲する。
+- Profile backup / restore、端末移行および backup verification の contract は Profile / Account Specification `OPEN-PROFILE-001` と Mobile `MOB-OPEN-006` / `MR-OPEN-006` に委譲する。未決の backup contract を Mainnet gate の current mandatory condition として推測しない。
+- Mobile release evidence の platform matrix、capability report、runtime enforcement および Store 条件は `MR-OPEN-008` / `MOB-OPEN-008`、release authority および current evidence policy に委譲する。
 
-Mobile Mainnetは次を全て満たす場合だけ有効にする。(1) 上表のOS-backed wrapping、(2) device lockと署名ごとのuser presence、(3) iOS Secure Enclave実操作またはAndroid hardware attestationの検証、(4) root/jailbreak重大signalなし、(5) support対象OS/security update、(6) backup exportと別環境restore verification済み、(7)有効なOrigin proof、(8) Mainnet release evidence合格。実行時に一つでも失われた場合は既存Profileを削除せず即lockしMainnet署名を拒否する。TestnetだけSoftware Vaultを許可する。
-
-capability根拠はApple CryptoKit `SecureEnclave` / `SecureEnclave.P256`とAndroid Keystore / Key Attestationの公式仕様をreleaseごとに再確認し、確認日、OS範囲、実機model、security level、成功・失敗結果を`mobile-capability-report.json`へ保存する。
+これらの委譲は、missing / invalid / expired / unverifiable / unknown な gate status で Mainnet を fail-closed にする要件、Testnet-only continuation、trusted UI、四条件、wallet-core boundary および secret isolation を弱めない。直接 hardware signing を提供する場合は、chain-specific fixed vector、import、attestation、signing byte consistency を含む別の承認済み Specification が必要であり、本書はその capability を現行 v1 として扱わない。
 
 - biometric / device credentialはOSのuser-presence gateとして署名要求ごとに使用する。biometric data、passcode、assertionをWebまたはRelayへ返さない。
 - rooted / jailbroken判定、hardware attestation失敗、screen overlay / accessibility abuse検知はrisk signalとして表示・policy評価するが、単一のheuristicだけで鍵を削除しない。
@@ -889,7 +776,7 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 - App close、拒否、lock、timeout、navigation、page disposal で署名結果を返さない。
 - App 承認画面がMainnetでは有効なorigin proofを必須とし「登録鍵で検証済み」、proofを省略できるTestnetでは「要求元（未検証）」と表示する。
 - well-known manifestのredirect、期限切れ／失効key、wrong Origin、wrong request digest、改ざんproof、private-network解決を拒否する。
-- hardware-backed / OS-backed Software Vault / Software Vaultの保証レベルを正しく表示し、非hardware-backed端末ではMainnetを既定無効にする。
+- release / platform capability report で承認された保証範囲だけを表示し、capability または gate status が unknown / unsupported の場合は Mainnet を有効化しない。具体的な OS / hardware 条件と direct hardware signing の採否は Mobile / platform authority に委譲する。
 - unknown / non-canonical / oversized transaction と signer 不一致を署名前に拒否する。
 - Symbol / NEM × Mainnet / Testnet の対応 transaction 固定 vectorで署名結果を検証する。
 
@@ -904,3 +791,23 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 - 明示的に信頼登録した自己ホスト Relay
 
 破壊的変更は`mosaiclynx.relay.v2`とMosaicLynx SDK major versionで導入し、Appは未知protocolを安全側に拒否する。
+
+## 16. Traceability
+
+本仕様は Web transaction handoff の外部契約を定める。共通 request / response envelope、公開 Account identity、delivery disposition および common outcome union の canonical owner は [Interfaces Specification §6](./interfaces.md#6-request--response-envelope) であり、本書 §7.1〜§7.2 はそれを再定義しない。Mobile App の OS / hardware / backup capability の具体条件は本書の owner ではなく、下表の OPEN と release authority に追跡する。
+
+| Requirements                                                                           | Design                                                               | 本仕様                                | canonical owner / OPEN                                                                                                                                                |
+| -------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CR-001`、`CR-006`、`CR-007`、`CR-015`；`RR-001`、`RR-002`、`SDK-FR-005`、`SDK-FR-008` | Architecture §5.2、§6.1〜§6.4；Signing Flow §7、§19                  | §2、§5、§7.1〜§7.4、§9〜§10、§12〜§14 | 共通 envelope / identity / result / disposition は Interfaces §6；Web handoff protocol は本書                                                                         |
+| `CR-008`、`CR-010`、`CR-011`、`CR-NFR-002`、`CR-NFR-003`                               | Security Design §3〜§6、§10、§15；Architecture §8〜§9                | §6、§8、§11、§13〜§15                 | Relay は opaque transport；secret boundary と four-condition authority は Signer / App                                                                                |
+| `CR-003`、`CR-004`、`CR-016`、`CR-AC-017`                                              | Signing Flow §4、§16；Security Design §7〜§8                         | §7.4、§10.3、§11、§13                 | Authentication、unlock、Account authorization、approval は trusted Signer；Relay / SDK は代替しない                                                                   |
+| `CR-002`、`CR-007-TX`、`CR-007-MSG`、`CR-NFR-005`                                      | Signing Flow §9〜§15；Architecture §6.5                              | §7.4、§10.3、§11                      | transaction / message inspection は Chain Compatibility と Signer；handoff は結果を opaque に搬送                                                                     |
+| `CR-NFR-008`、`CR-NFR-009`、`MR-002`、`MR-003`                                         | Interfaces Design §7.3；Mobile Design §7                             | §7.3〜§7.5、§8〜§11                   | verified App Link、Origin proof、暗号・replay validation は本書；共通 request field は Interfaces §6                                                                  |
+| `CR-006`、`CR-012`、`CR-NFR-012`；`RR-002`、`RR-NFR-002`                               | Signing Flow §7.3〜§7.4、§19；Architecture §6.3                      | §7.2、§12.3〜§12.4、§13〜§14          | Signer-originated result / delivery disposition は Signer；Relay ACK / consumed state は authority ではない                                                           |
+| `CR-NFR-003`〜`CR-NFR-011`、`RR-004`、`RR-006`、`RR-007`                               | Security Design §10、§15；Signing Flow §20〜§23；Relay Design §6〜§7 | §8、§12〜§14                          | expiry、duplicate、replay、generation、state loss は各 authority の lifecycle contract                                                                                |
+| `CR-008`、`CR-013`、`CR-NFR-002`、`CR-NFR-004`；`RR-008`                               | Architecture §6.8〜§6.9；Security Design §6；Mobile Design §11、§18  | §8.1、§11、§14〜§15                   | Wallet Store、秘密鍵、raw signing は wallet-core / trusted Binding；backup / migration は `OPEN-PROFILE-001`、`MOB-OPEN-006` / `MR-OPEN-006`                          |
+| `CR-NFR-006`、`CR-AC-008`、`MR-013`、`MR-AC-009`                                       | Architecture §3、§6.9、§16；Mobile Design §3.3、§23〜§24             | §7.5、§11、§14.4                      | Mainnet gate の存在、unknown 時 fail-closed、Testnet 継続は本書；platform matrix / runtime enforcement / Store は `MOB-OPEN-008` / `MR-OPEN-008` と release authority |
+
+### 16.1 OPEN の扱い
+
+`MOB-OPEN-003` / `MR-OPEN-003`（wallet-core Binding、OS protection、secret lifecycle）、`MOB-OPEN-006` / `MR-OPEN-006`（backup / restore、端末移行）、`MOB-OPEN-008` / `MR-OPEN-008`（platform matrix、capability report、runtime enforcement、Store release）および `OPEN-PROFILE-001` は、本書が未決定の具体条件を補完するための authority である。これらが未解決の間も、Mainnet gate の存在、gate failure / unknown 時の Mainnet disabled、Testnet-only continuation、Origin proof、four-condition gate、secret isolation および Relay の opaque 性は変更しない。これらの OPEN を解消するまで、具体的な OS / hardware / backup 条件を current v1 の必須契約として扱わない。
