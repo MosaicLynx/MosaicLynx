@@ -35,13 +35,13 @@ export const transactionAccount = (
   const normalizedSigner = signerPublicKey.toUpperCase();
   if (typeof accountId === 'string') {
     const account = byId(accounts, accountId);
-    if (account.identities[scope.chain].publicKey.toUpperCase() !== normalizedSigner)
+    if (account.chain !== scope.chain || account.identity.publicKey.toUpperCase() !== normalizedSigner)
       throw new AccountSelectionError('INVALID_TRANSACTION', 'The transaction signer does not match accountId.');
     return account;
   }
 
   const matches = accounts.filter(
-    (account) => account.identities[scope.chain].publicKey.toUpperCase() === normalizedSigner
+    (account) => account.chain === scope.chain && account.identity.publicKey.toUpperCase() === normalizedSigner
   );
   if (matches.length !== 1)
     throw new AccountSelectionError(

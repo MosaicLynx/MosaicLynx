@@ -115,15 +115,18 @@ const accountById = (store: ExtensionStore, profile: PublicProfile, accountId: s
   return account;
 };
 
-const projectAccount = (profile: PublicProfile, account: PublicAccount, scope: MosaicScope): MosaicAccount => ({
-  id: account.id,
-  profileId: profile.id,
-  name: account.name,
-  label: account.name,
-  address: account.identities[scope.chain].address,
-  publicKey: account.identities[scope.chain].publicKey,
-  scope,
-});
+const projectAccount = (profile: PublicProfile, account: PublicAccount, scope: MosaicScope): MosaicAccount => {
+  if (account.chain !== scope.chain) throw new Error('Account chain does not match profile scope.');
+  return {
+    id: account.id,
+    profileId: profile.id,
+    name: account.name,
+    label: account.name,
+    address: account.identity.address,
+    publicKey: account.identity.publicKey,
+    scope,
+  };
+};
 
 const permissionFor = (
   store: ExtensionStore,
@@ -157,7 +160,7 @@ const publicAccountsForOrigin = (store: ExtensionStore, origin: string): readonl
           grant.origin === origin &&
           grant.profileId === profile.id &&
           grant.network === profile.network &&
-          profile.enabledChains.includes(grant.chain)
+          profile.chain === grant.chain
       )
       .flatMap((grant) =>
         permittedAccounts(store, profile, grant).map((account) =>
@@ -679,8 +682,7 @@ const handleTransaction = async (origin: string, params: unknown, tabId: number)
   if (!('signedTransaction' in resolution))
     return providerError('INTERNAL_ERROR', 'The transaction approval result is invalid.');
   if (
-    resolution.signedTransaction.signerPublicKey.toUpperCase() !==
-      account.identities[scope.chain].publicKey.toUpperCase() ||
+    resolution.signedTransaction.signerPublicKey.toUpperCase() !== account.identity.publicKey.toUpperCase() ||
     !adapters[scope.chain].verifySignedTransaction(scope.network, input.payload, resolution.signedTransaction)
   )
     return providerError('INTERNAL_ERROR', 'The signed transaction failed independent verification.');
@@ -779,7 +781,7 @@ const handleMessage = async (origin: string, params: unknown, tabId: number): Pr
     return providerError('CONTEXT_CHANGED', 'Profile or permission changed during approval.');
   const signed = resolution.signedMessage;
   if (
-    signed.signerPublicKey.toUpperCase() !== account.identities[input.chain].publicKey.toUpperCase() ||
+    signed.signerPublicKey.toUpperCase() !== account.identity.publicKey.toUpperCase() ||
     signed.signingDigest.toLowerCase() !== expectedDigest ||
     JSON.stringify(signed.message) !== JSON.stringify(structured.message)
   )
@@ -845,7 +847,7 @@ const handleCosignature = async (origin: string, params: unknown, tabId: number)
   if (!resolution.approved) return providerError('USER_REJECTED', 'The cosignature request was rejected.');
   if (!('cosignature' in resolution) || resolution.cosignature.chain !== input.chain)
     return providerError('INTERNAL_ERROR', 'The cosignature approval result is invalid.');
-  if (resolution.cosignature.signerPublicKey.toUpperCase() !== account.identities[input.chain].publicKey.toUpperCase())
+  if (resolution.cosignature.signerPublicKey.toUpperCase() !== account.identity.publicKey.toUpperCase())
     return providerError('INTERNAL_ERROR', 'The cosignature signer does not match the approved account.');
   const current = await loadStore();
   const currentPermission = permissionFor(current, origin, profile.id, input);
@@ -880,7 +882,7 @@ const handleRequest = async (origin: string, request: RpcRequest, tabId: number)
             grant.origin === origin &&
             grant.profileId === profile.id &&
             grant.network === profile.network &&
-            profile.enabledChains.includes(grant.chain)
+            profile.chain === grant.chain
         )
         .flatMap((grant) =>
           permittedAccounts(store, profile, grant).map((account) =>

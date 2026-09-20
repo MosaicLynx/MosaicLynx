@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DuplicateMnemonicProfileError,
   type ExtensionStore,
-  LEGACY_STORAGE_KEY,
   STORAGE_KEYS,
   assertUniqueMnemonicProfile,
   deleteProfileFromStore,
@@ -13,7 +12,7 @@ import {
   loadStore,
 } from '../src/vault.js';
 
-describe('extension store migration', () => {
+describe('extension store schema', () => {
   let values: Record<string, unknown>;
 
   beforeEach(() => {
@@ -33,81 +32,36 @@ describe('extension store migration', () => {
     } as unknown as typeof chrome;
   });
 
-  it('separates accounts from legacy profiles before removing the V1 key', async () => {
-    const account = {
-      id: 'account-1',
-      profileId: 'profile-1',
-      name: 'Account 1',
-      identities: {},
-      source: {},
-      revision: 1,
-      createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-01T00:00:00.000Z',
-    };
-    values[LEGACY_STORAGE_KEY] = {
-      schemaVersion: 1,
-      profiles: [
-        {
-          id: 'profile-1',
-          name: 'Test',
-          network: 'testnet',
-          accounts: [account],
-          defaultAccountId: account.id,
-          nextAccountIndex: 1,
-          revision: 1,
-          createdAt: '2026-01-01T00:00:00.000Z',
-          updatedAt: '2026-01-01T00:00:00.000Z',
-        },
-      ],
-      vaults: [],
-      permissions: [],
-      usedMessageNonces: [],
-      settings: {
-        activeProfileId: 'profile-1',
-        activeChain: 'symbol',
-        language: 'ja',
-        theme: 'light',
-        autoLockMinutes: 15,
-      },
-    };
+  it('does not migrate an old store into the single-chain schema', async () => {
+    values.mosaicLynxMetaV2 = { schemaVersion: 2 };
 
-    const migrated = await loadStore();
+    const store = await loadStore();
 
-    expect(migrated.schemaVersion).toBe(2);
-    expect(migrated.accounts).toEqual([account]);
-    expect(migrated.profiles[0]).not.toHaveProperty('accounts');
-    expect(values[STORAGE_KEYS.profiles]).toEqual(migrated.profiles);
-    expect(values[STORAGE_KEYS.accounts]).toEqual([account]);
-    expect(values).not.toHaveProperty(LEGACY_STORAGE_KEY);
+    expect(store.schemaVersion).toBe(3);
+    expect(store.profiles).toEqual([]);
+    expect(chrome.storage.local.set).not.toHaveBeenCalled();
   });
 
-  it('keeps the V1 key when the V2 commit fails', async () => {
-    values[LEGACY_STORAGE_KEY] = {
-      schemaVersion: 1,
-      profiles: [],
-      vaults: [],
-      permissions: [],
-      usedMessageNonces: [],
-      settings: { activeChain: 'symbol', language: 'ja', theme: 'light', autoLockMinutes: 15 },
+  it('rejects a current-schema store that still contains mixed-chain data', async () => {
+    values[STORAGE_KEYS.meta] = {
+      schemaVersion: 3,
+      settings: { language: 'ja', theme: 'light', autoLockMinutes: 15 },
     };
-    vi.mocked(chrome.storage.local.set).mockRejectedValueOnce(new Error('storage full'));
+    values[STORAGE_KEYS.profiles] = [{ id: 'profile-1', enabledChains: ['symbol', 'nem'] }];
 
-    await expect(loadStore()).rejects.toThrow('storage full');
-
-    expect(values).toHaveProperty(LEGACY_STORAGE_KEY);
-    expect(chrome.storage.local.remove).not.toHaveBeenCalled();
+    await expect(loadStore()).rejects.toThrow('Unsupported mixed-chain profile store.');
   });
 });
 
 describe('profile deletion', () => {
   const store: ExtensionStore = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     profiles: [
       {
         id: 'profile-1',
         name: 'Delete me',
         network: 'testnet',
-        enabledChains: ['symbol'],
+        chain: 'symbol',
         defaultAccountId: 'account-1',
         nextAccountIndex: 1,
         hdAccountIds: ['account-1'],
@@ -119,7 +73,7 @@ describe('profile deletion', () => {
         id: 'profile-2',
         name: 'Keep me',
         network: 'mainnet',
-        enabledChains: ['nem'],
+        chain: 'nem',
         defaultAccountId: 'account-2',
         nextAccountIndex: 1,
         hdAccountIds: ['account-2'],
@@ -143,7 +97,6 @@ describe('profile deletion', () => {
     ] as ExtensionStore['usedMessageNonces'],
     settings: {
       activeProfileId: 'profile-1',
-      activeChain: 'symbol',
       language: 'ja',
       theme: 'light',
       autoLockMinutes: 15,
@@ -168,7 +121,6 @@ describe('profile deletion', () => {
     expect(next.permissions.map((grant) => grant.profileId)).toEqual(['profile-2']);
     expect(next.usedMessageNonces.map((entry) => entry.profileId)).toEqual(['profile-2']);
     expect(next.settings.activeProfileId).toBe('profile-2');
-    expect(next.settings.activeChain).toBe('nem');
   });
 
   it('does not allow the last profile to be deleted', () => {
@@ -180,12 +132,12 @@ describe('profile deletion', () => {
 
 describe('mnemonic profile uniqueness', () => {
   const mnemonic = generateMnemonic();
-  const identities = deriveSharedAccount('mainnet', mnemonic, 0).identities;
+  const identity = deriveSharedAccount('mainnet', mnemonic, 0).identities.symbol;
   const profile = {
     id: 'profile-root',
     name: 'Existing profile',
     network: 'mainnet' as const,
-    enabledChains: ['symbol', 'nem'] as const,
+    chain: 'symbol' as const,
     defaultAccountId: 'account-root',
     nextAccountIndex: 1,
     hdAccountIds: [] as readonly string[],
@@ -194,14 +146,15 @@ describe('mnemonic profile uniqueness', () => {
     updatedAt: '2026-01-01T00:00:00.000Z',
   };
   const store = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     profiles: [profile],
     accounts: [
       {
         id: 'account-root',
         profileId: profile.id,
+        chain: 'symbol' as const,
         name: 'Excluded root',
-        identities,
+        identity,
         source: {
           kind: 'mnemonicDerived' as const,
           secretRef: 'vault:profile-root:mnemonic:0',
@@ -220,7 +173,6 @@ describe('mnemonic profile uniqueness', () => {
     usedMessageNonces: [],
     settings: {
       activeProfileId: profile.id,
-      activeChain: 'symbol' as const,
       language: 'ja' as const,
       theme: 'light' as const,
       autoLockMinutes: 15,
@@ -228,14 +180,21 @@ describe('mnemonic profile uniqueness', () => {
   } satisfies ExtensionStore;
 
   it('detects the same root public keys for the same network, including excluded HD accounts', () => {
-    expect(findProfileByMnemonic(store, mnemonic, 'mainnet')).toBe(profile);
-    expect(() => assertUniqueMnemonicProfile(store, mnemonic, 'mainnet')).toThrow(DuplicateMnemonicProfileError);
-    expect(() => assertUniqueMnemonicProfile(store, mnemonic, 'mainnet')).toThrow('already exists');
+    expect(findProfileByMnemonic(store, mnemonic, 'mainnet', 'symbol')).toBe(profile);
+    expect(() => assertUniqueMnemonicProfile(store, mnemonic, 'mainnet', 'symbol')).toThrow(
+      DuplicateMnemonicProfileError
+    );
+    expect(() => assertUniqueMnemonicProfile(store, mnemonic, 'mainnet', 'symbol')).toThrow('already exists');
   });
 
   it('allows the same mnemonic in a profile for another network', () => {
-    expect(findProfileByMnemonic(store, mnemonic, 'testnet')).toBeUndefined();
-    expect(() => assertUniqueMnemonicProfile(store, mnemonic, 'testnet')).not.toThrow();
+    expect(findProfileByMnemonic(store, mnemonic, 'testnet', 'symbol')).toBeUndefined();
+    expect(() => assertUniqueMnemonicProfile(store, mnemonic, 'testnet', 'symbol')).not.toThrow();
+  });
+
+  it('allows the same mnemonic in a separate profile for the other chain', () => {
+    expect(findProfileByMnemonic(store, mnemonic, 'mainnet', 'nem')).toBeUndefined();
+    expect(() => assertUniqueMnemonicProfile(store, mnemonic, 'mainnet', 'nem')).not.toThrow();
   });
 
   it('does not treat a different root or an imported private key as a duplicate mnemonic', () => {
@@ -252,7 +211,7 @@ describe('mnemonic profile uniqueness', () => {
       ],
     };
 
-    expect(findProfileByMnemonic(store, generateMnemonic(), 'mainnet')).toBeUndefined();
-    expect(findProfileByMnemonic(importedStore, mnemonic, 'mainnet')).toBeUndefined();
+    expect(findProfileByMnemonic(store, generateMnemonic(), 'mainnet', 'symbol')).toBeUndefined();
+    expect(findProfileByMnemonic(importedStore, mnemonic, 'mainnet', 'symbol')).toBeUndefined();
   });
 });

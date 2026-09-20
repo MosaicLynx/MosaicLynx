@@ -8,10 +8,8 @@ import { ja } from '../src/popup/locales/ja.js';
 const account = {
   id: 'account-1',
   name: 'Account A',
-  identities: {
-    symbol: { address: 'TALICE', publicKey: 'A' },
-    nem: { address: 'NALICE', publicKey: 'B' },
-  },
+  chain: 'symbol',
+  identity: { address: 'TALICE', publicKey: 'A' },
 };
 
 const base = {

@@ -24,7 +24,7 @@ describe('extension backup mnemonic uniqueness', () => {
       profile: {
         id: 'backup-profile',
         network: 'testnet',
-        enabledChains: ['symbol', 'nem'],
+        chain: 'symbol',
         name: 'Backup profile',
         accountIds: ['backup-account'],
         hdAccountIds: ['backup-account'],
@@ -40,7 +40,8 @@ describe('extension backup mnemonic uniqueness', () => {
           id: 'backup-account',
           profileId: 'backup-profile',
           name: 'Account 1',
-          identities: restoredMaterial.identities,
+          chain: 'symbol',
+          identity: restoredMaterial.identities.symbol,
           source: {
             kind: 'mnemonicDerived',
             secretRef: 'vault:backup-profile:mnemonic:0',
@@ -67,7 +68,7 @@ describe('extension backup mnemonic uniqueness', () => {
           id: 'existing-profile',
           name: 'Existing profile',
           network: 'testnet',
-          enabledChains: ['symbol', 'nem'],
+          chain: 'symbol',
           defaultAccountId: 'existing-account',
           nextAccountIndex: 1,
           hdAccountIds: ['existing-account'],
@@ -81,7 +82,8 @@ describe('extension backup mnemonic uniqueness', () => {
           id: 'existing-account',
           profileId: 'existing-profile',
           name: 'Account 1',
-          identities: existingMaterial.identities,
+          chain: 'symbol',
+          identity: existingMaterial.identities.symbol,
           source: {
             kind: 'mnemonicDerived',
             secretRef: 'vault:existing-profile:mnemonic:0',
@@ -99,7 +101,6 @@ describe('extension backup mnemonic uniqueness', () => {
       usedMessageNonces: [],
       settings: {
         activeProfileId: 'existing-profile',
-        activeChain: 'symbol',
         language: 'ja',
         theme: 'light',
         autoLockMinutes: 15,

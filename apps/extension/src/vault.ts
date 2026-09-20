@@ -3,6 +3,7 @@ import { SymbolChainAdapter, deriveSharedAccount } from '@mosaiclynx/chain-symbo
 import {
   type AccountSource,
   type ChainIdentity,
+  type ChainKind,
   type PermissionGrant as CorePermissionGrant,
   type NetworkKind,
   type Profile,
@@ -12,26 +13,24 @@ import { exportProfileBackup, importProfileBackup, serializeProfileBackup } from
 import { webCryptoDriver } from '@mosaiclynx/relay-protocol';
 import { argon2idAsync } from '@noble/hashes/argon2.js';
 
-import { activeChainForEnabledChains } from './profile-state.js';
-
-export const LEGACY_STORAGE_KEY = 'mosaicLynxStoreV1';
-export const STORE_SCHEMA_VERSION = 2;
+export const STORE_SCHEMA_VERSION = 3;
 export const VAULT_SCHEMA_VERSION = 1;
 
 export const STORAGE_KEYS = {
-  meta: 'mosaicLynxMetaV2',
-  profiles: 'mosaicLynxProfilesV2',
-  accounts: 'mosaicLynxAccountsV2',
-  vaults: 'mosaicLynxVaultsV2',
-  permissions: 'mosaicLynxPermissionsV2',
-  usedMessageNonces: 'mosaicLynxUsedMessageNoncesV2',
+  meta: 'mosaicLynxMetaV3',
+  profiles: 'mosaicLynxProfilesV3',
+  accounts: 'mosaicLynxAccountsV3',
+  vaults: 'mosaicLynxVaultsV3',
+  permissions: 'mosaicLynxPermissionsV3',
+  usedMessageNonces: 'mosaicLynxUsedMessageNoncesV3',
 } as const;
 
 export interface PublicAccount {
   readonly id: string;
   readonly profileId: string;
+  readonly chain: ChainKind;
   readonly name: string;
-  readonly identities: Readonly<Record<'symbol' | 'nem', ChainIdentity>>;
+  readonly identity: ChainIdentity;
   readonly source: AccountSource;
   readonly status: 'active' | 'excluded';
   readonly excludedAt?: string;
@@ -44,7 +43,7 @@ export interface PublicProfile {
   readonly id: string;
   readonly name: string;
   readonly network: NetworkKind;
-  readonly enabledChains: readonly ('symbol' | 'nem')[];
+  readonly chain: ChainKind;
   readonly defaultAccountId: string;
   readonly nextAccountIndex: number;
   readonly hdAccountIds: readonly string[];
@@ -92,7 +91,7 @@ export interface VaultEnvelope {
 }
 
 export interface ExtensionStore {
-  readonly schemaVersion: 2;
+  readonly schemaVersion: 3;
   readonly profiles: readonly PublicProfile[];
   readonly accounts: readonly PublicAccount[];
   readonly vaults: readonly VaultEnvelope[];
@@ -107,7 +106,6 @@ export interface ExtensionStore {
   }[];
   readonly settings: {
     readonly activeProfileId?: string;
-    readonly activeChain: 'symbol' | 'nem';
     readonly language: 'ja' | 'en';
     readonly theme: 'light' | 'dark';
     readonly autoLockMinutes: number;
@@ -121,32 +119,38 @@ export class DuplicateMnemonicProfileError extends Error {
   }
 }
 
-const rootPublicKeysEqual = (left: PublicAccount['identities'], right: PublicAccount['identities']): boolean =>
-  (['symbol', 'nem'] as const).every(
-    (chain) => left[chain].publicKey.toUpperCase() === right[chain].publicKey.toUpperCase()
-  );
+const rootPublicKeysEqual = (left: ChainIdentity, right: ChainIdentity): boolean =>
+  left.publicKey.toUpperCase() === right.publicKey.toUpperCase();
 
 export const findProfileByMnemonic = (
   store: ExtensionStore,
   mnemonic: string,
-  network: NetworkKind
+  network: NetworkKind,
+  chain: ChainKind
 ): PublicProfile | undefined => {
-  const root = deriveSharedAccount(network, mnemonic, 0).identities;
+  const root = deriveSharedAccount(network, mnemonic, 0).identities[chain];
   return store.profiles.find(
     (profile) =>
       profile.network === network &&
+      profile.chain === chain &&
       store.accounts.some(
         (account) =>
           account.profileId === profile.id &&
+          account.chain === chain &&
           account.source.kind === 'mnemonicDerived' &&
           account.source.accountIndex === 0 &&
-          rootPublicKeysEqual(account.identities, root)
+          rootPublicKeysEqual(account.identity, root)
       )
   );
 };
 
-export const assertUniqueMnemonicProfile = (store: ExtensionStore, mnemonic: string, network: NetworkKind): void => {
-  const profile = findProfileByMnemonic(store, mnemonic, network);
+export const assertUniqueMnemonicProfile = (
+  store: ExtensionStore,
+  mnemonic: string,
+  network: NetworkKind,
+  chain: ChainKind
+): void => {
+  const profile = findProfileByMnemonic(store, mnemonic, network, chain);
   if (profile) throw new DuplicateMnemonicProfileError(profile.name);
 };
 
@@ -158,7 +162,6 @@ export const emptyStore = (): ExtensionStore => ({
   permissions: [],
   usedMessageNonces: [],
   settings: {
-    activeChain: 'symbol',
     language: navigator.language.startsWith('ja') ? 'ja' : 'en',
     theme: 'light',
     autoLockMinutes: 15,
@@ -193,7 +196,6 @@ export const deleteProfileFromStore = (store: ExtensionStore, profileId: string)
     settings: {
       ...store.settings,
       activeProfileId: nextActiveProfile.id,
-      activeChain: activeChainForEnabledChains(nextActiveProfile.enabledChains, store.settings.activeChain),
     },
   };
 };
@@ -339,69 +341,42 @@ export const decryptVault = async (envelope: VaultEnvelope, password: string): P
 };
 
 interface StoreMeta {
-  readonly schemaVersion: 2;
+  readonly schemaVersion: 3;
   readonly settings: ExtensionStore['settings'];
 }
 
-interface LegacyPublicProfile extends PublicProfile {
-  readonly accounts: readonly PublicAccount[];
-}
-
-interface LegacyExtensionStore extends Omit<ExtensionStore, 'schemaVersion' | 'profiles' | 'accounts'> {
-  readonly schemaVersion: 1;
-  readonly profiles: readonly LegacyPublicProfile[];
-}
-
-const migrateLegacyStore = (legacy: LegacyExtensionStore): ExtensionStore => ({
-  schemaVersion: STORE_SCHEMA_VERSION,
-  profiles: legacy.profiles.map(({ accounts, ...profile }) => ({
-    ...profile,
-    enabledChains: profile.enabledChains ?? ['symbol', 'nem'],
-    hdAccountIds:
-      profile.hdAccountIds ??
-      accounts.filter((account) => account.source.kind === 'mnemonicDerived').map((account) => account.id),
-  })),
-  accounts: legacy.profiles.flatMap((profile) => profile.accounts),
-  vaults: legacy.vaults ?? [],
-  permissions: legacy.permissions ?? [],
-  usedMessageNonces: legacy.usedMessageNonces ?? [],
-  settings: legacy.settings,
-});
-
 export const loadStore = async (): Promise<ExtensionStore> => {
-  const keys = [...Object.values(STORAGE_KEYS), LEGACY_STORAGE_KEY];
-  const stored = await chrome.storage.local.get(keys);
+  const stored = await chrome.storage.local.get(Object.values(STORAGE_KEYS));
   const meta = stored[STORAGE_KEYS.meta] as StoreMeta | undefined;
   if (meta?.schemaVersion === STORE_SCHEMA_VERSION) {
-    return {
+    const store: ExtensionStore = {
       schemaVersion: STORE_SCHEMA_VERSION,
-      profiles: ((stored[STORAGE_KEYS.profiles] as readonly PublicProfile[] | undefined) ?? []).map((profile) => ({
-        ...profile,
-        enabledChains: profile.enabledChains ?? ['symbol', 'nem'],
-        hdAccountIds: profile.hdAccountIds ?? [],
-      })),
-      accounts: ((stored[STORAGE_KEYS.accounts] as readonly PublicAccount[] | undefined) ?? []).map((account) => ({
-        ...account,
-        source:
-          account.source.kind === 'importedPrivateKey'
-            ? {
-                kind: 'importedPrivateKey' as const,
-                secretRef: account.source.secretRef,
-              }
-            : account.source,
-      })),
+      profiles: (stored[STORAGE_KEYS.profiles] as readonly PublicProfile[] | undefined) ?? [],
+      accounts: (stored[STORAGE_KEYS.accounts] as readonly PublicAccount[] | undefined) ?? [],
       vaults: (stored[STORAGE_KEYS.vaults] as readonly VaultEnvelope[] | undefined) ?? [],
       permissions: (stored[STORAGE_KEYS.permissions] as readonly PermissionGrant[] | undefined) ?? [],
       usedMessageNonces:
         (stored[STORAGE_KEYS.usedMessageNonces] as ExtensionStore['usedMessageNonces'] | undefined) ?? [],
       settings: meta.settings,
     };
+    if (
+      store.profiles.some((profile) => profile.chain !== 'symbol' && profile.chain !== 'nem') ||
+      store.accounts.some(
+        (account) =>
+          (account.chain !== 'symbol' && account.chain !== 'nem') ||
+          !account.identity ||
+          !account.identity.address ||
+          !/^[0-9A-Fa-f]{64}$/.test(account.identity.publicKey)
+      ) ||
+      store.accounts.some((account) => {
+        const profile = store.profiles.find((item) => item.id === account.profileId);
+        return !profile || profile.chain !== account.chain;
+      })
+    )
+      throw new Error('Unsupported mixed-chain profile store.');
+    return store;
   }
-  const legacy = stored[LEGACY_STORAGE_KEY] as LegacyExtensionStore | undefined;
-  if (!legacy) return emptyStore();
-  const migrated = migrateLegacyStore(legacy);
-  await saveStore(migrated);
-  return migrated;
+  return emptyStore();
 };
 
 export const saveStore = async (store: ExtensionStore): Promise<void> => {
@@ -413,24 +388,18 @@ export const saveStore = async (store: ExtensionStore): Promise<void> => {
     [STORAGE_KEYS.permissions]: store.permissions,
     [STORAGE_KEYS.usedMessageNonces]: store.usedMessageNonces,
   });
-  await chrome.storage.local.remove(LEGACY_STORAGE_KEY);
 };
 
-const identitiesForPrivateKey = (privateKey: string): PublicAccount['identities'] => {
-  const symbol = new SymbolChainAdapter().importAccount('testnet', privateKey);
-  const nem = new NemChainAdapter().importAccount('testnet', privateKey);
-  return {
-    symbol: { address: symbol.address, publicKey: symbol.publicKey },
-    nem: { address: nem.address, publicKey: nem.publicKey },
-  };
+const identityForPrivateKey = (chain: ChainKind, network: NetworkKind, privateKey: string): ChainIdentity => {
+  const account =
+    chain === 'symbol'
+      ? new SymbolChainAdapter().importAccount(network, privateKey)
+      : new NemChainAdapter().importAccount(network, privateKey);
+  return { address: account.address, publicKey: account.publicKey };
 };
 
-const identitiesEqual = (left: PublicAccount['identities'], right: PublicAccount['identities']): boolean =>
-  (['symbol', 'nem'] as const).every(
-    (chain) =>
-      left[chain].address === right[chain].address &&
-      left[chain].publicKey.toUpperCase() === right[chain].publicKey.toUpperCase()
-  );
+const identitiesEqual = (left: ChainIdentity, right: ChainIdentity): boolean =>
+  left.address === right.address && left.publicKey.toUpperCase() === right.publicKey.toUpperCase();
 
 export const exportExtensionProfileBackup = async (
   store: ExtensionStore,
@@ -475,14 +444,16 @@ export const importExtensionProfileBackup = async (
   const profileId = crypto.randomUUID();
   const accountIds = new Map(restored.accounts.map((account) => [account.id, crypto.randomUUID()]));
   for (const account of restored.accounts) {
-    const identities =
+    const identity =
       account.source.kind === 'mnemonicDerived'
-        ? deriveSharedAccount('testnet', restored.vault.mnemonic ?? '', account.source.accountIndex).identities
-        : identitiesForPrivateKey(restored.vault.importedPrivateKeys[account.id] ?? '');
-    if (!identitiesEqual(account.identities, identities)) throw new Error('Backup account identity mismatch.');
+        ? deriveSharedAccount('testnet', restored.vault.mnemonic ?? '', account.source.accountIndex).identities[
+            account.chain
+          ]
+        : identityForPrivateKey(account.chain, 'testnet', restored.vault.importedPrivateKeys[account.id] ?? '');
+    if (!identitiesEqual(account.identity, identity)) throw new Error('Backup account identity mismatch.');
   }
   if (restored.vault.mnemonic) {
-    assertUniqueMnemonicProfile(store, restored.vault.mnemonic, restored.profile.network);
+    assertUniqueMnemonicProfile(store, restored.vault.mnemonic, restored.profile.network, restored.profile.chain);
   }
   const now = new Date().toISOString();
   const accounts: PublicAccount[] = restored.accounts.map((account) => {
@@ -509,7 +480,7 @@ export const importExtensionProfileBackup = async (
     id: profileId,
     name: `${restored.profile.name} (restored)`,
     network: 'testnet' as const,
-    enabledChains: restored.profile.enabledChains ?? ['symbol', 'nem'],
+    chain: restored.profile.chain,
     defaultAccountId: accountIds.get(restored.profile.defaultAccountId)!,
     nextAccountIndex: restored.profile.nextAccountIndex,
     hdAccountIds: (
@@ -550,7 +521,6 @@ export const importExtensionProfileBackup = async (
     settings: {
       ...store.settings,
       activeProfileId: profileId,
-      activeChain: activeChainForEnabledChains(profile.enabledChains, store.settings.activeChain),
     },
   };
 };

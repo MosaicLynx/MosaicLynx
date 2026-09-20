@@ -11,7 +11,7 @@ const profile = {
   id: 'profile-1',
   name: 'Symbol only',
   network: 'testnet',
-  enabledChains: ['symbol'],
+  chain: 'symbol',
   defaultAccountId: 'account-1',
   nextAccountIndex: 1,
   hdAccountIds: ['account-1'],
@@ -24,10 +24,8 @@ const account = (status: PublicAccount['status']): PublicAccount => ({
   id: 'account-1',
   profileId: profile.id,
   name: 'Account 1',
-  identities: {
-    symbol: { address: 'TACCOUNT', publicKey: 'A'.repeat(64) },
-    nem: { address: 'NACCOUNT', publicKey: 'B'.repeat(64) },
-  },
+  chain: 'symbol',
+  identity: { address: 'TACCOUNT', publicKey: 'A'.repeat(64) },
   source: {
     kind: 'mnemonicDerived',
     secretRef: 'vault:profile-1:mnemonic:0',
@@ -41,7 +39,7 @@ const account = (status: PublicAccount['status']): PublicAccount => ({
 });
 
 describe('profile signing eligibility', () => {
-  it('allows only an enabled chain for the profile network', () => {
+  it('allows only the fixed chain for the profile network', () => {
     expect(isEnabledProfileScope(profile, { chain: 'symbol', network: 'testnet' })).toBe(true);
     expect(isEnabledProfileScope(profile, { chain: 'nem', network: 'testnet' })).toBe(false);
     expect(isEnabledProfileScope(profile, { chain: 'symbol', network: 'mainnet' })).toBe(false);

@@ -11,11 +11,9 @@ const account = (id: string, symbolPublicKey: string): PublicAccount => ({
   id,
   profileId: 'profile-1',
   name: id,
+  chain: 'symbol',
   revision: 1,
-  identities: {
-    symbol: { address: `T-${id}`, publicKey: symbolPublicKey },
-    nem: { address: `N-${id}`, publicKey: `NEM-${symbolPublicKey}` },
-  },
+  identity: { address: `T-${id}`, publicKey: symbolPublicKey },
   source: {
     kind: 'mnemonicDerived',
     secretRef: `vault:profile-1:mnemonic:${id}`,
@@ -42,11 +40,11 @@ describe('signing account selection', () => {
   });
 
   it('resolves an omitted transaction account from the payload signer instead of a default account', () => {
-    expect(transactionAccount([first, second], scope, second.identities.symbol.publicKey, undefined)).toBe(second);
+    expect(transactionAccount([first, second], scope, second.identity.publicKey, undefined)).toBe(second);
   });
 
   it('rejects explicit signer mismatch and ambiguous duplicate public keys', () => {
-    expect(() => transactionAccount([first, second], scope, second.identities.symbol.publicKey, first.id)).toThrow(
+    expect(() => transactionAccount([first, second], scope, second.identity.publicKey, first.id)).toThrow(
       expect.objectContaining({ code: 'INVALID_TRANSACTION' })
     );
     expect(() => transactionAccount([first, account('duplicate', 'AAAA')], scope, 'AAAA', undefined)).toThrow(

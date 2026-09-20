@@ -304,7 +304,7 @@ const App = () => {
               />
               <span>
                 <strong>{account.name}</strong>
-                <small>{account.identities[approval.scope.chain].address}</small>
+                <small>{account.identity.address}</small>
               </span>
             </label>
           ))}

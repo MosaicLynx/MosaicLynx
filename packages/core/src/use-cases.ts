@@ -105,7 +105,7 @@ export class AccountService {
     const profile = await this.profiles.getById(profileId);
     if (!profile) throw new MosaicLynxError('PROFILE_NOT_FOUND', 'Profile was not found.');
     const account = await this.accounts.getById(profile.defaultAccountId);
-    if (!account || account.profileId !== profileId)
+    if (!account || account.profileId !== profileId || account.chain !== profile.chain)
       throw new MosaicLynxError('ACCOUNT_NOT_FOUND', 'Default account was not found.');
     return account;
   }

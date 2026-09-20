@@ -1,13 +1,13 @@
 import { NemChainAdapter } from '@mosaiclynx/chain-nem';
 import { deriveSharedAccount, generateMnemonic } from '@mosaiclynx/chain-symbol';
 import { SymbolChainAdapter } from '@mosaiclynx/chain-symbol';
+import type { ChainKind } from '@mosaiclynx/core';
 import DarkModeOutlined from '@mui/icons-material/DarkModeOutlined';
 import LightModeOutlined from '@mui/icons-material/LightModeOutlined';
 import VisibilityOffOutlined from '@mui/icons-material/VisibilityOffOutlined';
 import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
-import Checkbox from '@mui/material/Checkbox';
 import Chip from '@mui/material/Chip';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -18,6 +18,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import LinearProgress from '@mui/material/LinearProgress';
+import Radio from '@mui/material/Radio';
 import TextField from '@mui/material/TextField';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
@@ -27,7 +28,6 @@ import { createRoot } from 'react-dom/client';
 import { useTranslation } from 'react-i18next';
 
 import { hasRemainingActiveAccount } from '../background/profile-eligibility.js';
-import { activeChainForEnabledChains } from '../profile-state.js';
 import { MAINNET_SIGNING_ENABLED } from '../release-capabilities.js';
 import { revokeTrustedPage, trustedPagesForProfile } from '../trusted-pages.js';
 import { AppThemeProvider, setAppThemeMode } from '../ui/theme.js';
@@ -54,7 +54,6 @@ type CreateMode = 'new' | 'import';
 type OnboardingStep = 'welcome' | 'method' | 'details' | 'import' | 'import-review' | 'backup' | 'confirm' | 'complete';
 type Language = ExtensionStore['settings']['language'];
 type HomeView = 'home' | 'menu' | 'profiles' | 'accounts' | 'connections' | 'backup' | 'restore';
-type ProfileChain = 'symbol' | 'nem';
 type AccountAddMode = 'choice' | 'hd' | 'privateKey';
 type ConfirmationAction =
   | { readonly kind: 'account'; readonly name: string }
@@ -65,7 +64,7 @@ type ConfirmationAction =
       readonly accountCount: number;
     };
 
-const PROFILE_CHAINS: readonly ProfileChain[] = ['symbol', 'nem'];
+const PROFILE_CHAINS: readonly ChainKind[] = ['symbol', 'nem'];
 
 const normalizeMnemonic = (value: string): string => value.trim().toLowerCase().split(/\s+/).join(' ');
 
@@ -135,7 +134,7 @@ const App = () => {
   const [mode, setMode] = useState<CreateMode>('new');
   const [name, setName] = useState('');
   const [network, setNetwork] = useState<'mainnet' | 'testnet'>('testnet');
-  const [enabledChains, setEnabledChains] = useState<readonly ('symbol' | 'nem')[]>(['symbol', 'nem']);
+  const [chain, setChain] = useState<ChainKind>('symbol');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [hint, setHint] = useState('');
@@ -147,7 +146,6 @@ const App = () => {
   const [error, setError] = useState('');
   const [homeView, setHomeView] = useState<HomeView>('home');
   const [profileNameDraft, setProfileNameDraft] = useState('');
-  const [profileChainsDraft, setProfileChainsDraft] = useState<readonly ProfileChain[]>([]);
   const [pendingProfileId, setPendingProfileId] = useState<string>();
   const [accountNameDraft, setAccountNameDraft] = useState('');
   const [accountPassword, setAccountPassword] = useState('');
@@ -261,7 +259,7 @@ const App = () => {
     setMode('new');
     setName('');
     setNetwork('testnet');
-    setEnabledChains(['symbol', 'nem']);
+    setChain('symbol');
     setPassword('');
     setConfirmation('');
     setHint('');
@@ -280,7 +278,6 @@ const App = () => {
 
   const validateDetails = (): void => {
     if (!name.trim()) throw new Error(t('requiredName'));
-    if (!enabledChains.length) throw new Error(t('selectProfileChain'));
     if (password.length < 12) throw new Error(t('shortPassword'));
     if (password !== confirmation) throw new Error(t('mismatchPassword'));
   };
@@ -308,7 +305,7 @@ const App = () => {
       const normalized = normalizeMnemonic(mnemonic);
       if (normalized.split(' ').length !== 24) throw new Error(t('invalidMnemonic'));
       const material = deriveSharedAccount(network, normalized, 0);
-      assertUniqueMnemonicProfile(store, normalized, network);
+      assertUniqueMnemonicProfile(store, normalized, network, chain);
       setMnemonic(normalized);
       setImportPreview(material);
       setStep('import-review');
@@ -334,15 +331,16 @@ const App = () => {
         if (confirmed !== normalized) throw new Error(t('wrongOrder'));
       }
       const material = deriveSharedAccount(network, normalized, 0);
-      assertUniqueMnemonicProfile(store, normalized, network);
+      assertUniqueMnemonicProfile(store, normalized, network, chain);
       const profileId = crypto.randomUUID();
       const accountId = crypto.randomUUID();
       const now = new Date().toISOString();
       const account: PublicAccount = {
         id: accountId,
         profileId,
+        chain,
         name: 'Account 1',
-        identities: material.identities,
+        identity: material.identities[chain],
         source: {
           kind: 'mnemonicDerived',
           secretRef: `vault:${profileId}:mnemonic:0`,
@@ -358,7 +356,7 @@ const App = () => {
         id: profileId,
         name: name.trim(),
         network,
-        enabledChains,
+        chain,
         defaultAccountId: accountId,
         nextAccountIndex: 1,
         hdAccountIds: [accountId],
@@ -409,7 +407,6 @@ const App = () => {
     if (view === 'profiles' && store) {
       const active = store.profiles.find((item) => item.id === store.settings.activeProfileId);
       setProfileNameDraft(active?.name ?? '');
-      setProfileChainsDraft(active?.enabledChains ?? []);
     }
     if (view === 'accounts' && store) {
       const active = store.profiles.find((item) => item.id === store.settings.activeProfileId);
@@ -423,11 +420,7 @@ const App = () => {
     const selected = store.profiles.find((item) => item.id === profileId);
     if (!selected) return;
     setProfileNameDraft(selected?.name ?? '');
-    setProfileChainsDraft(selected?.enabledChains ?? []);
-    await updateSettings({
-      activeProfileId: profileId,
-      activeChain: activeChainForEnabledChains(selected.enabledChains, store.settings.activeChain),
-    });
+    await updateSettings({ activeProfileId: profileId });
   };
 
   const saveProfile = async (): Promise<void> => {
@@ -440,11 +433,6 @@ const App = () => {
       setError(t('requiredName'));
       return;
     }
-    if (!profileChainsDraft.length) {
-      setError(t('selectProfileChain'));
-      return;
-    }
-    const enabledChains = [...new Set(profileChainsDraft)];
     const now = new Date().toISOString();
     const next: ExtensionStore = {
       ...store,
@@ -453,24 +441,17 @@ const App = () => {
           ? {
               ...item,
               name: profileNameDraft.trim(),
-              enabledChains,
               revision: item.revision + 1,
               updatedAt: now,
             }
           : item
       ),
-      settings: {
-        ...store.settings,
-        activeChain: activeChainForEnabledChains(enabledChains, store.settings.activeChain),
-      },
-      permissions: store.permissions.filter(
-        (grant) => grant.profileId !== active.id || enabledChains.includes(grant.chain)
-      ),
+      settings: store.settings,
+      permissions: store.permissions,
     };
     await saveStore(next);
     setStore(next);
     setProfileNameDraft(profileNameDraft.trim());
-    setProfileChainsDraft(enabledChains);
     setNotice(t('profileSaved'));
   };
 
@@ -530,7 +511,6 @@ const App = () => {
     setStore(next);
     const nextActive = next.profiles.find((item) => item.id === next.settings.activeProfileId);
     setProfileNameDraft(nextActive?.name ?? '');
-    setProfileChainsDraft(nextActive?.enabledChains ?? []);
     setProfileDeletionName('');
     setNotice(t('profileDeleted'));
   };
@@ -648,8 +628,9 @@ const App = () => {
       const newAccount: PublicAccount = {
         id: accountId,
         profileId: active.id,
+        chain: active.chain,
         name: accountNameDraft.trim(),
-        identities: material.identities,
+        identity: material.identities[active.chain],
         source: {
           kind: 'mnemonicDerived',
           secretRef: `vault:${active.id}:mnemonic:${active.nextAccountIndex}`,
@@ -710,12 +691,13 @@ const App = () => {
     setError('');
     try {
       const key = importPrivateKey.trim().toUpperCase();
-      let symbol;
-      let nem;
+      let accountMaterial;
       try {
         new PrivateKey(key);
-        symbol = new SymbolChainAdapter().importAccount(active.network, key);
-        nem = new NemChainAdapter().importAccount(active.network, key);
+        accountMaterial =
+          active.chain === 'symbol'
+            ? new SymbolChainAdapter().importAccount(active.network, key)
+            : new NemChainAdapter().importAccount(active.network, key);
       } catch {
         throw new Error(t('invalidPrivateKey'));
       }
@@ -730,11 +712,9 @@ const App = () => {
       const account: PublicAccount = {
         id,
         profileId: active.id,
+        chain: active.chain,
         name: accountNameDraft.trim(),
-        identities: {
-          symbol: { address: symbol.address, publicKey: symbol.publicKey },
-          nem: { address: nem.address, publicKey: nem.publicKey },
-        },
+        identity: { address: accountMaterial.address, publicKey: accountMaterial.publicKey },
         source: { kind: 'importedPrivateKey', secretRef: `vault:${active.id}:private:${id}` },
         status: 'active',
         revision: 1,
@@ -779,13 +759,8 @@ const App = () => {
       const contents = await decryptVault(envelope, accountPassword);
       if (!contents.mnemonic) throw new Error('SECRET_NOT_FOUND');
       const material = deriveSharedAccount(profile.network, contents.mnemonic, account.source.accountIndex);
-      if (
-        (['symbol', 'nem'] as const).some(
-          (chain) =>
-            material.identities[chain].address !== account.identities[chain].address ||
-            material.identities[chain].publicKey !== account.identities[chain].publicKey
-        )
-      )
+      const identity = material.identities[profile.chain];
+      if (identity.address !== account.identity.address || identity.publicKey !== account.identity.publicKey)
         throw new Error('ACCOUNT_IDENTITY_MISMATCH');
       const vault = await encryptVault(
         profile.id,
@@ -938,22 +913,17 @@ const App = () => {
               </label>
               <fieldset className="field full-field profile-chain-options">
                 <legend>{t('chains')}</legend>
-                {PROFILE_CHAINS.map((chain) => (
+                {PROFILE_CHAINS.map((candidateChain) => (
                   <FormControlLabel
-                    key={chain}
+                    key={candidateChain}
                     control={
-                      <Checkbox
-                        checked={enabledChains.includes(chain)}
-                        disabled={enabledChains.length === 1 && enabledChains.includes(chain)}
-                        onChange={() =>
-                          setEnabledChains((current) =>
-                            current.includes(chain) ? current.filter((item) => item !== chain) : [...current, chain]
-                          )
-                        }
+                      <Radio
+                        checked={candidateChain === chain}
+                        onChange={() => setChain(candidateChain)}
                         size="small"
                       />
                     }
-                    label={chain === 'symbol' ? 'Symbol' : 'NEM'}
+                    label={candidateChain === 'symbol' ? 'Symbol' : 'NEM'}
                   />
                 ))}
               </fieldset>
@@ -1041,9 +1011,8 @@ const App = () => {
             <section className="review-card">
               <strong>Account 1</strong>
               <span>Symbol</span>
-              <code>{importPreview.identities.symbol.address}</code>
-              <span>NEM</span>
-              <code>{importPreview.identities.nem.address}</code>
+              <span>{chain === 'symbol' ? 'Symbol' : 'NEM'}</span>
+              <code>{importPreview.identities[chain].address}</code>
             </section>
             {error && (
               <p className="form-error" role="alert">
@@ -1218,16 +1187,12 @@ const App = () => {
     );
   }
 
-  const activeChain = activeChainForEnabledChains(profile.enabledChains, store.settings.activeChain);
-  const scope = { chain: activeChain, network: profile.network } as const;
-  const activeAddress = account?.identities[scope.chain].address;
-  const activePublicKey = account?.identities[scope.chain].publicKey;
+  const scope = { chain: profile.chain, network: profile.network } as const;
+  const activeAddress = account?.identity.address;
+  const activePublicKey = account?.identity.publicKey;
   const profileAccounts = store.accounts.filter((item) => item.profileId === profile.id && item.status !== 'excluded');
   const trustedPages = trustedPagesForProfile(store.permissions, profile.id);
-  const profileDraftDirty =
-    profileNameDraft.trim() !== profile.name ||
-    profileChainsDraft.length !== profile.enabledChains.length ||
-    profileChainsDraft.some((chain) => !profile.enabledChains.includes(chain));
+  const profileDraftDirty = profileNameDraft.trim() !== profile.name;
   const requestProfileSelection = (profileId: string): void => {
     if (profileId === profile.id) return;
     if (profileDraftDirty) {
@@ -1444,27 +1409,10 @@ const App = () => {
             <span>{t('profileName')}</span>
             <input value={profileNameDraft} onChange={(event) => setProfileNameDraft(event.target.value)} />
           </label>
-          <fieldset className="field full-field profile-chain-options">
-            <legend>{t('chains')}</legend>
-            {PROFILE_CHAINS.map((chain) => (
-              <FormControlLabel
-                key={chain}
-                control={
-                  <Checkbox
-                    checked={profileChainsDraft.includes(chain)}
-                    disabled={profileChainsDraft.length === 1 && profileChainsDraft.includes(chain)}
-                    onChange={() =>
-                      setProfileChainsDraft((current) =>
-                        current.includes(chain) ? current.filter((item) => item !== chain) : [...current, chain]
-                      )
-                    }
-                    size="small"
-                  />
-                }
-                label={chain === 'symbol' ? 'Symbol' : 'NEM'}
-              />
-            ))}
-          </fieldset>
+          <p className="field profile-chain-readonly">
+            <span>{t('chains')}</span>
+            <strong>{profile.chain === 'symbol' ? 'Symbol' : 'NEM'}</strong>
+          </p>
           {error && (
             <p className="form-error" role="alert">
               {error}
@@ -1532,7 +1480,7 @@ const App = () => {
               >
                 <span>
                   <strong>{item.name}</strong>
-                  <small className="account-address">{item.identities[scope.chain].address}</small>
+                  <small className="account-address">{item.identity.address}</small>
                 </span>
                 {item.id === profile.defaultAccountId && <b>{t('active')}</b>}
               </button>
@@ -1584,7 +1532,7 @@ const App = () => {
               <>
                 <p>{t('privateKeyAccountBody')}</p>
                 <small className="password-hint">
-                  {t('chains')}: {profile.enabledChains.map((chain) => chain.toUpperCase()).join(' / ')}
+                  {t('chains')}: {profile.chain.toUpperCase()}
                 </small>
                 <label className="field">
                   <span>{t('accountName')}</span>
@@ -1849,18 +1797,7 @@ const App = () => {
         </div>
       </header>
       <section className="home-account-section">
-        <ToggleButtonGroup className="tabs" exclusive fullWidth value={scope.chain} aria-label="Chain">
-          {profile.enabledChains.includes('symbol') && (
-            <ToggleButton value="symbol" onClick={() => void updateSettings({ activeChain: 'symbol' })}>
-              Symbol
-            </ToggleButton>
-          )}
-          {profile.enabledChains.includes('nem') && (
-            <ToggleButton value="nem" onClick={() => void updateSettings({ activeChain: 'nem' })}>
-              NEM
-            </ToggleButton>
-          )}
-        </ToggleButtonGroup>
+        <Chip className="chain-chip" label={scope.chain === 'symbol' ? 'Symbol' : 'NEM'} />
         <label className="field account-select">
           <span>{t('account')}</span>
           <select value={profile.defaultAccountId} onChange={(event) => void selectAccount(event.target.value)}>

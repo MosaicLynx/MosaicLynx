@@ -88,6 +88,10 @@ const validatePlaintext = (value: ProfileBackupPlaintext): void => {
   )
     throw new TypeError('Backup accounts do not belong to the profile.');
   if (
+    value.permissions.some((grant) => grant.profileId !== value.profile.id || grant.scope.chain !== value.profile.chain)
+  )
+    throw new TypeError('Backup permissions do not belong to the profile chain.');
+  if (
     value.profile.accountIds.length !== value.accounts.length ||
     value.profile.accountIds.some((id) => !value.accounts.some((account) => account.id === id))
   )
