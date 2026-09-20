@@ -141,6 +141,7 @@ export class AccountService {
 export class PermissionService {
   public constructor(
     private readonly permissions: PermissionRepository,
+    private readonly profiles: ProfileRepository,
     private readonly clock: Clock
   ) {}
 
@@ -158,6 +159,10 @@ export class PermissionService {
     }
     if (!/^https?:\/\//.test(canonicalOrigin) || accountIds.length === 0)
       throw new MosaicLynxError('INVALID_PARAMS', 'Permission must include a web origin and account.');
+    const profile = await this.profiles.getById(profileId);
+    if (!profile) throw new MosaicLynxError('PROFILE_NOT_FOUND', 'Profile was not found.');
+    if (profile.network !== scope.network || profile.chain !== scope.chain)
+      throw new MosaicLynxError('PROFILE_SCOPE_MISMATCH', 'Permission scope does not match the profile.');
     const now = this.clock.now().toISOString();
     const existing = await this.permissions.get(canonicalOrigin, profileId, scope);
     const grant: PermissionGrant = {

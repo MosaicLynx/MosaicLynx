@@ -131,15 +131,26 @@ describe('Core profile, account, permission and message boundaries', () => {
   });
 
   it('scopes permissions by origin, profile, chain, network and account set', async () => {
-    const permissions = new PermissionService(new MemoryPermissions(), clock);
+    const profiles = new MemoryProfiles();
+    const profile = await new ProfileService(profiles, clock, ids).create(
+      'mainnet',
+      'nem',
+      'Permissions',
+      'account-1',
+      'vault-permissions'
+    );
+    const permissions = new PermissionService(new MemoryPermissions(), profiles, clock);
     const mainnet = createChainScope('nem', 'mainnet');
-    await permissions.grant('https://example.com/path', 'profile-1', mainnet, ['account-1']);
-    await expect(permissions.assertConnected('https://example.com', 'profile-1', mainnet)).resolves.toMatchObject({
+    await permissions.grant('https://example.com/path', profile.id, mainnet, ['account-1']);
+    await expect(permissions.assertConnected('https://example.com', profile.id, mainnet)).resolves.toMatchObject({
       accountIds: ['account-1'],
       revision: 1,
     });
     await expect(
-      permissions.assertConnected('https://example.com', 'profile-1', createChainScope('nem', 'testnet'))
+      permissions.grant('https://example.com', profile.id, createChainScope('symbol', 'mainnet'), ['account-1'])
+    ).rejects.toMatchObject({ code: 'PROFILE_SCOPE_MISMATCH' });
+    await expect(
+      permissions.assertConnected('https://example.com', profile.id, createChainScope('nem', 'testnet'))
     ).rejects.toMatchObject({ code: 'UNAUTHORIZED_ORIGIN' });
   });
 

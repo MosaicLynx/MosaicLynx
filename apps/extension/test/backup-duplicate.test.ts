@@ -62,7 +62,7 @@ describe('extension backup mnemonic uniqueness', () => {
       },
     };
     const store: ExtensionStore = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       profiles: [
         {
           id: 'existing-profile',
