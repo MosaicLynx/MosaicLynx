@@ -9,6 +9,8 @@
 - `docs/reviews/implementation/` に Implementation Review 成果物はなく、実装コードは存在するが正式な Implementation Review は未実施。
 - Mainnet capability は signed release evidence がない限り fail-closed。現在の `docs/evidence/evidence-policy.json` は Lite（release approval 1、security approval 0）で、trusted key は未登録のため、現行 build は Testnet-only として扱う。
 - Root `README.md` は存在しない `@mosaiclynx/mobile` package と `evidence:mobile` script を参照している。Mobile 実装が追加されるまで、README の記載は実装済み capability の根拠にしない。
+- 2026-09-20 ユーザー決定: Symbol と NEM の両方を同一 Profile で利用できる構成は廃止する。Symbol / NEM の対応自体は維持し、Profile は単一 Chain を境界とする方向で Requirements → Specification → Design → Implementation の順に再整理する。開発中のため、既存の混在 Profile / backup との互換性、移行、引継ぎは考慮せず、現行モデルを直接変更する。
+- 2026-09-20 現行の `docs/specifications/profile-account-spec.md`、`docs/specifications/product-spec.md`、`packages/core`、`apps/extension` は `enabledChains` と Symbol / NEM 両方の `identities` を前提としている。このユーザー決定により、該当契約・レビュー判定・実装テストは再評価が必要で、実装着手前に上流 Requirements の変更を行う。
 
 ## Memory boundary
 

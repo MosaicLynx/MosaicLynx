@@ -93,7 +93,9 @@ Relay milestone は、Relay が利用者判断や署名を行うことではな�
 
 ### 4.2 Profile と Account の共通要求
 
+- 一つの Profile は、Symbol または NEM のいずれか一つの Chain にだけ属さなければならない。Symbol と NEM の両方を利用する場合は、Chain ごとに別の Profile を使用する。
 - 署名対象となる Profile、Account、Chain、Network の関係を曖昧にしてはならない。
+- 一つの Profile に異なる Chain の Account / Key Identity、接続許可または署名権限を同時に関連付けてはならない。
 - 利用者が署名に使用する Account を確認・選択できなければならない。
 - 秘密情報を利用できない状態では署名してはならない。
 - 利用者の認証条件、Signer の unlock 状態、対象 Profile / Chain / Network / Account の署名認可および利用者の明示的承認がすべて成立しない限り、Signer は秘密情報を使用して署名してはならない。
@@ -272,6 +274,16 @@ SDK、dApp および Relay は、Signer の検証、認証、Account authorizati
 
 根拠: コンセプト 3、8、11、13。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/requirements/sdk.md`。
 
+### CR-017 Profile と Chain の単一境界（Application / Signer）
+
+**MUST** 一つの Profile は、Symbol または NEM のいずれか一つの Chain にだけ属する単一 Chain 境界でなければならない。同一 Profile を Symbol と NEM の両方の Account / Key Identity、接続許可または署名権限に利用してはならない。利用者が Symbol と NEM の両方を利用する場合は、Chain ごとに独立した Profile として扱わなければならない。
+
+Profile、Account、接続許可、署名要求、承認および署名結果の関係は、Profile が属する単一 Chain と一致しなければならない。別 Chain の Account、権限、要求または承認への暗黙の切り替え、共有、fallback または移送を行ってはならない。
+
+本要件は開発中の構成変更を対象とし、既存の複数 Chain Profile または backup との後方互換性、移行および引継ぎを要求しない。単一 Chain Profile の具体的な作成・保存・Account 関連付け・権限管理・表示・エラー・状態遷移は後続の仕様・設計で定める。
+
+根拠: ユーザー決定「Symbol と NEM の両方を利用できる Profile 構成の廃止」、CR-005、CR-NFR-005。下流: `docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/sdk.md`、`docs/specifications/profile-account-spec.md`、`docs/specifications/product-spec.md`。
+
 ## 6. 共通の非機能・セキュリティ要求
 
 ### CR-NFR-001 外部入力を信頼しない（Signer / Relay / End-to-End）
@@ -437,6 +449,7 @@ MosaicLynx v1 は、一般ユーザーの安全な署名判断、秘密情報の
 | CR-AC-017   | `CR-003`, `CR-009`, `CR-010`, `CR-016`         | Signer / dApp / SDK / Relay        | 対象署名要求について、利用者の認証条件、署名可能な unlock 状態、対象 Profile / Chain / Network / Account の署名認可および利用者の明示的承認がすべて成立した場合に限り、Signer が署名し署名結果を返す。                                                                                                                              | 未認証、locked、Account authorization 不成立、authorization 状態の確認不能、Profile / Chain / Network / Account 不整合または利用者未承認の場合は、Signer が署名せず署名結果を成功として返さない。dApp、SDK、Relay はこれらを成立・更新・迂回できない。 |
 | CR-AC-018   | `CR-015`, `CR-008`, `CR-NFR-001`, `CR-NFR-002` | SDK / Signer / Relay / dApp        | SDK が dApp 側の Signer 外の連携接点として動作し、秘密情報を保管・復号・利用せず、署名せず、利用者の最終承認を成立させず、Signer が SDK 経由の入力を検証前に信頼しない。                                                                                                                                                            | SDK、dApp または Relay が秘密情報を扱う、署名する、最終承認を成立させる、または Signer の検証・承認・署名条件を迂回する場合は、Signer が署名を継続せず署名結果を返さない。                                                                             |
 | CR-AC-019   | `CR-NFR-013`                                   | 全体 / Security boundary           | Security 要求の合否が、MosaicLynx が管理する Signer / 承認境界の正常動作を前提に判定され、同境界内の秘密情報分離、明示的承認、入力非信頼および外部主体による条件迂回不可を確認できる。OS、端末、Browser、dApp / Web page、正規配布 artifact その他管理境界外の完全 compromise は、MosaicLynx の完全防御保証の対象として扱われない。 | 保証境界を特定できない場合、または管理境界外の完全 compromise まで防御する無条件保証として扱う場合は、Security の成功条件を満たさない。                                                                                                                |
+| CR-AC-020   | `CR-017`, `CR-005`, `CR-NFR-005`               | Application / Signer / End-to-End  | Profile ごとに単一の Chain が確認でき、同一 Profile に Symbol と NEM の Account / Key Identity、接続許可または署名権限が同時に関連付かない。Symbol と NEM の両方を利用する場合は、Chain ごとに別 Profile として扱われる。                                                                                                           | 複数 Chain を同一 Profile に関連付けた状態、別 Chain の Account・権限・要求・承認の暗黙の切り替え、共有、fallback または移送を確認した場合は、その構成を成立させず、署名結果を成功として返さない。                                                     |
 
 ## 9. 共通の未決事項
 
@@ -490,7 +503,7 @@ OPEN-004 は履歴上の欠番であり、現在の未決事項としては扱�
 1. `CR-OPEN-001` で、確定した責任境界に沿った wallet-core の具体的な統合方式を決定する。
 2. `CR-OPEN-002` で各 platform の Binding と秘密情報ライフサイクルの境界を決定する。
 3. Profile 全体の backup / restore は v1 共通要求へ含めず、個別 platform で提供する場合の Application と wallet-core の責任分担を、その platform の要件・仕様で定める。
-4. `CR-015`、`CR-016`、`CR-NFR-013` を含む共通要求を、適用範囲に応じて [ブラウザ拡張機能要件](./browser-extension.md)、[スマホアプリ要件](./mobile-app.md)、[Relay 要件](./relay.md) および [SDK 要件](./sdk.md) へ引き継ぐ。各 Signer は署名前提を満たし、SDK と Relay は Signer の外部境界として検証・認証・認可・承認・署名条件を迂回しない責任を具体化する。
+4. `CR-015`、`CR-016`、`CR-017`、`CR-NFR-013` を含む共通要求を、適用範囲に応じて [ブラウザ拡張機能要件](./browser-extension.md)、[スマホアプリ要件](./mobile-app.md)、[Relay 要件](./relay.md) および [SDK 要件](./sdk.md) へ引き継ぐ。各 Signer は単一 Chain Profile の境界と署名前提を満たし、SDK と Relay は Signer の外部境界として検証・認証・認可・承認・署名条件を迂回しない責任を具体化する。
 5. `OPEN-001`、`OPEN-002`、`OPEN-003`、`OPEN-005` を各 platform 要件へ引き継ぐ。`OPEN-005` は確定済みの Mainnet gate を前提に、release / security operation の詳細を扱う。`OPEN-004` は履歴上の欠番であり、未決事項として引き継がない。
 6. 共通要求を満たすために必要な API、データ形式、parser、エラー、状態遷移、暗号方式、UI、テストの詳細を、後続の仕様・設計で定める。
 7. `FUTURE-001` は MosaicLynx v1 の要求・完了判定へ取り込まず、将来検討時まで保留する。
