@@ -32,7 +32,7 @@ Mnemonic は Profile の共通 root として扱うが、Account / Key Identity 
 - Symbol: Symbol-specific な導出契約で Symbol Software Key を導出し、Symbol の正本実装から Symbol Account の public key と address を取得する。
 - NEM: NEM-specific な導出契約で NEM Software Key を導出し、NEM の正本実装から NEM Account の public key と address を取得する。
 
-Symbol 用に導出した秘密鍵を NEM 用として、または NEM 用に導出した秘密鍵を Symbol 用として暗黙に利用してはならない。同じ mnemonic、同じ Profile または同じ account index を使用しても、Symbol / NEM の Account / Key Identity は別々に管理する。
+Symbol 用に導出した秘密鍵を NEM 用として、または NEM 用に導出した秘密鍵を Symbol 用として暗黙に利用してはならない。同じ mnemonic または同じ account index を別 Profile で使用しても、Symbol / NEM の Account / Key Identity は別々に管理する。
 
 `accountIndex`は0から始まる31-bit unsigned integerとし、Profileの`nextAccountIndex`をcopy-on-write commit成功後にだけ増加させる。削除、backup restore、失敗した追加によって既使用indexを再利用しない。具体的な derivation path、algorithm、library、seed encoding、hardened rule および各 Chain の key implementation は Wallet Core / Chain integration の責務であり、本書では新たに定義しない。
 

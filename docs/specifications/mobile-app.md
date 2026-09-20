@@ -705,7 +705,7 @@ Mobile App の実装は、少なくとも次を満たす場合に本仕様へ適
 
 1. iOS と Android が別々の milestone として評価され、片方の capability・test・release evidence が他方または v1 全体の完了へ流用されない。
 2. App Link、Relay、notification、OS metadata、SDK または外部 App からの入力が validation 前に trusted 扱いされず、malformed、unknown、duplicate、replay、late、expired、wrong recipient、wrong generation、wrong Scope および tampered input が approval / signing に到達しない。
-3. Profile Network、enabled Chain、selected Account、payload signer、expected signer、public identity および request Scope の対応が確認でき、Profile / Account の暗黙切替や cross-chain identity reuse が起こらない。
+3. Profile Network、Profile.chain、selected Account、payload signer、expected signer、public identity および request Scope の対応が確認でき、Profile / Account の暗黙切替や cross-chain identity reuse が起こらない。
 4. Authentication、Signing-capable unlock、Account authorization および Explicit user approval の全組合せについて、一つでも欠ける場合に wallet-core が呼び出されず、成功 result が返らない。四条件は同一 request / target / Profile-local context に binding される。
 5. transaction 全体、structured message、Aggregate / parent / embedded / inner transaction および適用可能な multisig / cosignature context が chain-specific に検証・表示できない場合に、warning-only、hash-only、Node lookup、raw signing または別 operation fallback が起こらない。
 6. `signData` が transaction signing と区別され、message content、purpose、nonce、issued / expiry、source / domain context と実際の signing input が同一の検証済み model から導出される。
