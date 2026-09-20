@@ -1,5 +1,6 @@
 import {
   type Account,
+  type ChainKind,
   type ConnectionScope,
   MosaicLynxError,
   type NetworkKind,
@@ -25,27 +26,25 @@ export class ProfileService {
 
   public async create(
     network: NetworkKind,
+    chain: ChainKind,
     name: string,
     initialAccountId: string,
-    vaultRef: string,
-    enabledChains: readonly ('symbol' | 'nem')[] = ['symbol', 'nem']
+    vaultRef: string
   ): Promise<Profile> {
     const normalizedName = name.trim();
-    const normalizedChains = [...new Set(enabledChains)];
     if (
       !normalizedName ||
       !initialAccountId ||
       !vaultRef ||
       (network !== 'mainnet' && network !== 'testnet') ||
-      normalizedChains.length === 0 ||
-      normalizedChains.some((chain) => chain !== 'symbol' && chain !== 'nem')
+      (chain !== 'symbol' && chain !== 'nem')
     )
       throw new MosaicLynxError('INVALID_PARAMS', 'Profile fields are invalid.');
     const now = this.clock.now().toISOString();
     const profile: Profile = {
       id: this.ids.next(),
       network,
-      enabledChains: normalizedChains,
+      chain,
       name: normalizedName,
       accountIds: [initialAccountId],
       hdAccountIds: [initialAccountId],
@@ -73,10 +72,9 @@ export class AccountService {
     if (!profile) throw new MosaicLynxError('PROFILE_NOT_FOUND', 'Profile was not found.');
     if (
       !account.name.trim() ||
-      !account.identities.symbol.address ||
-      !account.identities.nem.address ||
-      !/^[0-9A-Fa-f]{64}$/.test(account.identities.symbol.publicKey) ||
-      !/^[0-9A-Fa-f]{64}$/.test(account.identities.nem.publicKey)
+      account.chain !== profile.chain ||
+      !account.identity.address ||
+      !/^[0-9A-Fa-f]{64}$/.test(account.identity.publicKey)
     )
       throw new MosaicLynxError('INVALID_PARAMS', 'Account identity is invalid.');
     if (
@@ -234,8 +232,11 @@ export class SigningService {
   }): Promise<{ readonly payload: string; readonly hash: string; readonly signerPublicKey: string }> {
     await this.vault.assertUnlocked(input.profileId);
     if (!input.payload) throw new MosaicLynxError('INVALID_PARAMS', 'Transaction payload is required.');
+    const account = await this.account(input.profileId, input.accountId);
+    if (account.chain !== input.chain)
+      throw new MosaicLynxError('PROFILE_SCOPE_MISMATCH', 'Transaction chain does not match the account chain.');
     return this.crypto.signTransaction({
-      account: await this.account(input.profileId, input.accountId),
+      account,
       profileId: input.profileId,
       chain: input.chain,
       payload: input.payload,

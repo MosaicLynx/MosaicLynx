@@ -76,6 +76,7 @@ describe('Core profile, account, permission and message boundaries', () => {
     const profiles = new MemoryProfiles();
     const profile = await new ProfileService(profiles, clock, ids).create(
       'mainnet',
+      'symbol',
       'Personal',
       'account-0',
       'vault-1'
@@ -87,8 +88,9 @@ describe('Core profile, account, permission and message boundaries', () => {
       accounts.add({
         id: 'account-1',
         profileId: profile.id,
+        chain: 'symbol',
         name: 'Invalid reused index',
-        identities: { symbol: identity('N'), nem: identity('NEM') },
+        identity: identity('N'),
         source: { kind: 'mnemonicDerived', secretRef: 'secret', accountIndex: 1, derivationPath: 'path' },
         revision: 1,
         createdAt: clock.now().toISOString(),
@@ -102,6 +104,7 @@ describe('Core profile, account, permission and message boundaries', () => {
     const accounts = new MemoryAccounts();
     const profile = await new ProfileService(profiles, clock, ids).create(
       'testnet',
+      'nem',
       'Imported only',
       'account-imported',
       'vault-imported'
@@ -109,8 +112,9 @@ describe('Core profile, account, permission and message boundaries', () => {
     await accounts.save({
       id: 'account-imported',
       profileId: profile.id,
+      chain: 'nem',
       name: 'Imported',
-      identities: { symbol: identity('S'), nem: identity('N') },
+      identity: identity('N'),
       source: { kind: 'importedPrivateKey', secretRef: 'secret' },
       status: 'active',
       revision: 1,

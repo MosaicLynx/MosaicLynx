@@ -19,8 +19,8 @@ export const createChainScope = (chain: ChainKind, network: NetworkKind): Connec
 export interface Profile {
   readonly id: string;
   readonly network: NetworkKind;
-  /** Chains whose accounts are visible and may be used by this profile. */
-  readonly enabledChains: readonly ChainKind[];
+  /** The chain is fixed when the profile is created. */
+  readonly chain: ChainKind;
   readonly name: string;
   readonly accountIds: readonly string[];
   /** Active mnemonic-derived account sets. Imported accounts are not included here. */
@@ -50,8 +50,9 @@ export interface ChainIdentity {
 export interface Account {
   readonly id: string;
   readonly profileId: string;
+  readonly chain: ChainKind;
   readonly name: string;
-  readonly identities: Readonly<Record<ChainKind, ChainIdentity>>;
+  readonly identity: ChainIdentity;
   readonly source: AccountSource;
   /** Removing an HD account only excludes it. Its encrypted key material is removed by the vault. */
   readonly status: 'active' | 'excluded';
@@ -74,7 +75,6 @@ export interface PermissionGrant {
 export interface SessionState {
   readonly activeProfileId: string | undefined;
   readonly activeAccountId: string | undefined;
-  readonly activeChain: ChainKind;
   readonly lockedProfileIds: readonly string[];
 }
 

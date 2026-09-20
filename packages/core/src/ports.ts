@@ -2,7 +2,7 @@ import type { Account, ConnectionScope, PermissionGrant, Profile, UnlockMethod }
 
 export interface SharedAccountMaterial {
   readonly privateKey: string;
-  readonly identities: Account['identities'];
+  readonly identities: Readonly<Record<'symbol' | 'nem', { readonly address: string; readonly publicKey: string }>>;
 }
 
 /** Legacy single-chain material retained for adapter compatibility. */
