@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@mosaiclynx/provider-api": "workspace:*",
     "@mosaiclynx/sdk": "workspace:*",
     "@nemnesia/symbol-sdk": "3.3.2-pure.2"
   },

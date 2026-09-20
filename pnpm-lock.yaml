@@ -120,9 +120,6 @@ importers:
 
   apps/test-dapp:
     dependencies:
-      '@mosaiclynx/provider-api':
-        specifier: workspace:*
-        version: link:../../packages/provider-api
       '@mosaiclynx/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk

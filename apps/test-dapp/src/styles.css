@@ -151,6 +151,14 @@ h2 {
   gap: 24px;
   margin-bottom: 28px;
 }
+.section-help {
+  max-width: 360px;
+  margin: 0;
+  color: #899791;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: right;
+}
 .chain-switch {
   display: flex;
   padding: 4px;
@@ -232,6 +240,9 @@ textarea:focus {
   transition:
     transform 0.15s,
     filter 0.15s;
+}
+.message-card {
+  border-color: #30473e;
 }
 .primary:hover,
 .secondary:hover {
@@ -318,6 +329,10 @@ dd {
   .section-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .section-help {
+    max-width: none;
+    text-align: left;
   }
   .chain-switch {
     width: 100%;

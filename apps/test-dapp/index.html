@@ -13,8 +13,8 @@
           <p class="eyebrow">MosaicLynx · SDK test bench</p>
           <h1>Transfer Lab</h1>
           <p class="lede">
-            Symbol / NEM の未署名 Transfer を組み立て、MosaicLynxへ署名を依頼します。ネットワークへの announce
-            は行いません。
+            Symbol / NEM の Transfer と構造化メッセージを組み立て、MosaicLynxへ署名を依頼します。ネットワークへの
+            announce は行いません。
           </p>
         </div>
         <div id="provider-status" class="status waiting"><span></span>確認中</div>
@@ -27,6 +27,7 @@
         </div>
         <div>
           <button id="connect" class="secondary" type="button">MosaicLynxに接続</button>
+          <button id="refresh-account" class="text-button" type="button">状態を更新</button>
           <button id="disconnect" class="text-button" type="button">接続解除</button>
         </div>
         <div id="account" class="account muted">まだ接続されていません</div>
@@ -35,7 +36,7 @@
       <section class="card composer">
         <div class="section-heading">
           <div>
-            <p class="section-label">02 · Compose</p>
+            <p class="section-label">02 · Transaction</p>
             <h2>転送内容</h2>
           </div>
           <div class="chain-switch" role="group" aria-label="チェーン">
@@ -73,10 +74,58 @@
         </form>
       </section>
 
+      <section class="card message-card">
+        <div class="section-heading">
+          <div>
+            <p class="section-label">03 · Message</p>
+            <h2>構造化メッセージ</h2>
+          </div>
+          <p class="section-help">MosaicLynxが生成するnonce・有効期限・Originを含めて署名します。</p>
+        </div>
+
+        <form id="message-form">
+          <div class="grid two">
+            <label
+              >Purpose
+              <input
+                id="message-purpose"
+                type="text"
+                value="mosaiclynx.test"
+                pattern="[a-z0-9][a-z0-9._:-]{0,63}"
+                maxlength="64"
+                required
+              />
+            </label>
+            <label
+              >Encoding
+              <select id="message-encoding" required>
+                <option value="utf8">UTF-8</option>
+                <option value="hex">Hex bytes</option>
+              </select>
+            </label>
+          </div>
+          <label
+            >Data
+            <textarea
+              id="message-data"
+              rows="5"
+              maxlength="32768"
+              placeholder="MosaicLynx structured message test"
+              required
+            ></textarea>
+          </label>
+          <div class="notice">
+            Signer側でmessageの内容、Purpose、Chain / Network、AccountおよびOriginを確認します。入力は16
+            KiB以内にしてください。
+          </div>
+          <button id="sign-message" class="primary" type="submit">メッセージに署名</button>
+        </form>
+      </section>
+
       <section class="card result-card">
         <div class="section-heading">
           <div>
-            <p class="section-label">03 · Result</p>
+            <p class="section-label">04 · Result</p>
             <h2>署名結果</h2>
           </div>
           <button id="copy" class="text-button" type="button" disabled>JSON をコピー</button>
