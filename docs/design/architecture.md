@@ -38,6 +38,7 @@
 7. 外部入力は境界ごとに検証する。Relay の構造検証は Signer の意味解析・表示・承認を代替しない。
 8. Manifest V3 Service Worker、Mobile OS、Relay の可用性を、秘密鍵の保持や承認済み署名の安全な再開の前提にしない。
 9. 署名に必要な解析・検証・承認・wallet-core 呼び出しは、外部 node へ問い合わせずローカルで完結できる境界を持つ。
+10. Application Profile は作成時に一つの Network と一つの Chain に固定する。Symbol と NEM の両方を利用する場合は Chain ごとに別 Profile を使用し、異なる Chain の Account、permission または signing context を同じ Profile に関連付けない。
 
 ## 4. システムコンテキスト
 
@@ -172,6 +173,8 @@ Relay の credential と E2E session secret は同一視しない。Relay が扱
 MosaicLynx 側の共通 domain は、Profile / Account のアプリケーション上の関連付け、接続 scope、Permission、署名要求の lifecycle、Chain / Network の文脈、承認 policy、結果対応および安全側失敗を扱う。
 
 ここでいう Profile / Account は MosaicLynx Application の表示・接続・選択モデルであり、`wallet-core` の Profile、Software Key、Wallet Store と同一の責任単位ではない。Application は wallet-core が返す opaque Store を保存・受け渡しできるが、その内部形式を解釈・編集しない。
+
+Application Profile は作成時に一つの Network と一つの Chain を持ち、作成後に Chain を切り替えない。Application Account、default Account、permission、active context および signing authorization はその Profile の Chain と一致するものだけを関連付ける。Symbol と NEM を利用する場合は Chain ごとに別 Profile を選択し、Profile switch は旧 Profile の approval、authentication、Account authorization および pending request を失効させる。異なる Chain の Account や permission を一つの Profile に関連付けること、また request に応じて Profile の Chain を暗黙に切り替えることを設計上許可しない。
 
 ### 6.7 Chain integration / transaction inspection
 
@@ -353,7 +356,7 @@ Mobile App の Profile / Account 表示・選択・関連付け、OS 保護能�
 | dApp に見せる operation の意味と結果分類                                              | hash、署名対象 bytes、署名検証、aggregate / multisig / cosignature の扱い   |
 | host 間の wallet-core Binding 境界                                                    | `wallet-core` が提供する Chain-specific key / public identity / raw signing |
 
-Symbol と NEM は同じ Application の署名接点から扱えるが、Account / Key Identity は別々に管理する。各 Account は Chain、Profile の Network および対応する chain-specific Software Key に明示的に関連付ける。mnemonic からの導出では対象 Chain を指定して Chain ごとの導出契約を利用し、Symbol 用の秘密鍵を NEM 用として、または NEM 用の秘密鍵を Symbol 用として暗黙に利用しない。一つの Account の秘密鍵を Symbol / NEM で暗黙共用する標準 Account model は採用しない。具体的な derivation path、algorithm、library および raw private key import の検証・UX は wallet-core / Chain integration または platform 下位設計へ委譲する。
+Symbol と NEM は同じ Application の署名接点から扱えるが、Profile は一つの Chain に固定する。両 Chain を利用する場合は Chain ごとに別 Profile を使用し、各 Profile 内で Account / Key Identity、default Account、permission および signing context を単一 Chain に限定する。各 Account は Chain、Profile の Network および対応する chain-specific Software Key に明示的に関連付ける。mnemonic からの導出では対象 Chain を指定して Chain ごとの導出契約を利用し、Symbol 用の秘密鍵を NEM 用として、または NEM 用の秘密鍵を Symbol 用として暗黙に利用しない。一つの Account の秘密鍵を Symbol / NEM で暗黙共用する標準 Account model は採用しない。具体的な derivation path、algorithm、library および raw private key import の検証・UX は wallet-core / Chain integration または platform 下位設計へ委譲する。
 
 ## 14. オンライン / ローカル処理境界
 
@@ -411,6 +414,7 @@ Architecture で定める責務、不変条件および未決事項は、次の�
 | dApp 側の非特権連携、要求構築、対応付け、transport abstraction、共通署名ゲートの非代替（`SDK-OPEN-002` / `003` / `004` / `006` / `007`）                      | [SDK 基本設計](./sdk.md) §4、§6、§11–§18、§22–§25                                                                                                                             | SDK / dApp 側の連携層                                                        | API、wire format、transport 選択、caller binding、version policy、再試行 / エラー詳細                                                         |
 | Symbol / NEM および Mainnet / Testnet の分離、チェーン固有 inspection、対応 type / version、署名対象 bytes                                                    | [Chain Compatibility Specification](../specifications/chain-compatibility-spec.md)                                                                                            | チェーン固有 integration と wallet-core 契約                                 | schema、type / version の具体範囲、serialization、hash / signature bytes、fixture および parser 詳細                                          |
 | Application の Profile / Account 関連付け、署名 Account 利用認可、Profile 全体 backup / restore の共通非包含、`CR-OPEN-001` / `002` の Profile / Account 対応 | [Profile / Account 仕様](../specifications/profile-account-spec.md)                                                                                                           | MosaicLynx Application（host が適用）                                        | permission 構造、backup / restore、migration、opaque Store の具体形式および platform ごとの提供範囲                                           |
+| `CR-017` / `CR-AC-020` の単一 Chain Profile 境界、異なる Chain の Account / permission / signing context の分離                                               | [Requirements](../requirements/requirements.md) `CR-017`、`CR-AC-020`、[Profile / Account 仕様](../specifications/profile-account-spec.md) §3、§11、§26                       | MosaicLynx Application（各 host が適用）                                     | Profile metadata、Account association、permission の具体構造、既存データ移行・互換性および backup format は下位仕様 / OPEN へ委譲             |
 | Wallet Store、鍵管理、秘密情報処理、raw signing および固定済み v1 Binding（`CR-OPEN-001` / `002` の host integration を除く）                                 | [`wallet-core` 外部仕様](../../_snwc/docs/specifications/specification.md)                                                                                                    | `wallet-core`（秘密情報処理） / host adapter（連携）                         | Rust / Binding API、暗号処理、鍵導出、秘密情報の一時 lifecycle、ownership、error mapping。固定済み Binding 方式を Architecture で再選択しない |
 | Mainnet capability、release evidence、evidence 不足時の fail-closed                                                                                           | [Mainnet release evidence](../release/mainnet-release-evidence.md)                                                                                                            | Release / Operation と `packages/release-evidence`                           | evidence の収集・署名・信頼鍵・build embedding・runtime enforcement の運用詳細                                                                |
 | v1 message signing の共通能力、transaction signing との分離、既存 handoff の result / failure semantics                                                       | [Web Transaction Handoff 仕様](../specifications/web-transaction-handoff-spec.md) §2、§5.2、§5.2.1、および [Signing Protocol](../specifications/signing-protocol.md) §15〜§16 | Signer と handoff の各責任主体                                               | `signData`、`SignedData`、wire schema、encoding、具体的 error mapping および platform 表示受け入れ条件                                        |

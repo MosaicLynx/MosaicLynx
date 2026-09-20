@@ -134,7 +134,7 @@ Wallet Core を信頼することは、Application の承認を Wallet Core に�
 - アプリ内で新規秘密鍵を生成でき、mnemonic import と raw private key import を許可する。
 - import は MosaicLynx 自身の UI で利用者が明示的に行う。外部アプリ、SDK、dApp からの自動 import は禁止する。
 
-Symbol と NEM の Account / Key Identity は別々に管理する。Account は Chain、Profile が固定する Network および chain-specific な Key Identity に明示的に関連付ける。mnemonic から導出する場合は対象 Chain を明示し、その Chain に対応する導出契約を使用する。Symbol 用に導出した秘密鍵を NEM 用として、または NEM 用に導出した秘密鍵を Symbol 用として暗黙に利用する Account model は採用しない。具体的な導出 path、algorithm、library、address 導出および Wallet Store 形式は Wallet Core / Chain integration へ委譲する。
+Symbol と NEM の Account / Key Identity は別々に管理する。Application Profile は一つの Chain と Profile が固定する Network に属し、Account、default Account、permission および signing authorization はその Chain に一致するものだけを関連付ける。Symbol と NEM の両方を利用する場合は Chain ごとに別 Profile を使用し、同一 Profile の Chain を切り替えたり、異なる Chain の Account / permission を混在させたりしない。mnemonic から導出する場合は対象 Chain を明示し、その Chain に対応する導出契約を使用する。Symbol 用に導出した秘密鍵を NEM 用として、または NEM 用に導出した秘密鍵を Symbol 用として暗黙に利用する Account model は採用しない。具体的な導出 path、algorithm、library、address 導出および Wallet Store 形式は Wallet Core / Chain integration へ委譲する。
 
 ### 6.2 保存・処理・破棄
 
@@ -377,6 +377,7 @@ Relay、Node、外部 API の障害を理由に検証を省略せず、必須情
 11. 認証・署名確認 UI は MosaicLynx 自身が制御する。
 12. セキュリティ異常時は署名可能状態を解除し、以前の承認状態を再利用しない。
 13. Mainnet capability は current release policy / evidence gate に従って fail-closed にし、evidence または policy を判定できない場合は Mainnet を有効化しない。
+14. 一つの Application Profile は一つの Chain に固定し、異なる Chain の Account、permission、approval、authentication、signing authorization または result を同じ Profile context に関連付けない。両 Chain の利用は Chain ごとに分離された Profile context とする。
 
 ## 18. 下位設計への委譲事項
 
@@ -409,7 +410,7 @@ Relay、Node、外部 API の障害を理由に検証を省略せず、必須情
 次は解決済み事項である。
 
 - **SEC-OPEN-001（解決済み）**: Profile / Account 仕様 §20 を署名ごとの再認証に固定し、`while-unlocked` による署名時認証の省略を有効な実装条件から除外した。UNLOCKED は profile の利用状態であり、signing authentication の代替ではない。
-- **SEC-OPEN-003（解決済み）**: Symbol / NEM は別 Key Identity として扱い、mnemonic からは対象 Chain を明示して Chain ごとの導出契約を利用する。具体的な導出仕様は Wallet Core / Chain integration に委譲し、一つの Account の秘密鍵を Symbol / NEM で暗黙共用する Account model は採用しない。
+- **SEC-OPEN-003（解決済み）**: Symbol / NEM は別 Profile の別 Key Identity として扱い、mnemonic からは対象 Chain を明示して Chain ごとの導出契約を利用する。具体的な導出仕様は Wallet Core / Chain integration に委譲し、一つの Account の秘密鍵を Symbol / NEM で暗黙共用する Account model は採用しない。
 
 ## 関連資料
 

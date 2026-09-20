@@ -63,18 +63,18 @@ MosaicLynx は announce、node 選択、残高、履歴または継続的な net
 
 ## 3. 用語
 
-| 用語                | 本書での意味                                                                                                                                                      |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Signer              | Browser Extension または Mobile App。署名判断と Wallet Core 呼び出しの主体。                                                                                      |
-| Signing request     | 一つの署名判断に必要な request、caller、session、Profile、operation、Account、Chain、Network および signing target の論理的な組。                                 |
-| Signing target      | 実際に署名される transaction、aggregate、cosignature 対象、message または chain-specific な署名対象。                                                             |
-| Transaction context | transaction 本体、embedded transaction、parent aggregate、multisig wrapper、partial state など、signing target を意味解釈するために必要な chain-specific 情報。   |
-| Inspection          | Signing target を parse、validation、semantic analysis し、confirmation model を生成する処理。                                                                    |
-| Confirmation model  | 利用者へ提示する、Signer が signing target から生成した確認可能な情報の論理表現。UI schema や画面 layout ではない。                                               |
-| Profile             | Signer 内部で Profile Network、Chain-specific Account / Key Identity および Wallet Core context を一意に解決する Application context。公開 field を要求しない。   |
-| Authorization       | Authentication、Signing-capable unlock、Account authorization および Explicit user approval の4条件が、特定の request / target / Profile に独立して成立した状態。 |
-| Result unknown      | 署名生成自体の成否を、署名成功・未署名のいずれとも安全に判定できない状態。配送失敗の意味には使用しない。                                                          |
-| Partial             | Chain / network 上または handoff 上の transaction 状態を表す chain-specific context。共通の署名 primitive 名ではない。                                            |
+| 用語                | 本書での意味                                                                                                                                                                      |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Signer              | Browser Extension または Mobile App。署名判断と Wallet Core 呼び出しの主体。                                                                                                      |
+| Signing request     | 一つの署名判断に必要な request、caller、session、Profile、operation、Account、Chain、Network および signing target の論理的な組。                                                 |
+| Signing target      | 実際に署名される transaction、aggregate、cosignature 対象、message または chain-specific な署名対象。                                                                             |
+| Transaction context | transaction 本体、embedded transaction、parent aggregate、multisig wrapper、partial state など、signing target を意味解釈するために必要な chain-specific 情報。                   |
+| Inspection          | Signing target を parse、validation、semantic analysis し、confirmation model を生成する処理。                                                                                    |
+| Confirmation model  | 利用者へ提示する、Signer が signing target から生成した確認可能な情報の論理表現。UI schema や画面 layout ではない。                                                               |
+| Profile             | Signer 内部で固定された Profile Chain / Network、Chain-specific Account / Key Identity および Wallet Core context を一意に解決する Application context。公開 field を要求しない。 |
+| Authorization       | Authentication、Signing-capable unlock、Account authorization および Explicit user approval の4条件が、特定の request / target / Profile に独立して成立した状態。                 |
+| Result unknown      | 署名生成自体の成否を、署名成功・未署名のいずれとも安全に判定できない状態。配送失敗の意味には使用しない。                                                                          |
+| Partial             | Chain / network 上または handoff 上の transaction 状態を表す chain-specific context。共通の署名 primitive 名ではない。                                                            |
 
 ## 4. 設計原則
 
@@ -101,7 +101,7 @@ Signing request は、次の概念情報を binding した論理単位として�
 | operation                       | transaction、cosignature、message など、署名の意味と検証経路を固定する。                                                                                                                  |
 | caller context                  | Browser が観測した Origin / tab / frame / document、または Mobile handoff で検証した要求元 context。                                                                                      |
 | session context                 | 接続・handoff・transport の session。permission や signing authorization と同一視しない。                                                                                                 |
-| Profile                         | Application が選択した Profile と固定された Profile Network。Signer 内部で対象 Account / Key Identity および Wallet Core context を一意に解決する。                                       |
+| Profile                         | Application が選択した、一つの Chain と Network に固定された Profile。Signer 内部で対象 Account / Key Identity および Wallet Core context を一意に解決する。                              |
 | permission context              | 対象 caller が対象 Account / Chain / Network を利用できる許可範囲。承認時の scope / revision または同等の不変識別子を binding する。                                                      |
 | Account                         | 対象 Profile / Network の Chain-specific Account / Key Identity として Signer 内部で一意に解決された signing identity。                                                                   |
 | Chain / Network                 | Symbol / NEM および Mainnet / Testnet の対象。別の対象へ暗黙変換しない。                                                                                                                  |
@@ -259,7 +259,7 @@ flowchart TD
 1. **Receive**: SDK、Provider または Mobile handoff から要求を受け、request identity と transport context を保持する。
 2. **Structural validation**: 必須 context、サイズ、形式、protocol / capability、freshness、重複および完全性を検証する。
 3. **Caller / permission validation**: browser が観測した caller、Mobile が検証した handoff context、現在の permission、session、要求元の scope を検証する。自己申告 Origin だけを信頼しない。
-4. **Profile / Chain / Network / Account validation**: Signer 内部で Profile、Profile Network、Chain-specific Account / Key Identity および Wallet Core context を一意に解決し、選択 Account、expected signer、payload 内 signer、対象 Chain / Network および operation の対応を検証する。Profile を公開 request field として要求することは、この binding の前提ではない。
+4. **Profile / Chain / Network / Account validation**: Signer 内部で一つの Chain / Network に固定された Profile、Chain-specific Account / Key Identity および Wallet Core context を一意に解決し、選択 Account、expected signer、payload 内 signer、対象 Chain / Network および operation の対応を検証する。Profile を公開 request field として要求することは、この binding の前提ではない。
 5. **Chain-specific parse / validation**: Symbol / NEM の正本 SDK、Chain integration および固定契約に従って parse、型、version、network、サイズ、canonicality および署名状態を検証する。
 6. **Semantic inspection**: 送信先、資産、fee、deadline、message、権限・authority、metadata、multisig 等の確認可能な影響を解析する。
 7. **Confirmation**: inspection result から Signer 管理 UI 用の confirmation model を生成し、利用者の Explicit user approval を受ける。
@@ -379,7 +379,7 @@ Message signing でも、元 request、caller、Profile、Account、Chain / Netw
 対象 protocol / operation が要求する適用可能な context を保持・検証する。
 
 - 検証済み caller / Origin
-- Profile と Profile Network
+- Profile と Profile Chain / Network
 - Account、Chain、Network
 - purpose / operation
 - message contents
@@ -410,7 +410,7 @@ raw bytes を利用者が意味確認できないまま表示して署名する�
 Inspection result は、Signer が signing target から生成する内部の確認モデルである。少なくとも適用可能な次の分類を持つ。
 
 - request / caller / session context
-- Profile、Profile Network および Profile-bound Account / Key Identity
+- Profile、Profile Chain / Network および Profile-bound Account / Key Identity
 - operation、Chain、Network、Account、expected signer / role
 - target の schema、type、version、parent / aggregate / multisig context
 - recipient、asset、mosaic、amount、fee、deadline、message
@@ -428,7 +428,7 @@ Confirmation model は、表示時点の signing target と全適用 context、4
 
 - payload、transaction、aggregate、embedded / inner transaction、message contents
 - parent hash、transactions hash、signature、cosignature、signer、expected signer
-- Profile、Profile Network、Account、Chain、Network、caller、Origin、session、permission、operation
+- Profile、Profile Chain / Network、Account、Chain、Network、caller、Origin、session、permission、operation
 - request freshness、expiry、capability または protocol context
 
 Profile、Account、Chain / Network、caller context、relevant permission / session、Authentication、Signing-capable unlock、Account authorization または Explicit user approval のいずれかを確認できない場合も、confirmation と Authorization を無効化する。
@@ -629,8 +629,8 @@ MosaicLynx は署名後の announce、node 選択または継続的な network s
 2. 利用者が確認した target と実際の signing target は一致しなければならない。
 3. Authentication、Signing-capable unlock、対象 Profile / Chain / Network / Account に対する Account authorization および Explicit user approval は独立した4条件であり、すべてが同じ request / target / signing context に対して成立しない限り署名しない。
 4. connection、permission、capability、session、単なる `UNLOCKED`、過去の authentication、wallet-core password / Store validation または Relay delivery success は、共通署名ゲートの代替にならない。Signer は4条件を成立・再確認し、dApp、SDK、Provider、Content Script、Relay および Wallet Core は成立・変更・免除・迂回しない。
-5. payload、transaction context、Profile、Profile Network、Account、Chain、Network、caller、session、operation、signer、expected signer、承認時の permission context または protocol / capability context が変われば Authorization は失効する。
-6. Profile、Profile-bound Account / Key Identity、approval、authentication、signing target、signing および result は、Signer 内部で同じ Profile context に binding する。Profile switch、Profile lock、Profile association change、Account switch、Chain / Network switch、caller context change または relevant permission / session change 後に古い context を流用しない。
+5. payload、transaction context、Profile、Profile Chain / Network、Account、Chain、Network、caller、session、operation、signer、expected signer、承認時の permission context または protocol / capability context が変われば Authorization は失効する。
+6. Profile、Profile-bound Account / Key Identity、approval、authentication、signing target、signing および result は、Signer 内部で同じ Profile context に binding する。一つの Profile は一つの Chain に固定し、異なる Chain の Account、permission または authorization を同じ Profile context に関連付けない。Profile switch、Profile lock、Profile association change、Account switch、Chain / Network switch、caller context change または relevant permission / session change 後に古い context を流用しない。
 7. Relay は署名判断、inspection、承認および signing の信頼主体ではない。
 8. SDK / dApp / Provider の自己申告情報だけで caller を verified としない。Browser の observed caller / Origin または Mobile trusted host の verified handoff context を最終 authority とする。
 9. 複数の active request は独立した security context として扱う。request identity、caller / source context、session、Profile、Account、Chain / Network、operation、target、semantic inspection、approval、authentication および result / response channel を相互に流用・共有・暗黙統合しない。
@@ -655,7 +655,7 @@ NEM の transaction type / version、multisig wrapper / inner transaction、cosi
 
 ### 24.3 共通化の限界
 
-共通化してよいのは request lifecycle、caller / permission / session / Profile binding、Profile / Account / Chain / Network binding、approval、authentication、fail-closed、result correlation および dApp への失敗意味である。Chain-specific な parse、semantic inspection、signing target、signing bytes、hash、address、signature semantics、Aggregate / multisig / cosignature の対応範囲は各 Chain integration に残す。
+共通化してよいのは request lifecycle、caller / permission / session / Profile binding、Profile / Account / Chain / Network binding、approval、authentication、fail-closed、result correlation および dApp への失敗意味である。ただし Profile は一つの Chain に固定し、Symbol と NEM を利用する場合は Profile context を分離する。Chain-specific な parse、semantic inspection、signing target、signing bytes、hash、address、signature semantics、Aggregate / multisig / cosignature の対応範囲は各 Chain integration に残す。
 
 ## 25. 下位仕様への引継ぎ
 
