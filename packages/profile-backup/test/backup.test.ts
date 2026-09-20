@@ -36,6 +36,7 @@ const fixture = {
   profile: {
     id: 'profile-1',
     network: 'testnet' as const,
+    chain: 'symbol' as const,
     name: 'Test',
     accountIds: ['account-1'],
     defaultAccountId: 'account-1',
@@ -49,17 +50,16 @@ const fixture = {
     {
       id: 'account-1',
       profileId: 'profile-1',
+      chain: 'symbol' as const,
       name: 'Account 1',
-      identities: {
-        symbol: { address: 'T', publicKey: '1'.repeat(64) },
-        nem: { address: 'T', publicKey: '2'.repeat(64) },
-      },
+      identity: { address: 'T', publicKey: '1'.repeat(64) },
       source: {
         kind: 'mnemonicDerived' as const,
         secretRef: 'vault:profile-1:mnemonic:0',
         accountIndex: 0,
         derivationPath: "44'/4343'/0'/0'/0'",
       },
+      status: 'active' as const,
       revision: 1,
       createdAt: '2026-07-20T00:00:00Z',
       updatedAt: '2026-07-20T00:00:00Z',

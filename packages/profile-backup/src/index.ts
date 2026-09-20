@@ -74,7 +74,18 @@ const keyFor = async (password: string, salt: Uint8Array): Promise<Uint8Array> =
 
 const validatePlaintext = (value: ProfileBackupPlaintext): void => {
   if (value.profile.network !== 'testnet') throw new TypeError('Only Testnet profiles can be backed up by this build.');
-  if (!value.accounts.length || value.accounts.some((account) => account.profileId !== value.profile.id))
+  if (value.profile.chain !== 'symbol' && value.profile.chain !== 'nem')
+    throw new TypeError('Backup Profile chain is invalid.');
+  if (
+    !value.accounts.length ||
+    value.accounts.some(
+      (account) =>
+        account.profileId !== value.profile.id ||
+        account.chain !== value.profile.chain ||
+        !account.identity.address ||
+        !/^[0-9A-Fa-f]{64}$/.test(account.identity.publicKey)
+    )
+  )
     throw new TypeError('Backup accounts do not belong to the profile.');
   if (
     value.profile.accountIds.length !== value.accounts.length ||
