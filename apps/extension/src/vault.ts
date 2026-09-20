@@ -371,6 +371,10 @@ export const loadStore = async (): Promise<ExtensionStore> => {
       store.accounts.some((account) => {
         const profile = store.profiles.find((item) => item.id === account.profileId);
         return !profile || profile.chain !== account.chain;
+      }) ||
+      store.permissions.some((grant) => {
+        const profile = store.profiles.find((item) => item.id === grant.profileId);
+        return !profile || profile.chain !== grant.chain || profile.network !== grant.network;
       })
     )
       throw new Error('Unsupported mixed-chain profile store.');

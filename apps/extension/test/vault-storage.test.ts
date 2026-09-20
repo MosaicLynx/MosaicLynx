@@ -51,6 +51,28 @@ describe('extension store schema', () => {
 
     await expect(loadStore()).rejects.toThrow('Unsupported mixed-chain profile store.');
   });
+
+  it('rejects a current-schema permission whose chain or network differs from its profile', async () => {
+    values[STORAGE_KEYS.meta] = {
+      schemaVersion: 3,
+      settings: { language: 'ja', theme: 'light', autoLockMinutes: 15 },
+    };
+    values[STORAGE_KEYS.profiles] = [
+      {
+        id: 'profile-1',
+        network: 'testnet',
+        chain: 'symbol',
+        defaultAccountId: 'account-1',
+        nextAccountIndex: 1,
+        hdAccountIds: ['account-1'],
+      },
+    ];
+    values[STORAGE_KEYS.permissions] = [
+      { profileId: 'profile-1', origin: 'https://example.com', chain: 'nem', network: 'testnet' },
+    ];
+
+    await expect(loadStore()).rejects.toThrow('Unsupported mixed-chain profile store.');
+  });
 });
 
 describe('profile deletion', () => {
