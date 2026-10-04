@@ -43,8 +43,6 @@ MosaicLynx は、Symbol / NEM の dApp を利用する一般ユーザーが、�
 | 運用者                   | 提供環境、公開ビルド、リリースに必要な証跡を管理する関係者。                                         |
 | `symbol-nem-wallet-core` | 鍵管理、ウォレットストア、秘密情報を使用する暗号処理、生バイト署名の正本となるコンポーネント。       |
 
-組織利用、カストディ利用、企業向け監査・統制は MosaicLynx v1 の第一対象ではない。将来の保証範囲は `FUTURE-001` として保留し、v1 の進行・完了を妨げない。
-
 ### 2.3 承認済みプロジェクト制約
 
 MosaicLynx は、`symbol-nem-wallet-core` を、鍵管理、ウォレットストア、秘密情報を使用する暗号処理および生バイト署名の正本として採用する。この採用と責任範囲は承認済みプロジェクト制約であり、未決事項ではない。
@@ -334,15 +332,9 @@ wallet-core の安定したエラーコード、警告、バインディング�
 
 判定条件未達成または判定不能な状態で Mainnet を有効化してはならず、安全条件を満たさない継続を許可してはならない。
 
-Mainnet リリースポリシーは、次の資料で管理する。
+根拠項目、ポリシーパラメーター、検証手順および実装方式は、後続のリリース / セキュリティ操作で定める。
 
-- `docs/adr/0001-mainnet-evidence-lite.md`: 初期 Mainnet リリースで Lite 判定条件を採用する意思決定、single-maintainer プロジェクトにおける理由および strict ポリシーへの移行方針を記録する。
-- `docs/evidence/evidence-policy.json`: 方式、必須 approvals、根拠 age、信頼された keys その他の評価器が読むポリシーパラメーターを管理する。
-- `docs/release/mainnet-release-evidence.md`: 現在のリリースポリシーにおける根拠要求、収集・署名・検証、安全側での終了、復旧 / 鍵失効および strict 移行の運用上の参照とする。
-
-根拠項目、ポリシーパラメーター、検証手順および実装方式は、これらの資料と後続のリリース / セキュリティ操作で定める。
-
-根拠: コンセプト 12、14、15。決定: `docs/adr/0001-mainnet-evidence-lite.md`。下流: `docs/evidence/evidence-policy.json`、`docs/release/mainnet-release-evidence.md`。
+根拠: コンセプト 12、14、15。下流: `docs/evidence/evidence-policy.json`、`docs/release/mainnet-release-evidence.md`。
 
 ### CR-NFR-007 利用者判断可能性（Signer）
 
@@ -419,8 +411,7 @@ MosaicLynx v1 の共通対象外は次のとおりとする。
 - 利用者の確認を省略する自動署名、永続的な署名許可、内容を確認しない署名。
 - 理解・確認できない要求を、警告だけを理由に署名すること。
 - MosaicLynx 自身による dApp の企画、開発、運営、利用者獲得。
-- 組織向け監査・統制・カストディ保証を v1 の第一対象または完了条件とすること。
-- ハードウェアウォレット、コールドウォレット、企業カストディと同等の保証を標榜すること。
+- ハードウェアウォレット、コールドウォレットと同等の保証を標榜すること。
 - プロファイル全体のバックアップ / 復元を v1 全体の共通能力または完了条件に含めること。個別プラットフォームでの提供は、そのプラットフォームの要件・仕様で定める。
 - Relay による署名対象の意味解釈、署名、秘密情報の取り扱い、アナウンス、長期保管。
 
@@ -477,15 +468,9 @@ OPEN-004 は履歴上の欠番であり、現在の未決事項としては扱�
 
 ### OPEN-005：Mainnet 一般公開の詳細条件
 
-- 確定済み: Mainnet リリース判定は存在し、初期 Mainnet リリースには ADR 0001 で Lite 判定条件が採用されている。適用される現在のリリースポリシー / 根拠ポリシーに従い、判定条件未達成または判定不能の場合は Mainnet を有効化しない。
-- 論点: 確定済みの判定条件を、将来のリリース承認の具体的運用、CI/CD への組み込み、根拠の保存・配布、ポリシー評価器の実装、確認項目 / runbook、strict ポリシーへの移行時期・手順、team 化後の承認者分離およびポリシー改訂へどう反映するか。
+- 確定済み: 判定条件未達成または判定不能の場合は Mainnet を有効化しない。
+- 論点: 確定済みの判定条件を、将来のリリース承認の具体的運用、CI/CD への組み込み、根拠の保存・配布、ポリシー評価器の実装、確認項目 / runbook、strict ポリシーへの移行時期・手順およびポリシー改訂へどう反映するか。
 - 引継ぎ: 上記の運用・実装・将来改訂は、後続のリリース / セキュリティ操作で定める。
-
-### FUTURE-001：組織向け監査・統制・カストディ保証の範囲
-
-- 現在の扱い: 組織利用、監査、統制、カストディ保証は MosaicLynx v1 の初期対象外とし、v1 の完了条件に含めない。
-- 将来の論点: 一般ユーザー向け提供の後、どこまで保証するか。
-- 扱い: v1 の進行・完了を妨げず、将来の組織向け展開時に改めて判断する。具体的な機能、要件、設計、保証範囲は定めない。
 
 ### CR-OPEN-001：wallet-core との具体的統合方式
 
@@ -506,19 +491,10 @@ OPEN-004 は履歴上の欠番であり、現在の未決事項としては扱�
 4. `CR-015`、`CR-016`、`CR-017`、`CR-NFR-013` を含む共通要求を、適用範囲に応じて [ブラウザ拡張機能要件](./browser-extension.md)、[スマホアプリ要件](./mobile-app.md)、[Relay 要件](./relay.md) および [SDK 要件](./sdk.md) へ引き継ぐ。各 Signer は単一チェーンプロファイルの境界と署名前提を満たし、SDK と Relay は Signer の外部境界として検証・認証・認可・承認・署名条件を迂回しない責任を具体化する。
 5. `OPEN-001`、`OPEN-002`、`OPEN-003`、`OPEN-005` を各プラットフォーム要件へ引き継ぐ。`OPEN-005` は確定済みの Mainnet 判定条件を前提に、リリース / セキュリティ操作の詳細を扱う。`OPEN-004` は履歴上の欠番であり、未決事項として引き継がない。
 6. 共通要求を満たすために必要な API、データ形式、パーサー、エラー、状態遷移、暗号方式、UI、テストの詳細を、後続の仕様・設計で定める。
-7. `FUTURE-001` は MosaicLynx v1 の要求・完了判定へ取り込まず、将来検討時まで保留する。
 
 ## 11. 参照資料
 
 - `docs/concept/concept-sheet.md`
-- `docs/specifications/product-spec.md`
-- `docs/specifications/web-transaction-handoff-spec.md`
-- `docs/specifications/chain-compatibility-spec.md`
-- `docs/specifications/profile-account-spec.md`
-- `docs/design/architecture.md`
-- `docs/adr/0001-mainnet-evidence-lite.md`
-- `docs/evidence/evidence-policy.json`
-- `docs/release/mainnet-release-evidence.md`
 - `_snwc/README.md`
 - `_snwc/docs/requirements/requirements.md`
 - `_snwc/docs/specifications/specification.md`
