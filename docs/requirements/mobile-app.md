@@ -235,7 +235,7 @@ Relay の主経路・代替経路、リダイレクト、ディープリンク�
 
 ### 9.1 上流根拠
 
-- `docs/concept/concept-sheet.md`: MosaicLynx の目的、v1 マイルストーン、署名主体 / Relay の責任境界、セキュリティ原則および未決事項。
+- `docs/concept/concept-sheet.md`: MosaicLynx の目的、v1 マイルストーン、Signer / Relay の責任境界、セキュリティ原則および未決事項。
 - `docs/requirements/requirements.md`: 共通要求、CR-*、共通受け入れ条件、wallet-core との責任境界および共通未決事項。
 
 ### 9.2 整合確認資料

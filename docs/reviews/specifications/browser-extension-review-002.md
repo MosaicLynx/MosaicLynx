@@ -34,7 +34,7 @@
 | スキル / リポジトリ             | [`AGENTS.md`](../../../AGENTS.md)、[`.agents/project-context.md`](../../../.agents/project-context.md)、[`spec-review/SKILL.md`](../../../.agents/skills/spec-review/SKILL.md)、レビュアー、review-gates、output-format、[`review-common/review-playbook.md`](../../../.agents/skills/review-common/review-playbook.md)、[`review-common/output-format.md`](../../../.agents/skills/review-common/output-format.md)                                                                                                                | 現在のレビュー工程、正式な指摘の状態、重要度、7 判定条件、工程境界、成果物形式および git 運用を確認した。                                                                                                                                                  |
 | 対象 / 履歴                     | [`browser-extension.md`](../../specifications/browser-extension.md)、[`browser-extension-review-001.md`](./browser-extension-review-001.md)                                                                                                                                                                                                                                                                                                                                                                                        | 現行全文、対象本文の既存未決、前回 SR-001〜SR-003 の事実と判定を確認した。前回レビューは判断権限として使用していない。                                                                                                                                     |
 | 要件                            | [`requirements.md`](../../requirements/requirements.md)、[`browser-extension.md`](../../requirements/browser-extension.md)、[`sdk.md`](../../requirements/sdk.md)、[`mobile-app.md`](../../requirements/mobile-app.md)、[`relay.md`](../../requirements/relay.md)                                                                                                                                                                                                                                                                  | CR-016 の共通の四つの条件、CR-NFR-006 の Mainnet 判定条件、BR のオリジン / ライフサイクル / 秘密情報要求、SDK / Relay の責任と共通失敗を確認した。                                                                                                         |
-| 設計                            | [`architecture.md`](../../design/architecture.md)、[`browser-extension.md`](../../design/browser-extension.md)、[`security-design.md`](../../design/security-design.md)、[`interfaces.md`](../../design/interfaces.md)、[`signing-flow.md`](../../design/signing-flow.md)、[`sdk.md`](../../design/sdk.md)                                                                                                                                                                                                                         | ブラウザ特権を持つホストの唯一の署名主体側の処理の調整責任主体、プロファイル内の文脈、四つの条件、信頼境界、wallet-core 境界、ライフサイクルおよび結果判断権限を確認した。                                                                                 |
+| 設計                            | [`architecture.md`](../../design/architecture.md)、[`browser-extension.md`](../../design/browser-extension.md)、[`security-design.md`](../../design/security-design.md)、[`interfaces.md`](../../design/interfaces.md)、[`signing-flow.md`](../../design/signing-flow.md)、[`sdk.md`](../../design/sdk.md)                                                                                                                                                                                                                         | ブラウザ特権を持つホストの唯一の Signer 側の処理の調整責任主体、プロファイル内の文脈、四つの条件、信頼境界、wallet-core 境界、ライフサイクルおよび結果判断権限を確認した。                                                                                 |
 | 共通の / 関連する仕様           | [`interfaces.md`](../../specifications/interfaces.md)、[`signing-protocol.md`](../../specifications/signing-protocol.md)、[`sdk.md`](../../specifications/sdk.md)、[`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md)、[`profile-account-spec.md`](../../specifications/profile-account-spec.md)、[`chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md)、[`product-spec.md`](../../specifications/product-spec.md)、[`relay.md`](../../specifications/relay.md) | 公開 / 内部アカウント境界、論理的なエラー、受け渡し具体的なエラー、`MosaicLynxSigningResult<T>`、署名結果、配送処理結果の区分、トランザクション / メッセージ / 連署署名、プロファイル、プロダクトメソッド構造および Relay 内容を解釈しない境界を確認した。 |
 | Provider 根拠                   | [`packages/provider-api/src/index.ts`](../../../packages/provider-api/src/index.ts)、[`packages/sdk/src/extension.ts`](../../../packages/sdk/src/extension.ts)、[`packages/sdk/src/types.ts`](../../../packages/sdk/src/types.ts)                                                                                                                                                                                                                                                                                                  | Provider の現状メソッド / 型、内部 `accountId` 経路選択、Provider エラー集合、SDK 対応付けの現状を補足の根拠として確認した。実装を規範の正本として使用していない。                                                                                         |
 | レビュー履歴 / 関連するレビュー | [`sdk-review-004.md`](./sdk-review-004.md)、[`signing-protocol-review-002.md`](./signing-protocol-review-002.md)、[`interfaces-review-004.md`](./interfaces-review-004.md)                                                                                                                                                                                                                                                                                                                                                         | 最新下流レビューの状態と、共通の契約の更新後に前回 conclusion を機械的に継承しないことを確認した。                                                                                                                                                         |
@@ -55,7 +55,7 @@
 - Provider エラーは Provider パッケージの集合と受け渡し §10 を併記するが、`INVALID_MESSAGE` / `NONCE_REUSED` 等が Provider 内部 / RPC コードなのかページに公開する公開コードなのか、受け渡し具体的なエラーへどう対応するのかを確定していない。
 - `AUTHORIZED`、wallet-core 呼出し前、セキュリティ上の不変条件、受け入れおよび追跡可能性が、最新共通契約の認証、署名可能な状態へのロック解除、アカウントの利用認可、利用者による明示的な承認の四条件を同時に運用上の契約として要求していない。§7.2 に四条件の名前はあるが、後続の状態・呼出し条件が明示的な承認 + `every-signature` 認証に縮退している。
 - Mainnet 判定条件は「判定条件未達成または判定不能なら利用可能と報告しない」とするが、判定条件判断権限、非代替性、欠落 / 無効な / 期限切れ / 不整合の / 検証不能の / 不明の全安全側での終了条件、および Testnet 専用継続を共通契約どおり明示していない。
-- ブラウザ Provider の直接の `SignedTransaction` / `SignedMessage` 結果と SDK の `MosaicLynxSigningResult<T>` の間で、署名主体が生成した `PENDING` / `DELIVERED` / `DELIVERY_UNKNOWN` と `RESULT_UNKNOWN` をどう意味不変に通過させるかが対象本文から検証できない。
+- ブラウザ Provider の直接の `SignedTransaction` / `SignedMessage` 結果と SDK の `MosaicLynxSigningResult<T>` の間で、Signer が生成した `PENDING` / `DELIVERED` / `DELIVERY_UNKNOWN` と `RESULT_UNKNOWN` をどう意味不変に通過させるかが対象本文から検証できない。
 
 ## 6. 指摘の状態
 
@@ -77,9 +77,9 @@
 - **対象:** 対象 §5.1〜§5.2、§10.1、`OPEN-BEX-001`。特に §5.2 の「任意アカウント選択子」「Provider アカウントレコード」と、§10.1 の `id` / `profileId` 境界未確定の記述。
 - **確認事実:** インターフェース §5.3 はページに公開する Provider を含め、`profileId`、内部 `accountId`、ウォレットストア ID、鍵枠、内容を解釈しないハンドルを SDK、Provider、Relay、Web ページ、dApp のフィールドに追加しないと明記する。SDK §5 / §7 と受け渡し §5.2 は公開引数・返却値に内部 ID を含めず、受け渡し §6.1 だけが拡張機能アダプター内部の経路選択参照として `accountId` を扱う。これはページ識別情報と特権を持つ / SDK 内部経路選択を区別する上流契約である。
 - **問題:** 対象は公開アカウントを `PublicAccountIdentity` に制限する一方、ページに公開する Provider メソッド構造に任意選択子を残し、Provider-native レコードの選択子 / フィールドを §10 投影へ委ね、`OPEN-BEX-001` で最終分離を未確定としている。選択子が特権を持つホスト / SDK アダプター内だけの経路選択参照なのか、ページ Provider の入力・返却へ現れる既存 API なのかを対象から一意に決められない。
-- **影響:** 実装者が `id` / `profileId` をページに返す、ページ提供された選択子を鍵選択 / 認可に使う、または公開アカウントと内部アカウントレコードを同じ型として公開する余地がある。Provider、SDK、受け渡しの経路選択が異なる場合、アカウント情報公開、期待される署名主体、署名主体識別情報および認可が混線する。
+- **影響:** 実装者が `id` / `profileId` をページに返す、ページ提供された選択子を鍵選択 / 認可に使う、または公開アカウントと内部アカウントレコードを同じ型として公開する余地がある。Provider、SDK、受け渡しの経路選択が異なる場合、アカウント情報公開、期待される Signer、Signer 識別情報および認可が混線する。
 - **最低限の修正:** 対象 §5.2 と §10.1 を現在のインターフェース / SDK / 受け渡しに合わせ、ページに公開するアカウントレコードとメソッドフィールドは `PublicAccountIdentity`（`Scope`、`address`、`publicKey`）に限定する。`accountId` / 内容を解釈しない選択子を使う場合は特権を持つ / SDK アダプターの内部経路選択参照と明示し、ページ入力、ページ返却、許可判断権限、所有責任証明、鍵選択判断権限にしない。プロダクト §11.3 の accountId との責任分界は上流責任主体と照合し、`OPEN-BEX-001` を安全条件付きで更新または終了する。
-- **完了 / 再確認:** 公開 Provider スキーマ、`getAccounts` / `getActiveAccount` / 署名要求、SDK アダプター経路選択、期待される署名主体、許可および診断情報について、内部 ID がページに公開するフィールドに現れず、選択子が公開認可判断権限でないことを契約テストで一意に検証できること。
+- **完了 / 再確認:** 公開 Provider スキーマ、`getAccounts` / `getActiveAccount` / 署名要求、SDK アダプター経路選択、期待される Signer、許可および診断情報について、内部 ID がページに公開するフィールドに現れず、選択子が公開認可判断権限でないことを契約テストで一意に検証できること。
 
 ### SR-002 — Provider エラー定義の正本（重大 / 未決）
 
@@ -94,9 +94,9 @@
 
 - **対象:** 対象 §7.2、§9.1〜§9.3、§11.1〜§12.2、§17.2、§18.1〜§18.2、§29、§31、§33。
 - **確認事実:** 対象 §7.2 の認可組には認証、署名可能な状態へのロック解除、アカウントの利用認可、利用者による明示的な承認が列挙され、四条件を独立した必須条件とする文もある。しかし、対象 §12.1 の `AUTHORIZED` は「明示的な承認と `every-signature` 認証」のみを成立条件とし、§18.2 と §29.9 は wallet-core 呼出し前に信頼された検証、内容検査、承認、必須認証を要求するだけで、署名可能な状態へのロック解除と独立したアカウントの利用認可を要求しない。§11.1 は通常のプロファイルロック / ロック解除、許可、選択アカウントを列挙するが、これらを独立条件として定義しない。
-- **上流根拠:** CR-016 / CR-AC-017、インターフェース §9.7 / §15、署名プロトコル §8 / §9.1、アーキテクチャ §6.9、現行ブラウザ拡張機能設計 §4 / §5.3 は、同一署名主体が所有するプロファイル内の文脈で四条件をすべて成立・再確認し、接続、許可、通常の `UNLOCKED`、アカウント選択、過去の認証、wallet-core 検証等を代替にしないとする。
+- **上流根拠:** CR-016 / CR-AC-017、インターフェース §9.7 / §15、署名プロトコル §8 / §9.1、アーキテクチャ §6.9、現行ブラウザ拡張機能設計 §4 / §5.3 は、同一 Signer が所有するプロファイル内の文脈で四条件をすべて成立・再確認し、接続、許可、通常の `UNLOCKED`、アカウント選択、過去の認証、wallet-core 検証等を代替にしないとする。
 - **問題:** 対象内で「四条件を組に結び付けする契約」と「`AUTHORIZED` / wallet-core 呼び出しを承認 + 認証で成立させる契約」が異なる。通常の `UNLOCKED`、許可、選択済みのアカウント、`every-signature` 認証だけで署名可能な状態へのロック解除またはアカウントの利用認可を代替できるかが一意でない。
-- **影響:** 署名主体が利用者認証済み・通常ロック解除済み・接続許可あり・アカウント選択済みであることを、署名可能ロック解除とアカウントの利用認可と誤認して wallet-core を呼び出す余地がある。要求、呼び出し元、プロファイル、アカウント、チェーン / ネットワーク、操作、厳密な対象、鮮度と同じ文脈における独立判定条件が検証不能になり、判定条件 2、4、5、6、7 に影響する。
+- **影響:** Signer が利用者認証済み・通常ロック解除済み・接続許可あり・アカウント選択済みであることを、署名可能ロック解除とアカウントの利用認可と誤認して wallet-core を呼び出す余地がある。要求、呼び出し元、プロファイル、アカウント、チェーン / ネットワーク、操作、厳密な対象、鮮度と同じ文脈における独立判定条件が検証不能になり、判定条件 2、4、5、6、7 に影響する。
 - **最低限の修正:** 対象 §12.1 の `AUTHORIZED`、§11 / §17 / §18 の承認フロー、§29 不変条件、§31 受け入れ、§33 追跡可能性を、認証、署名可能な状態へのロック解除、アカウントの利用認可、利用者による明示的な承認の四条件が同じプロファイル内の文脈に対して独立して成立した場合だけ `AUTHORIZED` / `SIGNING` / `SUCCEEDED` へ進める契約へ整合する。各条件が欠落、古くなった、失効済み、ロック済み、不明、不一致の場合は wallet-core を呼ばず安全側での終了とする。認証方式、ロック解除実装、UI、排他制御等は決定しない。
 - **完了 / 再確認:** 四条件を個別に欠くケース、許可 / 通常の `UNLOCKED` / アカウント選択 / 前回認証を代替にするケース、文脈変更後の署名前再確認を、対象の状態 / 受け入れから一意に判定できること。
 
@@ -106,17 +106,17 @@
 - **確認事実:** 対象は Mainnet 署名を ADR 0001 とリリース判定を満たすビルドに限定し、判定条件未達成または判定不能なら Mainnet 署名を利用可能と報告しない。しかし、現在のインターフェース §7.4、CR-NFR-006、署名プロトコル §21.1 が明示する判定条件の非代替性（対象範囲、利用可能性、Provider 対応能力、接続、許可、wallet-core 対応能力、テスト成功、応答 / 配送成功等）、欠落 / 無効な / 期限切れ / 不整合の / 検証不能の / 不明の全安全側での終了条件、Testnet 専用継続、およびリリース / 根拠判断権限の関係が対象の規範的な契約と受け入れに揃っていない。
 - **問題:** §18.1 の `Mainnet release capability` と §31.15 の「判定条件と一致」だけでは、実装が Provider 対応能力、接続、許可、wallet-core 対応能力または応答成功を判定条件の代替にすることを対象本文から排除できない。また、Mainnet 判定条件不成立時に Testnet 専用を安全に継続できることが明記されていない。
 - **影響:** 判定条件評価器 / リリース証跡の判定をブラウザ Provider の利用可能性や実行環境対応能力に誤って移し、Mainnet 署名が安全条件を満たさない継続になる、または判定条件失敗が Testnet 専用対応能力まで不要に停止する可能性がある。
-- **最低限の修正:** 現在の共通の契約を参照するだけでなく、対象 §2.3、§18、§26、§31.15、§33 に、Mainnet 対応能力は現在のリリース / 根拠判定条件を満たす信頼された署名主体だけが有効化し、上記の利用可能性 / 対応能力 / 接続 / 許可 / wallet-core / 応答等は代替でなく、判定条件の欠落 / 無効な / 期限切れ / 不整合の / 検証不能の / 不明は無効 / 利用不能とすることを明示する。Testnet 専用の安全な継続を不必要に阻害しないこと、判定条件評価器 / リリース判断権限はリリースポリシー側にあることも追跡する。評価器の実装方式は固定しない。
+- **最低限の修正:** 現在の共通の契約を参照するだけでなく、対象 §2.3、§18、§26、§31.15、§33 に、Mainnet 対応能力は現在のリリース / 根拠判定条件を満たす信頼された Signer だけが有効化し、上記の利用可能性 / 対応能力 / 接続 / 許可 / wallet-core / 応答等は代替でなく、判定条件の欠落 / 無効な / 期限切れ / 不整合の / 検証不能の / 不明は無効 / 利用不能とすることを明示する。Testnet 専用の安全な継続を不必要に阻害しないこと、判定条件評価器 / リリース判断権限はリリースポリシー側にあることも追跡する。評価器の実装方式は固定しない。
 - **完了 / 再確認:** Mainnet 経路の判定条件合格 / 不合格 / 不明と Testnet 専用経路、Provider 利用可能性 / 対応能力、接続 / 許可、wallet-core 結果、応答配送を分離する適合性事例を対象から検証できること。
 
 ### SR-006 — 結果 / 配送意味の Provider 経路対応付け不足（主要 / 新規）
 
 - **対象:** 対象 §5.2、§12.1、§20.2、§22.1〜§22.2、§31.10〜§31.13。
-- **確認事実:** 対象は Provider の成功した結果を直接の `SignedTransaction` / `SignedMessage` とし、状態から `DELIVERY_UNKNOWN` を除外し、`RESULT_UNKNOWN` と `SUCCEEDED + DELIVERY_UNKNOWN` を記載する。しかし `PENDING`、`DELIVERED`、`deliveryDisposition`、`signingOutcome: 'SUCCEEDED'` および SDK 公開 `MosaicLynxSigningResult<T>` への対応付けは定義していない。受け渡し §5.1 / §5.2.1 / §7.2 と SDK §5.1 / §5.4 は、既知の結果、署名主体が生成した `RESULT_UNKNOWN`、`PENDING` / `DELIVERED` / `DELIVERY_UNKNOWN` の意味不変な対応付けを要求する。受け渡しは Provider の内部表現自体は異なり得るとしているが、対象はページに公開する Provider と内部表現の関係を明示していない。
-- **問題:** ローカル Provider の保証解決、応答配送、イベント emission または直接の署名済み結果を、署名主体が生成した結果 / 配送処理結果の区分とどう相関するかが一意でない。Provider が `RESULT_UNKNOWN` をエラーに縮退する、`DELIVERY_UNKNOWN` を `RESULT_UNKNOWN` / 失敗に変換する、または SDK が Provider 経路だけ処理結果の区分を生成する解釈を対象本文から排除できない。
+- **確認事実:** 対象は Provider の成功した結果を直接の `SignedTransaction` / `SignedMessage` とし、状態から `DELIVERY_UNKNOWN` を除外し、`RESULT_UNKNOWN` と `SUCCEEDED + DELIVERY_UNKNOWN` を記載する。しかし `PENDING`、`DELIVERED`、`deliveryDisposition`、`signingOutcome: 'SUCCEEDED'` および SDK 公開 `MosaicLynxSigningResult<T>` への対応付けは定義していない。受け渡し §5.1 / §5.2.1 / §7.2 と SDK §5.1 / §5.4 は、既知の結果、Signer が生成した `RESULT_UNKNOWN`、`PENDING` / `DELIVERED` / `DELIVERY_UNKNOWN` の意味不変な対応付けを要求する。受け渡しは Provider の内部表現自体は異なり得るとしているが、対象はページに公開する Provider と内部表現の関係を明示していない。
+- **問題:** ローカル Provider の保証解決、応答配送、イベント emission または直接の署名済み結果を、Signer が生成した結果 / 配送処理結果の区分とどう相関するかが一意でない。Provider が `RESULT_UNKNOWN` をエラーに縮退する、`DELIVERY_UNKNOWN` を `RESULT_UNKNOWN` / 失敗に変換する、または SDK が Provider 経路だけ処理結果の区分を生成する解釈を対象本文から排除できない。
 - **影響:** 拡張機能 Provider 経路とモバイル Relay 経路の SDK 公開意味が分岐し、結果不確実性の後の自動再署名、配送不確実性の誤った失敗化、または通信経路完了による誤った `DELIVERED` 推定が起こり得る。
-- **最低限の修正:** 対象は受け渡し §5.2.1 / §7.2 を具体的な対応付け判断権限として参照し、Provider の内部直接の結果表現と SDK 公開 `MosaicLynxSigningResult<T>` を分離する。署名主体が生成した `RESULT_UNKNOWN` は `resultUnknown`、既知の署名済み結果は `outcome: 'succeeded'` と `deliveryDisposition`（`PENDING` / `DELIVERED` / `DELIVERY_UNKNOWN`）を意味不変に伝達し、Provider / SDK / 通信経路 / 保証決済は処理結果の区分を生成・推測・確定しないことを明示する。連署署名の未決対象範囲は既存未決のままとし、未確定の共用体を独自追加しない。
-- **完了 / 再確認:** 既知の成功、署名主体が生成した `RESULT_UNKNOWN`、各配送処理結果の区分、Provider 応答消失、SDK タイムアウト、Relay 受領確認 / 消費済み状態、ページライフサイクル消失の対応付けと自動再署名禁止を、ローカル Provider とリモート経路の両方で一意に判定できること。
+- **最低限の修正:** 対象は受け渡し §5.2.1 / §7.2 を具体的な対応付け判断権限として参照し、Provider の内部直接の結果表現と SDK 公開 `MosaicLynxSigningResult<T>` を分離する。Signer が生成した `RESULT_UNKNOWN` は `resultUnknown`、既知の署名済み結果は `outcome: 'succeeded'` と `deliveryDisposition`（`PENDING` / `DELIVERED` / `DELIVERY_UNKNOWN`）を意味不変に伝達し、Provider / SDK / 通信経路 / 保証決済は処理結果の区分を生成・推測・確定しないことを明示する。連署署名の未決対象範囲は既存未決のままとし、未確定の共用体を独自追加しない。
+- **完了 / 再確認:** 既知の成功、Signer が生成した `RESULT_UNKNOWN`、各配送処理結果の区分、Provider 応答消失、SDK タイムアウト、Relay 受領確認 / 消費済み状態、ページライフサイクル消失の対応付けと自動再署名禁止を、ローカル Provider とリモート経路の両方で一意に判定できること。
 
 ## 8. 任意の改善
 
@@ -157,7 +157,7 @@
 
 ## 12. 対象範囲と追跡可能性
 
-対象本文の対象範囲境界は概ね適切である。SDK 実装、Relay プロトコル、モバイル、wallet-core 内部、Chrome API、UI 配置、保存領域、キュー / 排他制御、厳密なタイムアウト、暗号学的な実装、リリース評価器実装を直接固定していない。今回の指摘は、これらの実装方式ではなく、外部で観測される Provider / SDK 契約、署名主体判定条件、エラー / 結果意味および Mainnet 対応能力の判断権限が一意でないことに限定した。
+対象本文の対象範囲境界は概ね適切である。SDK 実装、Relay プロトコル、モバイル、wallet-core 内部、Chrome API、UI 配置、保存領域、キュー / 排他制御、厳密なタイムアウト、暗号学的な実装、リリース評価器実装を直接固定していない。今回の指摘は、これらの実装方式ではなく、外部で観測される Provider / SDK 契約、Signer 判定条件、エラー / 結果意味および Mainnet 対応能力の判断権限が一意でないことに限定した。
 
 | 上流要求 / 契約                                                                                        | 対象本文の対応                           | 評価                                                                                                                     |
 | ------------------------------------------------------------------------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -224,7 +224,7 @@
 
 | 判定条件              | 判定       | 根拠                                                                                                                                                                                                                                                      | 対応                                             |
 | --------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| 1. 目的と範囲         | **合格**   | ブラウザローカル署名主体の対象、Provider / 特権を持つホスト / UI / wallet-core の境界、モバイル / Relay / 実装の対象外が明確。                                                                                                                            | なし                                             |
+| 1. 目的と範囲         | **合格**   | ブラウザローカル Signer の対象、Provider / 特権を持つホスト / UI / wallet-core の境界、モバイル / Relay / 実装の対象外が明確。                                                                                                                            | なし                                             |
 | 2. 契約               | **不合格** | `SR-001` のアカウント投影 / 選択子、`SR-002` の Provider / 受け渡しエラー定義の正本、`SR-006` の結果対応付けがページ / SDK / Provider 契約を一意にできない。                                                                                              | `SR-001`、`SR-002`、`SR-006`                     |
 | 3. 処理と例外         | **不合格** | 受け入れ判定、内容検査、承認、ライフサイクル、再試行 / 代替経路は明確だが、`SR-004` の四条件を満たさない `AUTHORIZED` / wallet-core 呼び出しと、`SR-006` の不明 / 配送対応付けが残る。                                                                    | `SR-004`、`SR-006`                               |
 | 4. 内部整合性         | **不合格** | §7.2 は四条件を必須とする一方、§12 / §18 / §29 は承認 + 認証を実運用上の条件とし、アカウント選択子 / Provider コード / 結果表現の層も混在する。                                                                                                           | `SR-001`、`SR-002`、`SR-004`、`SR-006`           |
@@ -236,11 +236,11 @@
 
 ## 16. 残存リスクと未決定事項
 
-- SR-001 が残る間、ページに公開するアカウント投影、Provider 選択子、SDK アダプター経路選択、期待される署名主体および許可認可の境界を実装者が独自解釈するリスクがある。
+- SR-001 が残る間、ページに公開するアカウント投影、Provider 選択子、SDK アダプター経路選択、期待される Signer および許可認可の境界を実装者が独自解釈するリスクがある。
 - SR-002 が残る間、Provider パッケージのエラーコードと受け渡し公開 SDK エラーの相互対応付けが不明で、`INVALID_MESSAGE` / `NONCE_REUSED` の公開露出が共通の契約と衝突するリスクがある。
 - SR-004 が残る間、通常の `UNLOCKED`、許可、アカウント選択または `every-signature` 認証が、署名可能な状態へのロック解除 / アカウントの利用認可の代替として扱われるリスクがある。
 - SR-005 が残る間、Mainnet 判定条件の評価器 / リリース判断権限と Provider 対応能力 / 利用可能性が結び付く、または判定条件失敗が Testnet 専用を不要に停止するリスクがある。
-- SR-006 が残る間、ローカル Provider が SDK 公開結果ラッパー、署名主体が生成した不明、配送処理結果の区分をリモート経路と異なる意味へ変換するリスクがある。
+- SR-006 が残る間、ローカル Provider が SDK 公開結果ラッパー、Signer が生成した不明、配送処理結果の区分をリモート経路と異なる意味へ変換するリスクがある。
 - `OPEN-BEX-002`〜`OPEN-BEX-006` は継続する。特に対応能力協議、許可期限切れ / 復旧、ブラウザ呼び出し元証明、認証 / 更新互換性、連署署名公開対象範囲は、既存の安全側条件を維持した上で対応する上流責任主体が決定する。
 - プロダクト §16.1 と現在の Provider / SDK / 受け渡しのメソッド構造同期は責任主体未確定のまま残る。SR-003 の `Resolved（target responsibility）` はプロダクトの最終判断権限を確定したことを意味しない。
 - Provider API / SDK 実装は現在の共通の仕様と不一致する根拠があるが、実装修正、送信元ビルド、実行環境 E2E、実際の wallet-core、Mainnet リリース証跡は今回実施していない。

@@ -68,7 +68,7 @@ SDKに同名型の別バージョンが存在しても拒否する。特にSymbo
 | ---------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------- |
 | サイズ / payloadSize / innerSize / messageSize | スキーマ所定の`u32/u16`、入力バイト内に収まる | 過小・過大、オーバーフロー、末尾の、整合外パディング非zero     | バイト数、内部件数                                    |
 | 署名                                           | 64 バイト                                     | 未署名の外側は非zero、署名済み親は暗号検証失敗                 | 状態と必要時全体 hex                                  |
-| signerPublicKey                                | 32 バイト                                     | all-zero、選択Account/期待役割と不一致。埋め込み署名主体も必須 | 全体 hex、アカウント名                                |
+| signerPublicKey                                | 32 バイト                                     | all-zero、選択Account/期待役割と不一致。埋め込み Signer も必須 | 全体 hex、アカウント名                                |
 | バージョン / ネットワーク / 型                 | スキーマ所定整数、3章・4章の完全一致          | 未知値、要求対象範囲との不一致                                 | チェーン、Mainnet/Testnet、type/version               |
 | 手数料 / maxFee / 数量                         | `u64`、`0..2^64-1`                            | deserialize/加減算オーバーフロー、スキーマ外負数               | 不可分な整数。名称・桁数を検証済みの場合だけ換算      |
 | タイムスタンプ / 期限                          | チェーン所定整数                              | SDK タイムスタンプ変換不能、期限 < タイムスタンプ（NEM）       | ISO換算と生の整数。現在チェーン時刻との有効性は未照合 |
@@ -77,7 +77,7 @@ SDKに同名型の別バージョンが存在しても拒否する。特にSymbo
 | メッセージ                                     | 宣言型 + 宣言長 + バイト列                    | 未知型、長さ不一致、制御文字を安全表示不能                     | UTF-8安全表示と全体 hex。暗号性は断定しない           |
 | 予約済みの / パディング                        | スキーマ所定幅、値0                           | 一つでも非zero                                                 | technical 詳細にフィールド名と0                       |
 
-配列はSDK スキーマが規定する正規順序を保持する。mosaic IDの重複、sort不正、埋め込みトランザクション間パディングの非zero、連署署名署名主体重複または非正規順を拒否する。空Transfer mosaic配列はメッセージが空でなければ許可できるが、資産効果0と明示する。数量 0は許可スキーマ上有効でも強調表示する。
+配列はSDK スキーマが規定する正規順序を保持する。mosaic IDの重複、sort不正、埋め込みトランザクション間パディングの非zero、連署署名 Signer 重複または非正規順を拒否する。空Transfer mosaic配列はメッセージが空でなければ許可できるが、資産効果0と明示する。数量 0は許可スキーマ上有効でも強調表示する。
 
 ### 4.2 Symbol全フィールド
 
@@ -90,7 +90,7 @@ SDKに同名型の別バージョンが存在しても拒否する。特にSymbo
 
 Symbolの`maxFee`は外側の`fee` フィールドそのものであり、ノードの手数料 multiplierを照会しないMosaicLynxはactual 手数料を確定しない。UIは`最大手数料 −maxFee atomic XYM`と表示し、資産正味効果では開始主体に`[-maxFee, 0]`の範囲として別計上する。Transferごとに各mosaic `m`について`delta[embeddedSigner,m] -= amount`、`delta[recipient,m] += amount`とする。self-transferもgross送付と受取を表示し、netは0とする。アグリゲートでは全埋め込みをBigIntで加算し、途中または合計が`[-(2^64-1)*100, +(2^64-1)*100]`を越える実装上オーバーフローを拒否する。連署署名画面では親の効果を「成立時の親トランザクション効果」として表示し、連署者自身の資産減少へ誤算入しない。
 
-署名者役割は、通常Transferで外側署名主体=`initiator / asset sender`、アグリゲートで外側署名主体=`initiator / fee payer`、各埋め込み署名主体=`embedded sender`とする。選択鍵が未署名の外側署名主体ならトランザクション署名、親アグリゲートの開始主体でなく、かつ既存連署署名に存在しなければ`cosigner`候補とする。ペイロードだけからマルチシグ membershipは確定できないため「連署者候補・オンチェーン権限未照合」と表示し、membershipを断定しない。
+署名者役割は、通常Transferで外側 Signer=`initiator / asset sender`、アグリゲートで外側 Signer=`initiator / fee payer`、各埋め込み Signer=`embedded sender`とする。選択鍵が未署名の外側 Signer ならトランザクション署名、親アグリゲートの開始主体でなく、かつ既存連署署名に存在しなければ`cosigner`候補とする。ペイロードだけからマルチシグ membershipは確定できないため「連署者候補・オンチェーン権限未照合」と表示し、membershipを断定しない。
 
 ### 4.3 NEM全フィールド
 
@@ -98,14 +98,14 @@ Symbolの`maxFee`は外側の`fee` フィールドそのものであり、ノー
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
 | `TransferTransactionV1` | `type, version, entityBodyReserved_1, network, timestamp, signerPublicKeySize, signerPublicKey, signatureSize, signature, fee, deadline, recipientAddressSize, recipientAddress, amount, messageEnvelopeSize, message?{messageType,messageSize,message}`                        | 型=`257`、entity バージョン=1、予約済みの=0、固定サイズ=`32/64/40`、未署名の署名=zero、mosaic配列なし、全長さ一致                  | `NEM-TRANSFER-V1-{MAINNET | TESTNET}-NNN` |
 | `TransferTransactionV2` | v1全フィールド + `mosaicsCount, mosaics[{mosaicId{namespaceId{nameSize,name},nameSize,name},amount}]`                                                                                                                                                                           | entity バージョン=2、qualified mosaic IDの各名前がSDK規則に適合、重複/非正規順なし、回数一致                                       | `NEM-TRANSFER-V2-{MAINNET | TESTNET}-NNN` |
-| `MultisigTransactionV1` | 共通のヘッダー `type, version, entityBodyReserved_1, network, timestamp, signerPublicKeySize, signerPublicKey, signatureSize, signature, fee, deadline` + `innerTransactionSize, innerTransaction(TransferV1/V2全field), cosignaturesCount, cosignatures[CosignatureV1全field]` | 型=`4100`、内部 1件、内部マルチシグ禁止、size/network一致。通常の開始署名はcosignaturesCount=0。参照親では0..100、重複署名主体なし | `NEM-MULTISIG-V1-…`       |
+| `MultisigTransactionV1` | 共通のヘッダー `type, version, entityBodyReserved_1, network, timestamp, signerPublicKeySize, signerPublicKey, signatureSize, signature, fee, deadline` + `innerTransactionSize, innerTransaction(TransferV1/V2全field), cosignaturesCount, cosignatures[CosignatureV1全field]` | 型=`4100`、内部 1件、内部マルチシグ禁止、size/network一致。通常の開始署名はcosignaturesCount=0。参照親では0..100、重複 Signer なし | `NEM-MULTISIG-V1-…`       |
 | `CosignatureV1`         | 共通のヘッダー全フィールド + `multisigTransactionHashOuterSize, multisigTransactionHashSize, multisigTransactionHash, multisigAccountAddressSize, multisigAccountAddress`                                                                                                       | 型=`4098`、entity バージョン=1、固定サイズ=`36/32/40`、完全な参照先マルチシグペイロードなし、hash/address/inner不一致              | `NEM-COSIG-V1-…`          |
 
 NEM 通信上のでは`version`、2-byte `entityBodyReserved_1`、`network`を別フィールドとして読み、従来APIの合成バージョン値だけで検証しない。`signerPublicKeySize=32`、`signatureSize=64`、`recipientAddressSize=40`等の固定サイズフィールドを単なるパーサー都合として捨てず生のフィールドへ含める。NEM メッセージ型は固定版SDKが保持し再シリアライズできる`PLAIN=1`または`ENCRYPTED=2`だけを許可し、未知値を単なるhex メッセージとして続行しない。`messageEnvelopeSize=0`はメッセージ不在、非zeroは`8 + messageSize`との完全一致を必須とする。NEM v2 mosaic IDは名前空間名前とmosaic 名前の生の ASCIIを各構成要素として全文表示し、外部メタデータによる別名へ置換しない。
 
-NEMの`fee`は各トランザクションに明記された支払額として扱う。通常Transferは`delta[signer,XEM] -= fee`に加え、mosaicなしのv1では`delta[signer,XEM] -= amount`、`delta[recipient,XEM] += amount`とする。v2でmosaicsがある場合、`amount`を各mosaic 数量へ掛けるSDK/NEM スキーマの意味を固定フィクスチャで検証し、`quantity = amount × mosaic.amount`をBigIntで計算して`u64`を越えれば拒否する。マルチシグラッパーは外側署名主体へ外側手数料、内部マルチシグアカウントへ内部手数料とtransfer効果を別々に計上する。連署署名は連署者へ連署署名自身の手数料だけを計上し、参照先親の効果は「成立時の親トランザクション効果」として二重加算しない。
+NEMの`fee`は各トランザクションに明記された支払額として扱う。通常Transferは`delta[signer,XEM] -= fee`に加え、mosaicなしのv1では`delta[signer,XEM] -= amount`、`delta[recipient,XEM] += amount`とする。v2でmosaicsがある場合、`amount`を各mosaic 数量へ掛けるSDK/NEM スキーマの意味を固定フィクスチャで検証し、`quantity = amount × mosaic.amount`をBigIntで計算して`u64`を越えれば拒否する。マルチシグラッパーは外側 Signer へ外側手数料、内部マルチシグアカウントへ内部手数料とtransfer効果を別々に計上する。連署署名は連署者へ連署署名自身の手数料だけを計上し、参照先親の効果は「成立時の親トランザクション効果」として二重加算しない。
 
-NEM 役割は通常Transfer 署名主体=`initiator / asset sender / fee payer`、マルチシグ外側署名主体=`initiator / wrapper fee payer`、内部署名主体=`multisig account / asset sender / inner fee payer`、連署署名署名主体=`cosigner / cosignature fee payer`とする。`multisigAccountAddress`、参照ハッシュ、内部署名主体から役割のバイト整合性を検証するが、現在のマルチシグ構成と必要署名数はオンチェーン未照合と表示する。
+NEM 役割は通常Transfer Signer=`initiator / asset sender / fee payer`、マルチシグ外側 Signer=`initiator / wrapper fee payer`、内部 Signer=`multisig account / asset sender / inner fee payer`、連署署名 Signer=`cosigner / cosignature fee payer`とする。`multisigAccountAddress`、参照ハッシュ、内部 Signer から役割のバイト整合性を検証するが、現在のマルチシグ構成と必要署名数はオンチェーン未照合と表示する。
 
 ### 4.4 内容検査出力とフィクスチャ対応
 
@@ -116,8 +116,8 @@ NEM 役割は通常Transfer 署名主体=`initiator / asset sender / fee payer`�
 ## 5. 入力ペイロードと正規判定
 
 - hexは偶数長、hex characterのみ、デコード済み 256 KiB以下とする。テキストの大文字小文字はバイト比較に影響させず、デコード済みバイト列を比較する。
-- 通常の外側署名要求は署名フィールドが全zeroでなければ拒否する。ペイロードの署名主体公開鍵は選択アカウントと完全一致し、zero 署名主体をMosaicLynxが補完する方式は採用しない。
-- アグリゲート連署署名だけは署名済みの完全な親アグリゲートを入力できる。親署名、開始主体署名主体、トランザクションハッシュ、全埋め込みトランザクション、既存連署署名を検証する。
+- 通常の外側署名要求は署名フィールドが全zeroでなければ拒否する。ペイロードの Signer 公開鍵は選択アカウントと完全一致し、zero Signer をMosaicLynxが補完する方式は採用しない。
+- アグリゲート連署署名だけは署名済みの完全な親アグリゲートを入力できる。親署名、開始主体 Signer、トランザクションハッシュ、全埋め込みトランザクション、既存連署署名を検証する。
 - Symbolは`SymbolTransactionFactory.deserialize()`、NEMは`TransactionFactory.deserialize()`でデコードし、全フィールドを境界検証した後、返されたsymbol-sdk トランザクションオブジェクトの`serialize()`で再encodeする。シリアライズ済みのバイト列が入力デコード済みバイト列とバイト単位で一致する一致しない場合は拒否する。
 - 予約済みのフィールド非zero、declared サイズ不一致、末尾のバイト列、整数オーバーフロー、重複または順序不正連署署名、トランザクションハッシュ不一致、要素数超過を拒否する。
 - Symbol 未解消アドレス / 未解消 mosaic IDが名前空間別名エンコーディングの場合は、Transferと全埋め込み Transferで拒否する。ノード照会による解決後の値へ暗黙変換しない。
@@ -132,7 +132,7 @@ NEM 役割は通常Transfer 署名主体=`initiator / asset sender / fee payer`�
 - デコード / encode は SymbolTransactionFactory.deserialize / transaction.serialize。ネットワークは要求対象範囲と固定 SDK ネットワークが一致することを確認する。
 - トランザクション署名バイト列は network-bound `SymbolFacade.extractSigningPayload(transaction)` の返す Uint8Array 全体。これは generationHashSeed + SDK transactionDataBuffer であり、アグリゲート v2 はバージョン / ネットワーク / 型、手数料、期限、transactionsHash の対象規則に従う。独自 slice / 世代ハッシュ重複付加をしない。
 - コアの生の署名を transaction.signature に設定し、公開 `SymbolFacade.verifyTransaction(transaction, signature)` / hashTransaction を使用する。SDK を使う署名生成は行わない。
-- 連署の内容検査対象は全体署名済みアグリゲート、全埋め込み、既存署名 / 連署署名、選択済みの連署者 / 対象範囲 / 役割。親署名を verifyTransaction、既存連署署名を親ハッシュバイト列と各公開鍵の検証者で検証する。重複署名主体 / 誤った役割 / ネットワーク不一致 / 親期限切れは拒否する。
+- 連署の内容検査対象は全体署名済みアグリゲート、全埋め込み、既存署名 / 連署署名、選択済みの連署者 / 対象範囲 / 役割。親署名を verifyTransaction、既存連署署名を親ハッシュバイト列と各公開鍵の検証者で検証する。重複 Signer / 誤った役割 / ネットワーク不一致 / 親期限切れは拒否する。
 - 連署バイト列はその全体親から `SymbolFacade.hashTransaction(parent).bytes` で再計算した生の 32 バイト列。これにコア署名を適用し public-key 検証者で検証する。外部ハッシュ単体は入力として受理しない。
 - attached / 分離されたの通信上の投影は [インターフェース §9.6.1](./interfaces.md) に従い、親ペイロードに署名要素を自動追記しない。方式によらずバージョン 0・署名バイト列は同じ親ハッシュに結び付けされる。
 
@@ -141,8 +141,8 @@ NEM 役割は通常Transfer 署名主体=`initiator / asset sender / fee payer`�
 - デコード / encode は TransactionFactory.deserialize / シリアライズ。
 - トランザクション署名バイト列は `NemFacade.extractSigningPayload(transaction)` の Uint8Array。固定 SDK の `TransactionFactory.toNonVerifiableTransaction(transaction).serialize()` と同じ対象を固定ベクターで照合する。コアが NEM 基本機構を適用し世代ハッシュ / 接頭辞を追加しない。
 - コア署名を元トランザクションの署名フィールドに設定し NemFacade.verifyTransaction / hashTransaction で検証・計算する。
-- 連署は全体署名済み MultisigV1 親と未署名の CosignatureV1 を受ける。外側 / 内部ネットワーク、全フィールド、親と既存連署署名の署名、親ハッシュ、multisigAccountAddress と内部署名主体、選択済みの連署者、重複 / 役割 / 期限を検証する。親ハッシュは `NemFacade.hashTransaction(parent)` で再計算し CosignatureV1 の参照ハッシュと一致させる。
-- 連署バイト列は CosignatureV1 の NemFacade.extractSigningPayload 結果。コア署名後に CosignatureV1 の署名済みペイロード / ハッシュ / 署名主体を検証して [インターフェース §9.6.1](./interfaces.md) の結果を返す。親には追記しない。
+- 連署は全体署名済み MultisigV1 親と未署名の CosignatureV1 を受ける。外側 / 内部ネットワーク、全フィールド、親と既存連署署名の署名、親ハッシュ、multisigAccountAddress と内部 Signer、選択済みの連署者、重複 / 役割 / 期限を検証する。親ハッシュは `NemFacade.hashTransaction(parent)` で再計算し CosignatureV1 の参照ハッシュと一致させる。
+- 連署バイト列は CosignatureV1 の NemFacade.extractSigningPayload 結果。コア署名後に CosignatureV1 の署名済みペイロード / ハッシュ / Signer を検証して [インターフェース §9.6.1](./interfaces.md) の結果を返す。親には追記しない。
 
 ### 6.3 構造化されたメッセージ
 
@@ -171,7 +171,7 @@ packages/chain-nem/test/vectors/
 
 各正常ベクターはネットワーク、公開識別情報、未署名 / 親ペイロード、全解析フィールド、厳密な署名バイト列、署名、公開結果 / ハッシュを含む。秘密情報を含むコアベクターは外部コアの公開既知値として別に照合し、MosaicLynx 本番環境 / UI / アダプターにニーモニック / 秘密鍵を入力しない。
 
-各スキーマに、少なくとも誤ったネットワーク、誤った署名主体、不明バージョン、nonzero 予約済みの、サイズ ±1、末尾のバイト、truncation全offset、最大整数、オーバーフロー、別名、最大件数、最大件数+1、非正規並び、改ざんトランザクションハッシュを用意する。Web、拡張機能、モバイルの全実装が同じフィクスチャを通過しない限りリリースしない。
+各スキーマに、少なくとも誤ったネットワーク、誤った Signer、不明バージョン、nonzero 予約済みの、サイズ ±1、末尾のバイト、truncation全offset、最大整数、オーバーフロー、別名、最大件数、最大件数+1、非正規並び、改ざんトランザクションハッシュを用意する。Web、拡張機能、モバイルの全実装が同じフィクスチャを通過しない限りリリースしない。
 
 ## 8. symbol-sdk更新手順
 
@@ -185,7 +185,7 @@ symbol-sdk更新PRは旧版と新版の全スキーマシリアライズ、フ�
 | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CR-005`、`CR-NFR-005`、`CR-AC-003`                                                  | アーキテクチャ §6.7、インターフェース設計 §3.3、署名フロー §4、§8〜§15 | §2〜§5     | チェーン / ネットワーク識別情報、アドレスネットワーク、スキーマ互換性は本書。プロファイルネットワーク関連付けはプロファイル / アカウント仕様                                     |
 | `CR-002`、`CR-004`、`CR-007-TX`、`CR-007-MSG`、`CR-AC-002`、`CR-AC-005`、`CR-AC-006` | 署名フロー §8〜§15、セキュリティ設計 §11、ブラウザ / モバイル設計 §10  | §4、§5、§7 | 許可リスト、全フィールド内容検査、正規形式への適合性、blind-signing 拒否は本書。信頼された UI / 承認はプラットフォーム仕様                                                       |
-| `CR-006`、`CR-NFR-009`、`CR-NFR-012`、`CR-AC-004`、`CR-AC-012`                       | 署名フロー §7、§19〜§23、インターフェース設計 §6、§9                   | §5〜§7     | 署名済み結果の要求 / 署名主体 / ネットワーク対応は署名主体 / インターフェース / 受け渡しが所有し、本書はチェーン固有の検証を所有                                                 |
+| `CR-006`、`CR-NFR-009`、`CR-NFR-012`、`CR-AC-004`、`CR-AC-012`                       | 署名フロー §7、§19〜§23、インターフェース設計 §6、§9                   | §5〜§7     | 署名済み結果の要求 / Signer / ネットワーク対応は Signer / インターフェース / 受け渡しが所有し、本書はチェーン固有の検証を所有                                                    |
 | `CR-008`、`CR-013`、`CR-NFR-004`、`CR-AC-010`                                        | アーキテクチャ §6.8、セキュリティ設計 §6、§13                          | §2、§6     | 鍵導出、ウォレットストア、生の署名は wallet-core / チェーン統合の外部契約。本書は MosaicLynx 側で再実装しない                                                                    |
 | `CR-NFR-006`、`CR-AC-008`                                                            | アーキテクチャ §3、§16、セキュリティ設計 §16                           | §7         | Mainnet 対応能力の根拠 / 承認ポリシーは ADR 0001、`evidence-policy.json`、Mainnet リリース証跡。チェーンフィクスチャは判定条件根拠の入力であり判定条件ポリシーの責任主体ではない |
 | `CR-007-TX`、`CR-007-MSG`、`CR-AC-015`                                               | SDK 設計 §7、署名フロー §14、インターフェース設計 §9                   | §4、§6、§8 | アグリゲート / マルチシグ / 連署署名の v1 操作対象範囲 / 結果はインターフェース §9.6.1 とプラットフォーム / SDK 仕様。許可リスト外は本書で拒否し、暗黙に拡張しない               |

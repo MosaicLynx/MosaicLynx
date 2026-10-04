@@ -25,7 +25,7 @@ v1のリリース単位は次のとおりとする。
 | マイルストーン | 必須範囲                                                                                                                        |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | 拡張機能 MVP   | SDK公開API（`signTransaction()` / `signData()`）、拡張機能アダプター、Provider 2.x、共通結果検証                                |
-| モバイル v1    | モバイル Relay アダプター、Relay、iOS / Android アプリ、検証済み App Link、オリジン証明、モバイル署名主体保証表示、署名受け渡し |
+| モバイル v1    | モバイル Relay アダプター、Relay、iOS / Android アプリ、検証済み App Link、オリジン証明、モバイル Signer 保証表示、署名受け渡し |
 
 ### 2.2 v1 の対象外
 
@@ -193,7 +193,7 @@ button.addEventListener('click', async () => {
 });
 ```
 
-型の別名とフィールド検証はインターフェース §9.3 / §9.4 / §9.6.1 を正本とする。SDK は SignDataParams.data を request.payload にコピーし、検証済み観測されたオリジンと対象範囲 / 目的を用い CSPRNG ノンス、issuedAt、messageExpiresAt を生成する。messageExpiresAt は issuedAt の5分後とし、request.expiresAt は request.createdAt の5分後として別に保持する。署名主体が message.expiresAt へ射影する明示対応付けはインターフェース §9.4 に従う。既存のフィールド名以外の別名は送らない。
+型の別名とフィールド検証はインターフェース §9.3 / §9.4 / §9.6.1 を正本とする。SDK は SignDataParams.data を request.payload にコピーし、検証済み観測されたオリジンと対象範囲 / 目的を用い CSPRNG ノンス、issuedAt、messageExpiresAt を生成する。messageExpiresAt は issuedAt の5分後とし、request.expiresAt は request.createdAt の5分後として別に保持する。Signer が message.expiresAt へ射影する明示対応付けはインターフェース §9.4 に従う。既存のフィールド名以外の別名は送らない。
 
 ### 5.2 公開 API の規則
 
@@ -201,8 +201,8 @@ button.addEventListener('click', async () => {
 - 公開引数または返却値へ通信経路名、Relay URL、セッション ID、対応能力トークン、セッション秘密情報、拡張機能の `accountId` を含めない。
 - 現行モバイル受け渡しの `appToken` は Relay エンドポイント認可認証情報であり、セッション秘密情報、要求 / 応答暗号化鍵または導出された暗号化資料ではない。SDK の公開 API へ生の認証情報を含めない。
 - `payload`はsymbol-sdkが生成した小文字 / uppercaseいずれかの偶数長16進数を受け付け、内部検証前に大文字小文字以外を変換しない。デコード済みバイト長さは256 KiB以下とする。
-- `expectedSignerPublicKey` は任意とする。指定された場合はチェーンの形式へ正規化した後、実際の署名主体公開鍵との完全一致を必須とする。不一致は `SIGNER_MISMATCH` とし、署名結果を返さない。
-- `expectedSignerPublicKey` がない場合、拡張機能の信頼された署名主体は接続許可された現在の有効なアカウント / プロファイル内の文脈から対象を解決し、モバイルアプリは承認画面でユーザーが選択した公開アカウントの識別情報を使用する。SDK / ページは内部選択子を生成・送信しない。
+- `expectedSignerPublicKey` は任意とする。指定された場合はチェーンの形式へ正規化した後、実際の Signer 公開鍵との完全一致を必須とする。不一致は `SIGNER_MISMATCH` とし、署名結果を返さない。
+- `expectedSignerPublicKey` がない場合、拡張機能の信頼された Signer は接続許可された現在の有効なアカウント / プロファイル内の文脈から対象を解決し、モバイルアプリは承認画面でユーザーが選択した公開アカウントの識別情報を使用する。SDK / ページは内部選択子を生成・送信しない。
 - `signData()` は既存の公開 `MosaicLynxSignDataParams`（`chain`、`network`、`purpose`、`data`、任意の `expectedSignerPublicKey`）を受け取り、`MosaicLynxSigningResult<SignedData>` を返す。SDK が生成するノンスと有効期限を含む構造化されたメッセージを、既存の `RelayDataSigningRequest` の要求ペイロードとして受け渡しする。ここでいう要求ペイロードは既存の論理要求の表現であり、新しいメッセージ署名通信上のスキーマを追加しない。
 - `connect()`は指定対象範囲のアクティブアカウント公開識別情報だけを返す。内部アカウント IDとプロファイル IDは返さない。
 - `isConnected()`は承認UIを開かず、拡張機能の現在値またはオリジン単位で保存したモバイル公開識別情報を確認する。
@@ -211,7 +211,7 @@ button.addEventListener('click', async () => {
 - 同一MosaicLynx SDK インスタンスの同時要求は許可するが、各要求は独立した要求 IDとRelay セッションを持つ。MosaicLynx SDKは応答を要求 IDで分離する。
 - `signTransaction()` は App Link を開く可能性があるため、click / tap などの利用者有効化を持つ同期的なイベントハンドラーから呼び始める。事前の非同期処理で利用者有効化を消費してから呼ぶことを対応対象としない。
 
-`signTransaction()`、`signData()`、`cosignTransaction()` の公開返却型は `MosaicLynxSigningResult<T>` とする。通常の失敗 / 拒否は既存受け渡し §10 のエラーコードで保証を拒否し、既知の署名済み結果は `outcome: 'succeeded'` として解決し、署名主体が生成した `RESULT_UNKNOWN` は `outcome: 'resultUnknown'` として解決する。`RESULT_UNKNOWN` を例外、SDK エラーコード、通信経路失敗または内部例外へ変換してはならない。`cosignTransaction()` はインターフェース §9.6.1 の任意対応能力 / チェーン固有の結果に従い `MosaicLynxSigningResult<MosaicLynxCosignature>` を返す。既知の結果 / 不明 / 配送の意味は他署名操作と同じ。非対応対応能力は利用不能とする。
+`signTransaction()`、`signData()`、`cosignTransaction()` の公開返却型は `MosaicLynxSigningResult<T>` とする。通常の失敗 / 拒否は既存受け渡し §10 のエラーコードで保証を拒否し、既知の署名済み結果は `outcome: 'succeeded'` として解決し、Signer が生成した `RESULT_UNKNOWN` は `outcome: 'resultUnknown'` として解決する。`RESULT_UNKNOWN` を例外、SDK エラーコード、通信経路失敗または内部例外へ変換してはならない。`cosignTransaction()` はインターフェース §9.6.1 の任意対応能力 / チェーン固有の結果に従い `MosaicLynxSigningResult<MosaicLynxCosignature>` を返す。既知の結果 / 不明 / 配送の意味は他署名操作と同じ。非対応対応能力は利用不能とする。
 
 ### 5.2.1 受け渡しと公開署名結果の対応付け
 
@@ -224,7 +224,7 @@ button.addEventListener('click', async () => {
 | `outcome: 'resultUnknown'`、`signingOutcome: 'RESULT_UNKNOWN'`                                 | `MosaicLynxSigningResult<T>` の `outcome: 'resultUnknown'`。署名済み結果、deliveryDisposition、errorCode は持たない |
 | `outcome: 'rejected'` または `outcome: 'failed'`、`errorCode`                                  | 受け渡し §10 の既存公開エラーコードによる保証拒否                                                                   |
 
-拡張機能 Provider パスとモバイル Relay パスは、dApp へ同じ `MosaicLynxSigningResult<T>` 意味を公開する。拡張機能 Provider が内部で別の応答表現を使用しても、SDK アダプターは署名主体が生成したな既知の結果、`RESULT_UNKNOWN` および配送処理結果の区分だけを上記の共通型へ対応付ける。SDK アダプターは `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` を生成、推測または確定しない。
+拡張機能 Provider パスとモバイル Relay パスは、dApp へ同じ `MosaicLynxSigningResult<T>` 意味を公開する。拡張機能 Provider が内部で別の応答表現を使用しても、SDK アダプターは Signer が生成したな既知の結果、`RESULT_UNKNOWN` および配送処理結果の区分だけを上記の共通型へ対応付ける。SDK アダプターは `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` を生成、推測または確定しない。
 
 `cosigned / SUCCEEDED / cosignature / deliveryDisposition` は `MosaicLynxSigningResult<MosaicLynxCosignature>` の成功 / 結果 / 同じ処理結果の区分へ対応付けする。requestId / requestDigest と元 cosignTransaction の操作、親、対象範囲、連署者を照合する。resultUnknown は同じ共通分岐。連署済み結果を SignedTransaction 分岐に詰めない。
 
@@ -278,7 +278,7 @@ MosaicLynx SDKは接続、更新、切断、各署名ごとに次の順序で通
 - 接続または署名をユーザーが拒否した。
 - Vault がロック中である。
 - Provider または Relay がエラーを返した。
-- トランザクション、チェーン、ネットワーク、署名主体の検証に失敗した。
+- トランザクション、チェーン、ネットワーク、Signer の検証に失敗した。
 - App Link を開けなかった、または要求がタイムアウトした。
 
 再試行は新しい利用者有効化から対象APIを呼び、新しい要求 ID、秘密情報、トークンと再承認を生成する。
@@ -289,10 +289,10 @@ MosaicLynx SDKは接続、更新、切断、各署名ごとに次の順序で通
 
 1. SDKの接続、有効なアカウント更新、切断をProviderへ委譲し、ページに公開するの `PublicAccountIdentity` へ射影する。Provider の内部アカウントレコード、`accountId`、`profileId`、ウォレットストア ID、鍵枠または内容を解釈しない内部ハンドルは公開識別情報に含めず、SDK / ページに公開する Provider 間で受け渡さない。
 2. 署名時に`getAccounts()`で要求対象範囲の公開アカウントの識別情報と現在の許可 / 有効なアカウントを確認し、接続された対象を解決できなければ`NOT_CONNECTED`または既存の受け渡し §10 対応付けに従う。`getAccounts()` の公開値から内部アカウント選択子を取得・生成しない。
-3. `expectedSignerPublicKey` がある場合、SDK / アダプターは公開アカウントの識別情報の `publicKey` と照合する。一致しなければ `SIGNER_MISMATCH` とし、内部アカウント ID を特定・返却しない。Provider へ渡す署名主体期待値は、公開契約にある `expectedSignerPublicKey` とし、内部選択子ではない。
-4. `expectedSignerPublicKey` がある場合はその公開署名主体期待値を Provider の署名要求に渡す。ない場合は `expectedSignerPublicKey` を省略し、Provider / 特権を持つホスト / 信頼された署名主体が既存の現在の許可、プロファイル内の文脈、有効なアカウントおよび必要な信頼された UI に従ってアカウントの内部参照を解決する。Provider の公開署名要求は `chain`、`network`、`payload` および任意の `expectedSignerPublicKey` の意味に従い、`accountId`、`profileId` または内容を解釈しない内部ハンドルを渡さない。SDK / ページは内部選択子を生成しない。
-5. Provider から取得する論理的な署名結果は、既知の結果なら署名結果 `SUCCEEDED`、署名済み結果および署名主体が生成した `deliveryDisposition`（`PENDING`、`DELIVERED` または `DELIVERY_UNKNOWN`）を保持する。結果ペイロードを固定版symbol-sdkのSymbol / NEM TransactionFactoryでデシリアライズし、ファサードの`verifyTransaction()` / `hashTransaction()`で署名主体、署名、ハッシュ、元要求との対応を検証したうえで、同じ署名済み結果と処理結果の区分を公開 `MosaicLynxSigningResult<SignedTransaction>` の `outcome: 'succeeded'` 分岐へ意味不変に渡す。
-6. Provider が署名主体が生成した `RESULT_UNKNOWN` を返す場合、SDK アダプターは署名済み結果、deliveryDisposition および通常の errorCode を付けず、公開 `MosaicLynxSigningResult<SignedTransaction>` の `outcome: 'resultUnknown'` 分岐へ意味不変に対応付ける。SDK アダプター、Provider、保証決済、ページ配送および通信経路は `RESULT_UNKNOWN`、`PENDING`、`DELIVERED` または `DELIVERY_UNKNOWN` を生成、推測または書き換えない。修飾のないな `SignedTransaction` / `SignedMessage` だけを返してこれらを区別できない Provider 構造は、本節の規範的な契約ではない。
+3. `expectedSignerPublicKey` がある場合、SDK / アダプターは公開アカウントの識別情報の `publicKey` と照合する。一致しなければ `SIGNER_MISMATCH` とし、内部アカウント ID を特定・返却しない。Provider へ渡す Signer 期待値は、公開契約にある `expectedSignerPublicKey` とし、内部選択子ではない。
+4. `expectedSignerPublicKey` がある場合はその公開 Signer 期待値を Provider の署名要求に渡す。ない場合は `expectedSignerPublicKey` を省略し、Provider / 特権を持つホスト / 信頼された Signer が既存の現在の許可、プロファイル内の文脈、有効なアカウントおよび必要な信頼された UI に従ってアカウントの内部参照を解決する。Provider の公開署名要求は `chain`、`network`、`payload` および任意の `expectedSignerPublicKey` の意味に従い、`accountId`、`profileId` または内容を解釈しない内部ハンドルを渡さない。SDK / ページは内部選択子を生成しない。
+5. Provider から取得する論理的な署名結果は、既知の結果なら署名結果 `SUCCEEDED`、署名済み結果および Signer が生成した `deliveryDisposition`（`PENDING`、`DELIVERED` または `DELIVERY_UNKNOWN`）を保持する。結果ペイロードを固定版symbol-sdkのSymbol / NEM TransactionFactoryでデシリアライズし、ファサードの`verifyTransaction()` / `hashTransaction()`で Signer、署名、ハッシュ、元要求との対応を検証したうえで、同じ署名済み結果と処理結果の区分を公開 `MosaicLynxSigningResult<SignedTransaction>` の `outcome: 'succeeded'` 分岐へ意味不変に渡す。
+6. Provider が Signer が生成した `RESULT_UNKNOWN` を返す場合、SDK アダプターは署名済み結果、deliveryDisposition および通常の errorCode を付けず、公開 `MosaicLynxSigningResult<SignedTransaction>` の `outcome: 'resultUnknown'` 分岐へ意味不変に対応付ける。SDK アダプター、Provider、保証決済、ページ配送および通信経路は `RESULT_UNKNOWN`、`PENDING`、`DELIVERED` または `DELIVERY_UNKNOWN` を生成、推測または書き換えない。修飾のないな `SignedTransaction` / `SignedMessage` だけを返してこれらを区別できない Provider 構造は、本節の規範的な契約ではない。
 
 接続承認と署名承認は統合せず、Provider の別々のユーザー確認として維持する。Provider のエラーは 10 章の共通エラーへ変換し、Provider / 特権を持つ RPC 固有コードを SDK 公開エラーコードとして追加しない。
 
@@ -396,19 +396,19 @@ interface OriginKeyManifest {
 
 `RelayResponseBase`、`protocol` / `requestId` / `requestDigest` / `completedAt`、結果共用体、`PublicAccountIdentity`、`DeliveryDisposition` の型・必須性・通信上のフィールドはインターフェース §6.3 の正規宣言を使用する。受け渡しは `MosaicLynxActiveAccount` または `MosaicLynxDeliveryDisposition` を共通の契約と異なる独立型として定義しない。既存実装上の別名が必要な場合も、wire-identical な非規範的別名としてのみ扱う。
 
-`signingOutcome` は信頼された署名主体が確定する署名 axis であり、`deliveryDisposition` は既知の署名済み結果に付随する配送 axis である。`resultUnknown` は通常の `rejected` / `failed` エラー分岐ではなく、`errorCode`、署名済み結果および deliveryDisposition を持たない。`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` は受け渡し §10 の `MosaicLynxSDKErrorCode` に追加しない。
+`signingOutcome` は信頼された Signer が確定する署名 axis であり、`deliveryDisposition` は既知の署名済み結果に付随する配送 axis である。`resultUnknown` は通常の `rejected` / `failed` エラー分岐ではなく、`errorCode`、署名済み結果および deliveryDisposition を持たない。`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` は受け渡し §10 の `MosaicLynxSDKErrorCode` に追加しない。
 
-`RESULT_UNKNOWN` は、wallet-core / バインディング呼び出し中のプロセス消失など、信頼された署名主体が署名生成自体の成否を確定できない場合に限る。SDK、Provider、Relay および通信経路は、SDK タイムアウト、Relay 障害、ネットワーク失敗、応答欠如、接続解除、受信者オフライン、再接続失敗、応答配送失敗またはページ / SDK / Relay ライフサイクル消失から `RESULT_UNKNOWN` を生成・推測・確定しない。
+`RESULT_UNKNOWN` は、wallet-core / バインディング呼び出し中のプロセス消失など、信頼された Signer が署名生成自体の成否を確定できない場合に限る。SDK、Provider、Relay および通信経路は、SDK タイムアウト、Relay 障害、ネットワーク失敗、応答欠如、接続解除、受信者オフライン、再接続失敗、応答配送失敗またはページ / SDK / Relay ライフサイクル消失から `RESULT_UNKNOWN` を生成・推測・確定しない。
 
-`DELIVERY_UNKNOWN` は、署名主体が有効な署名済み結果を保持しているが、その結果の配送処理結果の区分を確定できない場合に使用する。したがって `outcome: 'signed'` / `outcome: 'dataSigned'` / `outcome: 'cosigned'`、`signingOutcome: 'SUCCEEDED'`、既知の署名済み結果および `deliveryDisposition: 'DELIVERY_UNKNOWN'` の組み合わせを許可する。SDK、Provider、Relay および通信経路はこの処理結果の区分を署名失敗、`RESULT_UNKNOWN` または通常エラーへ変換しない。
+`DELIVERY_UNKNOWN` は、Signer が有効な署名済み結果を保持しているが、その結果の配送処理結果の区分を確定できない場合に使用する。したがって `outcome: 'signed'` / `outcome: 'dataSigned'` / `outcome: 'cosigned'`、`signingOutcome: 'SUCCEEDED'`、既知の署名済み結果および `deliveryDisposition: 'DELIVERY_UNKNOWN'` の組み合わせを許可する。SDK、Provider、Relay および通信経路はこの処理結果の区分を署名失敗、`RESULT_UNKNOWN` または通常エラーへ変換しない。
 
-`PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` は配送処理結果の区分の値であり、署名ライフサイクルの状態ではない。Relay はこのフィールドの意味を生成・変更せず、応答を内容を解釈せずに搬送する。署名主体が生成した `signingOutcome` / `deliveryDisposition` は要求対応付けを維持したまま SDK、Provider および Relay を通過し、意味を失わない。
+`PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` は配送処理結果の区分の値であり、署名ライフサイクルの状態ではない。Relay はこのフィールドの意味を生成・変更せず、応答を内容を解釈せずに搬送する。Signer が生成した `signingOutcome` / `deliveryDisposition` は要求対応付けを維持したまま SDK、Provider および Relay を通過し、意味を失わない。
 
-`deliveryDisposition` は Relay の保存領域 / 消費状態ではなく、署名主体が信頼されたプロトコル / 受領確認契約に基づいて確定する既知の署名済み結果の配送処理結果の区分である。署名主体が既知の署名済み結果を生成した時点で配送完了をまだ確定できない場合、初期値は `PENDING` とする。`DELIVERED` は署名主体が自身の信頼された配送契約により既存署名済み結果の配送完了を安全に確定できた場合だけ許可する。
+`deliveryDisposition` は Relay の保存領域 / 消費状態ではなく、Signer が信頼されたプロトコル / 受領確認契約に基づいて確定する既知の署名済み結果の配送処理結果の区分である。Signer が既知の署名済み結果を生成した時点で配送完了をまだ確定できない場合、初期値は `PENDING` とする。`DELIVERED` は Signer が自身の信頼された配送契約により既存署名済み結果の配送完了を安全に確定できた場合だけ許可する。
 
-現行モバイル Relay v1 の `SDK → response取得 → decrypt / validate → ACK → Relay response_available → consumed` は Relay の通信経路保存領域 / 消費状態であり、署名主体側の `deliveryDisposition` の判断権限ではない。モバイルアプリが SDK の受領確認を観測する reverse 受領確認契約は現行 v1 にないため、モバイル応答の初期 `deliveryDisposition` は原則 `PENDING` とし、アプリ / 署名主体は Relay 応答登録または SDK の受領確認を根拠に `DELIVERED` を生成してはならない。SDK も自身が応答を取得・受領確認できたことを根拠に `PENDING` を `DELIVERED` へ書き換えない。
+現行モバイル Relay v1 の `SDK → response取得 → decrypt / validate → ACK → Relay response_available → consumed` は Relay の通信経路保存領域 / 消費状態であり、Signer 側の `deliveryDisposition` の判断権限ではない。モバイルアプリが SDK の受領確認を観測する reverse 受領確認契約は現行 v1 にないため、モバイル応答の初期 `deliveryDisposition` は原則 `PENDING` とし、アプリ / Signer は Relay 応答登録または SDK の受領確認を根拠に `DELIVERED` を生成してはならない。SDK も自身が応答を取得・受領確認できたことを根拠に `PENDING` を `DELIVERED` へ書き換えない。
 
-したがって、`Relay ACK / consumed state != Signer-side deliveryDisposition` である。SDK は自身の通信経路完了を SDK-local ライフサイクルとして扱い、署名主体が生成した `PENDING`、`DELIVERED` または `DELIVERY_UNKNOWN` を変更せず公開 `MosaicLynxSigningResult<T>` へ伝達する。
+したがって、`Relay ACK / consumed state != Signer-side deliveryDisposition` である。SDK は自身の通信経路完了を SDK-local ライフサイクルとして扱い、Signer が生成した `PENDING`、`DELIVERED` または `DELIVERY_UNKNOWN` を変更せず公開 `MosaicLynxSigningResult<T>` へ伝達する。
 
 `failed` 応答の `errorCode` は公開可能な安定コードだけとし、パーサー、Vault、OS、暗号ライブラリの内部詳細を含めない。`RESULT_UNKNOWN` や `DELIVERY_UNKNOWN` を `INTERNAL_ERROR`、通信経路失敗または `failed` に縮退させてはならない。
 
@@ -425,7 +425,7 @@ dApp
   → アプリで接続アカウント選択、署名内容確認、または切断を明示承認
   → アプリが接続・署名・切断・拒否または resultUnknown 結果を暗号化して Relay へ登録
   → 元ページの MosaicLynx SDK が応答を取得、復号、整合性を検証
-  → MosaicLynx SDK が ACK 後に既知の署名済み結果（署名主体が生成した deliveryDisposition 付き）を `outcome: 'succeeded'` として解決、resultUnknown を `outcome: 'resultUnknown'` として解決、または共通エラーとして拒否
+  → MosaicLynx SDK が ACK 後に既知の署名済み結果（Signer が生成した deliveryDisposition 付き）を `outcome: 'succeeded'` として解決、resultUnknown を `outcome: 'resultUnknown'` として解決、または共通エラーとして拒否
   → dApp が必要に応じてアナウンス
 ```
 
@@ -461,11 +461,11 @@ https://link.mosaiclynx.app/v1/handoff/{sessionId}#s={sessionSecret}&a={appToken
 
 `initiatorOrigin` は Relay による改ざんからAEADで保護されるだけでは、ブラウザの実際のオリジンを証明しない。アプリはMainnetで上記`originProof`を検証し、成功時だけ「登録鍵で検証済み」と表示する。Testnetで証明がない場合は「要求元（未検証）」として正規 / Punycode表記を表示し、拡張機能承認画面の検証済みオリジンと同じ保証があるように表示しない。Relay の受信・配送、SDK / Provider 状態、通常の `UNLOCKED`、wallet-core パスワード / ストア検証または接続 / 許可は、この4条件の代替ではない。
 
-### 7.5 モバイル署名主体保証と Mainnet 判定条件判断権限
+### 7.5 モバイル Signer 保証と Mainnet 判定条件判断権限
 
 モバイル v1 の受け渡しは、Symbol / NEM の生の署名対応能力を OS の特定ハードウェア API、OS バージョン、ラップアルゴリズム、証明 level または直接のハードウェア署名へ自動的に写像しない。受け渡しは未承認のプラットフォーム対応能力、バックアップ / 復元条件またはハードウェア選択を現在の契約として固定せず、実際に承認されたプラットフォーム / リリース契約の結果だけを受け取る。
 
-モバイル Mainnet の受け渡しでは、`originProof` の検証と現在のリリース / 根拠判定条件の結果を署名主体が確認する。判定条件状態、プラットフォーム対応能力、サポートポリシー、プロファイル / アカウント文脈、四条件または必要な証明を確認できない場合は Mainnet 署名を有効化せず、Testnet 専用の安全な経路を維持する。Relay 配送、SDK 利用可能性、OS 利用可能性、wallet-core 署名成功またはアプリ起動成功を判定条件の代替にしない。
+モバイル Mainnet の受け渡しでは、`originProof` の検証と現在のリリース / 根拠判定条件の結果を Signer が確認する。判定条件状態、プラットフォーム対応能力、サポートポリシー、プロファイル / アカウント文脈、四条件または必要な証明を確認できない場合は Mainnet 署名を有効化せず、Testnet 専用の安全な経路を維持する。Relay 配送、SDK 利用可能性、OS 利用可能性、wallet-core 署名成功またはアプリ起動成功を判定条件の代替にしない。
 
 次の厳密な選択は本書の責任主体ではない。
 
@@ -479,7 +479,7 @@ https://link.mosaiclynx.app/v1/handoff/{sessionId}#s={sessionSecret}&a={appToken
 - rooted / jailbroken判定、ハードウェア証明失敗、画面 overlay / アクセシビリティ悪用検知はリスク signalとして表示・ポリシー評価するが、単一のheuristicだけで鍵を削除しない。
 - アプリバックグラウンド、端末ロック、画面取得開始、5分タイムアウト、メモリ警告、操作キャンセルで秘密情報ハンドルを無効化する。Mainnet署名画面ではOSの画面取得抑止APIを利用可能な範囲で有効にする。
 
-署名実装の正本は [wallet-core 統合](./wallet-core-integration.md)。署名主体が意味上の検証・承認後に正式 `sign` を呼ぶ。SDK / Relay は生の署名、鍵取得、秘密情報を含む暗号処理を行わない。
+署名実装の正本は [wallet-core 統合](./wallet-core-integration.md)。Signer が意味上の検証・承認後に正式 `sign` を呼ぶ。SDK / Relay は生の署名、鍵取得、秘密情報を含む暗号処理を行わない。
 
 ## 8. E2E 暗号化
 
@@ -526,7 +526,7 @@ interface RelayAAD {
 
 アプリ / SDK は世代 ID、セッション ID、方向、期限切れ、または暗号文の差し替えを AEAD 認証失敗として拒否する。Relay は現在の世代メタデータ、ライフサイクル、認可およびエンベロープ外形を検証するが、内容を解釈しない暗号文の内部認証状態は検証しない。世代不一致と復号エラーの詳細は外部へ返さず、安全な共通エラー（`CONTEXT_CHANGED`、`INVALID_RESPONSE` または `INTERNAL_ERROR`）へ正規化する。
 
-Relay はこの仕様で定義する要求 / 応答の平文を扱わず、`EncryptedRelayEnvelope` と受け渡しに必要な最小限の安全なメタデータだけを内容を解釈しないとして保持・受け渡しする。Relay の API 応答、保存領域、バックアップ、ログ、診断情報、利用状況分析、遠隔計測データに平文を露出させず、Relay 運用者やログ出力基盤が通常経路で取得できるようにしてはならない。復号、操作の意味解釈、表示、承認および署名はアプリ / 署名主体の責任である。
+Relay はこの仕様で定義する要求 / 応答の平文を扱わず、`EncryptedRelayEnvelope` と受け渡しに必要な最小限の安全なメタデータだけを内容を解釈しないとして保持・受け渡しする。Relay の API 応答、保存領域、バックアップ、ログ、診断情報、利用状況分析、遠隔計測データに平文を露出させず、Relay 運用者やログ出力基盤が通常経路で取得できるようにしてはならない。復号、操作の意味解釈、表示、承認および署名はアプリ / Signer の責任である。
 
 ## 9. Relay HTTP API
 
@@ -685,14 +685,14 @@ MosaicLynx SDKは通信経路固有エラーを次の共通規則で正規化す
 | トランザクションが不正または非正規                       | `INVALID_TRANSACTION`                 |
 | 許可リスト外の型 / バージョン                            | `UNSUPPORTED_TRANSACTION`             |
 | チェーン / ネットワーク不一致                            | `CHAIN_MISMATCH` / `NETWORK_MISMATCH` |
-| 期待される / 選択済みの / actual 署名主体不一致          | `SIGNER_MISMATCH`                     |
+| 期待される / 選択済みの / actual Signer 不一致           | `SIGNER_MISMATCH`                     |
 | ページ遷移、ページ破棄、権限・状態変更                   | `CONTEXT_CHANGED`                     |
 | 応答の AEAD、ダイジェスト、要求 ID、ペイロード対応が不正 | `INVALID_RESPONSE`                    |
 | 外部へ詳細を公開しない失敗                               | `INTERNAL_ERROR`                      |
 
 RelayのHTTP 状態、URL、トークン、暗号エラー、Provider内部例外、スタック追跡はMosaicLynx SDK エラーメッセージに含めない。`cause`を本番ビルドの公開エラーへ保持しない。
 
-`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` は、上表のエラーコードではなく §7.2 の結果 / 配送意味である。`RESULT_UNKNOWN` を `INTERNAL_ERROR`、`CONTEXT_CHANGED`、通信経路失敗またはその他のエラーコードへ縮退させてはならない。`DELIVERY_UNKNOWN` は既知の署名済み結果を保持した `SUCCEEDED` 応答に付随し、署名失敗、`RESULT_UNKNOWN` またはエラーコードへ変換してはならない。SDK / Provider / Relay は署名主体が生成した値を対応付け / 通信経路 / スキーマ検証の範囲で意味不変に通過させる。
+`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` は、上表のエラーコードではなく §7.2 の結果 / 配送意味である。`RESULT_UNKNOWN` を `INTERNAL_ERROR`、`CONTEXT_CHANGED`、通信経路失敗またはその他のエラーコードへ縮退させてはならない。`DELIVERY_UNKNOWN` は既知の署名済み結果を保持した `SUCCEEDED` 応答に付随し、署名失敗、`RESULT_UNKNOWN` またはエラーコードへ変換してはならない。SDK / Provider / Relay は Signer が生成した値を対応付け / 通信経路 / スキーマ検証の範囲で意味不変に通過させる。
 
 `signData` を含む v1 対象操作が未対応の、期限切れ、リプレイ、検証不能または利用者拒否になった場合、SDK は署名結果を返さず受け渡し §10 の共通エラーとして扱う。署名生成が不明の場合は §7.2 の `resultUnknown` 応答として保持し、共通エラー、別操作の成功または自動代替経路として返してはならない。
 
@@ -705,9 +705,9 @@ RelayのHTTP 状態、URL、トークン、暗号エラー、Provider内部例�
 - アプリからブラウザを開き直すコールバックリンクは使用しない。元ページが Relay 応答を待機取得する。
 - App Link 起動ボタンには MosaicLynx アプリが開くこと、要求が5分で期限切れになることを表示する。
 - アプリがロック中の場合、アプリ内でロック解除する。Web ページにパスワード、passkey assertion、生体認証データを入力または返却させない。
-- 署名主体がコア署名を一度も呼んでいないと確実に把握する呼び出し前タイムアウト / キャンセルだけは署名未開始として期限切れ / キャンセル済みを確定できる。アプリ終了 / 保証タイムアウト / 通信経路タイムアウト自体は未署名の証明ではない。
-- 署名呼び出し後に完了 / 生成失敗を署名主体が確定できない場合は RESULT_UNKNOWN。有効な署名済み結果を既に確認した場合は成功を維持し、署名主体が配送成否を確定できない場合は DELIVERY_UNKNOWN とする。成功後のキャンセルは署名を取り消さない。
-- SDK / Provider / Relay は待機失敗を transport_failure として扱い、署名主体の RESULT_UNKNOWN / DELIVERY_UNKNOWN を生成・推測しない。呼び出し元再試行は承認ではなく、requestId に結び付けした重複 / 改ざん検査と新鮮な承認を適用する。不確定状態から自動再署名しない。
+- Signer がコア署名を一度も呼んでいないと確実に把握する呼び出し前タイムアウト / キャンセルだけは署名未開始として期限切れ / キャンセル済みを確定できる。アプリ終了 / 保証タイムアウト / 通信経路タイムアウト自体は未署名の証明ではない。
+- 署名呼び出し後に完了 / 生成失敗を Signer が確定できない場合は RESULT_UNKNOWN。有効な署名済み結果を既に確認した場合は成功を維持し、Signer が配送成否を確定できない場合は DELIVERY_UNKNOWN とする。成功後のキャンセルは署名を取り消さない。
+- SDK / Provider / Relay は待機失敗を transport_failure として扱い、Signer の RESULT_UNKNOWN / DELIVERY_UNKNOWN を生成・推測しない。呼び出し元再試行は承認ではなく、requestId に結び付けした重複 / 改ざん検査と新鮮な承認を適用する。不確定状態から自動再署名しない。
 
 ## 12. 診断情報とプライバシー
 
@@ -733,9 +733,9 @@ interface MosaicLynxDiagnosticEvent {
 - 全体 App Link をクリップボード、利用状況分析、異常終了報告書、ブラウザ保存領域へ保存しない。
 - Relay は要求本文を WAF / APM が記録しない設定とし、アクセスログから認可ヘッダーと照会を除外する。
 - 要求 / 応答の AEAD 検証前に平文を UI、ログ、ドメインオブジェクトとして扱わない。
-- 署名済み応答は元要求ダイジェスト、チェーン、ネットワーク、期待される署名主体と照合し、別要求へ転用しない。
-- `RESULT_UNKNOWN` は信頼された署名主体が生成した `resultUnknown` 応答だけで表し、SDK タイムアウト、Relay / ネットワーク失敗、応答欠如、Provider 接続解除、受信者オフライン、ページ / SDK / Relay ライフサイクル消失または配送失敗から生成しない。
-- `DELIVERY_UNKNOWN` は信頼された署名主体が保持する既知の署名済み結果に付随する deliveryDisposition として保持し、既存結果の再送 / 再配送 / 取得 / 照会と署名再試行 / 再署名を分離する。
+- 署名済み応答は元要求ダイジェスト、チェーン、ネットワーク、期待される Signer と照合し、別要求へ転用しない。
+- `RESULT_UNKNOWN` は信頼された Signer が生成した `resultUnknown` 応答だけで表し、SDK タイムアウト、Relay / ネットワーク失敗、応答欠如、Provider 接続解除、受信者オフライン、ページ / SDK / Relay ライフサイクル消失または配送失敗から生成しない。
+- `DELIVERY_UNKNOWN` は信頼された Signer が保持する既知の署名済み結果に付随する deliveryDisposition として保持し、既存結果の再送 / 再配送 / 取得 / 照会と署名再試行 / 再署名を分離する。
 - MosaicLynx SDKは受領した署名済みペイロードを固定版symbol-sdkでデシリアライズ / 検証し、元未署名のトランザクションとチェーン規則上対応することを検証する。MosaicLynx SDK独自のcatbuffer、署名、ハッシュ実装は使用しない。
 - Web ページ自身の侵害、悪意ある dApp、端末 OS、アンロック中アプリ、正規配布成果物の侵害は E2E Relay 暗号化の保証範囲外である。
 - 開始主体オリジン文字列だけを検証根拠にしない。Mainnetはオリジン証明を必須とし、Testnetで証明がない場合だけ未検証と表示する。証明はオリジンの登録鍵による要求整合性を示すもので、サイト運営主体の善性、トランザクションの安全性、Web ページ非侵害までは保証しない。
@@ -747,11 +747,11 @@ interface MosaicLynxDiagnosticEvent {
 - 同じ `signTransaction()` 呼び出しが拡張機能とモバイル Relay の両方で `MosaicLynxSigningResult<SignedTransaction>` を返し、既知の署名済み結果と `RESULT_UNKNOWN` を区別できる。
 - 同じ `signData()` 呼び出しが拡張機能とモバイル Relay の両方で `MosaicLynxSigningResult<SignedData>` を返し、メッセージ署名がトランザクション署名として扱われない。
 - 受け渡しの `signed` / `dataSigned` / `cosigned`、`resultUnknown`、`rejected` / `failed` が、公開署名結果の成功、resultUnknown、保証拒否へ一意に対応付けされる。
-- `outcome: 'succeeded'` は既知の署名済み結果と署名主体が生成した `deliveryDisposition` を保持し、`DELIVERY_UNKNOWN` でも `result` を破棄しない。
+- `outcome: 'succeeded'` は既知の署名済み結果と Signer が生成した `deliveryDisposition` を保持し、`DELIVERY_UNKNOWN` でも `result` を破棄しない。
 - `outcome: 'resultUnknown'` は署名済み結果、deliveryDisposition、通常の errorCode を持たない。
 - 拡張機能 Provider パスとモバイル Relay パスが同じ公開署名結果意味を持ち、SDK アダプターが処理結果の区分を生成・推測・確定しない。
-- `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` の判断権限が署名主体側のに限定され、Relay 受領確認 / 消費済み状態と混同されない。
-- SDK の応答取得・受領確認成功が署名主体が生成した `PENDING` を `DELIVERED` に変更しない。
+- `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` の判断権限が Signer 側のに限定され、Relay 受領確認 / 消費済み状態と混同されない。
+- SDK の応答取得・受領確認成功が Signer が生成した `PENDING` を `DELIVERED` に変更しない。
 - 公開 API に通信経路固有の option、認証情報、`accountId` がない。
 - Provider が存在する場合は Relay セッションを作成しない。
 - Provider がなく、§5.3 の現在のリリース、機能フラグ、リリース / プロダクト判定条件、対象リリースの受信アプリ提供、実行環境、Web API および検証済み HTTPS App Link 条件を全て満たす対応モバイルブラウザだけがモバイル Relay を選択する。
@@ -773,7 +773,7 @@ interface MosaicLynxDiagnosticEvent {
 - 要求 / 応答鍵の取り違えを拒否する。
 - ノンス、暗号文、タグ、セッション ID、方向、期限切れの各改ざんを拒否する。
 - 別セッションの応答、要求 ID 不一致、ダイジェスト不一致、リプレイを拒否する。
-- `signData` の要求 / `dataSigned` 応答の要求 ID、ダイジェスト、メッセージ、署名主体および操作対応を検証し、不一致を拒否する。
+- `signData` の要求 / `dataSigned` 応答の要求 ID、ダイジェスト、メッセージ、Signer および操作対応を検証し、不一致を拒否する。
 - 乱数生成失敗時はセッションを作成せず安全に失敗する。
 - セッション秘密情報とトークンが URL 照会、フラグメント以外のHTTP 要求、Referer、ログ、保存領域、利用状況分析、遠隔計測データ、診断情報またはエラー報告に現れない。検証済み App Link フラグメントの`appToken`をアプリが取得後に認可ヘッダーでRelay エンドポイントへ使用することは許容するが、フラグメント自体は送信しない。
 
@@ -800,7 +800,7 @@ interface MosaicLynxDiagnosticEvent {
 - アプリ承認画面がMainnetでは有効なオリジン証明を必須とし「登録鍵で検証済み」、証明を省略できるTestnetでは「要求元（未検証）」と表示する。
 - well-known マニフェストのリダイレクト、期限切れ／失効鍵、誤ったオリジン、誤った要求ダイジェスト、改ざん証明、private-network解決を拒否する。
 - リリース / プラットフォーム対応能力報告書で承認された保証範囲だけを表示し、対応能力または判定条件状態が不明 / 未対応の場合は Mainnet を有効化しない。具体的な OS / ハードウェア条件と直接のハードウェア署名の採否はモバイル / プラットフォーム判断権限に委譲する。
-- 不明 / non-canonical / サイズ超過のトランザクションと署名主体不一致を署名前に拒否する。
+- 不明 / non-canonical / サイズ超過のトランザクションと Signer 不一致を署名前に拒否する。
 - Symbol / NEM × Mainnet / Testnet の対応トランザクション固定ベクターで署名結果を検証する。
 
 ## 15. 将来拡張
@@ -810,7 +810,7 @@ interface MosaicLynxDiagnosticEvent {
 - React ネイティブ CLIによるモバイル Relay受信アプリと承認UI
 - PC とスマートフォン間の QR 受け渡し
 - transparency ログまたは第三者認証を伴うdApp 鍵 directory（v1の同一Originwell-known方式を置換せず追加する）
-- 組織向けポリシー / 二者承認 / ハードウェア署名主体
+- 組織向けポリシー / 二者承認 / ハードウェア Signer
 - 明示的に信頼登録した自己ホスト Relay
 
 破壊的変更は`mosaiclynx.relay.v2`とMosaicLynx SDK 主要バージョンで導入し、アプリは未知プロトコルを安全側に拒否する。
@@ -822,11 +822,11 @@ interface MosaicLynxDiagnosticEvent {
 | 要件                                                                                   | 設計                                                                  | 本仕様                                | 正本の管理主体 / 未決                                                                                                                                                |
 | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CR-001`、`CR-006`、`CR-007`、`CR-015`；`RR-001`、`RR-002`、`SDK-FR-005`、`SDK-FR-008` | アーキテクチャ §5.2、§6.1〜§6.4；署名フロー §7、§19                   | §2、§5、§7.1〜§7.4、§9〜§10、§12〜§14 | 共通エンベロープ / 識別情報 / 結果 / 処理結果の区分はインターフェース §6；Web 受け渡しプロトコルは本書                                                               |
-| `CR-008`、`CR-010`、`CR-011`、`CR-NFR-002`、`CR-NFR-003`                               | セキュリティ設計 §3〜§6、§10、§15；アーキテクチャ §8〜§9              | §6、§8、§11、§13〜§15                 | Relay は内容を解釈しない通信経路；秘密情報境界と四条件判断権限は署名主体 / アプリ                                                                                    |
-| `CR-003`、`CR-004`、`CR-016`、`CR-AC-017`                                              | 署名フロー §4、§16；セキュリティ設計 §7〜§8                           | §7.4、§10.3、§11、§13                 | 認証、ロック解除、アカウントの利用認可、承認は信頼された署名主体；Relay / SDK は代替しない                                                                           |
-| `CR-002`、`CR-007-TX`、`CR-007-MSG`、`CR-NFR-005`                                      | 署名フロー §9〜§15；アーキテクチャ §6.5                               | §7.4、§10.3、§11                      | トランザクション / メッセージ内容検査はチェーン互換性と署名主体；受け渡しは結果を内容を解釈せずに搬送                                                                |
+| `CR-008`、`CR-010`、`CR-011`、`CR-NFR-002`、`CR-NFR-003`                               | セキュリティ設計 §3〜§6、§10、§15；アーキテクチャ §8〜§9              | §6、§8、§11、§13〜§15                 | Relay は内容を解釈しない通信経路；秘密情報境界と四条件判断権限は Signer / アプリ                                                                                     |
+| `CR-003`、`CR-004`、`CR-016`、`CR-AC-017`                                              | 署名フロー §4、§16；セキュリティ設計 §7〜§8                           | §7.4、§10.3、§11、§13                 | 認証、ロック解除、アカウントの利用認可、承認は信頼された Signer；Relay / SDK は代替しない                                                                            |
+| `CR-002`、`CR-007-TX`、`CR-007-MSG`、`CR-NFR-005`                                      | 署名フロー §9〜§15；アーキテクチャ §6.5                               | §7.4、§10.3、§11                      | トランザクション / メッセージ内容検査はチェーン互換性と Signer；受け渡しは結果を内容を解釈せずに搬送                                                                 |
 | `CR-NFR-008`、`CR-NFR-009`、`MR-002`、`MR-003`                                         | インターフェース設計 §7.3；モバイル設計 §7                            | §7.3〜§7.5、§8〜§11                   | 検証済み App Link、オリジン証明、暗号・リプレイ検証は本書；共通要求フィールドはインターフェース §6                                                                   |
-| `CR-006`、`CR-012`、`CR-NFR-012`；`RR-002`、`RR-NFR-002`                               | 署名フロー §7.3〜§7.4、§19；アーキテクチャ §6.3                       | §7.2、§12.3〜§12.4、§13〜§14          | 署名主体が生成した結果 / 配送処理結果の区分は署名主体；Relay 受領確認 / 消費済み状態は判断権限ではない                                                               |
+| `CR-006`、`CR-012`、`CR-NFR-012`；`RR-002`、`RR-NFR-002`                               | 署名フロー §7.3〜§7.4、§19；アーキテクチャ §6.3                       | §7.2、§12.3〜§12.4、§13〜§14          | Signer が生成した結果 / 配送処理結果の区分は Signer；Relay 受領確認 / 消費済み状態は判断権限ではない                                                                 |
 | `CR-NFR-003`〜`CR-NFR-011`、`RR-004`、`RR-006`、`RR-007`                               | セキュリティ設計 §10、§15；署名フロー §20〜§23；Relay 設計 §6〜§7     | §8、§12〜§14                          | 期限切れ、重複、リプレイ、世代、状態消失は各判断権限のライフサイクル契約                                                                                             |
 | `CR-008`、`CR-013`、`CR-NFR-002`、`CR-NFR-004`；`RR-008`                               | アーキテクチャ §6.8〜§6.9；セキュリティ設計 §6；モバイル設計 §11、§18 | §8.1、§11、§14〜§15                   | ウォレットストア、秘密鍵、生の署名は wallet-core / 信頼されたバインディング；バックアップ / 移行は `OPEN-PROFILE-001`、`MOB-OPEN-006` / `MR-OPEN-006`                |
 | `CR-NFR-006`、`CR-AC-008`、`MR-013`、`MR-AC-009`                                       | アーキテクチャ §3、§6.9、§16；モバイル設計 §3.3、§23〜§24             | §7.5、§11、§14.4                      | Mainnet 判定条件の存在、不明時安全側での終了、Testnet 継続は本書；プラットフォーム対応表 / 実行環境強制 / ストアは `MOB-OPEN-008` / `MR-OPEN-008` とリリース判断権限 |
