@@ -129,6 +129,20 @@ type MosaicLynxSigningResult<T> =
       outcome: 'resultUnknown';
     };
 
+interface MosaicLynxScope {
+  chain: MosaicLynxChain;
+  network: MosaicLynxNetwork;
+}
+interface MosaicLynxSignDataParams extends MosaicLynxScope {
+  purpose: string;
+  data: { encoding: 'utf8' | 'hex'; value: string };
+  expectedSignerPublicKey?: string;
+}
+type MosaicLynxCosignTransactionParams =
+  | (MosaicLynxScope & { chain: 'symbol'; parentPayload: string; detached: boolean; expectedSignerPublicKey?: string })
+  | (MosaicLynxScope & { chain: 'nem'; payload: string; parentPayload: string; expectedSignerPublicKey?: string });
+// SignedData / MosaicLynxCosignature は Interfaces §9.4 / §9.6.1 の型を参照。
+
 interface MosaicLynxSDK {
   readonly version: string;
 
@@ -143,7 +157,7 @@ interface MosaicLynxSDK {
 
   signTransaction(params: MosaicLynxSignTransactionParams): Promise<MosaicLynxSigningResult<SignedTransaction>>;
   signData(params: MosaicLynxSignDataParams): Promise<MosaicLynxSigningResult<SignedData>>;
-  cosignTransaction(params: MosaicLynxCosignTransactionParams): Promise<MosaicLynxCosignature>;
+  cosignTransaction(params: MosaicLynxCosignTransactionParams): Promise<MosaicLynxSigningResult<MosaicLynxCosignature>>;
 }
 
 interface MosaicLynxSDKOptions {
@@ -179,6 +193,8 @@ button.addEventListener('click', async () => {
 });
 ```
 
+型の alias と field validation は Interfaces §9.3 / §9.4 / §9.6.1 を正本とする。SDK は SignDataParams.data を request.payload に copy し、検証済み observed Origin と Scope / purpose を用い CSPRNG nonce、issuedAt、messageExpiresAt を生成する。messageExpiresAt は issuedAt の5分後とし、request.expiresAt は request.createdAt の5分後として別に保持する。Signer が message.expiresAt へ射影する明示 mapping は Interfaces §9.4 に従う。既存の field 名以外の alias は送らない。
+
 ### 5.2 公開 API の規則
 
 - dAppはtransportを選択、設定、判定してはならない。MosaicLynx SDKが環境に応じて選択する。
@@ -195,7 +211,7 @@ button.addEventListener('click', async () => {
 - 同一MosaicLynx SDK instanceの同時要求は許可するが、各要求は独立したrequest IDとRelay sessionを持つ。MosaicLynx SDKは応答をrequest IDで分離する。
 - `signTransaction()` は App Link を開く可能性があるため、click / tap などの user activation を持つ同期的な event handler から呼び始める。事前の非同期処理で user activation を消費してから呼ぶことを対応対象としない。
 
-`signTransaction()` と `signData()` の公開 return type は `MosaicLynxSigningResult<T>` とする。通常の failure / rejection は既存 Handoff §10 の error code で Promise を reject し、known signed result は `outcome: 'succeeded'` として resolve し、Signer-originated `RESULT_UNKNOWN` は `outcome: 'resultUnknown'` として resolve する。`RESULT_UNKNOWN` を exception、SDK error code、transport failure または internal exception へ変換してはならない。`cosignTransaction()` は既存の `MosaicLynxCosignature` contract を維持し、cosignature の public scope / result union は `OPEN-SDK-004` 等の既存 OPEN を解消するまで本変更で確定しない。
+`signTransaction()`、`signData()`、`cosignTransaction()` の公開 return type は `MosaicLynxSigningResult<T>` とする。通常の failure / rejection は既存 Handoff §10 の error code で Promise を reject し、known signed result は `outcome: 'succeeded'` として resolve し、Signer-originated `RESULT_UNKNOWN` は `outcome: 'resultUnknown'` として resolve する。`RESULT_UNKNOWN` を exception、SDK error code、transport failure または internal exception へ変換してはならない。`cosignTransaction()` は Interfaces §9.6.1 の optional capability / chain-specific result に従い `MosaicLynxSigningResult<MosaicLynxCosignature>` を返す。known result / unknown / delivery の意味は他 signing operation と同じ。非対応 capability は UNAVAILABLE とする。
 
 ### 5.2.1 Handoff と公開 signing result の mapping
 
@@ -209,6 +225,8 @@ Handoff response と SDK → dApp の公開 signing result は、次の一意な
 | `outcome: 'rejected'` または `outcome: 'failed'`、`errorCode`                                  | Handoff §10 の既存 public error code による Promise reject                                                           |
 
 Extension Provider path と Mobile Relay path は、dApp へ同じ `MosaicLynxSigningResult<T>` semantics を公開する。Extension Provider が内部で別の response representation を使用しても、SDK adapter は Signer-originated な known result、`RESULT_UNKNOWN` および delivery disposition だけを上記の共通型へ対応付ける。SDK adapter は `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` を生成、推測または確定しない。
+
+`cosigned / SUCCEEDED / cosignature / deliveryDisposition` は `MosaicLynxSigningResult<MosaicLynxCosignature>` の succeeded / result / 同じ disposition へ mapping する。requestId / requestDigest と元 cosignTransaction の operation、parent、Scope、cosigner を照合する。resultUnknown は同じ共通 branch。cosigned result を SignedTransaction branch に詰めない。
 
 ### 5.3 `isAvailable()`
 
@@ -366,14 +384,15 @@ Mobile App は Interfaces Specification §6.3 の canonical `RelayResponse` unio
 
 Handoff の operation mapping は次のとおりである。
 
-| outcome               | required public field                                                               | prohibited / authority                                            |
-| --------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `connected`           | canonical `account: PublicAccountIdentity`                                          | signing result、`errorCode` は禁止                                |
-| `disconnected`        | common response field のみ                                                          | account、signing result、`errorCode` は禁止                       |
-| `signed`              | `signingOutcome: 'SUCCEEDED'`、`signedTransaction`、canonical `deliveryDisposition` | account、`errorCode` は禁止                                       |
-| `dataSigned`          | `signingOutcome: 'SUCCEEDED'`、`signedData`、canonical `deliveryDisposition`        | account、`errorCode` は禁止                                       |
-| `resultUnknown`       | `signingOutcome: 'RESULT_UNKNOWN'`                                                  | signed result、`deliveryDisposition`、account、`errorCode` は禁止 |
-| `rejected` / `failed` | canonical `errorCode`                                                               | 成功 result は禁止                                                |
+| outcome               | required public field                                                                                | prohibited / authority                                            |
+| --------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `connected`           | canonical `account: PublicAccountIdentity`                                                           | signing result、`errorCode` は禁止                                |
+| `disconnected`        | common response field のみ                                                                           | account、signing result、`errorCode` は禁止                       |
+| `signed`              | `signingOutcome: 'SUCCEEDED'`、`signedTransaction`、canonical `deliveryDisposition`                  | account、`errorCode` は禁止                                       |
+| `dataSigned`          | `signingOutcome: 'SUCCEEDED'`、`signedData`、canonical `deliveryDisposition`                         | account、`errorCode` は禁止                                       |
+| `cosigned`            | `signingOutcome: 'SUCCEEDED'`、`cosignature: MosaicLynxCosignature`、canonical `deliveryDisposition` | account、signedTransaction、signedData、errorCode は禁止          |
+| `resultUnknown`       | `signingOutcome: 'RESULT_UNKNOWN'`                                                                   | signed result、`deliveryDisposition`、account、`errorCode` は禁止 |
+| `rejected` / `failed` | canonical `errorCode`                                                                                | 成功 result は禁止                                                |
 
 `RelayResponseBase`、`protocol` / `requestId` / `requestDigest` / `completedAt`、outcome union、`PublicAccountIdentity`、`DeliveryDisposition` の型・必須性・wire field は Interfaces §6.3 の canonical declaration を使用する。Handoff は `MosaicLynxActiveAccount` または `MosaicLynxDeliveryDisposition` を common contract と異なる独立型として定義しない。既存実装上の別名が必要な場合も、wire-identical な非規範的 alias としてのみ扱う。
 
@@ -381,7 +400,7 @@ Handoff の operation mapping は次のとおりである。
 
 `RESULT_UNKNOWN` は、wallet-core / Binding 呼び出し中の process loss など、trusted Signer が signing generation 自体の成否を確定できない場合に限る。SDK、Provider、Relay および transport は、SDK timeout、Relay outage、network failure、response absence、disconnect、recipient offline、reconnect failure、response delivery failure または page / SDK / Relay lifecycle loss から `RESULT_UNKNOWN` を生成・推測・確定しない。
 
-`DELIVERY_UNKNOWN` は、Signer が valid な signed result を保持しているが、その result の delivery disposition を確定できない場合に使用する。したがって `outcome: 'signed'` / `outcome: 'dataSigned'`、`signingOutcome: 'SUCCEEDED'`、known signed result および `deliveryDisposition: 'DELIVERY_UNKNOWN'` の組み合わせを許可する。SDK、Provider、Relay および transport はこの disposition を signing failure、`RESULT_UNKNOWN` または通常 error へ変換しない。
+`DELIVERY_UNKNOWN` は、Signer が valid な signed result を保持しているが、その result の delivery disposition を確定できない場合に使用する。したがって `outcome: 'signed'` / `outcome: 'dataSigned'` / `outcome: 'cosigned'`、`signingOutcome: 'SUCCEEDED'`、known signed result および `deliveryDisposition: 'DELIVERY_UNKNOWN'` の組み合わせを許可する。SDK、Provider、Relay および transport はこの disposition を signing failure、`RESULT_UNKNOWN` または通常 error へ変換しない。
 
 `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` は delivery disposition の値であり、signing lifecycle の state ではない。Relay はこの field の意味を生成・変更せず、response を opaque に搬送する。Signer-originated `signingOutcome` / `deliveryDisposition` は request correlation を維持したまま SDK、Provider および Relay を通過し、意味を失わない。
 
@@ -459,6 +478,8 @@ Mobile Mainnet の Handoff では、`originProof` の検証と current release /
 - biometric / device credentialはOSのuser-presence gateとして署名要求ごとに使用する。biometric data、passcode、assertionをWebまたはRelayへ返さない。
 - rooted / jailbroken判定、hardware attestation失敗、screen overlay / accessibility abuse検知はrisk signalとして表示・policy評価するが、単一のheuristicだけで鍵を削除しない。
 - App background、device lock、screen capture開始、5分timeout、memory warning、operation cancelでsecret handleを無効化する。Mainnet署名画面ではOSのscreen capture抑止APIを利用可能な範囲で有効にする。
+
+署名実装の正本は [wallet-core Integration](./wallet-core-integration.md)。Signer が semantic validation・approval 後に正式 `sign` を呼ぶ。SDK / Relay は raw signing、鍵取得、secret-bearing cryptography を行わない。
 
 ## 8. E2E 暗号化
 
@@ -684,7 +705,9 @@ RelayのHTTP status、URL、token、暗号error、Provider内部例外、stack t
 - App から browser を開き直す callback link は使用しない。元ページが Relay response を待機取得する。
 - App Link 起動ボタンには MosaicLynx App が開くこと、要求が5分で期限切れになることを表示する。
 - App がロック中の場合、App 内で unlock する。Web page に password、passkey assertion、biometric data を入力または返却させない。
-- 拒否、App close、timeout は署名されていない状態として完了する。
+- Signer が core sign を一度も呼んでいないと確実に把握する pre-invocation timeout / cancel だけは signing-not-started として EXPIRED / CANCELLED を確定できる。App close / Promise timeout / transport timeout 自体は未署名の証明ではない。
+- sign invocation 後に completion / 生成失敗を Signer が確定できない場合は RESULT_UNKNOWN。valid signed result を既に確認した場合は SUCCEEDED を維持し、Signer が配送成否を確定できない場合は DELIVERY_UNKNOWN とする。SUCCEEDED 後の cancel は signature を取り消さない。
+- SDK / Provider / Relay は wait failure を transport_failure として扱い、Signer の RESULT_UNKNOWN / DELIVERY_UNKNOWN を生成・推測しない。caller retry は approval ではなく、requestId に binding した duplicate / tampering 検査と fresh approval を適用する。不確定状態から自動再署名しない。
 
 ## 12. Diagnostics と privacy
 
@@ -705,7 +728,7 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 
 - Relay は機密性、完全性、真正性の信頼点にしない。Relay の侵害時も transaction と署名結果を復号・改ざんできないことを設計目標とする。
 - App Link domain と正規 App の association file を TLS、変更承認、監視で保護する。
-- AppとMosaicLynx SDKはRelay responseをschema validationしてから使用し、prototype pollution、過剰JSON depth、duplicate key、未知algorithmを拒否する。
+- App / SDK / Provider は [Interfaces §12.0](./interfaces.md) の bounded snapshot / own-data normalization を完了した immutable DTO だけを使用し、prototype pollution、getters / inherited properties、depth・size超過、duplicate key、未知 algorithm を拒否する。検証済み external object を再 read しない。
 - capability token（現行仕様の `appToken` を含む）は Relay endpoint authorization credential として扱い、URL path / query、Referer、log、Clipboard へ不要に出さない。verified client-side handoff の fragment に一時的に置く場合も、fragment 自体を HTTP request、Relay、browser storage、history、analytics、telemetry、diagnostics、error / crash reporting へ送らず、正規 App 以外へ転送しない。
 - full App Link を Clipboard、analytics、crash report、browser storage へ保存しない。
 - Relay は request body を WAF / APM が記録しない設定とし、access log から Authorization header と query を除外する。
@@ -723,7 +746,7 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 
 - 同じ `signTransaction()` 呼び出しが Extension と Mobile Relay の両方で `MosaicLynxSigningResult<SignedTransaction>` を返し、known signed result と `RESULT_UNKNOWN` を区別できる。
 - 同じ `signData()` 呼び出しが Extension と Mobile Relay の両方で `MosaicLynxSigningResult<SignedData>` を返し、message signing が transaction signing として扱われない。
-- Handoff の `signed` / `dataSigned`、`resultUnknown`、`rejected` / `failed` が、公開 signing result の succeeded、resultUnknown、Promise reject へ一意に mapping される。
+- Handoff の `signed` / `dataSigned` / `cosigned`、`resultUnknown`、`rejected` / `failed` が、公開 signing result の succeeded、resultUnknown、Promise reject へ一意に mapping される。
 - `outcome: 'succeeded'` は known signed result と Signer-originated `deliveryDisposition` を保持し、`DELIVERY_UNKNOWN` でも `result` を破棄しない。
 - `outcome: 'resultUnknown'` は signed result、deliveryDisposition、normal errorCode を持たない。
 - Extension Provider path と Mobile Relay path が同じ公開 signing result semantics を持ち、SDK adapter が disposition を生成・推測・確定しない。
@@ -739,7 +762,7 @@ diagnostics、Relay log、telemetryにpayload、signed payload、hash、public k
 - `expectedSignerPublicKey` が両 transport で同じ意味を持つ。
 - Provider / Relay固有errorが共通MosaicLynx SDK errorへ変換される。
 - `resultUnknown` が `errorCode` を持たず、`signingOutcome: 'RESULT_UNKNOWN'` として検証できる。
-- `signed` / `dataSigned` が known signed result、`signingOutcome: 'SUCCEEDED'` および `deliveryDisposition` を保持し、`DELIVERY_UNKNOWN` を failure / `RESULT_UNKNOWN` へ変換しない。
+- `signed` / `dataSigned` / `cosigned` が known signed result、`signingOutcome: 'SUCCEEDED'` および `deliveryDisposition` を保持し、`DELIVERY_UNKNOWN` を failure / `RESULT_UNKNOWN` へ変換しない。
 - SDK timeout、Relay outage、response absence、disconnect、page / SDK / Relay lifecycle loss または delivery failure から `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` を生成・推測しない。
 - `SUCCEEDED + DELIVERY_UNKNOWN` の recovery が既存 result の resend / redelivery / retrieval / lookup に限定され、新しい signature または alternate route を生成しない。
 - diagnostics が既定無効で、allowlist 外の情報を通知しない。

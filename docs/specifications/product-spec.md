@@ -16,7 +16,7 @@ Web ページから Extension または Mobile App へ署名要求を渡す Mosa
 
 MosaicLynx は、Symbol / NEM の dApp 接続と署名に特化した Signer（署名機）である。
 
-秘密鍵を安全に保持し、ユーザーが内容を確認・承認した場合に限り、dApp から要求されたメッセージまたはトランザクションへ署名する。送金や資産運用を主体とするウォレットではない。
+wallet-core が秘密鍵を安全に保持し、MosaicLynx は秘密鍵を取得せず、ユーザーが内容を確認・承認した場合に限り、dApp から要求されたメッセージまたはトランザクションへ署名する。送金や資産運用を主体とするウォレットではない。
 
 最初に Chrome Extension（Manifest V3）を提供し、将来は同じ Core を利用したスマートフォンアプリへの展開を想定する。
 
@@ -100,81 +100,29 @@ Web dApp は MosaicLynx SDK の共通 `signTransaction()` / `signData()` を利�
 
 ### 6.1 初回起動
 
-保存済みプロファイルがない場合、ウェルカム画面を表示し、次のいずれかへ進める。
-
-- 新しいプロファイルを作成
-- 既存のニーモニックからインポート
-
-秘密鍵によるアカウントインポートは、プロファイル作成後のアカウント管理画面から行う。
+現行 Signing milestone は事前 provision 済み opaque Wallet Store を前提とする。Store がない場合は Account unavailable を表示し署名を無効にする。Mnemonic 新規生成・入力・表示、raw private-key import / export の UI は提供しない。wallet-core 0.2.0 に秘密を返さない onboarding API があると仮定しない。
 
 ### 6.2 通常起動
 
-保存済みプロファイルがある場合、アンロック画面を表示する。
-
-- 選択中のプロファイル名とネットワークを表示する。
-- パスワードを入力してアンロックする。
-- パスワードのヒントを表示できる。
-- 別のプロファイルを選択できる。
-- プロファイル作成画面へ移動できる。
-- パスワードが不正な場合は、秘密情報の有無を推測できる詳細なエラーを表示しない。
-
-パスワードとロック状態はプロファイルごとに管理する。あるプロファイルのアンロックによって、別のプロファイルがアンロックされてはならない。
+保存済み Store と内部 Profile / Account 対応を読み、起動時は locked とする。ユーザーが選択した Profile の password を現在の操作について入力し、正式 `get_public_account` により公開 identity を認証する。別 Profile の認証を共有しない。password は保存・cache せず操作終了時に破棄する。unlock は Signer-local gate であり wallet-core session ではない。署名ごとの明示承認と password 認証を省略しない。詳細は [Wallet-core Integration](./wallet-core-integration.md) を正本とする。
 
 ## 7. プロファイル作成
 
 ### 7.1 作成方式の選択
 
-- 新規作成
-- ニーモニックからインポート
+Mnemonic を受け取る従来の新規作成・復元フローは現行 supported operation から除外する。secret-free な正式統合契約を別途確定するまで実装しない。
 
 ### 7.2 共通設定
 
-次を入力する。
-
-- プロファイル名
-- ネットワーク
-- チェーン（Symbol または NEM）
-- パスワード
-- パスワード確認
-- パスワードのヒント（任意）
-
-入力条件は次のとおりとする。
-
-- プロファイル名は空白のみを許可しない。
-- パスワードは12文字以上とし、英大文字、英小文字、数字、記号などの文字種は強制しない。
-- パスワードと確認用パスワードは一致する必要がある。
-- パスワードのヒントは任意とする。ヒントはロック中にも表示される非秘密情報として扱い、パスワードそのものを入力しないよう警告する。
-- Mainnet / Testnet は色と文言の両方で識別できるようにする。
-- Mainnet を選択した場合は、実資産を扱う可能性があることを明示する。
-
-パスワード試行はProfile単位のmutexで直列化する。連続5回失敗後は`min(60, 2^(failures-5))`秒の遅延をKDF実行前に課し、残り時間だけをUIへ表示する。失敗回数と`nextAttemptAt`は`chrome.storage.session`へ保存し、全trusted documentとService Workerの再起動間で共有する。正しいpasswordでresetし、失敗回数を理由に暗号化データを削除したり、復元不能な恒久ロックを行ったりしない。この遅延はStorageを取得した攻撃者のoffline推測を防がないため、Argon2id最低値を弱めない。
+事前 provision 済み Store に対する Application Profile の登録は [Wallet-core Integration §3](./wallet-core-integration.md#3-profile--account-と-authenticated-identity) に従う。名前・Chain・Network と内部 core Profile UUID を関連付け、認証済み公開 Account のみを採用する。Mainnet / Testnet は色と文言で識別する。password は trusted host 内の一操作限りとする。
 
 ### 7.3 新規作成フロー
 
-1. 共通設定を入力する。
-2. ニーモニックを生成して表示する。
-3. オフラインで安全にバックアップする必要があることを表示し、確認を求める。
-4. ニーモニックの全単語を、候補から正しい順番で選択させる。候補はアルファベット順に表示する。
-5. 正しく確認できた場合にのみ、プロファイルと最初の Chain 別 Account を保存する。
-6. 完了画面からアンロック画面へ移動する。
-
-ニーモニックは確認フローを離れた後、平文で画面・ログ・一時ストレージへ残さない。
-
-- 画面共有、録画、スクリーンショット、Clipboard、クラウドメモ、チャットへの保存を禁止する警告を表示する。
-- バックアップ確認は記憶を促すものではなく、ユーザーが作成したオフライン記録から回答するよう案内する。
-- 作成完了時に、作成日時、復旧対象プロファイル、個別秘密鍵由来 Account は別途バックアップが必要であることを示す非秘密の backup checklist を出力できる。
-- 組織利用では、生成環境、立会者、封印媒体、保管場所、アクセス記録、定期復旧試験、廃棄手順を定めた seed ceremony が別途必要であり、MVP の画面確認だけでカストディ要件を満たすとは表示しない。
+現行 UI では非対応。`prepare_generated_profile` は Mnemonic を返すため呼ばない。
 
 ### 7.4 ニーモニックからのインポート
 
-1. 共通設定を入力する。
-2. ニーモニックを入力する。
-3. 単語数、辞書、チェックサムを検証する。
-4. 派生する最初のアカウントと、選択した Chain のアドレスを確認表示する。
-5. プロファイルと選択した Chain の最初の Account / Key Identity を保存する。
-6. 完了画面からアンロック画面へ移動する。
-
-無効なニーモニックは保存しない。入力値は処理完了後にメモリから可能な範囲で破棄する。
+現行 UI では非対応。`restore_profile` に渡すために MosaicLynx が Mnemonic を受け取ることを禁止する。
 
 ## 8. ホーム画面
 
@@ -222,7 +170,7 @@ XYM / XEM の残高は表示しない。
 
 - プロファイルに属する Profile.chain の Account / Key Identity を一覧表示する。
 - プロファイルのニーモニックから Profile.chain を明示し、その Chain の導出契約で次の未使用 account index の Account を追加できる。
-- 秘密鍵をインポートしてアカウントを追加できる。
+- raw private-key import は非対応。既存 core Profile の Account 追加は正式 `derive_software_key` に委譲する。
 - アカウント名を変更できる。
 - Profile ごとにデフォルト Account を一つ選択できる。
 - アカウントを削除できる。
@@ -239,11 +187,7 @@ Profile は `nextAccountIndex` を保持する。ニーモニック由来 Accoun
 
 imported private key由来のアカウントは、ニーモニックだけでは復元できないことを追加時と安全性確認時に明示する。署名へ使用する前に、復元に必要な秘密情報を別媒体に保管済みであることを再確認する。
 
-ニーモニック生成はchain / networkに依存しない共通処理とする。固定した`@nemnesia/symbol-sdk`で`new Bip32(SymbolFacade.BIP32_CURVE_NAME, "english").random()`を呼び、既定の`seedLength = 32`からBIP39 English 24 wordsを生成する。生成後は24語、辞書、checksumを検証し、`bip32.fromMnemonic(mnemonic, "")`が成功することを確認する。BIP39 passphraseは空文字に固定し、Profile passwordをBIP39 passphraseとして使用しない。
-
-Account 導出は対象 Chain を明示して、その Chain の Wallet Core / Chain integration 導出契約へ委譲する。MosaicLynx が derivation path、algorithm、library または Chain 固有の鍵計算を複製しない。public key と address は対象 Chain の正本実装から取得し、詳細と固定 vector は Chain Compatibility Specification に従う。
-
-Symbol 用に導出した秘密鍵を NEM 用として、または NEM 用に導出した秘密鍵を Symbol 用として暗黙に利用しない。一方の Chain の鍵侵害が他方の Chain に当然に波及する一つの共有鍵モデルは標準 Account model として採用しない。raw private key import 自体の許可方針は維持するが、import された Account / Key Identity の Chain / Network 関連付けと具体的な検証・UX は Wallet Core / Chain integration / platform 設計へ委譲する。Profile 分離は引き続き権限と誤操作を防ぐ境界として扱い、一方の Profile の復号状態を他方へ共有しない。
+Mnemonic、秘密鍵、導出演算は wallet-core の責任とする。MosaicLynx は Bip32、SDK PrivateKey / KeyPair / secret-bearing Account を生成しない。公開 identity は正式 `get_public_account` で認証する。core Profile / key ID と Application ID の対応は Wallet-core Integration §3 に従う。raw private-key import / export は現行 UI で非対応とする。
 
 ## 11. dApp 接続と権限
 
@@ -329,12 +273,9 @@ dApp が申告した Origin と Background が確定した Origin が異なる�
 
 payload をチェーン別 Adapter で完全に解析する。対応 transaction type / version の全フィールド、aggregate / multisig に含まれる全 inner transaction、signer、chain 固有署名コンテキストを検証し、canonical に再シリアライズした byte 列が元 payload と完全一致する場合だけ確認画面へ進む。
 
-Chain Adapterは固定版symbol-sdkを次の標準経路として使用する。
+Chain Adapter は固定版 symbol-sdk を deserialize、serialize、公開 hash、署名検証、`extractSigningPayload` に限って利用する。秘密鍵を取得し `createAccount`、Account の signing、KeyPair signing を実行することを禁止する。transaction / cosignature / structured message の承認済み exact bytes は正式 wallet-core `sign(store, request, password_utf8)` へ渡す。raw signature から公開結果を組み立て、独立検証する正本は [Chain Compatibility §6](./chain-compatibility-spec.md#6-署名-bytes正式-core-委譲公開-hash) と [Wallet-core Integration](./wallet-core-integration.md) とする。
 
-- Symbol: `SymbolTransactionFactory.deserialize()`、transactionの`serialize()`、`SymbolFacade.createAccount()`、Symbol Accountの`signTransaction()` / `cosignTransaction()`、`SymbolFacade.verifyTransaction()`、`SymbolFacade.hashTransaction()`
-- NEM: `TransactionFactory.deserialize()`、transactionの`serialize()`、`NemFacade.createAccount()`、NEM Accountの`signTransaction()`、`NemFacade.verifyTransaction()`、`NemFacade.hashTransaction()`
-
-MosaicLynx独自のcatbuffer parser、serializer、公開鍵／address導出、署名対象byteのslice、署名、transaction hash実装を本番経路に持たない。MosaicLynxが追加実装するのはallowlist判定、全fieldの意味検証、上限、canonical byte比較、資産増減要約、Permission / revision検証に限定する。symbol-sdkに機能が存在しない場合は独自実装で補わず、そのtransactionまたは機能を未対応として拒否する。
+独自 catbuffer parser、serializer、鍵導出、署名 primitive は持たない。追加する処理は allowlist、意味検証、上限、canonical 比較、要約、Permission / revision 検証に限定する。
 
 MVPの署名allowlistは次に限定する。symbol-sdk更新で新しいtype / versionが追加されても自動的に許可しない。
 
@@ -374,10 +315,10 @@ Symbol の unresolved address または unresolved mosaic ID が namespace alias
 
 - 起動直後は全プロファイルをロック状態とする。
 - ユーザーは現在のプロファイルを任意の時点で手動ロックできる。
-- 復号鍵と秘密鍵 handle は Background Service Worker に保持しない。アンロック session は、ユーザーが視認できる trusted extension document（ホームまたは承認 window）のメモリだけに属する。
+- MosaicLynx は復号鍵と秘密鍵 handle を取得・保持しない。アンロック session は、ユーザーが視認できる trusted extension document（ホームまたは承認 window）のメモリだけに属する。
 - trusted extension document が存在し続ける場合に限り、初期設定では最後のユーザー操作から15分で自動ロックする。全 trusted document の close / crash、ブラウザ終了、端末のsleep復帰、extension reload / updateで直ちにロックする。
 - Service Worker の通常の停止・再起動だけでは、既存 trusted document 内の session を自動移送または再生成しない。Worker復帰後は document と一回限りのchallenge-responseで同一extension instance、Profile、Vault revisionを再照合する。trusted documentが存在しない場合は必ずlockedとして扱う。
-- 署名要求で locked の場合は専用承認 window 内で password を入力させ、その window 内で解析、再検証、署名を完了する。復号鍵またはraw secretをService Workerへ返さない。承認 window が閉じた場合は要求を拒否し、sessionとsecret handleを破棄する。
+- 署名要求で locked の場合は専用承認 window 内で password を入力させ、その window 内で解析、再検証、署名を完了する。復号鍵またはraw secretをService Workerへ返さない。承認 window が閉じた場合は sign invocation 前なら拒否し、後なら確定性に応じ RESULT_UNKNOWN または既知結果を維持する。password と gate を破棄する。
 - ロック中も公開情報と接続許可は保存できるが、対象プロファイルの秘密情報の復号と署名は行えない。
 - ロックしても Origin の接続許可は削除しない。
 - アンロックの成功・失敗を Web ページへ過剰に通知しない。
@@ -409,7 +350,7 @@ Profiles[]
 │   ├── vaultVersion
 │   ├── revision
 │   ├── kdf / cipher metadata
-│   └── encryptedMnemonic / encryptedPrivateKeys
+│   └── opaqueWalletStore / coreProfileId
 └── Accounts[]
     ├── id, name, revision
     ├── identity: chain, address, publicKey
@@ -447,7 +388,7 @@ Future backup の state および metadata は [Profile / Account Specification]
 - 公開設定、接続許可、プロファイルごとの暗号化 Vault を論理的に分離する。
 - ログ、エラー、クラッシュレポートへ秘密情報や署名 payload を出力しない。
 - `chrome.storage.local` と `chrome.storage.session` は trusted extension context だけからアクセス可能にし、Content Script へ直接公開しない。
-- MVP の Vault は Argon2id（memory 64 MiB、iterations 3、parallelism 1、output 32 byte）、Profile ごとの 128 bit salt、AES-256-GCM、暗号化ごとの一意な 96 bit nonce、Profile / format / schema / crypto metadata を含む AAD を最低要件とする。対象端末の計測により KDF を強化してよいが、実行時または低性能端末で最低値より弱めない。bundled WebAssemblyを使う場合はartifactを固定し、remote WASM、JavaScriptの`eval`、動的moduleを許可しない。
+- Wallet Store の KDF / AEAD / format は固定 wallet-core の正式契約を唯一の実装とし、MosaicLynx に独自暗号形式を定義しない。opaque bytes の原子的永続化のみを行う。
 - password rotation と schema / crypto migration は copy-on-write で実行し、完全性検証後に切り替える。失敗、中断、容量不足時は旧 Vault を保持し、暗号形式の downgrade を拒否する。
 
 ## 16. Provider
@@ -478,7 +419,7 @@ Product から Web page / dApp へ公開する Account は `PublicAccountIdentit
 - 対応表にない transaction type / version、未解析フィールド、非 canonical payload は Mainnet / Testnet とも署名しない。
 - Profile、Account、Permission、Vault の revision と request digest を承認時と署名直前に再検証する。
 - Chrome Extension 版は Secure Enclave / Secure Element へ秘密鍵を隔離しないソフトウェア署名機である。アンロック中の OS、ブラウザ、extension process、配布 artifact の侵害までは防げず、コールドウォレット、ハードウェアウォレット、企業カストディ相当と表示しない。
-- raw secret を UI state、DOM、通常の domain object、例外、telemetry へ渡さず、署名境界内の上書き可能な byte buffer で可能な限り短時間だけ扱う。JavaScript の GC により完全なメモリ消去を保証できない限界を脅威モデルに記載する。
+- Mnemonic / private key / raw signing secret を MosaicLynx は取得せず core 内だけで扱う。password は現在の操作に必要な owned byte buffer だけで扱い、UI state、DOM 属性、例外、telemetry に保存しない。JavaScript の GC により完全なメモリ消去を保証できない限界を脅威モデルに記載する。
 
 #### 17.1.1 保証レベルと脅威モデル
 
@@ -629,7 +570,7 @@ MVP は単独ユーザーによるローカル承認型であり、それだけ�
 - Vault の AEAD 改ざん、AAD 差し替え、nonce 再利用、弱い KDF parameter、migration 中断、downgrade を拒否または安全に復旧できる。
 - iframe と偽装 Origin からの要求を拒否し、Storage が untrusted context から参照できない。
 - `SymbolFacade.bip32Path(accountIndex)` と固定BIP39 vectorからMainnet / Testnetの既知Accountを再現し、削除済みaccount indexを再利用しない。
-- chain / networkを入力せず`Bip32.random()`で生成したmnemonicが24語、checksum有効、`fromMnemonic(mnemonic, "")`可能であり、`facade.bip32Path(0)`から得たchild private keyが32-byteかつall-zeroでない。
+- 全 signing 経路が正式 core API に委譲され、Mnemonic / private-key import / export / SDK secret signing が呼ばれないことを確認できる。
 - Symbol unresolved address / mosaic aliasをTransferまたはAggregate内で検出し、Mainnet / Testnetとも署名前に拒否する。
 - Service Workerを承認待ち、unlock後、署名直前に停止・再起動してもraw secretをWorkerへ保存せず、trusted signing documentが失われた場合は署名しない。
 - 署名確認の三層、承認disabled条件、chain状態未照合、Software Vault保証レベル、WCAG 2.2 AAをUI/E2E testで確認できる。

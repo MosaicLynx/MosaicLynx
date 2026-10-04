@@ -186,7 +186,7 @@ Symbol と NEM の transaction / message の意味解析、対応範囲の検証
 
 ### 6.8 `symbol-nem-wallet-core`
 
-`wallet-core` は MosaicLynx の内部 UI や Relay の一部ではなく、独立した Rust Core と Binding からなる外部コンポーネントである。`wallet-core` v1 の Binding 方式は外部契約として固定されており、WASM は `wasm-bindgen`、Native は `bindings/native` の C ABI を使用する。Binding は入力 buffer、固定長 ID、DTO、error / warning および ownership の変換を担い、鍵導出、秘密情報処理、意味検証および signing を再実装せず Core へ委譲する。MosaicLynx はこの固定済みの公開契約を各 host から利用する。
+`wallet-core` は MosaicLynx の内部 UI や Relay の一部ではなく、独立した Rust Core と Binding からなる外部コンポーネントである。MosaicLynx の正式入口は固定 commit / version 0.2.0 の npm facade とする。内部 WASM / Native ABI を直接呼ばない。Binding は入力 buffer、固定長 ID、DTO、error / warning および ownership の変換を担い、鍵導出、秘密情報処理、意味検証および signing を再実装せず Core へ委譲する。MosaicLynx はこの固定済みの公開契約を各 host から利用する。
 
 この Binding の境界は API / data ownership 上の責任境界であり、実行コンテキスト、process または hardware による秘密情報の隔離を意味しない。特に WASM は JavaScript と同じ execution context 内で動作し、WASM linear memory、JavaScript の入力 buffer、glue code または runtime が保持するコピーを host から自動的に隔離・消去するものではない。Binding 内の Core が管理する一時 buffer の安全な処理と、host 側の入力・出力・lifecycle の管理は別の責任として扱う。
 
@@ -208,7 +208,7 @@ MosaicLynx が担う責任:
 
 `wallet-core` は transaction construction、transaction / message の利用者向け意味解釈、REST / WebSocket、announce、UI、外部 Signer、Hardware Wallet、OS 固有 secure storage を担わない。MosaicLynx はその不足を同じ暗号・raw signing 実装の再実装で補わない。
 
-Wallet Core の Profile / Software Key と MosaicLynx Application の Profile / Account の対応、各 host から固定済み Binding を利用する adapter / integration、React Native 連携、OS 保護との組み合わせ、秘密 byte の一時 lifecycle、エラー対応および移行手順は、`CR-OPEN-001` / `CR-OPEN-002` と wallet-core の外部契約に従って後続設計で定める。wallet-core の v1 Binding 方式自体を変更する場合は、先に `_snwc` の決定記録と仕様書を更新する。
+Wallet Core Profile / Software Key と Application Profile / Account の対応、同期16関数、三 backend、error / warnings、secret allowance は [Wallet-core Integration Specification](../specifications/wallet-core-integration.md) で確定する。MosaicLynx に Mnemonic / private key を返す onboarding / export は現行対象外とし、事前 provision 済み opaque Store を利用する。symbol-sdk は parse / public hash / verification に限り、全署名を正式 core `sign` に委譲する。raw binding、別 raw signing primitive、秘密鍵 export workaround を禁止する。
 
 ### 6.9 共通署名ゲート / セキュリティ不変条件
 
@@ -304,7 +304,7 @@ Web page、Provider、Content Script および Relay は、署名可否を決め
 
 | 情報                             | 正本・取扱主体                                | Web page / SDK                   | Relay                                             | Browser / Mobile host                                                      |
 | -------------------------------- | --------------------------------------------- | -------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------- |
-| Mnemonic、private key            | wallet-core                                   | 渡さない                         | 受け取らない                                      | wallet-core Binding の呼び出し境界を越えて通常の公開データにしない         |
+| Mnemonic、private key            | wallet-core                                   | 渡さない                         | 受け取らない                                      | MosaicLynx は取得・保持せず core 内だけで扱う                              |
 | Profile password                 | wallet-core の各処理に対する Application 入力 | 渡さない                         | 受け取らない                                      | UI / OS credential から wallet-core へ一時的に渡す責任と保持期間を管理する |
 | Wallet Store / 復号済み秘密情報  | wallet-core と host の Binding 境界           | 渡さない                         | 受け取らない                                      | Store は opaque に保存し、復号済み秘密を provider / relay / log へ出さない |
 | E2E session secret               | SDK / Mobile handoff の client-side 境界      | dApp の公開 API に露出させない   | Relay の署名能力にならない                        | Mobile / SDK が必要な範囲で処理し、Relay と混同しない                      |
@@ -391,7 +391,7 @@ MosaicLynx は node 接続、REST / WebSocket、node 選択、残高・履歴取
 
 以下は本書で勝手に決定しない。
 
-- `CR-OPEN-001` / `CR-OPEN-002`: 固定済み wallet-core Binding を各 host から利用する adapter / integration、React Native 連携、秘密情報の一時受け渡し、OS 保護、error mapping および移行手順。Binding 方式そのものは未決事項ではない。
+- `CR-OPEN-001` / `CR-OPEN-002`: 固定済み wallet-core Binding を各 host から利用する adapter / identity mapping、React Native 共通 API、error mapping は Wallet-core Integration で確定済み。OS 保護・移行手順だけを後続判断とし、raw secret の受渡しを追加しない。
 - `MR-OPEN-002` / `MR-OPEN-003` / `MR-OPEN-005` / `MR-OPEN-006`: Mobile の受信経路、OS 保護、固定済み wallet-core Binding の host integration、lifecycle、backup / migration。
 - `SDK-OPEN-002` / `SDK-OPEN-003` / `SDK-OPEN-004` / `SDK-OPEN-006` / `SDK-OPEN-007`: aggregate / cosignature の SDK 公開範囲、transport 選択と代替経路、transaction construction、version policy、caller / Origin binding。
 - 共通要件 `OPEN-003`: Android / iOS / Relay の個別 milestone 完了条件と platform 固有依存。

@@ -1,6 +1,6 @@
 # MosaicLynx プロファイル・アカウント管理仕様
 
-以下の方針で実装してください。
+本書の Application metadata と操作は [Wallet-core Integration](./wallet-core-integration.md) の固定 core 0.2.0 契約に従う。MosaicLynx は Mnemonic、private key、復号済み Store を取得しない。現行 signing milestone は事前 provision 済み opaque Store を前提とし、secret 入出力 UI は提供しない。
 
 ### Profile backup / restore の適用範囲
 
@@ -8,18 +8,7 @@
 
 ## 1. プロファイル作成
 
-プロファイルは必ずニーモニックを基点として作成する。
-
-作成方法は以下の2種類とする。
-
-- 新しいニーモニックを生成して作成
-- 既存のニーモニックをインポートして作成
-
-秘密鍵単体からプロファイルを作成することはできない。
-
-プロファイル作成後は、秘密鍵単体のアカウントを追加インポートできる。
-
----
+Mnemonic を基点とする Profile の生成・復元は wallet-core の責任とする。MosaicLynx は `prepare_generated_profile` / `restore_profile` / `import_software_key` / secret export を呼ばない。現行 UI の新規 Mnemonic 作成・復元・raw key import / export は非対応。事前 provision 済み opaque Store から Application Profile を登録する境界は Wallet-core Integration §3 / §8 に従う。
 
 ## 2. プロファイルのネットワーク
 
@@ -116,7 +105,7 @@ HDアカウントセットを除外する場合は、そのセットのアカウ
 
 ## 7. 除外済みHDアカウントのデータ
 
-HDアカウントを除外した際は、対応する暗号化秘密鍵を削除する。
+HDアカウントを除外した際は、正式 `delete_software_key` に削除を委譲する。
 
 除外済みレコードには、復活に必要な最小限の情報だけを保持する。
 
@@ -169,71 +158,31 @@ nextAccountIndex = maxUsedAccountIndex + 1;
 
 ## 9. 除外済みHDアカウントの復活
 
-除外済みHDアカウントを復活させる機能を用意する。
-
-復活時は、保持しているHDインデックスを使い、プロファイルのニーモニックから Profile の `chain` に対応する Account / Key Identity を、その Chain を明示した導出契約で再導出する。
-
-処理内容:
-
-1. プロファイルを認証する
-2. ニーモニックを復号する
-3. 保存済みのHDインデックスから、Profile の `chain` に対応する導出契約で秘密鍵を再導出する
-4. 公開鍵とアドレスを再計算する
-5. 保存済みアドレスがある場合は整合性を検証する
-6. 秘密鍵を再暗号化して保存する
-7. ステータスを`active`に戻す
-
-復活は新規アカウント作成ではないため、同じHDインデックスを使用する。
-
----
+除外済み index を明示選択し、正式 `derive_software_key(store, profile_id, password_utf8, Chain, account_index)` によって core 内で再導出する。MosaicLynx が Mnemonic を復号したり private key を受け取ったりしない。返された replacement Store の原子的保存と `get_public_account` の認証が成功してから metadata を active にする。公開 key / address と保存済み identity が異なれば採用せず失敗する。
 
 ## 10. 秘密鍵の保存
 
-ニーモニック由来のHDアカウントについても、導出した秘密鍵を暗号化して保存する。
-
-署名時に毎回ニーモニックから再導出する方式にはしない。
-
-保存対象:
-
-- 暗号化ニーモニック
-- HDアカウントの暗号化秘密鍵
-- インポートアカウントの暗号化秘密鍵
+Mnemonic / private key の暗号化・復号・保存形式は wallet-core のみが管理する。MosaicLynx は opaque Store bytes と次の非秘密 Account association だけを保存する。
 
 ```ts
 interface ChainAccount {
   id: string;
   profileId: string;
+  coreKeyId: string; // internal UUID、外部へ公開しない
   chain: Chain;
   name: string;
-
   origin: 'hd' | 'imported';
-
   address: string;
   publicKey: string;
-  encryptedPrivateKey: EncryptedSecret;
-
-  derivationPath?: string;
   hdAccountSetId?: string;
 }
 ```
 
-`ChainAccount` は一つの Chain-specific Account / Key Identity を表す。`chain` は対象 Chain、`profileId` は Profile に固定された Network との関連を示し、`id` はその Account / Key Identity を一意に識別する。異なる Chain の `ChainAccount` を、一つの秘密鍵を暗黙共用する一つの Account として扱ってはならない。
-
-HDアカウントを除外した場合、そのHDアカウントセットに属する秘密鍵は削除する。
-
----
+各 Profile は内部 core Profile UUID を保持する。公開 identity は正式 `get_public_account` の結果に基づく。削除は正式 `delete_software_key` に委譲し、Store と metadata を原子的に同期する。Application に `encryptedPrivateKey` / `encryptedMnemonic` field を持たせない。
 
 ## 11. 秘密鍵インポート
 
-秘密鍵 import の raw key そのものは既存の許可方針を維持するが、登録される Account / Key Identity は対象 Chain と Profile Network に明示的に関連付ける。秘密鍵を一方の Chain 用に import したことだけで、他方の Chain 用 Identity として暗黙に利用してはならない。具体的な import の検証条件・拒否条件・UX は Wallet Core / Chain integration / platform 設計へ委譲する。
-
-インポートアカウントはHDアカウントセットには属さない。
-
-アカウントが利用できる Chain は、所属 Profile の `chain` と、Account に明示された Chain Identity の関連付けで決定する。Account の `chain` は Profile の `chain` と一致しなければならず、異なる Chain の Account を同じ Profile へ登録してはならない。
-
-秘密鍵の形式またはSDKによるIdentity導出が不正な場合は、暗号化Vaultやアカウント一覧を変更せず、64桁の16進数が必要であることを表示する。
-
----
+現行 MosaicLynx では raw private key の入力・表示・export は非対応。core index の imported key を利用する場合も、認証済み `get_public_account` と明示的 Chain / Network association のみを扱う。SDK を用いて private key から identity を導出しない。
 
 ## 12. デフォルトアカウント
 
@@ -263,55 +212,11 @@ Profile には最低1つのHDアカウントが存在するため、通常は未
 
 ## 13. プロファイルパスワード
 
-プロファイルにはパスワードを設定する。
-
-このパスワードを以下に使用する。
-
-- プロファイルのロック解除
-- ニーモニックの暗号化と復号
-- 全秘密鍵の暗号化と復号
-- 完全バックアップの暗号化と復号
-- 秘密鍵表示
-- ニーモニック表示
-- 秘密鍵エクスポート
-- パスワード変更
-
-バックアップ専用の別パスワードは設けず、プロファイルパスワードと同じものを使用する。
-
----
+password は trusted Signer の現在の core protected operation にだけ渡す UTF-8 `Uint8Array` とする。page / SDK / Relay へ返さず永続化・cache しない。操作終了時に owned buffer を上書きして参照を破棄する。unlock は Signer-local gate であり password cache や core unlocked session ではない。署名時には毎回 password 認証と明示承認を必要とする。未来の backup credential 契約は OPEN-PROFILE-001 の対象であり現行 signing の API ではない。
 
 ## 14. パスワード変更
 
-プロファイルパスワードを変更する場合は、全秘密情報を新しいパスワードで再暗号化する。
-
-対象:
-
-- ニーモニック
-- 全アクティブHDアカウントの秘密鍵
-- 全インポートアカウントの秘密鍵
-- 生体認証用に保存している解除情報
-
-マスターキーだけを包み直す方式にはしない。
-
-処理順:
-
-1. 旧パスワードを検証
-2. ニーモニックと全秘密鍵を旧パスワードで復号
-3. 新しいsaltとnonceを生成
-4. 新パスワードから新しい暗号鍵を導出
-5. 全秘密情報を新しい暗号鍵で再暗号化
-6. 全件の整合性を確認
-7. 単一トランザクションまたは原子的処理で保存内容を切り替える
-8. 旧暗号データと平文バッファを破棄
-9. プロファイルを再ロック
-
-既存データを1件ずつ直接上書きしてはならない。
-
-再暗号化後の全データを一時領域に作成し、すべて成功した場合のみ一括で切り替える。
-
-途中で失敗した場合は、旧パスワードの暗号データを保持し続ける。
-
----
+正式 `change_profile_password(store, profile_id, current_password_utf8, new_password_utf8)` に委譲する。MosaicLynx が秘密を復号し再暗号化したり salt / nonce / KDF を実装したりしない。MutationResult の replacement `store` を原子的に保存し、成功後に関連 authorization を失効して locked にする。失敗・中断・容量不足時は旧確定 Store を保持する。password buffers は操作終了時に破棄する。
 
 ## 15. パスワード変更とバックアップ
 
@@ -464,7 +369,7 @@ type SigningAuthentication = 'every-signature';
 
 ### every-signature
 
-署名のたびに、プロファイルパスワードまたは有効な端末認証を要求する。
+署名のたびにプロファイルパスワードを正式 core API へ渡す。端末認証だけで password 引数を省略しない。secret-free な正式連携が未定義のため現行 core 呼出しの代替にしない。
 
 ---
 
@@ -472,9 +377,6 @@ type SigningAuthentication = 'every-signature';
 
 以下の操作では、プロファイルがロック解除済みでも再認証を要求する。
 
-- ニーモニック表示
-- 秘密鍵表示
-- 秘密鍵エクスポート
 - 完全バックアップ作成
 - プロファイルパスワード変更
 - 生体認証の登録
@@ -535,7 +437,6 @@ OSが提供する安全な領域を利用する。
 - 自動ロック時間
 - 署名時再認証ルール（表示のみ、署名ごとに固定）
 - パスワード変更
-- ニーモニック表示
 - 完全バックアップ作成
 - 完全バックアップ復元
 - 生体認証設定
@@ -554,11 +455,8 @@ OSが提供する安全な領域を利用する。
 - HDアカウント追加
 - 除外済みHDアカウント一覧
 - 除外済みHDアカウントの復活
-- 秘密鍵インポート
 - アカウント名変更
 - デフォルトアカウントに設定
-- 秘密鍵表示
-- 秘密鍵エクスポート
 - HDアカウントセットの除外
 - インポートアカウントの削除
 
@@ -571,7 +469,7 @@ HDアカウントの除外はセット単位で実行する。
 以下の条件を常に満たすこと。
 
 ```text
-1. プロファイルは必ずニーモニックを持つ
+1. core Profile の秘密は core が持ち、Application は opaque Store のみ保持する
 2. プロファイルは必ず一つの `chain` を持つ
 3. プロファイルの `chain` は作成後に変更できない
 4. プロファイルには最低1つのアクティブなHDアカウントセットがある
@@ -581,7 +479,7 @@ HDアカウントの除外はセット単位で実行する。
 8. 除外済みHDアカウントの秘密鍵は保持しない
 9. ネットワークはプロファイル作成後に変更できない
 10. 同一プロファイルの重複復元はエラーにする
-11. パスワード変更は全秘密情報の再暗号化として実行する
+11. パスワード変更の秘密処理は正式 core API に委譲する
 ```
 
 これらの不変条件は、UIだけではなくドメイン層および永続化層でも検証すること。

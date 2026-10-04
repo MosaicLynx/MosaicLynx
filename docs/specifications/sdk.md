@@ -98,17 +98,17 @@ SDK の公開 factory、instance、引数および戻り値は、[Web Transactio
 
 公開 signing API は Handoff §5.1 の canonical `MosaicLynxSigningResult<T>` と `MosaicLynxDeliveryDisposition` を使用する。本書はこれらの型、union branch、field、requiredness または値の意味を再宣言しない。`MosaicLynxDeliveryDisposition` は Interfaces §6.3 の `DeliveryDisposition` と wire-identical に対応し、Relay response の `deliveryDisposition` を SDK が生成・推測・書き換えない。
 
-| Method                        | 引数                                | 戻り値                                                | 前提と意味                                                                                                                                                                                    |
-| ----------------------------- | ----------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isAvailable()`               | なし                                | `Promise<boolean>`                                    | Handoff §5.3 の選択可能な local Provider route または Mobile Relay route が存在する場合に true を返す。connection、permission、approval、署名成功または Mainnet signing capability を表さない |
-| `connect(scope)`              | `MosaicLynxScope`                   | `Promise<MosaicLynxActiveAccount>`                    | 指定 Scope の公開 Account disclosure / connection を Signer に要求する。利用者の connection 許可が必要である                                                                                  |
-| `isConnected(scope)`          | `MosaicLynxScope`                   | `Promise<boolean>`                                    | UI を開かず、現在の Scope の connection / permission 状態を確認する。署名 approval ではない                                                                                                   |
-| `getActiveAccount(scope)`     | `MosaicLynxScope`                   | `MosaicLynxActiveAccount \| undefined`                | SDK が保持する公開 Account の現在値を返す。cache は最新 permission や所有権の証明ではない                                                                                                     |
-| `refreshActiveAccount(scope)` | `MosaicLynxScope`                   | `Promise<MosaicLynxActiveAccount \| undefined>`       | Provider / Signer に公開 Account を再照会する。署名を開始しない                                                                                                                               |
-| `disconnect()`                | なし                                | `Promise<void>`                                       | 現在の Origin に対する既存の connection / permission を切断する。Scope 引数で一部だけを暗黙指定しない                                                                                         |
-| `signTransaction(params)`     | `MosaicLynxSignTransactionParams`   | `Promise<MosaicLynxSigningResult<SignedTransaction>>` | transaction signing request を構築・dispatch し、known signed result または Signer-originated `RESULT_UNKNOWN` を返す                                                                         |
-| `signData(params)`            | `MosaicLynxSignDataParams`          | `Promise<MosaicLynxSigningResult<SignedData>>`        | structured message signing request を構築・dispatch し、known signed data または Signer-originated `RESULT_UNKNOWN` を返す                                                                    |
-| `cosignTransaction(params)`   | `MosaicLynxCosignTransactionParams` | `Promise<MosaicLynxCosignature>`                      | 既存公開 contract の範囲で cosignature request を扱う。公開必須能力や chain-specific scope は未決事項を閉じない                                                                               |
+| Method                        | 引数                                | 戻り値                                                    | 前提と意味                                                                                                                                                                                    |
+| ----------------------------- | ----------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isAvailable()`               | なし                                | `Promise<boolean>`                                        | Handoff §5.3 の選択可能な local Provider route または Mobile Relay route が存在する場合に true を返す。connection、permission、approval、署名成功または Mainnet signing capability を表さない |
+| `connect(scope)`              | `MosaicLynxScope`                   | `Promise<MosaicLynxActiveAccount>`                        | 指定 Scope の公開 Account disclosure / connection を Signer に要求する。利用者の connection 許可が必要である                                                                                  |
+| `isConnected(scope)`          | `MosaicLynxScope`                   | `Promise<boolean>`                                        | UI を開かず、現在の Scope の connection / permission 状態を確認する。署名 approval ではない                                                                                                   |
+| `getActiveAccount(scope)`     | `MosaicLynxScope`                   | `MosaicLynxActiveAccount \| undefined`                    | SDK が保持する公開 Account の現在値を返す。cache は最新 permission や所有権の証明ではない                                                                                                     |
+| `refreshActiveAccount(scope)` | `MosaicLynxScope`                   | `Promise<MosaicLynxActiveAccount \| undefined>`           | Provider / Signer に公開 Account を再照会する。署名を開始しない                                                                                                                               |
+| `disconnect()`                | なし                                | `Promise<void>`                                           | 現在の Origin に対する既存の connection / permission を切断する。Scope 引数で一部だけを暗黙指定しない                                                                                         |
+| `signTransaction(params)`     | `MosaicLynxSignTransactionParams`   | `Promise<MosaicLynxSigningResult<SignedTransaction>>`     | transaction signing request を構築・dispatch し、known signed result または Signer-originated `RESULT_UNKNOWN` を返す                                                                         |
+| `signData(params)`            | `MosaicLynxSignDataParams`          | `Promise<MosaicLynxSigningResult<SignedData>>`            | structured message signing request を構築・dispatch し、known signed data または Signer-originated `RESULT_UNKNOWN` を返す                                                                    |
+| `cosignTransaction(params)`   | `MosaicLynxCosignTransactionParams` | `Promise<MosaicLynxSigningResult<MosaicLynxCosignature>>` | Interfaces §9.6.1 の optional scope で full parent を扱い、共通 union と既知 result / unknown を返す                                                                                          |
 
 `MosaicLynxSDK.version` は SDK API version を返し、現行 Handoff contract の version は `1.0.0` である。`MosaicLynxSDKOptions` は Handoff §5.1 に定義された diagnostics option のみを公開する。transport、Relay URL、session credential、Account の内部 identifier または秘密情報を公開引数へ追加してはならない。
 
@@ -116,9 +116,9 @@ SDK の公開 factory、instance、引数および戻り値は、[Web Transactio
 
 - 各 API invocation は、対応する一つの logical request または照会操作に結び付く。
 - 一つの invocation は一度だけ resolve または reject する。duplicate callback / response は既に完了した invocation を再完了させない。
-- `signTransaction` と `signData` は、通常の failure / rejection なら Handoff §10 の既存 public error code で Promise を reject し、known signed result なら `outcome: 'succeeded'` として resolve し、Signer-originated `RESULT_UNKNOWN` なら `outcome: 'resultUnknown'` として resolve する。`RESULT_UNKNOWN` を exception、SDK error code、transport failure または internal exception へ変換しない。
+- `signTransaction`、`signData`、`cosignTransaction` は、通常の failure / rejection なら Handoff §10 の既存 public error code で Promise を reject し、known signed result なら `outcome: 'succeeded'` として resolve し、Signer-originated `RESULT_UNKNOWN` なら `outcome: 'resultUnknown'` として resolve する。`RESULT_UNKNOWN` を exception、SDK error code、transport failure または internal exception へ変換しない。
 - `outcome: 'succeeded'` は `result` と Signer-originated `deliveryDisposition` を必ず保持する。`deliveryDisposition: 'DELIVERY_UNKNOWN'` でも signing outcome は `SUCCEEDED` であり、既存 result を失わない。SDK 自身の response取得、ACK または transport completion を根拠に disposition を書き換えない。
-- `cosignTransaction` は既存の `MosaicLynxCosignature` contract を維持する。cosignature に同じ result union を適用するか、公開必須能力とするかは `OPEN-SDK-004` 等の既存 OPEN を解消するまで本仕様で決定しない。
+- `cosignTransaction` は [Interfaces §9.6.1](./interfaces.md) の optional capability と chain-specific result を使用し、他 signing operation と同じ result / delivery union に射影する。非対応 Signer は UNAVAILABLE とし core を呼ばない。
 - `connect` の resolve は、指定 Scope の公開 Account disclosure と connection 許可の結果であり、後続 signing の user approval を意味しない。
 - `isConnected`、`getActiveAccount` および `refreshActiveAccount` の結果は、署名 approval、Account ownership、Origin verification または transaction safety の証明ではない。
 - rejection の error code、error type および mapping は [Handoff §10](./web-transaction-handoff-spec.md) と [interfaces.md §10](./interfaces.md) を使用し、SDK 独自の taxonomy を追加しない。
@@ -138,12 +138,13 @@ SDK は次を公開 API の成功条件にしてはならない。
 
 SDK は Handoff または Extension Provider から受け取った response を、次の公開 signing result へ一意に対応付ける。
 
-| 入力 response                                                                                  | 公開 SDK result                                                                                                                     |
-| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `outcome: 'signed'`、`signingOutcome: 'SUCCEEDED'`、`signedTransaction`、`deliveryDisposition` | `outcome: 'succeeded'`、`result: SignedTransaction`、同じ `deliveryDisposition` を持つ `MosaicLynxSigningResult<SignedTransaction>` |
-| `outcome: 'dataSigned'`、`signingOutcome: 'SUCCEEDED'`、`signedData`、`deliveryDisposition`    | `outcome: 'succeeded'`、`result: SignedData`、同じ `deliveryDisposition` を持つ `MosaicLynxSigningResult<SignedData>`               |
-| `outcome: 'resultUnknown'`、`signingOutcome: 'RESULT_UNKNOWN'`                                 | `outcome: 'resultUnknown'`。signed result、deliveryDisposition、normal errorCode は持たない                                         |
-| `outcome: 'rejected'` または `outcome: 'failed'`、既存 `errorCode`                             | Handoff §10 の既存 public error authority に従う Promise reject                                                                     |
+| 入力 response                                                                                  | 公開 SDK result                                                                                                                             |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `outcome: 'signed'`、`signingOutcome: 'SUCCEEDED'`、`signedTransaction`、`deliveryDisposition` | `outcome: 'succeeded'`、`result: SignedTransaction`、同じ `deliveryDisposition` を持つ `MosaicLynxSigningResult<SignedTransaction>`         |
+| `outcome: 'dataSigned'`、`signingOutcome: 'SUCCEEDED'`、`signedData`、`deliveryDisposition`    | `outcome: 'succeeded'`、`result: SignedData`、同じ `deliveryDisposition` を持つ `MosaicLynxSigningResult<SignedData>`                       |
+| `outcome: 'cosigned'`、`signingOutcome: 'SUCCEEDED'`、`cosignature`、`deliveryDisposition`     | `outcome: 'succeeded'`、`result: MosaicLynxCosignature`、同じ `deliveryDisposition` を持つ `MosaicLynxSigningResult<MosaicLynxCosignature>` |
+| `outcome: 'resultUnknown'`、`signingOutcome: 'RESULT_UNKNOWN'`                                 | `outcome: 'resultUnknown'`。signed result、deliveryDisposition、normal errorCode は持たない                                                 |
+| `outcome: 'rejected'` または `outcome: 'failed'`、既存 `errorCode`                             | Handoff §10 の既存 public error authority に従う Promise reject                                                                             |
 
 trusted Signer が Mainnet gate を理由として unavailable、unsupported、rejected またはその他の既存 public contract に従う結果を返した場合、SDK はその結果の意味と concrete error authority を保持する。gate failure を success、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN` または transport failure へ変換せず、別 Provider / Signer / route へ自動 fallback しない。具体的な public error は Handoff §10 と Interfaces §10 の既存 authority に従い、SDK 独自の Mainnet error taxonomy を追加しない。
 
@@ -223,6 +224,8 @@ Mainnet signing capability は、current release と適用中の release / evide
 gate が missing、invalid、expired、inconsistent、unverifiable または unknown で、適用中の共通仕様・release policy により成立を確認できない場合、SDK は Mainnet signing を成功可能と推測してはならない。trusted Signer / release security authority は Mainnet capability を disabled / unavailable とするか、Handoff §10 の既存 public error / rejection contract に従う結果を返す。SDK はその結果の意味を保持し、gate failure を success、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN` または transport failure に変換しない。SDK は別 Provider、Signer、local / remote route への automatic fallback、automatic re-sign または独自の Mainnet error taxonomy を追加しない。
 
 この gate は Mainnet capability に限って適用する。Mainnet gate が未達成または判定不能でも、Testnet-only で安全に継続できる提供を SDK が不必要に unavailable としてはならない。evidence schema、evidence evaluator、trusted key、build embedding、rollout / rollback および release tooling の詳細は、[interfaces.md §7.4](./interfaces.md)、[signing-protocol.md §21.1](./signing-protocol.md)、Architecture、ADR および release policy に委譲する。
+
+全外部 params / response は [Interfaces §12.0](./interfaces.md) の normalization / bounds に従い、owned DTO 以外を再 read しない。message の canonical expiry / text displayability は Interfaces §9.4 を正本とする。cosigned は共通 succeeded / result / deliveryDisposition へ mapping し、内部 Profile / key ID を返さない。
 
 ## 7. Connection / Permission / Account
 
@@ -636,10 +639,7 @@ SDK 実装は少なくとも次を満たす場合に本仕様へ適合する。
 
 ### OPEN-SDK-004: Cosignature public scope
 
-- **問題:** `cosignTransaction` の SDK v1 における必須 / optional capability、対応 chain、公開 result field および実装 milestone が未確定である。
-- **本書だけで決定できない理由:** 共通 Signing Protocol は parent binding、inspection および approval semantics を確定するが、SDK public scope を未決としている。
-- **影響範囲:** Provider capability、public API availability、Symbol Aggregate / NEM multisig、result mapping。
-- **戻すべき上流文書:** `docs/requirements/sdk.md` の `SDK-OPEN-002`、[interfaces.md OPEN-006](./interfaces.md)、Signing Protocol OPEN-005、Chain / platform 下位仕様。
+Resolved for v1 contract。Interfaces §9.6.1 が optional capability、Symbol attached / detached Aggregate v2 と NEM CosignatureV1、公開 result / unknown / delivery union を固定する。実際の提供 availability は release capability に従い、optional を必須化しない。非対応は UNAVAILABLE。future scope の拡張は別決定。
 
 ### OPEN-SDK-005: Runtime / caller binding / release compatibility
 

@@ -8,22 +8,9 @@
 
 ## 2. ニーモニック生成と鍵導出
 
-### 2.1 chain非依存のニーモニック生成
+### 2.1 chain 非依存の Mnemonic と core ownership
 
-ニーモニックはProfileの共通rootであり、Symbol / NEMまたはMainnet / Testnetごとに生成処理を分岐しない。規範手順は次のとおりとする。
-
-```ts
-const bip32 = new Bip32(SymbolFacade.BIP32_CURVE_NAME, 'english');
-const mnemonic = bip32.random();
-const words = mnemonic.trim().split(/\s+/);
-if (24 !== words.length) throw new Error('invalid generated mnemonic');
-const root = bip32.fromMnemonic(mnemonic, '');
-```
-
-- `random()`はSDK既定の`seedLength = 32`を使用し、BIP39 English 24 wordsを生成する。
-- 生成後、24語、English wordlist、BIP39 checksum、`fromMnemonic(mnemonic, "")`の成功を保存前に検証する。
-- BIP39 passphraseは空文字`""`とし、Profile passwordとは独立させる。
-- 乱数生成失敗、語数不一致、checksum不正、all-zero child key、SDK例外時はProfileを保存しない。
+Mnemonic の生成、検証、seed / root / private key の導出、暗号化・復号は固定された正式 wallet-core のみが行う。MosaicLynx は Bip32 / random / fromMnemonic を呼ばず、Mnemonic / private key を取得しない。core の secret-bearing API と現行 MosaicLynx の提供範囲は [Integration §2](./wallet-core-integration.md) を正本とする。BIP39 English 24 words / 空 passphrase は core の契約であり、Profile password を BIP39 passphrase として使わない。
 
 ### 2.2 Chain-specific Account 導出
 
@@ -52,7 +39,7 @@ Symbolのgeneration hashはsymbol-sdk `Network.MAINNET / TESTNET.generationHashS
 ### 3.1 symbol-sdk utility利用
 
 - hex形式検査と変換はsymbol-sdk `utils.isHexString()`、`utils.hexToUint8()`、`utils.uint8ToHex()`を使用する。MosaicLynx独自hex codecを本番経路に持たない。
-- private key、public key、signature、hashはsymbol-sdkの`PrivateKey`、`PublicKey`、`Signature`、`Hash256`で長さと形式を検証する。
+- public key、signature、hash は symbol-sdk の `PublicKey`、`Signature`、`Hash256` で検証する。private key / Mnemonic の検証・導出・署名に SDK を使わない。
 - Symbol addressはsymbol-sdk Symbol `Address`、NEM addressはsymbol-sdk NEM `Address`でparse / formatし、Profile networkとの一致は対応Facadeの`network.isValidAddress()` / `isValidAddressString()`で検証する。
 - Symbol unresolved addressのalias判定は`Address.isAlias()`、unresolved mosaic IDのalias判定はsymbol-sdk `isMosaicAlias()`を使用する。
 - Aggregateのembedded transactions hashは`SymbolFacade.hashEmbeddedTransactions()`で再計算し、payload内`transactionsHash`と一致させる。
@@ -136,39 +123,32 @@ fixture IDは`<prefix>-NNN`を安定IDとし、正常系`001..099`、境界`100.
 - Symbol unresolved address / unresolved mosaic IDがnamespace alias encodingの場合は、Transferと全Embedded Transferで拒否する。node照会による解決後の値へ暗黙変換しない。
 - NEM messageはtype、length、payloadを完全解析し、symbol-sdk schemaが保持しないbyteがあれば拒否する。
 
-## 6. 署名とhash
+## 6. 署名 bytes、正式 core 委譲、公開 hash
 
-独自のslice計算、署名、hash計算を本番実装に持たず、固定版symbol-sdkのFacade / Accountを唯一の生成実装とする。ただしfixtureでは以下の規則を独立実装した期待値と照合する。
+秘密鍵不要の SDK 処理と raw signing を分離する。全 signing operation は [wallet-core Integration](./wallet-core-integration.md) の正式 `sign(store, request, password_utf8)` に委譲する。MosaicLynx は秘密鍵を export・保持しない。`symbol-sdk` の秘密鍵付き Account / KeyPair / sign / cosign primitive を production signing で呼ばない。
 
 ### 6.1 Symbol
 
-- decode / encode: `SymbolTransactionFactory.deserialize(payload)` / transactionの`serialize()`
-- Account: `SymbolFacade.createAccount(privateKey)`
-- transaction signature: Symbol Accountの`signTransaction(transaction)`
-- signature verification: `SymbolFacade.verifyTransaction(transaction, signature)`
-- transaction hash: `SymbolFacade.hashTransaction(transaction)`
-- cosignature: Symbol Accountの`cosignTransaction(parentTransaction, detached)`。完全な親transactionを渡し、hashだけをMosaicLynxから直接signしない
-- fixture上のsigning bytes: `generationHashSeed || transactionDataBuffer(serializedTransaction)`。`transactionDataBuffer`はsymbol-sdk `SymbolFacade.extractSigningPayload()`と同じ規則を独立照合し、Aggregate v2ではheader後のversion/network/type、maxFee、deadline、transactionsHashまでを含む
+- decode / encode は SymbolTransactionFactory.deserialize / transaction.serialize。network は要求 Scope と固定 SDK Network が一致することを確認する。
+- transaction signing bytes は network-bound `SymbolFacade.extractSigningPayload(transaction)` の返す Uint8Array 全体。これは generationHashSeed + SDK transactionDataBuffer であり、Aggregate v2 は version / network / type、fee、deadline、transactionsHash の対象規則に従う。独自 slice / generation hash 重複付加をしない。
+- core の raw signature を transaction.signature に設定し、公開 `SymbolFacade.verifyTransaction(transaction, signature)` / hashTransaction を使用する。SDK を使う署名生成は行わない。
+- cosigning の inspection target は full signed Aggregate、全 embedded、既存 signature / cosignature、selected cosigner / Scope / role。親 signature を verifyTransaction、既存 cosignature を parent hash bytes と各 public key の Verifier で検証する。duplicate signer / wrong role / network mismatch / 親期限切れは拒否する。
+- cosigning bytes はその full parent から `SymbolFacade.hashTransaction(parent).bytes` で再計算した raw 32 bytes。これに core sign を適用し public-key Verifier で検証する。外部 hash 単体は入力として受理しない。
+- attached / detached の wire projection は [Interfaces §9.6.1](./interfaces.md) に従い、parent payload に署名要素を自動追記しない。mode によらず version 0・signature bytes は同じ親 hash に binding される。
 
 ### 6.2 NEM
 
-- decode / encode: `TransactionFactory.deserialize(payload)` / transactionの`serialize()`
-- Account: `NemFacade.createAccount(privateKey)`
-- transaction signature: NEM Accountの`signTransaction(transaction)`
-- signature verification: `NemFacade.verifyTransaction(transaction, signature)`
-- transaction hash: `NemFacade.hashTransaction(transaction)`
-- fixture上のsigning bytes: symbol-sdk `TransactionFactory.toNonVerifiableTransaction(transaction).serialize()`の結果を独立照合する
-- multisig cosignature: `CosignatureV1`をsymbol-sdkでdeserializeし、全fieldと参照先Multisig transactionを検証してからNEM Accountの`signTransaction()`へ渡す。参照hashだけを根拠にUIを生成しない
+- decode / encode は TransactionFactory.deserialize / serialize。
+- transaction signing bytes は `NemFacade.extractSigningPayload(transaction)` の Uint8Array。固定 SDK の `TransactionFactory.toNonVerifiableTransaction(transaction).serialize()` と同じ対象を固定 vector で照合する。core が NEM primitive を適用し generation hash / prefix を追加しない。
+- core signature を元 transaction の signature field に設定し NemFacade.verifyTransaction / hashTransaction で検証・計算する。
+- cosigning は full signed MultisigV1 parent と unsigned CosignatureV1 を受ける。outer / inner network、全 field、親と既存 cosignature の signature、親 hash、multisigAccountAddress と inner signer、selected cosigner、duplicate / role / deadline を検証する。parent hash は `NemFacade.hashTransaction(parent)` で再計算し CosignatureV1 の参照 hash と一致させる。
+- cosigning bytes は CosignatureV1 の NemFacade.extractSigningPayload 結果。core sign 後に CosignatureV1 の署名済み payload / hash / signer を検証して [Interfaces §9.6.1](./interfaces.md) の結果を返す。parent には追記しない。
 
-### 6.3 構造化 message
+### 6.3 Structured message
 
-CoreはProduct Specification 12.2のdomain separationとJCSからsigning bytesを生成するが、Ed25519署名自体を実装しない。
+[Interfaces §9.4](./interfaces.md) の canonical StructuredMessage 全体を JCS にし、ASCII `MOSAICLYNX\0MESSAGE\0V1\0` prefix を一度だけ連結して core sign に渡す。message 専用 core API を仮定しない。Symbol / NEM の public-key Verifier で exact bytes と signature を返却前に検証する。hex の解釈不能 bytes や別 format へ fallback しない。
 
-- Symbolは`SymbolFacade.createAccount(privateKey).keyPair.sign(signingBytes)`を使用し、symbol-sdk Symbol `Verifier`で返却前に検証する。
-- NEMは`NemFacade.createAccount(privateKey).keyPair.sign(signingBytes)`を使用し、symbol-sdk NEM `Verifier`で返却前に検証する。
-- MosaicLynx独自のEd25519、ed25519-keccak、SHA3 / Keccak primitive実装を本番署名経路に持たない。
-
-署名後はsymbol-sdk VerifierまたはFacadeの`verifyTransaction()`でsignatureを検証し、signed payloadをsymbol-sdk factoryで再deserializeして、元payload digest、chain、network、signer、全transaction fieldが不変であることを確認してから返す。
+全経路で request / immutable target / selected public key / Chain / Network / exact bytes / result の binding を検証する。transaction は署名 field 以外の全 field と canonical bytes が元要求と同じであることを再deserializeして確認する。cosignature と message の公開 result は Interfaces を正本とする。署名生成の唯一の実装は wallet-core、public hash / parse / verify の固定 SDK 利用は core の秘密情報処理を代替しない。
 
 ## 7. 固定vectorとrelease gate
 
@@ -189,13 +169,13 @@ packages/chain-nem/test/vectors/
 └── cosignature-v1.json
 ```
 
-各正常vectorはmnemonicまたはprivate key、network、accountIndex/path、public key、address、unsigned payload、全解析field、signing bytes、signature、signed payload、hashを含む。秘密値を含むvectorはテスト専用の公開既知値だけを使用する。
+各正常 vector は network、public identity、unsigned / parent payload、全解析 field、exact signing bytes、signature、public result / hash を含む。secret-bearing core vector は外部 core の公開既知値として別に照合し、MosaicLynx production / UI / adapter に Mnemonic / private key を入力しない。
 
 各schemaに、少なくともwrong network、wrong signer、unknown version、nonzero reserved、size ±1、trailing byte、truncation全offset、最大整数、overflow、alias、最大件数、最大件数+1、非canonical並び、改ざんtransactions hashを用意する。Web、Extension、Mobileの全実装が同じfixtureを通過しない限りreleaseしない。
 
 ## 8. symbol-sdk更新手順
 
-symbol-sdk更新PRは旧版と新版の全schema serialization、Facade signing bytes、network constant、BIP32 pathを差分比較する。差分がない場合もSBOM、package integrity、fixture結果、fuzz corpus結果、reviewer 2名の承認を保存する。差分がある場合はProvider APIまたはchain compatibility versionを更新し、既存Vaultの鍵を再導出して上書きしない。
+symbol-sdk更新PRは旧版と新版の全schema serialization、Facade signing bytes、network constant、core vector との対応を差分比較する。差分がない場合もSBOM、package integrity、fixture結果、fuzz corpus結果、reviewer 2名の承認を保存する。差分がある場合はProvider APIまたはchain compatibility versionを更新し、既存Vaultの鍵を再導出して上書きしない。
 
 ## 9. Traceability
 
@@ -208,10 +188,10 @@ symbol-sdk更新PRは旧版と新版の全schema serialization、Facade signing 
 | `CR-006`、`CR-NFR-009`、`CR-NFR-012`、`CR-AC-004`、`CR-AC-012`                       | Signing Flow §7、§19〜§23、Interfaces Design §6、§9                    | §5〜§7     | signed result の request / signer / network 対応は Signer / Interfaces / Handoff が所有し、本書は chain-specific verification を所有                                                      |
 | `CR-008`、`CR-013`、`CR-NFR-004`、`CR-AC-010`                                        | Architecture §6.8、Security Design §6、§13                             | §2、§6     | key derivation、Wallet Store、raw signing は wallet-core / Chain integration の外部契約。本書は MosaicLynx 側で再実装しない                                                               |
 | `CR-NFR-006`、`CR-AC-008`                                                            | Architecture §3、§16、Security Design §16                              | §7         | Mainnet capability の evidence / approval policy は ADR 0001、`evidence-policy.json`、Mainnet release evidence。Chain fixture は gate evidence の入力であり gate policy の owner ではない |
-| `CR-007-TX`、`CR-007-MSG`、`CR-AC-015`                                               | SDK Design §7、Signing Flow §14、Interfaces Design §9                  | §4、§6、§8 | Aggregate / multisig / cosignature の公開 operation scope は Interfaces `OPEN-006` と platform / SDK Specification。allowlist外は本書で拒否し、暗黙に拡張しない                           |
+| `CR-007-TX`、`CR-007-MSG`、`CR-AC-015`                                               | SDK Design §7、Signing Flow §14、Interfaces Design §9                  | §4、§6、§8 | Aggregate / multisig / cosignature の v1 operation scope / result は Interfaces §9.6.1 と platform / SDK Specification。allowlist外は本書で拒否し、暗黙に拡張しない                       |
 
 ### 9.1 OPEN と下流引継ぎ
 
 - 本書にない transaction type / version、schema、field、network または signing byte 規則は、SDK / Browser / Mobile / Handoff から推測して追加しない。
-- Interfaces `OPEN-006` が公開する Aggregate / multisig / cosignature operation scope を決定するまで、本書の allowlist と固定 vector は変更しない。
+- Interfaces §9.6.1 の optional cosignature scope と本書の allowlist を共通契約とし、非対応 capability は拒否する。必須化・他 type の拡張を暗黙に行わない。
 - symbol-sdk version、fixture contract version、parser version の更新は、§8 の手順と Mainnet release evidence の同一 revision 更新を必要とする。

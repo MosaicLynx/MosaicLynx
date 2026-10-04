@@ -37,7 +37,7 @@
 - wallet-core の Binding、Wallet Store、KDF、暗号、key slot および内部 error
 - signing lifecycle 全体の処理順。状態の共通表現と禁止される再利用だけを定める
 
-上記の詳細は、既存の下位仕様・設計・wallet-core 契約が定める範囲に従う。本書と下位資料が競合する場合、未決事項として扱う。
+wallet-core の正式公開 API への接続は [wallet-core Integration Specification](./wallet-core-integration.md) を正本とする。上記の内部詳細は、既存の下位仕様・設計・wallet-core 契約が定める範囲に従う。本書と下位資料が競合する場合、未決事項として扱う。
 
 ## 3. 上流資料と規範性
 
@@ -56,6 +56,7 @@
 - [Web Transaction Handoff Specification](./web-transaction-handoff-spec.md)
 - [Profile / Account Specification](./profile-account-spec.md)
 - [Chain Compatibility Specification](./chain-compatibility-spec.md)
+- [wallet-core Integration Specification](./wallet-core-integration.md)（正式 core commit / API / DTO / backend / error の正本）
 
 レビュー資料は整合性確認に使用した。レビューの指摘を、それ自体が新しい製品要求または仕様の根拠であるとは扱わない。interfaces-review-001 の IF-001〜IF-003 は、上流設計に既にある境界を本書で明示するために反映した。
 
@@ -222,7 +223,7 @@ operation-specific field は次のとおりである。
 - cosignTransaction: Symbol は parentPayload、detached required、NEM は payload と parentPayload required。chain、network は required、expectedSignerPublicKey と originProof は optional（Mobile Mainnet では proof required）。
 - disconnect: operation のみで Scope field は既存 handoff contract では持たない。ただし initiatorOrigin により対象 Origin を binding する。
 
-Relay はこれらの payload を opaque として扱う。上記の field の structural validation は行うが、transaction / message の意味、Account ownership、approval、署名可否を判断しない。
+Relay はこれらの payload を opaque として扱う。復号後の上記 field の structural / semantic validation は SDK と Signer が行う。Relay は encrypted envelope の外形・routing metadata だけを検証し、plaintext の operation、Account ownership、approval、署名可否を判断しない。
 
 ### 6.3 Relay response
 
@@ -252,6 +253,12 @@ type RelayResponse =
       deliveryDisposition: DeliveryDisposition;
     })
   | (RelayResponseBase & {
+      outcome: 'cosigned';
+      signingOutcome: 'SUCCEEDED';
+      cosignature: MosaicLynxCosignature;
+      deliveryDisposition: DeliveryDisposition;
+    })
+  | (RelayResponseBase & {
       outcome: 'resultUnknown';
       signingOutcome: 'RESULT_UNKNOWN';
     })
@@ -268,6 +275,7 @@ outcome と payload の依存関係は次のとおりとする。
 - connected は account required、その他の signing result と errorCode は禁止する。
 - disconnected は account、signing result、errorCode を持たない。
 - signed は `signingOutcome: 'SUCCEEDED'`、signedTransaction および deliveryDisposition required、account と errorCode を持たない。
+- cosigned は cosignTransaction のみで許可し、`signingOutcome: 'SUCCEEDED'`、cosignature および deliveryDisposition required。signedTransaction / signedData / account / errorCode は禁止する。
 - dataSigned は `signingOutcome: 'SUCCEEDED'`、signedData および deliveryDisposition required、account と errorCode を持たない。
 - resultUnknown は `signingOutcome: 'RESULT_UNKNOWN'` required、signed result、deliveryDisposition、account および errorCode を持たない。
 - rejected / failed は errorCode required、成功 result を持たない。
@@ -522,7 +530,13 @@ interface SignedData {
 - signing bytes は ASCII prefix MOSAICLYNX\0MESSAGE\0V1\0 と、StructuredMessage を RFC 8785 JCS で canonicalize した UTF-8 bytes の連結である。署名 primitive は wallet-core / chain-specific 契約に委譲する。
 - message の表示内容と signing bytes は同じ structured message から生成し、raw bytes の羅列だけで blind signing を成立させない。
 
-既存 Relay handoff の RelayDataSigningRequest は同じ message context を messageExpiresAt field で表している。一方、Product / Core / SignedData は expiresAt を使用する。この field 名の統一、両 field の対応または wire adapter の正本は未決であり、§18 の OPEN-001 として上流へ feedback する。実装は片方を暗黙に別名扱いしてはならない。
+本節は canonical message と wire adapter の正本である。MVP の MESSAGE_SIGN は本節の structured text message に対応し、arbitrary byte signing は非対応とする。core `0.2.0` に message 専用 API はなく、[Integration §4〜§5](./wallet-core-integration.md) の正式 `sign` を使用する。
+
+Relay / Provider request から canonical message を構成する exact mapping は、`domain = 'mosaiclynx.message.v1'`、`origin = 検証済み initiatorOrigin / browser-observed Origin`、chain / network / purpose / nonce / issuedAt / payload は同名 field の検証済み値、`message.expiresAt = request.messageExpiresAt` とする。request-level `expiresAt` は配送期限であり message の field へ代入しない。request envelope の expiresAt と messageExpiresAt は両方 required であり別々に検証する。expiresAt を messageExpiresAt の代用にする入力、または payload 内に第三の expiry / canonical object を追加する入力は拒否する。Provider `signMessage` も同じ messageExpiresAt を持つ request へ射影する。canonical message / SignedData には messageExpiresAt を含めず expiresAt だけを含める。
+
+signing bytes / signingDigest はこの canonical StructuredMessage 全体から生成し、encoding と value を書き換えない。UTF-8 text は unpaired surrogate を含まない有効な Unicode、NFC 済み、本文全体を表示できることを要求する。hex は偶数長 lowercase、fatal UTF-8 decode 成功、NFC 済みのテキストを全文表示できる場合だけ許可する。binary、encrypted bytes、任意の digest、unsupported encoding、replacement-character decode、解釈不能 hex を warning / hex dump だけで承認してはならない。制御文字・双方向・ゼロ幅文字は可視 escape と位置を示し、truncation / ellipsis で本文を省略しない。安全に表示できない場合は拒否する。hex の原値と encoding も確認可能にし、表示用 text を signing value に置換しない。
+
+Signer は「message signing」、requester Origin の検証状態、purpose、Account の public identity、Scope、nonce、issuedAt / message expiry / request expiry、encoding、全文と signing digest を同じ owned DTO から表示する。Testnet proof 省略時も origin の canonical 一致と未検証表示を必須とする。signedData.signature は64 bytesの lowercase hex 128桁、signerPublicKey は32 bytesの lowercase hex 64桁、signingDigest は SHA-256(signing bytes) の lowercase hex 64桁。返却 message は同じ canonical object。Signer / caller は選択 Account / expected signer と Scope・Origin・nonce・expiry を照合し、対応 Chain の public-key Verifier で prefix + JCS bytes の signature を検証する。transaction signature をこの結果として受け入れない。
 
 ### 9.5 TransactionSummary / Inspection
 
@@ -550,7 +564,38 @@ interface SignedTransaction {
 
 payload、hash、signerPublicKey は required、nullable 不可である。Signer は wallet-core の返却値をそのまま転送せず、元 target、requestId、operation、Account、Chain、Network、expected signer と対応することを検証する。dApp は受け取った結果を元 request と独立に検証し、announce は dApp の責務とする。
 
-cosignature result の exact field と message signing の signature encoding は既存下位契約に従う。未確定の公開形式を本書で追加しない。
+公開 payload / hash / signerPublicKey は lowercase hex とし、入力の許可された大文字 hex は byte 同一性で比較する。hash / signerPublicKey は32 bytes（64桁）。署名以外の元 field の変化を許可しない。core の raw result からの組立ては [Integration §5](./wallet-core-integration.md) に従う。
+
+### 9.6.1 Cosignature result と対応範囲
+
+v1 の cosignTransaction は optional capability とし、提供する Signer は Chain Compatibility §4 の Symbol AggregateCompleteV2 / AggregateBondedV2（embedded TransferV1 のみ）の attached / detached、NEM MultisigV1（inner TransferV1/V2）の CosignatureV1 に限る。capability がない Signer は受付時 UNAVAILABLE、対応 capability 内の未知 type / version は UNSUPPORTED_TRANSACTION とし core を呼ばない。必須 capability への昇格や他 type の拡張は別の承認を必要とする。
+
+```ts
+type MosaicLynxCosignature =
+  | {
+      chain: 'symbol';
+      network: Network;
+      parentHash: string;
+      signerPublicKey: string;
+      signature: string;
+      version: '0';
+      detached: boolean;
+    }
+  | {
+      chain: 'nem';
+      network: Network;
+      parentHash: string;
+      signedTransaction: SignedTransaction;
+    };
+```
+
+全 field は required、nullable 不可、他 field は禁止。parentHash は full signed parent から Signer が再計算した32 bytesの lowercase hex 64桁。Symbol signerPublicKey / signature は32 / 64 bytesの lowercase hex 64 / 128桁。version は wire の u64 cosignature version 0 を表す固定文字列 `'0'`（number / BigInt 不可）。detached は request と一致する boolean。attached は署名要素だけを返し parent payload へ自動追記しない。detached も同じ親 hash と署名を返し呼出し側が network DTO へ変換する。
+
+NEM signedTransaction は検証済み CosignatureV1 に core signature を設定した完全 payload / その transaction hash / cosigner public key。NEM は独立 signature / version / detached field を返さない。signature と entity version 1 は payload 内を検証する。parentHash はその payload の multisigTransactionHash と一致し、multisigAccountAddress は signed parent の inner signer に対応し、parent / cosignature / selected key の network が一致する。
+
+いずれも operation は cosigned outcome と元 request の operation の照合で表し result に重複 field を追加しない。request ID は response envelope に required、internal Account ID / Profile ID / key ID は返さない。Signer / SDK は full parent を使い親署名・既存 cosignature・cosigner role・重複・全 inner・parent hash を検証し、Symbol は親 hash の raw bytes、NEM は CosignatureV1 の signing bytes への署名を独立検証する。cosignature は SignedTransaction / SignedData branch で返さない。
+
+成功は §6.3 の cosigned + SUCCEEDED + deliveryDisposition、署名生成不明は resultUnknown、確定拒否・失敗は既存 errorCode とする。SDK は Handoff の `MosaicLynxSigningResult<MosaicLynxCosignature>` に意味不変に射影する。DELIVERY_UNKNOWN でも既知 cosignature を保持し、自動再署名しない。
 
 ### 9.7 Common signing gate
 
@@ -580,6 +625,10 @@ connection、permission、Account disclosure、capability、Provider availabilit
 
 Signer は wallet-core call の直前に、request の freshness、caller / source、Profile-local context、Account、Chain / Network、operation、target、inspection、approval、Authentication、Signing-capable unlock、Account authorization および response binding を再確認する。確認できない値、失効、lock、stale、unknown または mismatch が一つでもある場合は Authorization を失効させ、署名しない。
 
+### 9.8 wallet-core adapter
+
+全 operation は [wallet-core Integration Specification](./wallet-core-integration.md) の正式 `get_public_account` / `sign`、Profile / key mapping、Uint8Array、raw signature result、warnings、同期・初期化・backend・error contract を使用する。MosaicLynx は private key / Mnemonic を取得・保持せず、通常 signing に export を呼ばない。core に request ID / Origin / expiry を持つ API や unlock session、transaction / cosignature / message 専用 API があると仮定しない。
+
 ## 10. Error Model
 
 ### 10.1 共通 error の意味
@@ -592,6 +641,9 @@ Signer は wallet-core call の直前に、request の freshness、caller / sour
 | unsupported           | operation、Chain、Network、format、type、version または capability が非対応               | 同じ意味の fallback 不可。対応確認後の新規 request のみ |
 | permission_denied     | Origin、session、scope、Profile、Account または permission revision が不一致・revoke 済み | 同じ request は不可                                     |
 | user_rejected         | 利用者が明示的に拒否した                                                                  | 自動 retry 不可                                         |
+| locked                | Signer-local gate が locked                                                               | 認証なしで再試行不可                                    |
+| account_unavailable   | 選択した Profile / key が利用不能                                                         | 新規選択と認証が必要                                    |
+| network_mismatch      | Account / payload / Scope の Network 不一致                                               | 同じ request は不可                                     |
 | authentication_failed | 署名ごとの認証が失敗した                                                                  | 古い approval の再利用不可                              |
 | expired               | request、message、transaction context または parent が期限切れ                            | 新しい expiry と新規承認を伴う request のみ             |
 | cancelled             | 利用者、dApp、Signer、platform または transport が取消した                                | 同じ request の再開不可                                 |
@@ -646,6 +698,12 @@ Signer-originated `RESULT_UNKNOWN` と delivery disposition は、SDK、Provider
 
 `SUCCEEDED + DELIVERY_UNKNOWN` の recovery candidate は、同じ request / context に対する既存 result の resend、redelivery、retrieval または lookup に限る。新しい signature の生成、`SIGNING` への復帰または別 target の署名は許可しない。
 
+### 10.4 Invocation certainty、timeout、duplicate
+
+Signer が正式 core `sign` を一度も呼んでいないと確実に把握する場合だけ、timeout / cancel を EXPIRED / CANCELLED、signing-not-started と確定できる。invocation 開始後、completion または生成失敗を確定できない場合は RESULT_UNKNOWN とする。exception / BindingFailure / Promise timeout は未署名の証拠ではない。valid signed result が既に得られていれば SUCCEEDED を保持し、Signer が配送結果を確定できない場合は DELIVERY_UNKNOWN。
+
+SDK / Provider / Relay の timeout は transport_failure であり、これらが Signer の両 disposition や unsigned を推測してはならない。requestId は caller / Profile / target / operation / Scope / recipient と binding して比較する。同じ ID・異なる内容は tampering、同じ ID・同じ内容は duplicate とし追加の confirmation / core signing を起こさない。元の valid known result が存在し recipient binding が current の場合だけ同じ結果を再配送できる。SIGNING / RESULT_UNKNOWN の duplicate は処理を再開しない。新 ID による caller retry も承認を意味せず、明示的な新規操作と fresh 四条件を要求する。
+
 ## 11. Serialization
 
 ### 11.1 JSON と field naming
@@ -686,9 +744,41 @@ nonce と ciphertextAndTag の base64url 表現、AAD、key derivation および
 
 ## 12. Validation
 
+### 12.0 External input → owned immutable DTO
+
+SDK、Provider、Extension message channel、Relay 復号後、Deep Link / OS invocation の入力はすべて untrusted。SDK による正規化も Signer の再検証を省略しない。各境界は次の契約を満たす。
+
+```text
+external object / bounded JSON bytes
+→ bounded snapshot / copy → plain-data normalization
+→ schema validation → semantic validation → internal immutable DTO
+```
+
+- plain object（Object.prototype または null prototype）と dense Array、schema の primitive のみ許可する。own enumerable data property descriptor の値を一度だけ読み、required field の inherited value、getter / setter / accessor、Symbol key、non-enumerable schema field、class instance、Date、Map、Set、function、toJSON、cycle、schema にない object type を拒否する。`__proto__`、`prototype`、`constructor` を全階層で拒否し、prototype chain から値を補完しない。JSON duplicate key / trailing data は parse 時に拒否する。
+- JS Proxy を trap 無実行で判定する保証はない。descriptor / prototype / collection inspection が throw、inconsistent、unreadable の場合は拒否する。返る descriptor の値だけを owned snapshot に取り込み、trap の副作用や外部 object 群の原子的 snapshot を保証しない。privileged Signer は browser / OS transport を通して受けた plain data を再検証し、untrusted realm の live object や Proxy を approval / authority として受け取らない。
+- 検証後は外部 object / nested object / property を再 read しない。`validate(input.foo); use(input.foo)`、外部 object の freeze だけ、JSON.stringify による getter / toJSON 実行を snapshot の代替にしない。inspection、display、digest、core call は同じ Signer-owned immutable DTO とその派生 bytes だけを使う。context 変更時は invalidation、target 変更は新規 request / approval を要求する。
+- request の number は schema が許可する finite safe integer のみ。NaN、Infinity、fraction、範囲外、負のゼロ、BigInt、numeric string coercion、unexpected undefined / null を拒否する。chain quantity の BigInt は内部 SDK decode 後だけ許可し、public hex / decimal string 契約を変えない。
+- 外部 request field は公開 schema が定める string / object / boolean 等に限り、Uint8Array / Buffer / ArrayBuffer / DataView / typed array は wire payload に許可しない。core-call bytes は owned DTO から生成する。内部 byte boundary に Uint8Array を受ける時も長さ確認後に view 範囲だけを非共有 owned buffer へ copy し、SharedArrayBuffer、detached / resizable / unreadable buffer を拒否する。外部 view と alias を共有せず、copy 後の mutation が core bytes に影響しないことを要求する。
+
+resource bounds は本節が owner とし、JSON parse / snapshot / encode / JCS / hex decode / copy より前と処理中に適用する。超過は invalid_request / INVALID_PARAMS（transaction 本体不正は INVALID_TRANSACTION）、core 未呼出し。限界ちょうどは他の schema 条件を満たす場合にのみ許可する。
+
+| 対象                                                      | 最大値と数え方                                                                                             |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| request / response JSON または owned plain-data JSON 表現 | UTF-8 512 KiB。padding / escaping / 全 field を含む。raw Relay encrypted HTTP body の512 KiB制限も別に適用 |
+| 単独 string                                               | UTF-8 512 KiB、UTF-16 code unit 524288。より厳しい payload / identifier / message 制限を優先               |
+| container nesting                                         | root container を1と数え最大16                                                                             |
+| object の own field 数                                    | 一 object 64（unknown field も数える）                                                                     |
+| array elements                                            | 一 array 256、sparse / extra named property 不可。aggregate は chain 規則の100を優先                       |
+| 全 container / property / array element の総数            | root を含め4096。入力全体の走査で加算                                                                      |
+| transaction / parentPayload                               | 各 decoded 256 KiB、hex 524288 characters。複数 field は上記全体 bound も満たす                            |
+| message payload                                           | utf8 / hex-decoded bytes 16 KiB、signing bytes は core 上限1 MiB以内                                       |
+| core call byte boundary                                   | signing payload 1 MiB、opaque Store 16 MiB、public key 32 / signature64 bytes                              |
+
+個々の field 上限を満たしても全体 body 上限を超える要求は拒否する。Relay は plaintext を解析せず raw ciphertext body だけを制限する。core facade の snapshot / payload limit はこの上流境界と表示・承認 binding の代替ではない。
+
 ### 12.1 共通検証順序
 
-各受信側は、少なくとも次の順序で fail-closed に検証する。関数内部の実装方法は規定しない。
+各受信側は §12.0 の owned normalization を完了し、以後外部入力を再 read せず、少なくとも次の順序で fail-closed に検証する。関数内部の実装方法は規定しない。
 
 1. JSON / envelope の型、size、duplicate key、required / optional、unknown field。
 2. enum、literal、identifier format、timestamp format、length、range および null 禁止。
@@ -722,7 +812,7 @@ nonce と ciphertextAndTag の base64url 表現、AAD、key derivation および
 
 - RelayResponse は outcome ごとに許可された result field だけを持つ。
 - rejected / failed に成功 result を併記しない。
-- signed / dataSigned は `signingOutcome: 'SUCCEEDED'`、known signed result および `deliveryDisposition` を持つ。`DELIVERY_UNKNOWN` でも result を保持する。
+- signed / dataSigned / cosigned は `signingOutcome: 'SUCCEEDED'`、known signed result および `deliveryDisposition` を持つ。`DELIVERY_UNKNOWN` でも result を保持する。
 - resultUnknown は `signingOutcome: 'RESULT_UNKNOWN'` だけを持ち、成功 result、deliveryDisposition または errorCode を持たない。
 - `RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` は通常 error code へ射影しない。transport / lifecycle failure から生成・推測しない。
 - originProof は対応 operation のみ許可し、Mobile Mainnet では required とする。
@@ -848,10 +938,7 @@ Relay と wallet-core は共通 model の一部を transport / cryptographic bou
 
 ### OPEN-001: Structured message expiry field の整合
 
-- **問題:** Product / Core / SignedData は expiresAt、RelayDataSigningRequest は messageExpiresAt を使用する。
-- **本書だけで決定できない理由:** 既存仕様間の contract 差であり、片方を alias とするには Provider、Mobile handoff、Relay および structured-message の更新判断が必要である。
-- **影響範囲:** signData request、JCS object、署名 bytes、expiry validation、response verification、SDK / Mobile interoperability。
-- **戻すべき上流文書:** docs/specifications/web-transaction-handoff-spec.md、docs/specifications/product-spec.md、必要に応じて docs/requirements/requirements.md の CR-007-MSG 下流契約。
+Resolved（本 remediation の明示依頼に基づく contract decision）。§9.4 が canonical message と adapter の正本。request.messageExpiresAt は message.expiresAt へ一意に mapping し request.expiresAt は配送期限として分離する。暗黙 alias、両方を同じ request に送ること、別 JCS object の署名は禁止する。歴史的 ID は維持する。
 
 ### OPEN-002: Common capability identifier / negotiation contract
 
@@ -883,10 +970,7 @@ Relay と wallet-core は共通 model の一部を transport / cryptographic bou
 
 ### OPEN-006: Aggregate / multisig / cosignature public scope
 
-- **問題:** signing-flow は parent 全体確認と chain-specific boundary を定めるが、各 platform / SDK で公開する operation、type / version、result field は未確定である。
-- **本書だけで決定できない理由:** Chain Compatibility、SDK API、Mobile / Relay milestone と同時に決定しなければならない。
-- **影響範囲:** cosignTransaction capability、parent payload、TransactionSummary、error、fixture、互換性。
-- **戻すべき上流文書:** docs/requirements/sdk.md の SDK-OPEN-002、docs/specifications/chain-compatibility-spec.md の対応範囲、signing-flow / platform 下位仕様。
+Resolved for v1 contract。§9.6.1 と Chain Compatibility §4 が Symbol attached / detached Aggregate v2 と NEM CosignatureV1 の対応範囲・結果を固定する。capability は optional、非提供 Signer は UNAVAILABLE。必須化・他 type / version・future Partial の拡張は本決定の対象外。SDK / Provider / Mobile / Handoff は同じ cosigned / resultUnknown / delivery union に追跡する。
 
 ## 19. Specification 完了条件
 
@@ -898,4 +982,4 @@ Relay と wallet-core は共通 model の一部を transport / cryptographic bou
 - §9.7、§10.3、§13.1 の common four conditions、Signer-only `RESULT_UNKNOWN`、Signer-side `DELIVERY_UNKNOWN`、transport failure 分離、known-result recovery、no automatic re-sign / fallback および fresh signing requirements を検証できる。
 - §10〜§14 の error、serialization、validation、state、compatibility を用いて成功、delivery disposition、result unknown および安全側失敗を区別できる。
 - §7.4、§15〜§16 の Mainnet release / evidence gate、fail-closed、secret isolation、request correlation、Relay opaque boundary、SDK / wallet-core boundary を維持できる。
-- §18 の OPEN を未解決のまま、実装が独自の共有 field、version、permission expiry、message expiry alias または capability negotiation を発明していない。
+- §18 の OPEN を未解決のまま、実装が独自の共有 field、version、permission expiry、expiry の独自 alias または capability negotiation を発明していない。

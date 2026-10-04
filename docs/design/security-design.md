@@ -128,11 +128,10 @@ Wallet Core を信頼することは、Application の承認を Wallet Core に�
 
 ### 6.1 保持主体と生成・import
 
-- private key と mnemonic を永続保持できるのは、Browser Extension / Mobile App の鍵保管領域だけとする。
+- private key と mnemonic は wallet-core のみが扱う。Browser Extension / Mobile App は opaque encrypted Store を保存するが、平文秘密を取得・保持しない。
 - SDK、dApp、Relay、外部 API に private key、mnemonic、復号鍵または password を渡してはならない。
 - Wallet Core は暗号処理中に秘密鍵を扱うが、平文の秘密情報を永続保存しない。永続化する場合は Wallet Core が提供する安全な暗号化形式を host の保管領域で扱う。
-- アプリ内で新規秘密鍵を生成でき、mnemonic import と raw private key import を許可する。
-- import は MosaicLynx 自身の UI で利用者が明示的に行う。外部アプリ、SDK、dApp からの自動 import は禁止する。
+- 現行 MosaicLynx UI の Mnemonic 新規作成・復元、raw private-key import / export は非対応。事前 provision 済み opaque Store と秘密を返さない正式 API だけを利用する。統合正本は [Wallet-core Integration](../specifications/wallet-core-integration.md)。外部 requester からの自動 Store 登録も禁止する。
 
 Symbol と NEM の Account / Key Identity は別々に管理する。Application Profile は一つの Chain と Profile が固定する Network に属し、Account、default Account、permission および signing authorization はその Chain に一致するものだけを関連付ける。Symbol と NEM の両方を利用する場合は Chain ごとに別 Profile を使用し、同一 Profile の Chain を切り替えたり、異なる Chain の Account / permission を混在させたりしない。mnemonic から導出する場合は対象 Chain を明示し、その Chain に対応する導出契約を使用する。Symbol 用に導出した秘密鍵を NEM 用として、または NEM 用に導出した秘密鍵を Symbol 用として暗黙に利用する Account model は採用しない。具体的な導出 path、algorithm、library、address 導出および Wallet Store 形式は Wallet Core / Chain integration へ委譲する。
 
@@ -288,7 +287,7 @@ SDK と外部 API は信頼しない。SDK は秘密情報、認証、最終的�
 
 ### 12.3 Retention / secure deletion
 
-Secret は必要な期間だけ保持し、復号済み private key / mnemonic を長時間メモリに残さない。処理済み request は replay 防止に必要な最小情報だけ保持する。session は期限切れ、revoke、lock で無効化し、Relay 一時データも必要最小期間で削除する。
+wallet-core が内部 Secret を処理・破棄し、MosaicLynx は復号済み private key / mnemonic を取得しない。処理済み request は replay 防止に必要な最小情報だけ保持する。session は期限切れ、revoke、lock で無効化し、Relay 一時データも必要最小期間で削除する。
 
 account 削除時は関連する Secret、session、permission を削除する。cache、temp file、backup、log から削除済み Secret を復元できる状態にしてはならない。物理的完全消去を保証できない storage では cryptographic erasure を基本とする。
 
@@ -297,21 +296,21 @@ account 削除時は関連する Secret、session、permission を削除する�
 ### 13.1 Backup / export
 
 - backup / export は利用者の明示操作時のみ実行し、外部アプリ、SDK、dApp から実行できないようにする。
-- 実行前に再認証する。private key / mnemonic の表示は専用の trusted UI で行う。
+- 実行前に再認証する。private key / mnemonic の取得・表示・export は現行 MosaicLynx では禁止し、将来の secret-free な正式統合契約なしで追加しない。
 - 平文ファイルをデフォルトの export 形式にしない。Wallet Core の暗号化 Wallet Store 等が利用可能なら優先する。
 - export 失敗時に平文一時ファイルを残さない。Cloud Backup へ自動保存しない。
 - 暗号仕様、Wallet Store の内部形式、migration および復元整合性は Wallet Core / platform 下位設計の責務とする。
 
 ### 13.2 Clipboard / screenshot
 
-- private key / mnemonic の clipboard コピーは原則禁止する。例外時は高リスク操作として再認証する。
-- 例外的に clipboard を使う場合、可能な platform では一定時間後に消去する。
+- private key / mnemonic の clipboard コピーは禁止する。MosaicLynx が secret を取得する例外経路を設けない。
+- password を clipboard に保存しない。
 - address / public key は通常通りコピーできるが、Secret と混同しない。
-- Mobile では、private key / mnemonic の入力・表示画面、パスコード / PIN / 生体認証等の認証画面、署名確認画面、transaction / message 承認画面、および caller / Account / Chain / Network / Amount 等の署名文脈を表示する画面を Sensitive UI として扱う。下位 Mobile 設計は、これらの画面について screenshot、screen recording、screen sharing、recent apps preview、notification、OS preview / task switcher その他の platform 固有の画面露出経路を必ず評価しなければならない。
+- Mobile では、パスコード / PIN / 生体認証等の認証画面、署名確認画面、transaction / message 承認画面、および caller / Account / Chain / Network / Amount 等の署名文脈を表示する画面を Sensitive UI として扱う。下位 Mobile 設計は、これらの画面について screenshot、screen recording、screen sharing、recent apps preview、notification、OS preview / task switcher その他の platform 固有の画面露出経路を必ず評価しなければならない。
 - Mobile の Sensitive UI では、OS が防止可能な範囲で保護を利用する。OS が完全に防止できない範囲について、画面露出を完全に防止できると設計または UI で誤認させてはならない。具体的な対象画面、OS API および保護方法は Mobile 設計へ委譲する。
 - Browser Extension では screenshot 防止を保証しない。
 - private key / mnemonic を recent apps preview、通知、履歴または temp UI に残さない。
-- private key / mnemonic の QR 表示は秘密情報表示と同等の高リスク操作として扱う。
+- private key / mnemonic の QR 表示は非対応とする。
 
 ## 14. Sensitive UI / Anti-Phishing
 

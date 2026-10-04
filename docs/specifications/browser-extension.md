@@ -8,6 +8,8 @@ Browser Extension は trusted wallet context である。ただし、Web page、
 
 本書の `MUST`、`MUST NOT`、`SHOULD` および `MAY` は、[interfaces.md](./interfaces.md) の規範語に従う。本書は Browser Extension 固有の適用を定めるが、共通 identifier、Scope、Origin、request / response、signing state、error、chain-specific serialization および wallet-core の意味を再定義しない。
 
+共通受信境界は [Interfaces §12.0](./interfaces.md) の bounded snapshot / plain-data normalization / immutable DTO を使用し、validation 後の外部 property 再 read を禁止する。正式 core integration は [wallet-core Integration](./wallet-core-integration.md)、message expiry / text format は Interfaces §9.4、cosignature の optional scope / result / unknown / delivery は Interfaces §9.6.1 を正本とする。Relay は core を呼ばず plaintext の normalization / semantics を担わない。Signer だけが core を呼ぶ。
+
 ## 2. 適用範囲と authority
 
 ### 2.1 対象範囲
@@ -112,15 +114,15 @@ Provider の exact JSON / RPC envelope、wire serialization、listener delivery�
 
 Provider の page-facing TypeScript method / result shape の normative authority は、[interfaces.md](./interfaces.md)、[sdk.md](./sdk.md)、[web-transaction-handoff-spec.md](./web-transaction-handoff-spec.md) および本書の整合した公開契約である。現行 `@mosaiclynx/provider-api` の TypeScript shape は implementation evidence にとどまり、そのまま page-facing normative contract として使用しない。現行 package の `MosaicAccount.id`、`MosaicAccount.profileId`、signing params の `accountId`、bare な signed result との差分は downstream Implementation synchronization の対象であり、本書は既存実装に合わせて internal ID、internal selector または旧 result shape を復活させない。実装が満たす論理的な入出力は次のとおりである。
 
-| operation           | input                                                                                                 | successful result                                                                                                                  |
-| ------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `connect`           | `MosaicScope`（`chain`、`network`）                                                                   | 指定 Scope で許可された `PublicAccountIdentity` の readonly collection                                                             |
-| `disconnect`        | なし                                                                                                  | `void`。current caller の connection / permission を終了する                                                                       |
-| `getAccounts`       | なし                                                                                                  | current caller に公開可能な `PublicAccountIdentity` collection                                                                     |
-| `getActiveAccount`  | `MosaicScope`                                                                                         | Scope に対応する `PublicAccountIdentity` または `undefined`                                                                        |
-| `signTransaction`   | Scope、hex payload、既存 contract の optional `expectedSignerPublicKey`                               | Handoff-compatible な known signed result または Signer-originated `RESULT_UNKNOWN`                                                |
-| `signMessage`       | Scope、既存 structured message の purpose、nonce、issuedAt、expiry、payload および既存 optional field | Handoff-compatible な known signed result または Signer-originated `RESULT_UNKNOWN`                                                |
-| `cosignTransaction` | Chain-specific な parent / payload、detached 等、既存 contract の field                               | Chain-specific `MosaicLynxCosignature`。Symbol と NEM の target / result shape を混同しない。Account は trusted context で解決する |
+| operation           | input                                                                                                 | successful result                                                                                                                            |
+| ------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `connect`           | `MosaicScope`（`chain`、`network`）                                                                   | 指定 Scope で許可された `PublicAccountIdentity` の readonly collection                                                                       |
+| `disconnect`        | なし                                                                                                  | `void`。current caller の connection / permission を終了する                                                                                 |
+| `getAccounts`       | なし                                                                                                  | current caller に公開可能な `PublicAccountIdentity` collection                                                                               |
+| `getActiveAccount`  | `MosaicScope`                                                                                         | Scope に対応する `PublicAccountIdentity` または `undefined`                                                                                  |
+| `signTransaction`   | Scope、hex payload、既存 contract の optional `expectedSignerPublicKey`                               | Handoff-compatible な known signed result または Signer-originated `RESULT_UNKNOWN`                                                          |
+| `signMessage`       | Scope、既存 structured message の purpose、nonce、issuedAt、expiry、payload および既存 optional field | Handoff-compatible な known signed result または Signer-originated `RESULT_UNKNOWN`                                                          |
+| `cosignTransaction` | Chain-specific な parent / payload、detached 等、既存 contract の field                               | `MosaicLynxSigningResult<MosaicLynxCosignature>`。Symbol と NEM の target / result shape を混同しない。Account は trusted context で解決する |
 
 上表の page-facing input、Account record、return value および event payload に、`profileId`、internal `accountId`、Wallet Store ID、key slot、internal routing reference またはそれらを代替する opaque handle を含めない。Account の公開 projection は §10.1 の `PublicAccountIdentity` に限る。Account の利用者選択が必要な場合は trusted Signer UI / Signer-owned context で解決し、page から受け取った selector を authorization、ownership、key selection または signer identity の authority としない。
 
@@ -178,7 +180,7 @@ Browser page-facing `signMessage` は Provider-specific adapter method であり
 | `RESULT_UNKNOWN`          | Provider / page lifecycle / Promise settlement から生成・推測しない                                                                                                          | trusted Signer-originated `resultUnknown` / `RESULT_UNKNOWN` を signed result、errorCode、deliveryDisposition なしで SDK の `outcome: 'resultUnknown'` へ意味不変に渡す        |
 | `deliveryDisposition`     | Provider、page delivery、transport completion から生成・推測・書き換えない                                                                                                   | known signed result に付随する Signer-originated `PENDING`、`DELIVERED` または `DELIVERY_UNKNOWN` を同じ値で保持する。`RESULT_UNKNOWN` branch には付けない                     |
 
-`signMessage` は `signData` / `MESSAGE_SIGN` の structured message semantics に必ず従い、transaction signing、arbitrary raw bytes signing または blind signing への fallback として扱わない。`expiresAt` と Handoff `messageExpiresAt` の canonicalization / mapping は [interfaces.md OPEN-001](./interfaces.md) の decision に従い、Browser が alias、両方の同時必須化、一方の勝手な canonical 化または自動 conversion rule を追加しない。上記以外の result、error、unknown および delivery mapping は Mobile Relay path と同じである。
+`signMessage` は `signData` / `MESSAGE_SIGN` の structured message semantics に必ず従い、transaction signing、arbitrary raw bytes signing または blind signing への fallback として扱わない。canonical message は [Interfaces §9.4](./interfaces.md) に従い、Provider request.messageExpiresAt を message.expiresAt に明示 mapping し request-level expiresAt と区別する。両 field の二重送信・独自 alias は拒否する。上記以外の result、error、unknown および delivery mapping は Mobile Relay path と同じである。
 
 ### 5.3 discovery と capability
 
@@ -549,7 +551,7 @@ mosaiclynx.message.v1
 - nonce の再利用、request expiry、message expiry、issuedAt の範囲、purpose、payload encoding および Unicode / hex 条件は既存 Product / Interfaces / Handoff contract を検証する。
 - trusted UI と signing bytes は同一の structured message から導出する。UI 表示用の別 message、要約または変換を署名対象にしない。
 - raw arbitrary message、表示不能な message、unknown format または uninspectable payload を warning-only で署名しない。
-- `expiresAt` と Handoff の `messageExpiresAt` の未解決な差異は [interfaces.md OPEN-001](./interfaces.md) を維持し、Browser Extension が alias、優先順位または変換を独自決定しない。
+- request.messageExpiresAt → canonical message.expiresAt の対応は Interfaces §9.4 に固定される。request-level expiresAt は別。
 
 ## 17. Trusted Approval UI
 

@@ -25,6 +25,8 @@ authority は文書全体の順位ではなく、対象となる contract を所
 
 上流の Requirements / Design は traceability と判断根拠であり、common contract の authority を変更しない。
 
+共通受信境界は [Interfaces §12.0](./interfaces.md) の bounded snapshot / plain-data normalization / immutable DTO を使用し、validation 後の外部 property 再 read を禁止する。正式 core integration は [wallet-core Integration](./wallet-core-integration.md)、message expiry / text format は Interfaces §9.4、cosignature の optional scope / result / unknown / delivery は Interfaces §9.6.1 を正本とする。Relay は core を呼ばず plaintext の normalization / semantics を担わない。Signer だけが core を呼ぶ。
+
 ## 2. Scope、前提および非責務
 
 ### 2.1 Scope
@@ -40,7 +42,7 @@ Mobile App は、端末上で利用者の署名判断を成立させる local tr
 - 元 request に binding された response の生成と、Relay への暗号化 response の配送。
 - Android milestone と iOS milestone を独立した platform capability として評価すること。
 
-Mobile v1 の必須 signing operation は transaction signing と structured `MESSAGE_SIGN` である。既存 handoff が定める `connect`、`refreshActiveAccount` および `disconnect` は同じ Mobile handoff 境界で扱う。`cosignTransaction` の公開必須範囲は既存の OPEN を閉じるまで、対応 capability が明示された場合に限る。
+Mobile v1 の必須 signing operation は transaction signing と structured `MESSAGE_SIGN` である。既存 handoff が定める `connect`、`refreshActiveAccount` および `disconnect` は同じ Mobile handoff 境界で扱う。`cosignTransaction` は Interfaces §9.6.1 の optional capability とし、非対応は UNAVAILABLE。提供する chain / mode の result contract は同節に固定する。
 
 ### 2.2 非責務
 
@@ -552,7 +554,7 @@ Mobile App は少なくとも `LOCKED`、通常の `UNLOCKED`、request-bound �
 
 | 情報                                                        | 保持・処理主体                                          | Mobile App の契約                                                                                                                                    |
 | ----------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Mnemonic、private key、derived key、Wallet Store の秘密部分 | `wallet-core` と trusted host の限定された Binding 境界 | 外部 App、Web page、SDK、Relay、URL、notification、log、diagnostics、analytics、response または persistent plain storage へ渡さない。                |
+| Mnemonic、private key、derived key、Wallet Store の秘密部分 | wallet-core のみ。MosaicLynx は取得・保持しない         | 外部 App、Web page、SDK、Relay、URL、notification、log、diagnostics、analytics、response または persistent plain storage へ渡さない。                |
 | Profile password                                            | 利用者の trusted auth surface と wallet-core の既存契約 | signing / unlock に必要な期間だけ扱い、通常の UI state、Relay、SDK、log または response に保存しない。                                               |
 | Encrypted Wallet Store                                      | wallet-core 定義の opaque data                          | Mobile Application は保存・置換・version 整合性を管理するが、内部 format、KDF、AEAD、key index を解釈・再実装しない。                                |
 | OS-protected credential / wrapping key                      | OS / platform integration                               | capability、端末変更、backup、失敗状態を Mobile の責任として表示・処理し、wallet-core の責任と混同しない。                                           |
@@ -689,15 +691,15 @@ Mobile App は新しい public error taxonomy を追加せず、Handoff §10、I
 
 - **MOB-OPEN-001 / MR-OPEN-001**: iOS / Android の support OS version、端末範囲、Store / test distribution、個別 milestone の完了条件。
 - **MOB-OPEN-002 / MR-OPEN-002**: 現行標準の verified HTTPS App Link 以外の Deep Link、custom scheme、QR、generic share / Intent の採否、優先順位、source proof および追加 handoff contract。
-- **MOB-OPEN-003 / MR-OPEN-003 / CR-OPEN-001 / CR-OPEN-002**: Mobile host における wallet-core Binding、Native / WASM integration、OS-protected wrapping、secret byte lifecycle、error mapping および migration の exact contract。
+- **MOB-OPEN-003 / MR-OPEN-003 / CR-OPEN-001 / CR-OPEN-002**: wallet-core facade の三 backend / identity / error contract は Wallet-core Integration で確定済み。OS wrapping と migration の残りを扱い、現行 contract に秘密の受渡しや raw binding 呼出しを追加しない。
 - **MOB-OPEN-004 / MR-OPEN-004**: PIN、OS passcode、biometric、Profile password の役割、fallback、retry / rate limit、再認証頻度および lock timeout。
 - **MOB-OPEN-005 / MR-OPEN-005 / OPEN-RELAY-003 / OPEN-RELAY-004**: pending request の保持・再表示、temporary reconnect / resume、known result の retention、resend / retrieval / lookup API、Relay unavailable / delivery timeout の client-facing mapping。
 - **MOB-OPEN-006 / MR-OPEN-006**: Profile 全体 backup / restore、端末移行、OS key migration、端末紛失・削除・保護状態喪失時の復元可能性。Mainnet gate が要求する evidence と、一般 capability としての提供範囲を混同しないこと。
 - **MOB-OPEN-007 / MR-OPEN-007**: screen capture、recording、recent-app preview、notification、clipboard および crash / diagnostics の platform privacy policy。
 - **MOB-OPEN-008 / MR-OPEN-008**: Mobile release evidence の platform matrix、capability report、runtime enforcement、Store 公開と Mainnet capability の関係。Mainnet gate の存在、gate failure / unknown 時の Mainnet disabled、Testnet-only continuation および trusted release authority は確定済みである。
-- **MOB-OPEN-009 / OPEN-006 / OPEN-SDK-004**: Aggregate、Partial、Symbol / NEM cosignature の公開 operation、supported scope、result contract および SDK 必須 capability。
+- **MOB-OPEN-009 / OPEN-006 / OPEN-SDK-004**: v1 の optional cosignature scope / result は Interfaces §9.6.1 で解決済み。必須 capability 化、future Partial / type の拡張は未決であり現行に含めない。
 
-共通 Interface の structured message expiry field、capability / version negotiation、permission expiry / revocation identifier および Mobile caller context の追加公開契約も、既存 `OPEN-001`〜`OPEN-005` と SDK / Handoff の authority に従う。本仕様は field alias、独自 version field、独自 capability identifier または独自 public error を追加しない。
+共通 Interface の structured message expiry field は Interfaces §9.4 に固定済み。capability / version negotiation、permission expiry / revocation identifier および Mobile caller context の追加公開契約も、既存 `OPEN-001`〜`OPEN-005` と SDK / Handoff の authority に従う。本仕様は field alias、独自 version field、独自 capability identifier または独自 public error を追加しない。
 
 ## 20. Acceptance / Conformance Criteria
 

@@ -14,6 +14,8 @@ Relay は SDK / Browser Extension 側と Mobile App 側の間で、既存 Handof
 - **MAY**: 他の契約と Security Invariant に反しない範囲で許容する。
 - **OPEN**: 本書だけでは決定できない。実装で独自に確定してはならない。
 
+共通受信境界は [Interfaces §12.0](./interfaces.md) の bounded snapshot / plain-data normalization / immutable DTO を使用し、validation 後の外部 property 再 read を禁止する。正式 core integration は [wallet-core Integration](./wallet-core-integration.md)、message expiry / text format は Interfaces §9.4、cosignature の optional scope / result / unknown / delivery は Interfaces §9.6.1 を正本とする。Relay は core を呼ばず plaintext の normalization / semantics を担わない。Signer だけが core を呼ぶ。
+
 ## 2. 適用範囲と上流資料
 
 ### 2.1 適用範囲

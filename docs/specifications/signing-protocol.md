@@ -228,9 +228,13 @@ REJECTED | FAILED | EXPIRED | CANCELLED | INVALIDATED | RESULT_UNKNOWN
 
 `SIGNING` 中に wallet-core の結果が確定しない場合は `RESULT_UNKNOWN` とする。署名結果が確定した後に response delivery だけが失敗した場合は `RESULT_UNKNOWN` にせず、§19.3 の `DELIVERY_UNKNOWN` とする。
 
+core 正式 API、DTO、同期 backend、raw signature / error mapping は [wallet-core Integration](./wallet-core-integration.md) を正本とする。
+
 ## 7. Request acceptance と共通 validation
 
 ### 7.1 受信から inspection まで
+
+全外部入力は [Interfaces §12.0](./interfaces.md) の bounded snapshot → normalization → owned immutable DTO を経由する。getter / inherited value を採用せず、validation 後に external object を再 read しない。
 
 Signer は request を受信した時点で署名可能と扱ってはならない。受信後、少なくとも次の順序で検証する。各項目の共通 field rule は [interfaces.md §12](./interfaces.md) を使用する。
 
@@ -268,7 +272,7 @@ request expiry、message expiry、transaction / parent context の expiry、sess
 
 - 適用される期限のいずれかが過ぎた場合、署名開始前は `EXPIRED` とし、署名を開始しない。
 - request expiry は [interfaces.md §5.4](./interfaces.md) と operation-specific handoff contract に従う。Relay handoff の 5 分 TTL は Handoff Specification の定義を使用し、延長しない。
-- structured message の `issuedAt`、message expiry および request expiry は、[interfaces.md §9.4](./interfaces.md) の検証規則に従う。field 名の不一致は §24 の OPEN-001 として扱う。
+- structured message の `issuedAt`、message expiry および request expiry は、[interfaces.md §9.4](./interfaces.md) の検証規則に従う。messageExpiresAt → canonical expiresAt の mapping は同節で確定済みとする。
 - expiry 到達後に、UI の再表示、transport retry または process 復旧だけで `AUTHORIZED` / `SIGNING` に戻してはならない。`SIGNING` 開始後の expiry は署名が未実行である根拠にはならず、wallet-core の結果が確定しない場合は `RESULT_UNKNOWN` とする。
 
 ## 8. Approval、Authentication および4条件の Signing 境界
@@ -477,7 +481,7 @@ parent 全体を Signer 自身が再構成・parse・validate・inspection・con
 - parent の一部 field のみ
 - hash + Node / external lookup
 
-Node、Relay、SDK または dApp が提供する parent の意味説明を、Signer の inspection または approval の代替にしてはならない。具体的な cosignature public API、result field および対応範囲は `SDK-OPEN-002` と Chain / platform 下位仕様へ委譲する。
+Node、Relay、SDK または dApp が提供する parent の意味説明を、Signer の inspection または approval の代替にしてはならない。cosignature public result / optional supported scope は [Interfaces §9.6.1](./interfaces.md) を正本とし、cosigned / resultUnknown / deliveryDisposition に射影する。core raw signing bytes と result 組立ては Integration §4〜§5 に従う。
 
 ### 12.3 Duplicate cosignature
 
@@ -533,15 +537,13 @@ request-level の `requestId` / `createdAt` / `expiresAt` による受け渡し 
 3. Signer が同じ structured message から confirmation model と signing bytes の生成対象を作成する。
 4. 利用者が message contents と適用 context を確認し、Authentication、Signing-capable unlock、Account authorization および Explicit user approval の4条件を当該 request / message target / Profile-local context に対して成立させる。
 5. 署名直前に message、domain、purpose、nonce、expiry、caller、Account、Chain、Network および signing bytes の生成対象を再検証する。
-6. wallet-core の既存 chain-specific / message signing contract へ渡し、返却 signature と signed message の対応を検証する。
+6. [Integration §4](./wallet-core-integration.md) の正式 core `sign` に prefix + canonical bytes を渡し、raw signature を選択 public key と exact bytes で検証する。message 専用 core API を仮定しない。
 
 message の表示内容と signing bytes を別の input から生成してはならない。raw bytes の羅列だけを表示して確認可能と扱わず、解釈・表示できない message format、payload または required context は署名しない。message signing failure を transaction signing success、raw signing success または別 message format の success へ fallback してはならない。
 
 ### 15.3 Message expiry field の扱い
 
-Product / Core / `SignedData` は `expiresAt`、既存 RelayDataSigningRequest は `messageExpiresAt` を使用する。この field 名、両者の対応および wire adapter の authority は [interfaces.md OPEN-001](./interfaces.md) の未決事項であり、本書で alias、変換規則または優先順位を確定しない。
-
-field の整合が確定するまで、実装は一方の field を暗黙に他方の別名として扱ってはならない。実装対象となる handoff contract が定める field と validation を使用し、対象 contract が確定していない組み合わせは `OPEN` として扱う。
+[Interfaces §9.4](./interfaces.md) を正本とし、request.messageExpiresAt を canonical StructuredMessage.expiresAt へ明示 mapping する。request.expiresAt は request-level expiry、JCS の message に含めない。両 expiry の早い方を署名期限とし、alias・二重送信・値の取り違えを拒否する。utf8 / hex は同節の確認可能な text のみで、arbitrary bytes は unsupported。
 
 ## 16. Result、Failure および Error
 
@@ -654,8 +656,8 @@ Browser の sender / tab / frame / document、Mobile の Deep Link / App Link / 
 
 cancel は signing request に対する処理を終了させる操作であり、4条件の成立または signing success を意味しない。
 
-- `RECEIVED` から `AUTHORIZED` までの cancel は、署名を開始せず `CANCELLED` とする。
-- `SIGNING` 中の cancel で wallet-core の結果が確定しない場合は `RESULT_UNKNOWN` とする。成否が確定し署名が生成されていない場合だけ `CANCELLED` とする。
+- core sign の invocation が一度も開始していないことを Signer 自身が確実に把握する場合だけ cancel / timeout を CANCELLED / EXPIRED、signing-not-started とする。
+- sign invocation 後の cancel / timeout / process loss は未署名の証拠ではない。completion / 生成失敗を Signer が確定できない場合は RESULT_UNKNOWN。valid signed result を保持していれば SUCCEEDED を維持し、配送判定不能だけを DELIVERY_UNKNOWN とする。署名が生成されていないことを正式契約から確定できる場合だけ CANCELLED / applicable failure とする。
 - `SUCCEEDED` 後の response cancel は既存の signing result を取り消したことを意味しない。delivery disposition は下位 handoff contract に従い、再署名しない。
 - cancel 済み request を reopen、再認証または再署名してはならない。
 
@@ -760,10 +762,7 @@ Signing Protocol の実装は、少なくとも次を検証可能でなければ
 
 ### OPEN-001（共通 Interface Specification）: Structured message expiry field
 
-- **問題:** Product / Core / `SignedData` の `expiresAt` と RelayDataSigningRequest の `messageExpiresAt` が一致していない。
-- **本書だけで決定できない理由:** field alias、変換、JCS object、signing bytes、handoff、response verification の複数契約を同時に変更するため。
-- **影響範囲:** §15、message validation、expiry、SDK / Mobile / Relay interoperability。
-- **戻すべき上流:** [interfaces.md OPEN-001](./interfaces.md)、[Web Transaction Handoff Specification](./web-transaction-handoff-spec.md)、必要に応じて Product Specification と `CR-007-MSG`。
+Resolved。Interfaces §9.4 が messageExpiresAt → canonical expiresAt の exact mapping と displayability を固定した。request-level expiry は別。歴史的 ID を保持し alias を認めない。
 
 ### OPEN-002（共通 Interface Specification）: Capability identifier / negotiation
 
@@ -788,10 +787,7 @@ Signing Protocol の実装は、少なくとも次を検証可能でなければ
 
 ### OPEN-005（公開 Aggregate / multisig / cosignature scope）
 
-- **問題:** parent 全体確認と安全な cosignature semantics は確定しているが、SDK / platform が公開する operation、exact format、result field、supported scope は未確定である。
-- **影響範囲:** §2、§10〜§14、capability、Chain Adapter、fixture および handoff。
-- **戻すべき上流:** `SDK-OPEN-002`、[Chain Compatibility Specification](./chain-compatibility-spec.md)、signing-flow の下位仕様、platform / SDK specification。
-- **本書の扱い:** Aggregate / Partial / multisig を既存 logical operation の context として扱うが、公開 operation、transaction construction または新 capability を追加しない。
+Resolved for v1。Interfaces §9.6.1 と Chain Compatibility §4 に optional cosignature scope / response / unknown / delivery が定義される。future type / partial の拡張は別承認であり現在の成功を発明しない。
 
 ### OPEN-006（Transport / lifecycle failure policy）
 
@@ -802,9 +798,4 @@ Signing Protocol の実装は、少なくとも次を検証可能でなければ
 
 ### OPEN-007（Wallet Core Binding）
 
-- **問題:** wallet-core の approved raw target、result unknown、warning / binding failure および秘密 byte lifecycle を各 host へ結び付ける具体的な Binding が未確定である。
-- **影響範囲:** `SIGNING`、`RESULT_UNKNOWN`、§16.3、§18 の wallet-core boundary。
-- **戻すべき上流:** `CR-OPEN-001`、`CR-OPEN-002`、wallet-core binding decision および platform integration design。
-- **本書の扱い:** wallet-core の cryptography、KDF、Store format、内部 API または raw signing algorithm を再定義しない。error / warning / binding failure は success とせず安全側に扱う。
-
-上記 OPEN を理由に、Authentication、Signing-capable unlock、Account authorization または Explicit user approval の省略、Relay の signing authority 化、古い Authorization の再利用、同一 target の自動再署名または秘密情報の外部露出を許可してはならない。
+Resolved for current signing integration。[wallet-core Integration](./wallet-core-integration.md) が固定 core 0.2.0 / commit、Profile / key mapping、正式 facade API / DTO、binary、backend 同期性、secret 禁止、error / result certainty を所有する。OS protection / distribution evidence / future secret-entry UI の platform choice は本 decision に含まれない。
