@@ -3,12 +3,12 @@
 ## レビュー情報
 
 - 対象: [`docs/design/interfaces.md`](../../design/interfaces.md)
-- 対象 revision: `1511b53`（`docs: 共通データモデル・インターフェース基本設計書を追加しました`）
+- 対象リビジョン: `1511b53`（`docs: 共通データモデル・インターフェース基本設計書を追加しました`）
 - 確認日: 2026-08-26
 - 前回レビュー: なし（初回レビュー）
 - 判定: `READY WITH CONDITIONS`
 - 変更範囲: 本レビュー成果物のみ。対象設計、要件、仕様、ADR、実装およびテストは変更していない。
-- レビュー観点: 共通データモデル、producer / consumer / validator / trusted authority、Trust Boundary、Relay、SigningRequest / SigningResponse、Account、Chain / Network、TransactionSummary、Error、versioning、fail-closed、過剰設計および基本設計としての不足。
+- レビュー観点: 共通データモデル、生成主体 / 利用主体 / 検証器 / 信頼された判断権限、信頼境界、Relay、SigningRequest / SigningResponse、アカウント、チェーン / ネットワーク、TransactionSummary、エラー、バージョン管理、安全側での終了、過剰設計および基本設計としての不足。
 
 ## 参照資料
 
@@ -33,150 +33,150 @@
 
 ## 総評
 
-`interfaces.md` は、共通データモデルとコンポーネント間の責任境界を扱う基本設計として概ね成立している。SDK / Web App / Signer / Relay / wallet-core の producer、consumer、validator および trusted authority を表で整理し、Relay を opaque transport、Signer を semantic validation・確認・承認の authority、wallet-core を秘密処理・raw signing の正本として分離している。この責任分担は concept、共通要件、architecture、security-design、signing-flow および Relay / SDK 要件と整合する。
+`interfaces.md` は、共通データモデルとコンポーネント間の責任境界を扱う基本設計として概ね成立している。SDK / Web アプリ / 署名主体 / Relay / wallet-core の生成主体、利用主体、検証器および信頼された判断権限を表で整理し、Relay を内容を解釈しない通信経路、署名主体を意味上の検証・確認・承認の判断権限、wallet-core を秘密処理・生の署名の正本として分離している。この責任分担はコンセプト、共通要件、アーキテクチャ、security-design、signing-flow および Relay / SDK 要件と整合する。
 
-また、SigningRequest の identity / correlation、operation、Chain / Network、target、caller、freshness、account selection、version context、TransactionSummary の derived-only 原則、user rejection と signing failure の区別、Symbol / NEM の chain-specific 境界、unknown input の fail-closed が明示されている。JSON Schema、wire protocol、UI、Wallet Core 内部 API、任意 blockchain 向けの generic abstraction へ踏み込みすぎてもいない。
+また、SigningRequest の識別情報 / 対応付け、操作、チェーン / ネットワーク、対象、呼び出し元、鮮度、アカウント選択、バージョン文脈、TransactionSummary の derived-only 原則、利用者拒否と署名失敗の区別、Symbol / NEM のチェーン固有の境界、不明入力の安全側での終了が明示されている。JSON スキーマ、通信上のプロトコル、UI、wallet-core 内部 API、任意ブロックチェーン向けの一般的な抽象化へ踏み込みすぎてもいない。
 
-ただし、下位設計が公開 Account と Signer 内部の account reference を混在させる余地、および署名結果不明・配送不明を共通結果モデルへどう引き継ぐかの曖昧さが残る。さらに、Network の producer に Relay / node を含める表現は、本文の opaque / untrusted 方針と比べて責任境界を誤読し得る。これらは本文の安全原則を直ちに破るものではないが、実装契約を確定する前に閉じるべき条件である。
+ただし、下位設計が公開アカウントと署名主体内部のアカウント参照を混在させる余地、および署名結果不明・配送不明を共通結果モデルへどう引き継ぐかの曖昧さが残る。さらに、ネットワークの生成主体に Relay / ノードを含める表現は、本文の内容を解釈しない / 信頼されていない方針と比べて責任境界を誤読し得る。これらは本文の安全原則を直ちに破るものではないが、実装契約を確定する前に閉じるべき条件である。
 
 ## 良い点
 
-- §4.1 の境界表が producer / consumer と validator / trusted authority を分けており、SDK が最終承認を代替せず、Relay が署名判断を持たないことを確認できる。
-- §5 は暗号化済み・構造検証済みの入力も意味上は untrusted とし、Browser observed context と payload の信頼範囲を分離している。
-- §3.4、§6.2 は private key、Mnemonic、seed、password、復号済み Wallet Store secret 等を Account や境界モデルから排除している。Wallet Core Binding が runtime isolation を自動提供しない点も適切に明記されている。
-- §6.3 の SigningRequest は request identity / correlation、operation、Chain / Network、signing target、caller、freshness、account selection および version context を含み、未知 operation・期限切れ・重複・wrong signer・解析不能を推測処理しない。
-- §6.5 は TransactionSummary を署名対象から導出する表示用の補助モデルと位置付け、外部 summary と payload の不一致、表示不能、未解析内容を fail-closed にしている。blind signing を誘発する authority の逆転はない。
-- §6.4、§6.6 は success、user rejection、failed と、signature / signed transaction / cosignature 等の結果種別を意味上分離している。Signing-flow の Aggregate、cosignature、Partial、NEM multisig、message signing の責務を不必要に共通化していない。
-- §10〜§12 は version context、unknown operation / format の拒否、既存の未決事項への委譲、generic plugin / RPC / message bus / schema registry 等の非対象を明示しており、基本設計としての粒度が妥当である。
+- §4.1 の境界表が生成主体 / 利用主体と検証器 / 信頼された判断権限を分けており、SDK が最終承認を代替せず、Relay が署名判断を持たないことを確認できる。
+- §5 は暗号化済み・構造検証済みの入力も意味上は信頼されていないとし、ブラウザ観測された文脈とペイロードの信頼範囲を分離している。
+- §3.4、§6.2 は秘密鍵、ニーモニック、シード、パスワード、復号済みウォレットストア秘密情報等をアカウントや境界モデルから排除している。wallet-core バインディングが実行環境分離を自動提供しない点も適切に明記されている。
+- §6.3 の SigningRequest は要求識別情報 / 対応付け、操作、チェーン / ネットワーク、署名対象、呼び出し元、鮮度、アカウント選択およびバージョン文脈を含み、未知操作・期限切れ・重複・誤った署名主体・解析不能を推測処理しない。
+- §6.5 は TransactionSummary を署名対象から導出する表示用の補助モデルと位置付け、外部要約とペイロードの不一致、表示不能、未解析内容を安全側での終了にしている。内容を確認しない署名を誘発する判断権限の逆転はない。
+- §6.4、§6.6 は成功、利用者拒否、失敗と、署名 / 署名済みトランザクション / 連署署名等の結果種別を意味上分離している。Signing-flow のアグリゲート、連署署名、部分トランザクション、NEM マルチシグ、メッセージ署名の責務を不必要に共通化していない。
+- §10〜§12 はバージョン文脈、不明操作 / 形式の拒否、既存の未決事項への委譲、一般的な plugin / RPC / メッセージ bus / スキーマ登録簿等の非対象を明示しており、基本設計としての粒度が妥当である。
 
 ## 指摘一覧
 
-| ID     | Severity | Location         | Issue                                                                                                                                        |
-| ------ | -------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| IF-001 | MEDIUM   | §6.2、§6.3       | 公開 Account identity と Application / Signer 内部の account reference が同じ共通モデル内で区別されていない。                                |
-| IF-002 | MEDIUM   | §6.4、§6.6、§9   | `RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` が SigningResponse の共通 outcome / disposition として明示されず、`failed` へ畳み込まれる余地がある。 |
-| IF-003 | LOW      | §6.1、§4.1、§4.2 | Network の producer に Relay / node を含める表現が、Relay の opaque transport と semantic authority の境界を曖昧にする。                     |
+| ID     | 重要度 | 対象箇所         | 課題                                                                                                                                       |
+| ------ | ------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| IF-001 | MEDIUM | §6.2、§6.3       | 公開アカウントの識別情報とアプリケーション / 署名主体内部のアカウント参照が同じ共通モデル内で区別されていない。                            |
+| IF-002 | MEDIUM | §6.4、§6.6、§9   | `RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` が SigningResponse の共通結果 / 処理結果の区分として明示されず、`failed` へ畳み込まれる余地がある。 |
+| IF-003 | LOW    | §6.1、§4.1、§4.2 | ネットワークの生成主体に Relay / ノードを含める表現が、Relay の内容を解釈しない通信経路と意味上の判断権限の境界を曖昧にする。              |
 
-BLOCKER / HIGH の指摘はない。
+阻害要因 / HIGH の指摘はない。
 
 ## 詳細指摘
 
-### IF-001: 公開 Account と内部 account reference の境界
+### IF-001: 公開アカウントと内部アカウント参照の境界
 
 **ID:** `IF-001`
 
-**Severity:** `MEDIUM`
+**重要度:** `MEDIUM`
 
-**Location:** `docs/design/interfaces.md` §6.2（133〜153行）、§6.3（168行）
+**対象箇所:** `docs/design/interfaces.md` §6.2（133〜153行）、§6.3（168行）
 
-**Issue:**
+**課題:**
 
-`Account` は公開された signing identity と説明されている一方で、概念上の項目に「Application が参照する account reference」を含み、`SigningRequest` にも Account reference を含め得る設計になっている。さらに `Account` は Web App ↔ SDK、SDK ↔ Signer、Relay handoff など複数の境界で扱われるため、公開 Account の情報と Signer / Application 内部の選択・管理参照の適用範囲が同じモデル上では明確でない。
+`Account` は公開された署名識別情報と説明されている一方で、概念上の項目に「アプリケーションが参照するアカウント参照」を含み、`SigningRequest` にもアカウント参照を含め得る設計になっている。さらに `Account` は Web アプリ ↔ SDK、SDK ↔ 署名主体、Relay 受け渡しなど複数の境界で扱われるため、公開アカウントの情報と署名主体 / アプリケーション内部の選択・管理参照の適用範囲が同じモデル上では明確でない。
 
-**Rationale:**
+**根拠:**
 
-SDK 要件 `SDK-FR-003` および Web Transaction Handoff 仕様 §5.2 は、内部 Profile ID、Account ID、Wallet Store 識別子、Extension の内部 `accountId` を外部アプリケーションの公開契約に含めない方針である。これは秘密情報そのものではないが、共通モデルがその境界を明示しないと、下位設計者が内部参照を SDK の公開結果、Relay envelope または dApp 提示値へ流用したり、requester が提示した参照を署名対象 Account の authority と誤認したりする余地が残る。
+SDK 要件 `SDK-FR-003` および Web トランザクション受け渡し仕様 §5.2 は、内部プロファイル ID、アカウント ID、ウォレットストア識別子、拡張機能の内部 `accountId` を外部アプリケーションの公開契約に含めない方針である。これは秘密情報そのものではないが、共通モデルがその境界を明示しないと、下位設計者が内部参照を SDK の公開結果、Relay エンベロープまたは dApp 提示値へ流用したり、要求元が提示した参照を署名対象アカウントの判断権限と誤認したりする余地が残る。
 
-**Recommendation:**
+**推奨事項:**
 
-公開 Account identity（Chain、Network、address、public key 等）と、Signer / Application 内部だけで使う Account selection / reference を概念的に分離する。または `account reference` が Signer-local であり、SDK 公開 API、Relay、dApp 向け response へ渡してはならないことを明記する。いずれの場合も、外部 requester の reference は Account 選択・認可の authority ではなく、Signer が現在の Profile / permission と照合する補助情報に限定する。具体的な型や property 名は下位仕様へ委譲してよい。
+公開アカウントの識別情報（チェーン、ネットワーク、アドレス、公開鍵等）と、署名主体 / アプリケーション内部だけで使うアカウント選択 / 参照を概念的に分離する。または `account reference` が署名主体内のであり、SDK 公開 API、Relay、dApp 向け応答へ渡してはならないことを明記する。いずれの場合も、外部要求元の参照はアカウント選択・認可の判断権限ではなく、署名主体が現在のプロファイル / 許可と照合する補助情報に限定する。具体的な型やプロパティ名は下位仕様へ委譲してよい。
 
 ### IF-002: 署名結果不明と配送不明の共通結果モデル
 
 **ID:** `IF-002`
 
-**Severity:** `MEDIUM`
+**重要度:** `MEDIUM`
 
-**Location:** `docs/design/interfaces.md` §6.4（177〜195行）、§6.6（221〜232行）、§9（307〜313行）
+**対象箇所:** `docs/design/interfaces.md` §6.4（177〜195行）、§6.6（221〜232行）、§9（307〜313行）
 
-**Issue:**
+**課題:**
 
-`SigningResponse` の状態は success、user rejected、failed と整理されているが、署名生成自体の成否が確定しない `RESULT_UNKNOWN` と、署名済み result の配送だけが不明な `DELIVERY_UNKNOWN` は、共通結果モデルの状態または delivery disposition として明示されていない。本文は両者を成功へ変換しないと述べ、「下位仕様で別に扱える」としているが、`failed` として返してよいか、再試行・再署名をどう禁止するかがこの interface model からは確定しない。
+`SigningResponse` の状態は成功、利用者拒否済み、失敗と整理されているが、署名生成自体の成否が確定しない `RESULT_UNKNOWN` と、署名済み結果の配送だけが不明な `DELIVERY_UNKNOWN` は、共通結果モデルの状態または配送処理結果の区分として明示されていない。本文は両者を成功へ変換しないと述べ、「下位仕様で別に扱える」としているが、`failed` として返してよいか、再試行・再署名をどう禁止するかがこのインターフェースモデルからは確定しない。
 
-**Rationale:**
+**根拠:**
 
-`docs/design/signing-flow.md` §7.3〜§7.4、§20.3 は、署名生成不明と配送不明を明確に分離し、前者からの自動再署名を禁止し、後者では確定済み result の再送・照会だけを候補としている。両者を通常の failure に畳み込むと、dApp / SDK が「未署名」と推測して同じ target を再署名し、二重署名や結果取り違えを起こし得る。これは `Error` の完全な code catalogue を要求する問題ではなく、共通 interface が安全な処理判断に必要な意味を予約しているかの問題である。
+`docs/design/signing-flow.md` §7.3〜§7.4、§20.3 は、署名生成不明と配送不明を明確に分離し、前者からの自動再署名を禁止し、後者では確定済み結果の再送・照会だけを候補としている。両者を通常の失敗に畳み込むと、dApp / SDK が「未署名」と推測して同じ対象を再署名し、二重署名や結果取り違えを起こし得る。これは `Error` の完全なコード catalogue を要求する問題ではなく、共通インターフェースが安全な処理判断に必要な意味を予約しているかの問題である。
 
-**Recommendation:**
+**推奨事項:**
 
-共通モデルに、署名 lifecycle の非成功 outcome として `result unknown` を、署名済み result の delivery disposition として `delivery unknown` を概念上明示する。少なくとも `failed` への自動的な同一視を禁止し、`RESULT_UNKNOWN` からは自動再署名を行わず、`SUCCEEDED + DELIVERY_UNKNOWN` からは既存 result の再送・照会だけを許すことを `signing-flow.md` への規範的な参照として固定する。wire field、error code、retry API の詳細は下位仕様へ委譲してよい。
+共通モデルに、署名ライフサイクルの非成功結果として `result unknown` を、署名済み結果の配送処理結果の区分として `delivery unknown` を概念上明示する。少なくとも `failed` への自動的な同一視を禁止し、`RESULT_UNKNOWN` からは自動再署名を行わず、`SUCCEEDED + DELIVERY_UNKNOWN` からは既存結果の再送・照会だけを許すことを `signing-flow.md` への規範的な参照として固定する。通信上のフィールド、エラーコード、再試行 API の詳細は下位仕様へ委譲してよい。
 
-### IF-003: Network の producer と Relay / node の semantic authority
+### IF-003: ネットワークの生成主体と Relay / ノードの意味上の判断権限
 
 **ID:** `IF-003`
 
-**Severity:** `LOW`
+**重要度:** `LOW`
 
-**Location:** `docs/design/interfaces.md` §6.1（118〜129行）、§4.1（77〜86行）、§4.2（93〜94行）
+**対象箇所:** `docs/design/interfaces.md` §6.1（118〜129行）、§4.1（77〜86行）、§4.2（93〜94行）
 
-**Issue:**
+**課題:**
 
-`Network` の producer は SDK、dApp、Relay または node になり得ると記載されている。直後に自己申告を untrusted とし、Signer が payload・Account・Profile と照合して確定すると定めているため実際の authority は Signer に残っているが、「producer」という用語は Relay / node が Network という意味モデルを生成できるようにも読める。
+`Network` の生成主体は SDK、dApp、Relay またはノードになり得ると記載されている。直後に自己申告を信頼されていないとし、署名主体がペイロード・アカウント・プロファイルと照合して確定すると定めているため実際の判断権限は署名主体に残っているが、「生成主体」という用語は Relay / ノードがネットワークという意味モデルを生成できるようにも読める。
 
-**Rationale:**
+**根拠:**
 
-Relay 要件 `RR-003` および architecture §6.5 / §6.7 は、Relay は opaque envelope の構造・配送だけ、node は untrusted な補助情報だけを扱い、transaction や Chain / Network の意味判断を担わないとしている。下位設計で Relay / node の metadata を semantic producer と実装すると、Network の確定責任や Chain-specific validation が transport 側へ逆流する。
+Relay 要件 `RR-003` およびアーキテクチャ §6.5 / §6.7 は、Relay は内容を解釈しないエンベロープの構造・配送だけ、ノードは信頼されていないな補助情報だけを扱い、トランザクションやチェーン / ネットワークの意味判断を担わないとしている。下位設計で Relay / ノードのメタデータを意味上の生成主体と実装すると、ネットワークの確定責任やチェーン固有の検証が通信経路側へ逆流する。
 
-**Recommendation:**
+**推奨事項:**
 
-「producer」は、Chain / Network を要求へ申告または transport する SDK / dApp / handoff client と、payload・Profile・Account と照合して authoritative な文脈を導出する Signer / chain-specific integration に限定する。Relay / node は untrusted metadata の搬送・提供元に留まり、Network model を生成・確定しないと明記する。これは本文の安全原則を変えずに責務用語を整える修正で足りる。
+「生成主体」は、チェーン / ネットワークを要求へ申告または通信経路する SDK / dApp / 受け渡しクライアントと、ペイロード・プロファイル・アカウントと照合して正本となるな文脈を導出する署名主体 / チェーン固有の統合に限定する。Relay / ノードは信頼されていないメタデータの搬送・提供元に留まり、ネットワークモデルを生成・確定しないと明記する。これは本文の安全原則を変えずに責務用語を整える修正で足りる。
 
-## Security / Trust Boundary 評価
+## セキュリティ / 信頼境界評価
 
-| 観点                               | 評価         | 根拠                                                                                                                                                                                                                                  |
-| ---------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Secret isolation                   | 条件付き適合 | §3.4、§6.2、§9 が秘密情報を境界モデルから排除し、wallet-core と host の責務を分離している。IF-001 の内部 account reference は Secret ではないが、公開情報と内部情報の境界を明確化する必要がある。                                     |
-| Signer の semantic authority       | 適合         | §4.1、§5、§6.3、§6.5、§8 が caller、target、Chain / Network、Account、summary、承認および結果を Signer が検証する構造を維持している。                                                                                                 |
-| TransactionSummary / blind signing | 適合         | summary を target-derived の確認用モデルに限定し、外部 summary の単独信用、不一致、未解析、表示不能を fail-closed にしている。Aggregate / cosignature / Partial / NEM multisig は全体確認不能時に拒否する signing-flow と矛盾しない。 |
-| Relay boundary                     | 条件付き適合 | §4.1、§4.2、§7.3 は Relay を opaque delivery に限定している。IF-003 の producer 表現だけは、下位設計前に用語を明確化すべきである。                                                                                                    |
-| Replay / freshness                 | 条件付き適合 | request identity / correlation、期限、freshness、generation、duplicate / replay の概念はある。IF-002 により result unknown と delivery unknown の安全な後続判断を共通 interface へ引き継ぐ必要がある。                                |
-| Fail-closed                        | 適合         | unknown version / operation / format / transaction type / network、wrong signer、invalid correlation、summary 不一致、validation failure を推測処理しない。                                                                           |
+| 観点                                      | 評価         | 根拠                                                                                                                                                                                                                                        |
+| ----------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 秘密情報の分離                            | 条件付き適合 | §3.4、§6.2、§9 が秘密情報を境界モデルから排除し、wallet-core とホストの責務を分離している。IF-001 の内部アカウント参照は秘密情報ではないが、公開情報と内部情報の境界を明確化する必要がある。                                                |
+| 署名主体の意味上の判断権限                | 適合         | §4.1、§5、§6.3、§6.5、§8 が呼び出し元、対象、チェーン / ネットワーク、アカウント、要約、承認および結果を署名主体が検証する構造を維持している。                                                                                              |
+| TransactionSummary / 内容を確認しない署名 | 適合         | 要約を対象から導出したの確認用モデルに限定し、外部要約の単独信用、不一致、未解析、表示不能を安全側での終了にしている。アグリゲート / 連署署名 / 部分トランザクション / NEM マルチシグは全体確認不能時に拒否する signing-flow と矛盾しない。 |
+| Relay 境界                                | 条件付き適合 | §4.1、§4.2、§7.3 は Relay を内容を解釈しない配送に限定している。IF-003 の生成主体表現だけは、下位設計前に用語を明確化すべきである。                                                                                                         |
+| リプレイ / 鮮度                           | 条件付き適合 | 要求識別情報 / 対応付け、期限、鮮度、世代、重複 / リプレイの概念はある。IF-002 により結果不明と配送不明の安全な後続判断を共通インターフェースへ引き継ぐ必要がある。                                                                         |
+| 安全側での終了                            | 適合         | 不明バージョン / 操作 / 形式 / トランザクション型 / ネットワーク、誤った署名主体、無効な対応付け、要約不一致、検証失敗を推測処理しない。                                                                                                    |
 
-Security-design §3〜§17 の secret isolation、trusted UI、署名対象と表示内容の一致、署名ごとの認証、Relay / node / SDK の untrusted 扱いおよび fail-closed とは、上記条件を除き矛盾しない。既存の security invariant を弱める記述は確認されなかった。
+Security-design §3〜§17 の秘密情報の分離、信頼された UI、署名対象と表示内容の一致、署名ごとの認証、Relay / ノード / SDK の信頼されていない扱いおよび安全側での終了とは、上記条件を除き矛盾しない。既存のセキュリティ上の不変条件を弱める記述は確認されなかった。
 
 ## 責任境界評価
 
-| 境界                            | 評価                                                                                                                                                                                          |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Web App ↔ SDK                   | SDK が公開操作を論理 request へ変換し、correlation と transport 差異を扱う。SDK が秘密、最終承認、semantic inspection、raw signing を持たない点は要件と整合する。                             |
-| SDK ↔ Signer                    | SDK が producer / adapter、Signer が consumer かつ最終 validator / approval authority と整理されている。caller の自己申告を Signer の authority としていない。                                |
-| Web App ↔ Browser Extension     | Browser observed sender / Origin / document context と page の自己申告を分離し、Extension privileged layer を最終確認主体としている。                                                         |
-| Relay ↔ Mobile                  | Relay は opaque envelope の構造・配送条件、Mobile は integrity・意味・表示・承認・署名を担う。Relay が署名・承認・transaction 解釈を代替する構造はない。IF-003 の用語だけ明確化が必要である。 |
-| Browser Extension ↔ wallet-core | Extension が承認済み target と binding を検証し、wallet-core が Store・key identity・秘密処理・raw signing を担う。wallet-core に caller、UI、permission、署名意図を委譲していない。          |
-| Mobile ↔ wallet-core            | Browser Extension と同じ共通境界を保ち、OS protection、lifecycle、Binding の具体方式を Mobile / platform 下位設計へ委譲している。Mobile 未実装を実装済みと扱っていない。                      |
+| 境界                           | 評価                                                                                                                                                                                                      |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web アプリ ↔ SDK               | SDK が公開操作を論理要求へ変換し、対応付けと通信経路差異を扱う。SDK が秘密、最終承認、意味上の内容検査、生の署名を持たない点は要件と整合する。                                                            |
+| SDK ↔ 署名主体                 | SDK が生成主体 / アダプター、署名主体が利用主体かつ最終検証器 / 承認判断権限と整理されている。呼び出し元の自己申告を署名主体の判断権限としていない。                                                      |
+| Web アプリ ↔ ブラウザ拡張機能  | ブラウザ観測された送信者 / オリジン / 文書文脈とページの自己申告を分離し、拡張機能特権を持つ層を最終確認主体としている。                                                                                  |
+| Relay ↔ モバイル               | Relay は内容を解釈しないエンベロープの構造・配送条件、モバイルは完全性・意味・表示・承認・署名を担う。Relay が署名・承認・トランザクション解釈を代替する構造はない。IF-003 の用語だけ明確化が必要である。 |
+| ブラウザ拡張機能 ↔ wallet-core | 拡張機能が承認済み対象と結び付けを検証し、wallet-core がストア・鍵識別情報・秘密処理・生の署名を担う。wallet-core に呼び出し元、UI、許可、署名意図を委譲していない。                                      |
+| モバイル ↔ wallet-core         | ブラウザ拡張機能と同じ共通境界を保ち、OS 保護、ライフサイクル、バインディングの具体方式をモバイル / プラットフォーム下位設計へ委譲している。モバイル未実装を実装済みと扱っていない。                      |
 
 ## 基本設計粒度の評価
 
-基本設計として必要な「データの意味」「境界」「検証責任」「trusted authority」「fail-closed」は十分に記述されている。SigningRequest の全 wire field、SigningResponse の concrete schema、Error code catalogue、JSON / CBOR、HTTP / WebSocket、Deep Link、Chrome event、UI layout、Wallet Core Binding 内部形式を確定していないため、詳細設計との責任分担も適切である。
+基本設計として必要な「データの意味」「境界」「検証責任」「信頼された判断権限」「安全側での終了」は十分に記述されている。SigningRequest の全通信上のフィールド、SigningResponse の具体的なスキーマ、エラーコード catalogue、JSON / CBOR、HTTP / WebSocket、ディープリンク、Chrome イベント、UI 配置、wallet-core バインディング内部形式を確定していないため、詳細設計との責任分担も適切である。
 
-TransactionSummary の項目例は、資産移動、権限変更、aggregate / multisig、message 等の security-relevant な確認対象を示すために必要な範囲であり、transaction type ごとの UI 仕様へ過度に踏み込んでいない。Symbol / NEM は request lifecycle、approval、correlation 等だけを共通化し、schema、address、hash、signing bytes、aggregate / multisig semantics を chain-specific に残している。
+TransactionSummary の項目例は、資産移動、権限変更、アグリゲート / マルチシグ、メッセージ等のセキュリティに関わるな確認対象を示すために必要な範囲であり、トランザクション型ごとの UI 仕様へ過度に踏み込んでいない。Symbol / NEM は要求ライフサイクル、承認、対応付け等だけを共通化し、スキーマ、アドレス、ハッシュ、署名バイト列、アグリゲート / マルチシグ意味をチェーン固有のに残している。
 
-一方、IF-001 と IF-002 は型や property 名の不足ではなく、下位設計者が公開境界・結果処理を誤って実装し得る意味契約の不足である。IF-003 は本文間で authority は一貫しているものの、producer という用語の曖昧さを残す。これらを整理すれば、基本設計の粒度は下位設計へ進むために十分である。
+一方、IF-001 と IF-002 は型やプロパティ名の不足ではなく、下位設計者が公開境界・結果処理を誤って実装し得る意味契約の不足である。IF-003 は本文間で判断権限は一貫しているものの、生成主体という用語の曖昧さを残す。これらを整理すれば、基本設計の粒度は下位設計へ進むために十分である。
 
 ## 未決事項
 
 以下は本レビューで新たに仕様化せず、既存資料の未決事項として下位工程へ引き継ぐ。
 
-- SDK の aggregate / multisig / cosignature 公開範囲、transport 選択、transaction construction、version policy、caller / Origin binding（`SDK-OPEN-002`、`SDK-OPEN-003`、`SDK-OPEN-004`、`SDK-OPEN-006`、`SDK-OPEN-007`）。
-- Mobile の外部要求受信方式、OS protection、wallet-core Binding、lifecycle、backup / migration（`MR-OPEN-002`、`MR-OPEN-003`、`MR-OPEN-005`、`MR-OPEN-006`）。
-- Application と wallet-core の host integration、秘密 byte lifecycle、error mapping、migration（`CR-OPEN-001`、`CR-OPEN-002`）。
-- Relay の具体的な wire protocol、TTL、generation、storage、result の再送・照会契約。
-- Symbol / NEM の対応 transaction type / version、message format、aggregate / multisig / cosignature の公開範囲と表示受け入れ条件。
+- SDK のアグリゲート / マルチシグ / 連署署名公開範囲、通信経路選択、トランザクション組み立て、バージョンポリシー、呼び出し元 / オリジンとの結び付け（`SDK-OPEN-002`、`SDK-OPEN-003`、`SDK-OPEN-004`、`SDK-OPEN-006`、`SDK-OPEN-007`）。
+- モバイルの外部要求受信方式、OS 保護、wallet-core バインディング、ライフサイクル、バックアップ / 移行（`MR-OPEN-002`、`MR-OPEN-003`、`MR-OPEN-005`、`MR-OPEN-006`）。
+- アプリケーションと wallet-core のホスト統合、秘密バイトライフサイクル、エラー対応付け、移行（`CR-OPEN-001`、`CR-OPEN-002`）。
+- Relay の具体的な通信上のプロトコル、TTL、世代、保存領域、結果の再送・照会契約。
+- Symbol / NEM の対応トランザクション型 / バージョン、メッセージ形式、アグリゲート / マルチシグ / 連署署名の公開範囲と表示受け入れ条件。
 
-これらの未決事項は、Account の公開・内部境界、Signer による semantic validation、利用者承認、Relay の非署名責任、result unknown の再署名禁止を弱める根拠にはならない。
+これらの未決事項は、アカウントの公開・内部境界、署名主体による意味上の検証、利用者承認、Relay の非署名責任、結果不明の再署名禁止を弱める根拠にはならない。
 
 ## 最終判定
 
 `READY WITH CONDITIONS`
 
-BLOCKER / HIGH はなく、security / Trust Boundary の根幹、Relay の非署名責任、TransactionSummary の authority 分離、Symbol / NEM 対応、基本設計の非過剰性は妥当である。下位設計へ進める前に、IF-001 の Account scope と IF-002 の result / delivery disposition を共通契約として明示することを条件とする。IF-003 は同時に用語を明確化すべき低い優先度の条件である。これらを `interfaces.md` または下位仕様で解消した後、短い再確認を行うことを推奨する。
+阻害要因 / HIGH はなく、セキュリティ / 信頼境界の根幹、Relay の非署名責任、TransactionSummary の判断権限分離、Symbol / NEM 対応、基本設計の非過剰性は妥当である。下位設計へ進める前に、IF-001 のアカウント対象範囲と IF-002 の結果 / 配送処理結果の区分を共通契約として明示することを条件とする。IF-003 は同時に用語を明確化すべき低い優先度の条件である。これらを `interfaces.md` または下位仕様で解消した後、短い再確認を行うことを推奨する。
 
-## Validation
+## 検証
 
 - レビュー対象の行番号: 指摘ごとに `docs/design/interfaces.md` の実在する節・行を確認した。
-- repository 内リンク: 参照資料の存在確認に成功した。
-- Markdown formatter: `pnpm exec prettier --check docs/reviews/design/interfaces-review-001.md` 成功。
-- `git diff --check`: staged diff で成功。
+- リポジトリ内リンク: 参照資料の存在確認に成功した。
+- Markdown フォーマッター: `pnpm exec prettier --check docs/reviews/design/interfaces-review-001.md` 成功。
+- `git diff --check`: ステージ済み差分で成功。
 - 変更範囲: 本レビューで作成・変更したのはレビュー成果物 1 ファイルのみ。対象設計書の既存ワークツリー変更は保持し、変更していない。
-- リポジトリ全体 `pnpm format:check`: 失敗。レビュー成果物単体は成功したが、既存の `_nem`、`_sns`、`_snwc` 等に大量の format warning と HTML parse error があり、今回のレビュー成果物起因ではない。
-- lint / typecheck / test / build: レビュー成果物のみの変更のため実行対象外。未実行を成功とは扱わない。
+- リポジトリ全体 `pnpm format:check`: 失敗。レビュー成果物単体は成功したが、既存の `_nem`、`_sns`、`_snwc` 等に大量の形式警告と HTML 解析エラーがあり、今回のレビュー成果物起因ではない。
+- lint / typecheck / テスト / ビルド: レビュー成果物のみの変更のため実行対象外。未実行を成功とは扱わない。

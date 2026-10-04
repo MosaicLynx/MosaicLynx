@@ -1,208 +1,208 @@
-# MosaicLynx Mobile App 基本設計レビュー
+# MosaicLynx モバイルアプリ基本設計レビュー
 
 ## 1. レビュー情報
 
 - 対象: [`docs/design/mobile-app.md`](../../design/mobile-app.md)
 - 確認日: 2026-08-26
-- レビュー種別: Mobile App 基本設計レビュー
+- レビュー種別: モバイルアプリ基本設計レビュー
 - 判定: `READY`
-- 主判定基準: Concept、Requirements、Architecture、Security Design、Signing Flow、Interfaces および Browser Extension 基本設計との整合性、ならびに Mobile 固有の責務・境界・状態・安全条件の十分性。
+- 主判定基準: コンセプト、要件、アーキテクチャ、セキュリティ設計、署名フロー、インターフェースおよびブラウザ拡張機能基本設計との整合性、ならびにモバイル固有の責務・境界・状態・安全条件の十分性。
 - 変更範囲: 本レビュー成果物のみを新規作成。レビュー対象本文、上位資料、ADR、実装および既存レビューは変更していない。
 
 ## 2. 総評
 
-`docs/design/mobile-app.md` は、Mobile App の基本設計として実装または下位仕様策定へ進められる品質に達している。
+`docs/design/mobile-app.md` は、モバイルアプリの基本設計として実装または下位仕様策定へ進められる品質に達している。
 
-本書は、External Application / Browser / Deep Link / Intent / QR / Relay を untrusted input とし、Request intake、Request validator、Privileged application logic、Chain integration、Trusted approval UI、OS security / secure storage adapter、wallet-core binding、Response coordinator の責務を分離している。特に、App 起動、Link open、通知、Relay delivery、OS authentication success のいずれも approval や signing authority とせず、Mobile App 自身が request を検証し、foreground の trusted UI で明示的な approval を取得する構成が明確である。
+本書は、外部アプリケーション / ブラウザ / ディープリンク / Intent / QR / Relay を信頼されていない入力とし、要求受付、要求検証器、特権を持つアプリケーションロジック、チェーン統合、信頼された承認 UI、OS セキュリティ / 安全な保存領域アダプター、wallet-core バインディング、応答調整役の責務を分離している。特に、アプリ起動、リンクを開くこと、通知、Relay 配送、OS 認証成功のいずれも承認や署名判断権限とせず、モバイルアプリ自身が要求を検証し、フォアグラウンドの信頼された UI で明示的な承認を取得する構成が明確である。
 
-また、Relay の session / request / recipient / expiry / generation / integrity / replay / response binding、device authentication と approval の分離、encrypted Wallet Store と OS-protected capability と decrypted secret の分離、background・suspended・device lock・process termination・OS kill 後の stale authorization 不使用、Aggregate / cosignature / Partial の全体確認および fail-closed が、Mobile 固有の基本設計判断として具体化されている。
+また、Relay のセッション / 要求 / 受信者 / 期限切れ / 世代 / 完全性 / リプレイ / 応答結び付け、端末認証と承認の分離、暗号化されたウォレットストアと OS で保護された対応能力と復号された秘密情報の分離、バックグラウンド・中断された・端末ロック・プロセス終了・OS 強制終了後の古くなった認可不使用、アグリゲート / 連署署名 / 部分トランザクションの全体確認および安全側での終了が、モバイル固有の基本設計判断として具体化されている。
 
-共通の request / response semantics、署名 state、security policy、wallet-core の暗号・鍵管理、Relay wire protocol、Deep Link schema、OS API は上位設計または下位仕様へ適切に委譲されている。Requirements の未決事項を新しい製品要求として確定したり、hardware-backed protection を全端末の必須条件へ一律に昇格させたりする記述も確認されなかった。
+共通の要求 / 応答意味、署名状態、セキュリティポリシー、wallet-core の暗号・鍵管理、Relay 通信上のプロトコル、ディープリンクスキーマ、OS API は上位設計または下位仕様へ適切に委譲されている。要件の未決事項を新しい製品要求として確定したり、ハードウェアで保護された保護を全端末の必須条件へ一律に昇格させたりする記述も確認されなかった。
 
-実装不能性、上位設計との矛盾、Relay / External Invocation の Trust Boundary 破綻、Approval Binding の重大な不足は確認されなかった。
+実装不能性、上位設計との矛盾、Relay / 外部呼び出しの信頼境界破綻、承認との結び付けの重大な不足は確認されなかった。
 
 ## 3. 判定
 
-### MOBILE APP DESIGN READY
+### モバイルアプリ設計 READY
 
 最終判定: `READY`
 
-基本設計として必要な主要責務、OS security boundary、external invocation、Relay 検証、device authentication、secret lifecycle、approval binding、App lifecycle、failure recovery、security invariant および下位仕様への委譲範囲が定まっている。実装および下位仕様策定へ進めてよい。今回のレビューで記録すべき指摘はない。
+基本設計として必要な主要責務、OS セキュリティ境界、外部呼び出し、Relay 検証、端末認証、秘密情報ライフサイクル、承認との結び付け、アプリライフサイクル、失敗復旧、セキュリティ上の不変条件および下位仕様への委譲範囲が定まっている。実装および下位仕様策定へ進めてよい。今回のレビューで記録すべき指摘はない。
 
 ## 4. 重点確認結果
 
-| 確認項目                       | 判定 | 確認結果                                                                                                                                                                                                                                                       |
-| ------------------------------ | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 基本設計としての粒度           | 適合 | §4〜§26 が責務、境界、状態、lifecycle、fail-closed と委譲範囲を定め、iOS / Android API、React Native、storage schema、wire schema、UI layout 等を固定していない。                                                                                              |
-| 上位設計との整合               | 適合 | §2、§25、§26 が共通 security policy、signing semantics、interfaces、wallet-core、Relay / SDK の責務を参照し、Mobile 固有の適用だけを定めている。                                                                                                               |
-| コンポーネント境界             | 適合 | §5 が Request intake / validator、External invocation adapter、Relay client、Privileged application logic、Chain integration、Trusted approval UI、OS adapter、Secure storage adapter、wallet-core binding を分離している。                                    |
-| Trust Boundary                 | 適合 | §6 が External Application、Browser、Deep Link、Intent、share、Relay、network を untrusted とし、Mobile 側 validator・privileged logic・trusted UI・wallet-core・OS boundary の順序を明示している。                                                            |
-| External Invocation            | 適合 | §7 が Deep Link、Universal Link、App Link、custom scheme、Intent、share、QR、notification を起動・handoff の候補に限定し、open / wake-up を approve・unlock・signing とみなしていない。                                                                        |
-| Relay Integration              | 適合 | §8 が Relay を opaque / untrusted transport とし、Mobile 側で session、request identity、recipient、expiry、generation、integrity、digest、replay、state loss、response binding を検証している。                                                               |
-| Device Authentication          | 適合 | §10、§12〜§16 が device authentication / user presence と signing approval を分離し、認証成功だけでは署名せず、失敗・取消・stale auth は fail-closed としている。                                                                                              |
-| Secret Protection              | 適合 | §6、§11、§18、§19、§24 が encrypted Wallet Store、OS-protected credential / key、decrypted secret、wallet-core 内部処理の役割と保持範囲を分離している。                                                                                                        |
-| Hardware-backed Protection     | 適合 | §3.3、§11.1、§23、§26、§27 が hardware-backed capability の端末依存性、direct signing との非同一性、非対応端末の fallback と Mainnet 条件を未決事項へ委譲している。                                                                                            |
-| Signing Flow                   | 適合 | §12 が reception、context validation、Profile / Account / Network、inspection、trusted presentation、explicit approval、device authentication、pre-sign revalidation、wallet-core、response binding を一貫している。                                           |
-| Approval UI                    | 適合 | §5.7、§12.2、§13 が source、Chain / Network、Account、purpose、transaction、Aggregate / cosignature、warning を App 管理下の foreground UI で扱い、外部表示を authority にしていない。                                                                         |
-| Approval Binding               | 適合 | §12.3、§14、§20、§24 が request identity、source / session、recipient、Account、Network、operation、target、inspection、freshness、device capability を一回限りの authorization に binding し、署名前に再検証している。                                        |
-| App Lifecycle                  | 適合 | §14〜§17、§22 が cold start、foreground、background、suspended、device lock、process termination、OS kill、restart、result unknown、delivery unknown を扱い、stale approval の自動復元を禁止している。                                                         |
-| Lock / Unlock                  | 適合 | §10.3、§11.2、§15、§16、§19 が起動、foreground 復帰、idle、manual lock、device lock、approval 前、signing 前の auth / secret / authorization lifecycle を示している。                                                                                          |
-| Foreground / Background        | 適合 | §13.1、§15.2、§17 が background notification、Relay polling、wake-up、headless task を署名実行から分離し、foreground trusted UI で再検証・再承認する方針を定めている。                                                                                         |
-| Request Lifecycle              | 適合 | §14 が RECEIVED から SIGNING / SUCCEEDED までと terminal state を定義し、consumed、expired、duplicate、replay、context loss、結果不明後の再実行を禁止している。                                                                                                |
-| Storage                        | 適合 | §19 が encrypted Wallet Store、OS credential、metadata、permission / pairing、Relay metadata、settings、transient request、approval / auth、decrypted secret を保持範囲別に分類している。                                                                      |
-| Aggregate / Cosignature        | 適合 | §20 が Aggregate の outer / embedded 全体、cosignature parent と selected cosigner、Partial / NEM-specific context を確認対象とし、hash-only・部分情報・node / Relay 補完を署名根拠にしていない。                                                              |
-| Concurrent Requests            | 適合 | §21 が Relay / Deep Link の同時到着、同一 session、異なる Account / Network を request identity・context・target・response channel ごとに分離している。                                                                                                        |
-| Failure / Recovery             | 適合 | §22 が malformed、invalid invocation、invalid Relay、expired、replay、wrong recipient / session / Account / Network、auth failure、background、OS kill、wallet-core、Relay disconnect、stale response を fail-closed に扱っている。                            |
-| Push Notification / QR         | 適合 | Requirements が notification を外部受け渡し情報、QR を未決の候補として扱う範囲に対応し、§7.2 は採否・protocol を確定せず、通知・QR を trust anchor にしていない。                                                                                              |
-| Platform Compatibility         | 適合 | §23 が iOS / Android の external invocation、lifecycle、device auth、secure storage、screen exposure、Binding 等を OS adapter 境界へ閉じ込め、共通 Application model を維持している。                                                                          |
-| Browser Extension との整合     | 適合 | §25 が explicit approval、trusted UI、fail-closed、wallet-core separation、approval binding、request lifecycle、secret isolation を共有し、Browser 固有の context / Service Worker / storage を Mobile にコピーしていない。                                    |
-| Relay / SDK / wallet-core 境界 | 適合 | §3、§5、§8、§18、§25 が Mobile の orchestration / UI / lifecycle / OS integration、Relay の transport、SDK の公開契約、wallet-core の secret / raw signing を分離している。                                                                                    |
-| Security Invariants            | 適合 | §24 に untrusted input、Relay 非authority、external invocation 非承認、explicit approval、device auth 分離、secret isolation、approval binding、stale state 不使用、background implicit signing 禁止、OS failure 時 fail-closed が MUST として列挙されている。 |
+| 確認項目                            | 判定 | 確認結果                                                                                                                                                                                                                                        |
+| ----------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 基本設計としての粒度                | 適合 | §4〜§26 が責務、境界、状態、ライフサイクル、安全側での終了と委譲範囲を定め、iOS / Android API、React ネイティブ、保存領域スキーマ、通信上のスキーマ、UI 配置等を固定していない。                                                                |
+| 上位設計との整合                    | 適合 | §2、§25、§26 が共通セキュリティポリシー、署名意味、インターフェース、wallet-core、Relay / SDK の責務を参照し、モバイル固有の適用だけを定めている。                                                                                              |
+| コンポーネント境界                  | 適合 | §5 が要求受付 / 検証器、外部呼び出しアダプター、Relay クライアント、特権を持つアプリケーションロジック、チェーン統合、信頼された承認 UI、OS アダプター、安全な保存領域アダプター、wallet-core バインディングを分離している。                    |
+| 信頼境界                            | 適合 | §6 が外部アプリケーション、ブラウザ、ディープリンク、Intent、共有、Relay、ネットワークを信頼されていないとし、モバイル側検証器・特権を持つロジック・信頼された UI・wallet-core・OS 境界の順序を明示している。                                   |
+| 外部呼び出し                        | 適合 | §7 がディープリンク、普遍的な Link、App Link、独自の方式、Intent、共有、QR、通知を起動・受け渡しの候補に限定し、未決 / 復帰を承認・ロック解除・署名とみなしていない。                                                                           |
+| Relay 統合                          | 適合 | §8 が Relay を内容を解釈しない / 信頼されていない通信経路とし、モバイル側でセッション、要求識別情報、受信者、期限切れ、世代、完全性、ダイジェスト、リプレイ、状態消失、応答結び付けを検証している。                                             |
+| 端末認証                            | 適合 | §10、§12〜§16 が端末認証 / 利用者存在と署名承認を分離し、認証成功だけでは署名せず、失敗・取消・古くなった認証は安全側での終了としている。                                                                                                       |
+| 秘密情報保護                        | 適合 | §6、§11、§18、§19、§24 が暗号化されたウォレットストア、OS で保護された認証情報 / 鍵、復号された秘密情報、wallet-core 内部処理の役割と保持範囲を分離している。                                                                                   |
+| ハードウェアで保護された保護        | 適合 | §3.3、§11.1、§23、§26、§27 がハードウェアで保護された対応能力の端末依存性、直接の署名との非同一性、非対応端末の代替経路と Mainnet 条件を未決事項へ委譲している。                                                                                |
+| 署名フロー                          | 適合 | §12 が受付、文脈検証、プロファイル / アカウント / ネットワーク、内容検査、信頼された表示、明示的な承認、端末認証、署名前再検証、wallet-core、応答結び付けを一貫している。                                                                       |
+| 承認 UI                             | 適合 | §5.7、§12.2、§13 が送信元、チェーン / ネットワーク、アカウント、目的、トランザクション、アグリゲート / 連署署名、警告をアプリ管理下のフォアグラウンド UI で扱い、外部表示を判断権限にしていない。                                               |
+| 承認との結び付け                    | 適合 | §12.3、§14、§20、§24 が要求識別情報、送信元 / セッション、受信者、アカウント、ネットワーク、操作、対象、内容検査、鮮度、端末対応能力を一回限りの認可に結び付けし、署名前に再検証している。                                                      |
+| アプリライフサイクル                | 適合 | §14〜§17、§22 が初回開始、フォアグラウンド、バックグラウンド、中断された、端末ロック、プロセス終了、OS 強制終了、再起動、結果不明、配送不明を扱い、古くなった承認の自動復元を禁止している。                                                     |
+| ロック / ロック解除                 | 適合 | §10.3、§11.2、§15、§16、§19 が起動、フォアグラウンド復帰、待機、手動ロック、端末ロック、承認前、署名前の認証 / 秘密情報 / 認可ライフサイクルを示している。                                                                                      |
+| フォアグラウンド / バックグラウンド | 適合 | §13.1、§15.2、§17 がバックグラウンド通知、Relay ポーリング、復帰、画面を持たないタスクを署名実行から分離し、フォアグラウンド信頼された UI で再検証・再承認する方針を定めている。                                                                |
+| 要求ライフサイクル                  | 適合 | §14 が RECEIVED から署名 / 成功までと終端状態を定義し、消費済み、期限切れ、重複、リプレイ、文脈消失、結果不明後の再実行を禁止している。                                                                                                         |
+| 保存領域                            | 適合 | §19 が暗号化されたウォレットストア、OS 認証情報、メタデータ、許可 / ペアリング、Relay メタデータ、settings、一時的な要求、承認 / 認証、復号された秘密情報を保持範囲別に分類している。                                                           |
+| アグリゲート / 連署署名             | 適合 | §20 がアグリゲートの外側 / 埋め込み全体、連署署名親と選択済みの連署者、部分トランザクション / NEM 固有の文脈を確認対象とし、ハッシュのみ・部分情報・ノード / Relay 補完を署名根拠にしていない。                                                 |
+| 並行する要求                        | 適合 | §21 が Relay / ディープリンクの同時到着、同一セッション、異なるアカウント / ネットワークを要求識別情報・文脈・対象・応答チャネルごとに分離している。                                                                                            |
+| 失敗 / 復旧                         | 適合 | §22 が不正な形式の、無効な呼び出し、無効な Relay、期限切れ、リプレイ、誤った受信者 / セッション / アカウント / ネットワーク、認証失敗、バックグラウンド、OS 強制終了、wallet-core、Relay 接続解除、古くなった応答を安全側での終了に扱っている。 |
+| プッシュ通知 / QR                   | 適合 | 要件が通知を外部受け渡し情報、QR を未決の候補として扱う範囲に対応し、§7.2 は採否・プロトコルを確定せず、通知・QR を信頼アンカーにしていない。                                                                                                   |
+| プラットフォーム互換性              | 適合 | §23 が iOS / Android の外部呼び出し、ライフサイクル、端末認証、安全な保存領域、画面露出、バインディング等を OS アダプター境界へ閉じ込め、共通アプリケーションモデルを維持している。                                                             |
+| ブラウザ拡張機能との整合            | 適合 | §25 が明示的な承認、信頼された UI、安全側での終了、wallet-core 分離、承認との結び付け、要求ライフサイクル、秘密情報の分離を共有し、ブラウザ固有の文脈 / サービスワーカー / 保存領域をモバイルにコピーしていない。                               |
+| Relay / SDK / wallet-core 境界      | 適合 | §3、§5、§8、§18、§25 がモバイルの処理の調整 / UI / ライフサイクル / OS 統合、Relay の通信経路、SDK の公開契約、wallet-core の秘密情報 / 生の署名を分離している。                                                                                |
+| セキュリティ上の不変条件            | 適合 | §24 に信頼されていない入力、Relay 非判断権限、外部呼び出し非承認、明示的な承認、端末認証分離、秘密情報の分離、承認との結び付け、古くなった状態不使用、バックグラウンド暗黙の署名禁止、OS 失敗時安全側での終了が MUST として列挙されている。     |
 
 ## 5. 指摘一覧
 
 今回のレビューで、`BLOCKER`、`HIGH`、`MEDIUM`、`LOW`、`NIT` に該当する指摘は確認されなかった。
 
-| Severity | 件数 |
+| 重要度   | 件数 |
 | -------- | ---: |
-| BLOCKER  |    0 |
+| 阻害要因 |    0 |
 | HIGH     |    0 |
 | MEDIUM   |    0 |
 | LOW      |    0 |
-| NIT      |    0 |
+| 細部     |    0 |
 
 したがって、レビュー指摘 ID は発行していない。問題がない領域に形式的な指摘を追加しない。
 
-## 6. Trust Boundary 評価
+## 6. 信頼境界評価
 
 適合。§5〜§6 の境界は、次の順序と責任を保っている。
 
-- External Application、Browser、Deep Link、Intent、share、Relay、network はすべて untrusted input。
-- Request intake / validator は source context、session、request identity、expiry、recipient、integrity を構造的に検証するが、semantic meaning や approval state を決めない。
-- Privileged application logic は permission、Profile / Account、Chain / Network、inspection、approval、device authentication、lifecycle、wallet-core 呼び出し、response correlation の authority。
-- Trusted approval UI は Mobile App が管理する foreground surface であり、外部アプリ、Browser、Relay、notification、OS link の表示を承認証拠にしない。
-- wallet-core は Wallet Store、secret processing、key operation、raw signing の logical / Binding boundary。
-- OS security adapter は device lock、user presence、secure storage、protected credential / key、hardware-backed capability を提供する候補であり、caller、request integrity、transaction semantics、approval の authority ではない。
+- 外部アプリケーション、ブラウザ、ディープリンク、Intent、共有、Relay、ネットワークはすべて信頼されていない入力。
+- 要求受付 / 検証器は送信元文脈、セッション、要求識別情報、期限切れ、受信者、完全性を構造的に検証するが、意味上の意味や承認状態を決めない。
+- 特権を持つアプリケーションロジックは許可、プロファイル / アカウント、チェーン / ネットワーク、内容検査、承認、端末認証、ライフサイクル、wallet-core 呼び出し、応答対応付けの判断権限。
+- 信頼された承認 UI はモバイルアプリが管理するフォアグラウンド接点であり、外部アプリ、ブラウザ、Relay、通知、OS リンクの表示を承認証拠にしない。
+- wallet-core はウォレットストア、秘密情報処理、鍵操作、生の署名の論理的な / バインディング境界。
+- OS セキュリティアダプターは端末ロック、利用者存在、安全な保存領域、保護された認証情報 / 鍵、ハードウェアで保護された対応能力を提供する候補であり、呼び出し元、要求完全性、トランザクション意味、承認の判断権限ではない。
 
-Relay、Deep Link、Universal Link、App Link、Intent、QR、通知または OS authentication success を trust anchor と扱う構造は確認されなかった。
+Relay、ディープリンク、普遍的な Link、App Link、Intent、QR、通知または OS 認証成功を信頼アンカーと扱う構造は確認されなかった。
 
-## 7. Relay / External Invocation 評価
+## 7. Relay / 外部呼び出し評価
 
-### 7.1 External Invocation
+### 7.1 外部呼び出し
 
-適合。§7 は App 起動を request reception の可能性に限定し、approve、unlock、signing と同一視していない。custom scheme の登録競合、Universal Link / App Link の routing 情報と request integrity の分離、QR / share / Intent の untrusted 扱い、通知 payload の非authority、外部受け渡しへの Secret 非包含を明示している。
+適合。§7 はアプリ起動を要求受付の可能性に限定し、承認、ロック解除、署名と同一視していない。独自の方式の登録競合、普遍的な Link / App Link の経路選択情報と要求完全性の分離、QR / 共有 / Intentの信頼されていない扱い、通知ペイロードの非判断権限、外部受け渡しへの秘密情報非包含を明示している。
 
-送信元、request identity、session、recipient、expiry、integrity、Profile / Account、Chain / Network、operation および current lifecycle を Mobile 側で検証し、確認できない invocation は signing request に昇格させない。具体的な URL schema、association、proof、callback、UX は `MR-OPEN-002` と下位仕様へ委譲しており、基本設計として過剰に固定していない。
+送信元、要求識別情報、セッション、受信者、期限切れ、完全性、プロファイル / アカウント、チェーン / ネットワーク、操作および現在のライフサイクルをモバイル側で検証し、確認できない呼び出しは署名要求に昇格させない。具体的な URL スキーマ、関連付け、証明、コールバック、UX は `MR-OPEN-002` と下位仕様へ委譲しており、基本設計として過剰に固定していない。
 
-### 7.2 Relay Integration
+### 7.2 Relay 統合
 
-適合。§8 は Relay を E2E request / response の opaque transport と位置付け、Relay の delivery、metadata、session 存在、credential または到着事実を semantic authority としていない。Mobile App が approval UI の前に session、request identity、response correlation、generation、expiry、consumed / cancelled、duplicate、replay、late delivery、recipient、digest、direction、Chain / Network、operation、payload integrity を確認する。
+適合。§8 は Relay を E2E 要求 / 応答の内容を解釈しない通信経路と位置付け、Relay の配送、メタデータ、セッション存在、認証情報または到着事実を意味上の判断権限としていない。モバイルアプリが承認 UI の前にセッション、要求識別情報、応答対応付け、世代、期限切れ、消費済み / キャンセル済み、重複、リプレイ、遅延した配送、受信者、ダイジェスト、方向、チェーン / ネットワーク、操作、ペイロード完全性を確認する。
 
-state loss、old generation、session expiry、identity 不一致、ciphertext / integrity failure の後に、古い request・approval・ciphertext を復元せず、新しい handoff context と承認を要求する。配送だけが不明な場合は既存 result の再配送・照会だけを候補とし、同一 target の再署名を行わない。
+状態消失、旧世代、セッション期限切れ、識別情報不一致、暗号文 / 完全性失敗の後に、古い要求・承認・暗号文を復元せず、新しい受け渡し文脈と承認を要求する。配送だけが不明な場合は既存結果の再配送・照会だけを候補とし、同一対象の再署名を行わない。
 
-## 8. Device Authentication / Secret Protection 評価
+## 8. 端末認証 / 秘密情報保護評価
 
-### 8.1 Device Authentication
+### 8.1 端末認証
 
-適合。§10 は authentication を App unlock または署名前 user presence の補助条件とし、signing approval の authority と分離している。フローは request validation / inspection → trusted UI の確認 → explicit approve intent → device authentication → binding 再検証 → wallet-core signing となっている。
+適合。§10 は認証をアプリロック解除または署名前利用者存在の補助条件とし、署名承認の判断権限と分離している。フローは要求検証 / 内容検査 → 信頼された UI の確認 → 明示的な承認意図 → 端末認証 → 結び付け再検証 → wallet-core 署名となっている。
 
-biometric / passcode / PIN の具体方式、fallback、rate limit、再認証頻度は `MR-OPEN-004` と下位仕様へ委譲され、認証失敗の自動 bypass、前回成功状態の無期限利用、別 request への流用は禁止されている。
+生体認証 / パスコード / PIN の具体方式、代替経路、頻度上限、再認証頻度は `MR-OPEN-004` と下位仕様へ委譲され、認証失敗の自動迂回、前回成功状態の無期限利用、別要求への流用は禁止されている。
 
-### 8.2 Secret Protection / Hardware-backed Protection
+### 8.2 秘密情報保護 / ハードウェアで保護された保護
 
-適合。§11、§18、§19 は encrypted Wallet Store を wallet-core の opaque data、OS-protected credential / wrapping key を platform integration、decrypted secret を短寿命の memory-only data として分けている。Mobile App は wallet-core の KDF、AEAD、Store format、key hierarchy、raw signing を独自実装せず、外部アプリ、Browser、Relay、URL、notification、log、diagnostic、analytics、telemetry へ Secret を渡さない。
+適合。§11、§18、§19 は暗号化されたウォレットストアを wallet-core の内容を解釈しないデータ、OS で保護された認証情報 / ラップ鍵をプラットフォーム統合、復号された秘密情報を短寿命の memory-only データとして分けている。モバイルアプリは wallet-core の KDF、AEAD、ストア形式、鍵 hierarchy、生の署名を独自実装せず、外部アプリ、ブラウザ、Relay、URL、通知、ログ、診断、利用状況分析、遠隔計測データへ秘密情報を渡さない。
 
-Secure Enclave、Keystore、StrongBox 等の利用可能性と hardware-backed direct signing は同一視されず、非対応端末の fallback、OS-protected wrapping、Mainnet capability 条件は未決事項として残されている。OS capability を確認できない場合に保護保証を過大表示せず、保護状態・Store integrity・Binding が不明なら signing-capable state を解除する方針も明確である。
+安全な Enclave、Keystore、StrongBox 等の利用可能性とハードウェアで保護された直接の署名は同一視されず、非対応端末の代替経路、OS で保護されたラップ、Mainnet 対応能力条件は未決事項として残されている。OS 対応能力を確認できない場合に保護保証を過大表示せず、保護状態・ストア完全性・バインディングが不明なら署名可能な状態を解除する方針も明確である。
 
-## 9. Approval Binding 評価
+## 9. 承認との結び付け評価
 
-適合。§12.3 の authorization は request identity、source / session、Profile / Account、Chain / Network、operation、signing target、inspection result、permission / capability、freshness に binding される。approve intent と device authentication の後、wallet-core 呼び出し直前に source、session、recipient、response channel、期限、Account、Network、permission revision、device capability、payload、parent、embedded transaction、message、signer、expected signer、existing signature / cosignature、inspection、canonicalization、confirmation model、operation、target を再検証する。
+適合。§12.3 の認可は要求識別情報、送信元 / セッション、プロファイル / アカウント、チェーン / ネットワーク、操作、署名対象、内容検査結果、許可 / 対応能力、鮮度に結び付けされる。承認意図と端末認証の後、wallet-core 呼び出し直前に送信元、セッション、受信者、応答チャネル、期限、アカウント、ネットワーク、許可リビジョン、端末対応能力、ペイロード、親、埋め込みトランザクション、メッセージ、署名主体、期待される署名主体、既存の署名 / 連署署名、内容検査、正規化、確認モデル、操作、対象を再検証する。
 
-したがって、payload mutation、request substitution、Account / Network substitution、transaction substitution、別 request への approval / authentication 流用、stale approval reuse に対する基本設計上の防御が成立している。具体的な digest algorithm、serialization、request schema は共通 Interfaces / protocol と下位仕様へ適切に委譲されている。
+したがって、ペイロード変更、要求差し替え、アカウント / ネットワーク差し替え、トランザクション差し替え、別要求への承認 / 認証流用、古くなった承認再利用に対する基本設計上の防御が成立している。具体的なダイジェストアルゴリズム、シリアライズ、要求スキーマは共通インターフェース / プロトコルと下位仕様へ適切に委譲されている。
 
-## 10. Lifecycle / Recovery 評価
+## 10. ライフサイクル / 復旧評価
 
-適合。cold start、foreground 復帰、background、suspended、device lock / unlock、idle、manual lock、process recreation、process termination、OS kill、クラッシュ、端末再起動、Relay state loss、response delivery unknown が、authorization、authentication context、decrypted secret、signing operation の保持・破棄と対応付けられている。
+適合。初回開始、フォアグラウンド復帰、バックグラウンド、中断された、端末ロック / ロック解除、待機、手動ロック、プロセス再作成、プロセス終了、OS 強制終了、クラッシュ、端末再起動、Relay 状態消失、応答配送不明が、認可、認証文脈、復号された秘密情報、署名操作の保持・破棄と対応付けられている。
 
-background では署名せず、foreground 復帰後に request を再検証・再表示して新しい approval / authentication を要求する。process termination / OS kill 後は旧 approval / auth / signing operation を自動復元せず、結果不明時は `RESULT_UNKNOWN`、配送不明時は `DELIVERY_UNKNOWN` として同一 target の再署名を禁止している。
+バックグラウンドでは署名せず、フォアグラウンド復帰後に要求を再検証・再表示して新しい承認 / 認証を要求する。プロセス終了 / OS 強制終了後は旧承認 / 認証 / 署名操作を自動復元せず、結果不明時は `RESULT_UNKNOWN`、配送不明時は `DELIVERY_UNKNOWN` として同一対象の再署名を禁止している。
 
-## 11. Security Invariants 評価
+## 11. セキュリティ上の不変条件評価
 
-適合。§24 の 15 項目は、共通 Security Design §17 および Signing Flow の原則を Mobile の OS、invocation、Relay、foreground / background、device auth、storage、process lifecycle、notification へ適用している。単純な複製ではなく、Mobile 固有の次の条件が追加されている。
+適合。§24 の 15 項目は、共通セキュリティ設計 §17 および署名フローの原則をモバイルの OS、呼び出し、Relay、フォアグラウンド / バックグラウンド、端末認証、保存領域、プロセスライフサイクル、通知へ適用している。単純な複製ではなく、モバイル固有の次の条件が追加されている。
 
-- App 起動、Deep Link、Relay message、notification、OS authentication success だけでは署名しない。
-- Relay、URL、scheme、association、app name、icon、Origin、表示文言を request integrity や利用者意図の単独根拠にしない。
-- background、suspended、device lock、process restart、OS kill 後に approval / auth / signing operation を復元しない。
-- headless wake-up、notification、Relay callback だけで implicit signing しない。
-- OS capability を過大表示せず、wallet-core 外で暗号、KDF、Store encryption、password authorization、raw signing を実装しない。
+- アプリ起動、ディープリンク、Relay メッセージ、通知、OS 認証成功だけでは署名しない。
+- Relay、URL、方式、関連付け、アプリ名前、アイコン、オリジン、表示文言を要求完全性や利用者意図の単独根拠にしない。
+- バックグラウンド、中断された、端末ロック、プロセス再起動、OS 強制終了後に承認 / 認証 / 署名操作を復元しない。
+- 画面を持たない復帰、通知、Relay コールバックだけで暗黙の署名しない。
+- OS 対応能力を過大表示せず、wallet-core 外で暗号、KDF、ストア暗号化、パスワード認可、生の署名を実装しない。
 
-本文の component、lifecycle、storage、failure 表と矛盾する invariant は確認されなかった。
+本文のコンポーネント、ライフサイクル、保存領域、失敗表と矛盾する不変条件は確認されなかった。
 
 ## 12. 上位設計との整合性
 
-### Concept / Requirements
+### コンセプト / 要件
 
-[`concept-sheet.md`](../../concept/concept-sheet.md) の Mobile milestone、local Signer、秘密情報と外部要求の分離、利用者の明示判断、理解不能な要求の安全な終了、Relay の非署名責任に一致する。[`mobile-app.md`](../../requirements/mobile-app.md) の MR-001〜MR-013、MR-AC-001〜MR-AC-014、MR-OPEN-001〜MR-OPEN-008 に対して、§3、§7、§8、§10〜§17、§19、§22〜§27 が実装可能な設計判断と下位引継ぎを示している。
+[`concept-sheet.md`](../../concept/concept-sheet.md) のモバイルマイルストーン、ローカル署名主体、秘密情報と外部要求の分離、利用者の明示判断、理解不能な要求の安全な終了、Relay の非署名責任に一致する。[`mobile-app.md`](../../requirements/mobile-app.md) の MR-001〜MR-013、MR-AC-001〜MR-AC-014、MR-OPEN-001〜MR-OPEN-008 に対して、§3、§7、§8、§10〜§17、§19、§22〜§27 が実装可能な設計判断と下位引継ぎを示している。
 
-QR、通知、Deep Link、Universal Link、App Link、OS protection、hardware-backed capability、authentication fallback、backup / migration、OS kill recovery は Requirements の範囲を超えて確定されていない。
+QR、通知、ディープリンク、普遍的な Link、App Link、OS 保護、ハードウェアで保護された対応能力、認証代替経路、バックアップ / 移行、OS 強制終了復旧は要件の範囲を超えて確定されていない。
 
-### Architecture
+### アーキテクチャ
 
-[`architecture.md`](../../design/architecture.md) §5.2、§6.4〜§6.8、§8〜§12 と整合する。Mobile App は外部 handoff、Profile / Account、approval、authentication、OS integration、lifecycle、wallet-core Binding を担い、Relay は opaque delivery、SDK は公開契約、wallet-core は secret processing / raw signing を担う。Browser Extension の context や UI 実装を Mobile へ無断移植していない。
+[`architecture.md`](../../design/architecture.md) §5.2、§6.4〜§6.8、§8〜§12 と整合する。モバイルアプリは外部受け渡し、プロファイル / アカウント、承認、認証、OS 統合、ライフサイクル、wallet-core バインディングを担い、Relay は内容を解釈しない配送、SDK は公開契約、wallet-core は秘密情報処理 / 生の署名を担う。ブラウザ拡張機能の文脈や UI 実装をモバイルへ無断移植していない。
 
-### Security Design
+### セキュリティ設計
 
-[`security-design.md`](../../design/security-design.md) §3〜§10、§14〜§18 と整合する。Mobile 固有の device authentication、OS Secure Storage の限定的信頼、foreground trusted UI、external invocation、Relay state loss、screen / notification exposure、background / process lifecycle を共通の Secret isolation、explicit approval、re-authentication、fail-closed に適用している。
+[`security-design.md`](../../design/security-design.md) §3〜§10、§14〜§18 と整合する。モバイル固有の端末認証、OS 安全な保存領域の限定的信頼、フォアグラウンド信頼された UI、外部呼び出し、Relay 状態消失、画面 / 通知露出、バックグラウンド / プロセスライフサイクルを共通の秘密情報の分離、明示的な承認、re-authentication、安全側での終了に適用している。
 
-### Signing Flow / Interfaces
+### 署名フロー / インターフェース
 
-[`signing-flow.md`](../../design/signing-flow.md) §4〜§7、§10〜§13、§18〜§24 および [`interfaces.md`](../../design/interfaces.md) §4〜§9 と整合する。共通 request context、target binding、state model、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、Aggregate / cosignature / Partial、response correlation を Mobile 独自 protocol として再定義していない。
+[`signing-flow.md`](../../design/signing-flow.md) §4〜§7、§10〜§13、§18〜§24 および [`interfaces.md`](../../design/interfaces.md) §4〜§9 と整合する。共通要求文脈、対象結び付け、状態モデル、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、アグリゲート / 連署署名 / 部分トランザクション、応答対応付けをモバイル独自プロトコルとして再定義していない。
 
-### Browser Extension
+### ブラウザ拡張機能
 
-[`browser-extension.md`](../../design/browser-extension.md) §2、§5〜§22 と共有すべき explicit approval、trusted UI、Origin / caller binding、permission、request lifecycle、wallet-core separation、fail-closed、Aggregate / cosignature の確認条件が一致する。一方、Mobile 文書は Browser の sender / tab / frame / document や Service Worker を持ち込まず、OS lifecycle、device authentication、secure storage、Relay client、external invocation を Mobile 固有責務として分離している。
+[`browser-extension.md`](../../design/browser-extension.md) §2、§5〜§22 と共有すべき明示的な承認、信頼された UI、オリジン / 呼び出し元結び付け、許可、要求ライフサイクル、wallet-core 分離、安全側での終了、アグリゲート / 連署署名の確認条件が一致する。一方、モバイル文書はブラウザの送信者 / タブ / フレーム / 文書やサービスワーカーを持ち込まず、OS ライフサイクル、端末認証、安全な保存領域、Relay クライアント、外部呼び出しをモバイル固有責務として分離している。
 
-### Relay / Handoff / ADR
+### Relay / 受け渡し / ADR
 
-[`relay.md`](../../requirements/relay.md)、[`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md) の Relay opaque transport、E2E handoff、generation / session / request correlation、Mobile 側の復号・検証・表示・承認・署名責任と整合する。Relay protocol の envelope、暗号 parameter、endpoint、TTL、ACK、polling は下位仕様へ委譲されている。[`ADR 0001`](../../adr/0001-mainnet-evidence-lite.md) の Mainnet release evidence / gate も §3、§23、§26、§27 で platform capability とともに下位 release policy へ引き継いでいる。
+[`relay.md`](../../requirements/relay.md)、[`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md) の Relay 内容を解釈しない通信経路、E2E 受け渡し、世代 / セッション / 要求対応付け、モバイル側の復号・検証・表示・承認・署名責任と整合する。Relay プロトコルのエンベロープ、暗号パラメーター、エンドポイント、TTL、受領確認、ポーリングは下位仕様へ委譲されている。[`ADR 0001`](../../adr/0001-mainnet-evidence-lite.md) の Mainnet リリース証跡 / 判定条件も §3、§23、§26、§27 でプラットフォーム対応能力とともに下位リリースポリシーへ引き継いでいる。
 
 ## 13. 基本設計粒度の評価
 
 粒度は妥当である。
 
-- 実装者が主要判断に迷わない範囲として、Mobile 固有の invocation、Relay、OS security、device authentication、secret lifecycle、foreground / background、process loss、approval binding、failure recovery を定めている。
-- iOS / Android API、Keychain / Keystore / Secure Enclave / StrongBox の具体呼び出し、React Native component、database schema、Relay wire schema、Deep Link URL schema、error code、queue algorithm、lock timeout、E2E test は下位仕様へ委譲している。
-- Hardware-backed protection の capability、fallback、Mainnet 条件、backup / migration、OS kill 後の request recovery、screen exposure policy は未決事項として管理され、未決事項と implementation detail を混同していない。
+- 実装者が主要判断に迷わない範囲として、モバイル固有の呼び出し、Relay、OS セキュリティ、端末認証、秘密情報ライフサイクル、フォアグラウンド / バックグラウンド、プロセス消失、承認との結び付け、失敗復旧を定めている。
+- iOS / Android API、Keychain / Keystore / 安全な Enclave / StrongBox の具体呼び出し、React ネイティブコンポーネント、データベーススキーマ、Relay 通信上のスキーマ、ディープリンク URL スキーマ、エラーコード、キューアルゴリズム、ロックタイムアウト、E2E テストは下位仕様へ委譲している。
+- ハードウェアで保護された保護の対応能力、代替経路、Mainnet 条件、バックアップ / 移行、OS 強制終了後の要求復旧、画面露出ポリシーは未決事項として管理され、未決事項と実装詳細を混同していない。
 
-したがって、具体 API、storage schema、wire schema、画面 layout、OS version matrix、biometric policy の欠落を基本設計の不足とは判定しない。
+したがって、具体 API、保存領域スキーマ、通信上のスキーマ、画面配置、OS バージョン対応表、生体認証ポリシーの欠落を基本設計の不足とは判定しない。
 
 ## 14. 未決事項の評価
 
-§27 の未決事項は、基本設計を確定不能にする blocker ではなく、Requirements の `MR-OPEN-001`〜`MR-OPEN-008`、handoff / Relay 下位仕様、wallet-core Binding、platform privacy / release 設計へ適切に引き継がれている。
+§27 の未決事項は、基本設計を確定不能にする阻害要因ではなく、要件の `MR-OPEN-001`〜`MR-OPEN-008`、受け渡し / Relay 下位仕様、wallet-core バインディング、プラットフォームプライバシー / リリース設計へ適切に引き継がれている。
 
-- 外部要求受信方式、source proof、Relay 主経路・代替経路、pairing、session recovery は、起動経路を trust anchor にしない invariant を維持したまま下位仕様で決定できる。
-- PIN / passcode / biometric の役割、fallback、rate limit、再認証頻度は、device authentication と approval の分離を維持したまま決定できる。
-- Secure storage、hardware-backed protection、非対応端末 fallback、direct hardware signing、Mainnet gate は、実際に確認できる capability を越えて保証しない条件とともに決定できる。
-- pending request の再表示、OS kill 後 recovery、background 保持、delivery unknown 後の照会、backup / restore、端末移行、screen exposure は、古い authorization を再利用しない条件を弱めずに決定できる。
+- 外部要求受信方式、送信元証明、Relay 主経路・代替経路、ペアリング、セッション復旧は、起動経路を信頼アンカーにしない不変条件を維持したまま下位仕様で決定できる。
+- PIN / パスコード / 生体認証の役割、代替経路、頻度上限、再認証頻度は、端末認証と承認の分離を維持したまま決定できる。
+- 安全な保存領域、ハードウェアで保護された保護、非対応端末代替経路、直接のハードウェア署名、Mainnet 判定条件は、実際に確認できる対応能力を越えて保証しない条件とともに決定できる。
+- 保留中の要求の再表示、OS 強制終了後復旧、バックグラウンド保持、配送不明後の照会、バックアップ / 復元、端末移行、画面露出は、古い認可を再利用しない条件を弱めずに決定できる。
 
-これらの未決事項を理由に、Relay を trust anchor とすること、device authentication だけで自動署名すること、古い approval を復元すること、blind signing、Secret の外部受け渡しまたは fail-open recovery を許可していない。
+これらの未決事項を理由に、Relay を信頼アンカーとすること、端末認証だけで自動署名すること、古い承認を復元すること、内容を確認しない署名、秘密情報の外部受け渡しまたは安全条件を満たさない継続復旧を許可していない。
 
 ## 15. 最終判定
 
-`docs/design/mobile-app.md` は、Mobile App 基本設計として `READY` と判定する。
+`docs/design/mobile-app.md` は、モバイルアプリ基本設計として `READY` と判定する。
 
-### MOBILE APP DESIGN READY
+### モバイルアプリ設計 READY
 
 指摘件数: `BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0 / NIT 0`
 
-## 16. Validation
+## 16. 検証
 
-- Markdown formatting: `pnpm exec prettier --check docs/reviews/design/mobile-app-review-001.md` に成功した。
+- Markdown 整形: `pnpm exec prettier --check docs/reviews/design/mobile-app-review-001.md` に成功した。
 - 相対リンク: レビュー成果物から参照する上位資料のローカルファイル存在を確認した。
 - 指摘 ID 重複: 指摘なし。指摘 ID は発行していない。
-- Severity 表記: 指摘なし。集計表の表記は指定された `BLOCKER` / `HIGH` / `MEDIUM` / `LOW` / `NIT` と一致している。
+- 重要度表記: 指摘なし。集計表の表記は指定された `BLOCKER` / `HIGH` / `MEDIUM` / `LOW` / `NIT` と一致している。
 - レビュー対象: `docs/design/mobile-app.md` のみを対象とし、本文は変更していない。
 - `git diff --check`: レビュー成果物について問題なし。
 - 変更ファイル: 既存の `_nem` / `_symbol` の変更を除き、今回の変更はレビュー成果物 1 ファイルのみ。
-- リポジトリ全体 `pnpm format:check`: exit 2。`_nem`、`_sns`、`_snwc`、`_symbol`、`.agents`、既存アプリ・パッケージ等に多数の既存 format warning と HTML syntax error があるため失敗した。今回のレビュー成果物は全体走査で warning 対象になっておらず、個別 check に成功しているため、今回の変更起因とは判定しない。
-- lint / typecheck / test / build: レビュー成果物のみの変更のため実行していない。未実行を成功とは扱わない。
+- リポジトリ全体 `pnpm format:check`: 終了 2。`_nem`、`_sns`、`_snwc`、`_symbol`、`.agents`、既存アプリ・パッケージ等に多数の既存形式警告と HTML 構文エラーがあるため失敗した。今回のレビュー成果物は全体走査で警告対象になっておらず、個別確認に成功しているため、今回の変更起因とは判定しない。
+- lint / typecheck / テスト / ビルド: レビュー成果物のみの変更のため実行していない。未実行を成功とは扱わない。

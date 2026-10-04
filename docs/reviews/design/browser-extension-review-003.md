@@ -1,225 +1,225 @@
-# Browser Extension 基本設計レビュー 003
+# ブラウザ拡張機能基本設計レビュー 003
 
-## 1. Review Target
+## 1. レビュー対象
 
 - 対象: [`docs/design/browser-extension.md`](../../design/browser-extension.md)
-- Review ID: `browser-extension-review-003`
+- レビュー ID: `browser-extension-review-003`
 - 確認日: 2026-08-28
-- レビュー種別: Browser Extension 基本設計の再レビュー
-- 主目的: [`browser-extension-review-002.md`](./browser-extension-review-002.md) の `DR-001`〜`DR-005` の修正確認、および修正による新規 Critical / Major 問題・重大な回帰の確認。
+- レビュー種別: ブラウザ拡張機能基本設計の再レビュー
+- 主目的: [`browser-extension-review-002.md`](./browser-extension-review-002.md) の `DR-001`〜`DR-005` の修正確認、および修正による新規重大 / 主要問題・重大な回帰の確認。
 - 変更範囲: 本レビュー成果物のみ。対象設計、要件、仕様、ADR、実装および既存レビューは変更していない。
-- レビュー範囲: 現在の Browser Extension Design の目的、責務、trust boundary、共通署名 gate、caller / Origin、Profile / Account、`MESSAGE_SIGN`、semantic inspection、result binding、lifecycle、concurrent request、wallet-core 境界、Mainnet gate、traceability、OPEN 項目および Design フェーズ境界。
-- 設計フェーズ境界: exact Browser API、Manifest field、function signature、JSON / DTO / wire schema、exact message field、nonce format、expiry 秒数、timeout、retry count、error code、storage schema、concrete state machine、concurrency algorithm、cryptographic parameter、implementation class および exact UI layout は、基本設計の不足として評価していない。
-- 未確認範囲: source code の runtime 挙動、未実装機能の実機挙動および E2E 実行。今回は設計本文と承認済み資料の整合レビューであり、source code の変更も行っていない。
+- レビュー範囲: 現在のブラウザ拡張機能設計の目的、責務、信頼境界、共通署名判定条件、呼び出し元 / オリジン、プロファイル / アカウント、`MESSAGE_SIGN`、意味上の内容検査、結果との結び付け、ライフサイクル、並行する要求、wallet-core 境界、Mainnet 判定条件、追跡可能性、未決項目および設計フェーズ境界。
+- 設計フェーズ境界: 厳密なブラウザ API、マニフェストフィールド、関数署名、JSON / DTO / 通信上のスキーマ、厳密なメッセージフィールド、ノンス形式、期限切れ秒数、タイムアウト、再試行回数、エラーコード、保存領域スキーマ、具体的な状態遷移、並行処理アルゴリズム、暗号学的なパラメーター、実装クラスおよび厳密な UI 配置は、基本設計の不足として評価していない。
+- 未確認範囲: 送信元コードの実行環境挙動、未実装機能の実機挙動および E2E 実行。今回は設計本文と承認済み資料の整合レビューであり、送信元コードの変更も行っていない。
 
-## 2. Execution Audit
+## 2. 実行記録
 
-`design-review` Skill、共通 review playbook、reviewers、review gates、output format、[`AGENTS.md`](../../../AGENTS.md) および [`.agents/project-context.md`](../../../.agents/project-context.md) を確認した。サブエージェントは使用せず、Chair が Reviewer A〜D の4つの独立した自己レビュー・パスを実施した。
+`design-review` スキル、共通レビュー作業手順、レビュアー、レビュー判定基準、出力形式、[`AGENTS.md`](../../../AGENTS.md) および [`.agents/project-context.md`](../../../.agents/project-context.md) を確認した。サブエージェントは使用せず、レビュー統括がレビュアー A〜D の4つの独立した自己レビュー・パスを実施した。
 
-| 観点                                   | 独立確認                                                                                                                                                                                                         | 判定                                                         |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Reviewer A: structure / responsibility | Browser privileged layer、Provider / Content Script、SDK、dApp、trusted UI、chain integration、wallet-core、Profile / Account、依存方向およびデータ所有を確認した。                                              | `DR-001`、`DR-005` の再発なし。新規 finding なし。           |
-| Reviewer B: security / trust boundary  | browser-observed caller / Origin、4条件 gate、Profile-local context、semantic inspection、message replay、blind signing prohibition、secret boundary、Relay opaque、Mainnet gate および fail-closed を確認した。 | `DR-001`、`DR-002`、`DR-004` の再発なし。新規 finding なし。 |
-| Reviewer C: flow / lifecycle           | receive から signing、success / failure、pre-sign revalidation、restart、navigation、context loss、duplicate / replay、concurrent request、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` および fallback を確認した。    | `DR-003` の再発なし。重大な回帰なし。新規 finding なし。     |
-| Reviewer D: traceability / downstream  | Requirements、共通 Design、Browser / SDK / handoff / Profile / Chain Specification、wallet-core 契約、Binding decision、Mainnet ADR、委譲範囲および §24 の責務追跡を確認した。                                   | `DR-005` の再発なし。下流詳細の逆流なし。新規 finding なし。 |
+| 観点                                  | 独立確認                                                                                                                                                                                                                             | 判定                                                    |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| レビュアー A: 構造 / 責務             | ブラウザ特権を持つ層、Provider / コンテンツスクリプト、SDK、dApp、信頼された UI、チェーン統合、wallet-core、プロファイル / アカウント、依存方向およびデータ所有を確認した。                                                          | `DR-001`、`DR-005` の再発なし。新規指摘なし。           |
+| レビュアー B: セキュリティ / 信頼境界 | ブラウザで観測した呼び出し元 / オリジン、4条件判定条件、プロファイル内の文脈、意味上の内容検査、メッセージリプレイ、内容を確認しない署名禁止、秘密情報境界、Relay 内容を解釈しない、Mainnet 判定条件および安全側での終了を確認した。 | `DR-001`、`DR-002`、`DR-004` の再発なし。新規指摘なし。 |
+| レビュアー C: フロー / ライフサイクル | receive から署名、成功 / 失敗、署名前再検証、再起動、ページ遷移、文脈消失、重複 / リプレイ、並行する要求、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` および代替経路を確認した。                                                           | `DR-003` の再発なし。重大な回帰なし。新規指摘なし。     |
+| レビュアー D: 追跡可能性 / 下流       | 要件、共通設計、ブラウザ / SDK / 受け渡し / プロファイル / チェーン仕様、wallet-core 契約、バインディング判断、Mainnet ADR、委譲範囲および §24 の責務追跡を確認した。                                                                | `DR-005` の再発なし。下流詳細の逆流なし。新規指摘なし。 |
 
-前回レビューは、`DR-001`〜`DR-005` の初出、重大度および再確認条件の追跡にだけ使用した。前回の `REVISE DESIGN`、過去の `READY` および関連 Design review の Review Gate は今回へ自動継承していない。
+前回レビューは、`DR-001`〜`DR-005` の初出、重大度および再確認条件の追跡にだけ使用した。前回の `REVISE DESIGN`、過去の `READY` および関連設計レビューのレビュー判定条件は今回へ自動継承していない。
 
-## 3. Evidence Used
+## 3. 参照した根拠
 
-| 資料                                                                                                                                                                                                                                                     | 用途                                                                                                                                                                                                                                          |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`docs/design/browser-extension.md`](../../design/browser-extension.md)                                                                                                                                                                                  | 主対象。全章を確認し、現在の責務、4条件、`MESSAGE_SIGN`、result、lifecycle、fallback、traceability および OPEN を判定した。                                                                                                                   |
-| [`browser-extension-review-002.md`](./browser-extension-review-002.md)                                                                                                                                                                                   | `DR-001`〜`DR-005` の初出、重大度および再確認条件の追跡に使用した。過去の判定を current evidence として継承していない。                                                                                                                       |
-| [`docs/design/architecture.md`](../../design/architecture.md)、[`security-design.md`](../../design/security-design.md)、[`signing-flow.md`](../../design/signing-flow.md)、[`interfaces.md`](../../design/interfaces.md)                                 | Browser privileged layer、共通4条件、trust boundary、Profile / Account、request / result binding、replay / concurrent isolation、wallet-core および下流委譲の整合を確認した。関連 review は背景整合の確認に使用し、判定を自動継承していない。 |
-| [`architecture-review-004.md`](./architecture-review-004.md)、[`security-design-review-004.md`](./security-design-review-004.md)、[`signing-flow-review-004.md`](./signing-flow-review-004.md)、[`interfaces-review-004.md`](./interfaces-review-004.md) | READY 済み共通 Design の責務・invariant・下流 owner の記録を照合した。今回の Browser Design の Review Gate 根拠として自動採用していない。                                                                                                     |
-| [`concept-sheet.md`](../../concept/concept-sheet.md)、[`requirements.md`](../../requirements/requirements.md)、[`browser-extension.md` 要件](../../requirements/browser-extension.md)、[`sdk.md` 要件](../../requirements/sdk.md)                        | Product 範囲、Browser caller、trusted UI、message signing v1、blind signing prohibition、秘密情報境界、lifecycle、Mainnet gate および common signing gate の上流根拠を確認した。                                                              |
-| [`sdk.md` Design](../../design/sdk.md)、[`relay.md` Design](../../design/relay.md)                                                                                                                                                                       | SDK non-Signer、Provider / transport 境界、Relay opaque boundary、automatic fallback prohibition および責任逆流の有無を確認した。                                                                                                             |
-| [`browser-extension.md` Specification](../../specifications/browser-extension.md)、[`interfaces.md` Specification](../../specifications/interfaces.md)、[`signing-protocol.md`](../../specifications/signing-protocol.md)                                | Browser operation、structured message、replay / duplicate、result semantics、failure、target binding および具体仕様への委譲範囲を確認した。                                                                                                   |
-| [`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md)、[`profile-account-spec.md`](../../specifications/profile-account-spec.md)、[`chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md)  | Web caller / handoff、Profile Network、Account authorization、Chain / Network、transaction / message inspection と downstream contract を確認した。                                                                                           |
-| [`0001-mainnet-evidence-lite.md`](../../adr/0001-mainnet-evidence-lite.md)                                                                                                                                                                               | Mainnet release evidence / Lite gate の存在と、判定不能時の capability 無効化境界を確認した。                                                                                                                                                 |
-| [`wallet-core requirements`](../../../_snwc/docs/requirements/requirements.md)、[`wallet-core specification`](../../../_snwc/docs/specifications/specification.md)、[`Binding decision`](../../../_snwc/docs/decisions/binding-implementation.md)        | Wallet Store、secret processing、Profile / Software Key identity、raw signing、Binding の責任および Browser host の secret boundary を確認した。                                                                                              |
+| 資料                                                                                                                                                                                                                                                     | 用途                                                                                                                                                                                                                                 |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`docs/design/browser-extension.md`](../../design/browser-extension.md)                                                                                                                                                                                  | 主対象。全章を確認し、現在の責務、4条件、`MESSAGE_SIGN`、結果、ライフサイクル、代替経路、追跡可能性および未決を判定した。                                                                                                            |
+| [`browser-extension-review-002.md`](./browser-extension-review-002.md)                                                                                                                                                                                   | `DR-001`〜`DR-005` の初出、重大度および再確認条件の追跡に使用した。過去の判定を現在の根拠として継承していない。                                                                                                                      |
+| [`docs/design/architecture.md`](../../design/architecture.md)、[`security-design.md`](../../design/security-design.md)、[`signing-flow.md`](../../design/signing-flow.md)、[`interfaces.md`](../../design/interfaces.md)                                 | ブラウザ特権を持つ層、共通4条件、信頼境界、プロファイル / アカウント、要求 / 結果との結び付け、リプレイ / 並行する分離、wallet-core および下流委譲の整合を確認した。関連レビューは背景整合の確認に使用し、判定を自動継承していない。 |
+| [`architecture-review-004.md`](./architecture-review-004.md)、[`security-design-review-004.md`](./security-design-review-004.md)、[`signing-flow-review-004.md`](./signing-flow-review-004.md)、[`interfaces-review-004.md`](./interfaces-review-004.md) | READY 済み共通設計の責務・不変条件・下流責任主体の記録を照合した。今回のブラウザ設計のレビュー判定条件根拠として自動採用していない。                                                                                                 |
+| [`concept-sheet.md`](../../concept/concept-sheet.md)、[`requirements.md`](../../requirements/requirements.md)、[`browser-extension.md` 要件](../../requirements/browser-extension.md)、[`sdk.md` 要件](../../requirements/sdk.md)                        | プロダクト範囲、ブラウザ呼び出し元、信頼された UI、メッセージ署名 v1、内容を確認しない署名禁止、秘密情報境界、ライフサイクル、Mainnet 判定条件および共通の署名判定条件の上流根拠を確認した。                                         |
+| [`sdk.md` 設計](../../design/sdk.md)、[`relay.md` 設計](../../design/relay.md)                                                                                                                                                                           | SDK 署名主体ではないこと、Provider / 通信経路境界、Relay 内容を解釈しない境界、自動代替経路禁止および責任逆流の有無を確認した。                                                                                                      |
+| [`browser-extension.md` 仕様](../../specifications/browser-extension.md)、[`interfaces.md` 仕様](../../specifications/interfaces.md)、[`signing-protocol.md`](../../specifications/signing-protocol.md)                                                  | ブラウザ操作、構造化されたメッセージ、リプレイ / 重複、結果意味、失敗、対象結び付けおよび具体仕様への委譲範囲を確認した。                                                                                                            |
+| [`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md)、[`profile-account-spec.md`](../../specifications/profile-account-spec.md)、[`chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md)  | Web 呼び出し元 / 受け渡し、プロファイルネットワーク、アカウントの利用認可、チェーン / ネットワーク、トランザクション / メッセージ内容検査と下流契約を確認した。                                                                      |
+| [`0001-mainnet-evidence-lite.md`](../../adr/0001-mainnet-evidence-lite.md)                                                                                                                                                                               | Mainnet リリース証跡 / Lite 判定条件の存在と、判定不能時の対応能力無効化境界を確認した。                                                                                                                                             |
+| [`wallet-core requirements`](../../../_snwc/docs/requirements/requirements.md)、[`wallet-core specification`](../../../_snwc/docs/specifications/specification.md)、[`Binding decision`](../../../_snwc/docs/decisions/binding-implementation.md)        | ウォレットストア、秘密情報処理、プロファイル / ソフトウェア鍵識別情報、生の署名、バインディングの責任およびブラウザホストの秘密情報境界を確認した。                                                                                  |
 
-## 4. Review Result
-
-`READY`
-
-## 5. Summary
-
-現行の Browser Extension Design は、前回指摘された `DR-001`〜`DR-005` の再確認条件を、Browser privileged layer の責務、主要 flow、security invariant、result semantics および §24 の traceability へ反映している。`DR-001`〜`DR-005` はすべて `RESOLVED` であり、新規 Critical / Major finding はない。
-
-- `DR-001: RESOLVED`。Authentication、Signing-capable unlock、対象 Profile / Chain / Network / Account に対する Account authorization、Explicit user approval の4条件を独立した必須条件として Browser privileged layer が成立・再確認・失効・結果帰属する。connection、permission、capability、session、ordinary `UNLOCKED`、previous authentication、Account selection、Provider / SDK state、dApp self-declaration、Content Script metadata および wallet-core 処理結果は代替にならない。
-- `DR-002: RESOLVED`。Browser v1 の `MESSAGE_SIGN` は structured message operation として確定し、browser-observed caller / Origin、tab / frame / document、Profile、Account、Chain / Network、operation、domain、purpose、message content、nonce、issued / expiry、freshness、replay state および共通4条件を同じ context に結び付ける。Signer inspection、同一 trusted model、cross-context replay 防止、raw / uninspectable fallback 禁止および pre-sign revalidation がある。
-- `DR-003: RESOLVED`。success は original request、caller / Origin、tab / frame / document、signer、Profile、Account、Chain / Network、operation、exact target / trusted digest、署名時点の4条件および approval context を安全に確認できる場合だけ成立する。navigation、context loss、stale、revoked、locked、mismatch、unknown は success にせず、delivery-only failure は再署名へ使わない。
-- `DR-004: RESOLVED`。`MESSAGE_SIGN` の提供、structured contract、message-specific context / replay protection、共通4条件、trusted UI / inspection および raw / uninspectable fallback 禁止は確定事項であり、§23 の OPEN は API・field・wire・serialization・nonce・expiry 等の integration detail に限定されている。
-- `DR-005: RESOLVED`。§24 は caller authority、Provider / Content Script non-authority、4条件 gate、Profile / Account、message、Chain / Network、Aggregate / cosignature、result unknown、fallback、wallet-core boundary および Mainnet gate を、上位根拠と下流 contract / owner へ直接追跡できる責務表として記載している。
-
-回帰確認でも、Web App / dApp の untrusted 性、SDK の non-Signer 性、Provider / Content Script の non-authority、trusted UI、semantic inspection、Profile-local context、Application Account と wallet-core identity の分離、Service Worker / navigation の fail-closed、concurrent request isolation、replay / duplicate、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、automatic fallback prohibition および Mainnet gate の重大な破壊は確認されなかった。
-
-## 6. Finding Status
-
-| ID       | Severity | Status     | 初出レビュー                   | 今回の状態根拠                                                                                                                                                                       |
-| -------- | -------- | ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `DR-001` | Critical | `RESOLVED` | `browser-extension-review-002` | §4、§5.3〜§5.4、§6〜§10、§12、§15、§20〜§21 が、4条件の独立性、Browser privileged layer の唯一の owner、同一 binding、pre-sign 再確認、失効および fail-closed を明示する。           |
-| `DR-002` | Critical | `RESOLVED` | `browser-extension-review-002` | §2、§5.5〜§5.6、§10.2〜§10.3、§11、§20、§23 が `MESSAGE_SIGN`、structured inspection、message context、replay 境界、同一 trusted model、raw fallback 禁止および共通4条件を明示する。 |
-| `DR-003` | Major    | `RESOLVED` | `browser-extension-review-002` | §7.3、§10.3、§12、§18、§20 が original request から signing-time context、exact target、success、navigation、unknown result および delivery-only failure の対応を明示する。          |
-| `DR-004` | Major    | `RESOLVED` | `browser-extension-review-002` | §2 と §23 が `MESSAGE_SIGN` の v1 capability / invariant を確定し、OPEN を下位統合詳細へ限定する。                                                                                   |
-| `DR-005` | Minor    | `RESOLVED` | `browser-extension-review-002` | §24 が要求された各責務について上位根拠、下流 contract / owner および本文適用箇所を直接対応付ける。                                                                                   |
-
-## 7. Required Changes
-
-なし。Critical / Major の New、Open または Reopened finding はない。`DR-001`〜`DR-005` はすべて `RESOLVED` である。
-
-## 8. Optional Improvements
-
-なし。今回の主目的に関係しない Minor / Nit の新規探索は行わず、現在対応が必要な Optional Improvement もない。
-
-## 9. Resolved Findings
-
-### DR-001: RESOLVED — 共通署名ゲート4条件
-
-- Severity: `Critical`
-- Target: [`browser-extension.md`](../../design/browser-extension.md) §4、§5.3〜§5.4、§6〜§10、§12、§15、§20〜§21。
-- 発生条件または確認できた事実: §4、§5.3、§6、§7.2、§10.3、§12、§15 および §20 が、Authentication、Signing-capable unlock、対象 Profile / Chain / Network / Account に対する Account authorization、Explicit user approval を独立した必須条件として同じ request / caller / Profile / Account / Chain / Network / operation / exact target / freshness context に binding している。Browser privileged layer が唯一の Signer-side orchestration owner とされ、4条件の pre-sign revalidation、失効および success result への帰属も記載されている。
-- 既存の根拠: [Architecture §6.9](../../design/architecture.md)、[Security Design §8](../../design/security-design.md)、[Signing Flow §16](../../design/signing-flow.md)、[Interfaces §9](../../design/interfaces.md) および [Browser Extension Requirements BR-003〜BR-009](../../requirements/browser-extension.md)。
-- 問題・影響: 前回の不足は解消した。connection、permission、capability、session、ordinary `UNLOCKED`、previous authentication、Account selection、Provider / SDK state、dApp self-declaration、Content Script metadata、wallet-core password / Store validation および wallet-core signing success は、4条件または Browser-level success の代替にならない。いずれかが失効、locked、stale、unknown または再確認不能なら fail-closed となる。
-- 必要な最小修正または確認: 現在の本文で、privileged host による独立した4条件、同一 binding、署名前の再確認、失効、結果 binding および外部主体による迂回禁止が確認できるため、追加修正は不要。
-- 完了条件または再確認方法: §4、§5.3〜§5.4、§7.2〜§7.3、§10.3、§12、§15、§20〜§21を相互照合し、4条件の成立 owner、pre-sign、success、fail-closed および非代替条件が一貫していることを確認した。`DR-001: RESOLVED`。
-
-### DR-002: RESOLVED — structured `MESSAGE_SIGN` と replay 境界
-
-- Severity: `Critical`
-- Target: [`browser-extension.md`](../../design/browser-extension.md) §2、§5.5〜§5.6、§10.2〜§10.3、§11、§20、§23。
-- 発生条件または確認できた事実: §2 が Browser v1 の `MESSAGE_SIGN` を structured message contract に従う operation として確定し、§10.2 が browser-observed caller / Origin、tab / frame / document、Profile、Account、Chain / Network、operation、domain、purpose、message content、nonce、issued / expiry、request freshness、replay state を同じ message signing context として扱う。Signer inspection と同じ trusted structured message model から UI と signing input を導出し、expired、duplicate、replayed、cross-Origin、cross-domain、cross-purpose、uninspectable、parse failure および unknown message を署名しない。
-- 既存の根拠: [Common Requirements CR-007-MSG](../../requirements/requirements.md)、[Signing Flow §14](../../design/signing-flow.md)、[Signing Protocol §15](../../specifications/signing-protocol.md) および [Browser Extension Specification §16](../../specifications/browser-extension.md)。
-- 問題・影響: 前回の不足は解消した。message を任意 raw payload として扱う余地、表示と signing input の分離、cross-context replay、期限切れ・duplicate・replay の署名、raw / uninspectable fallback の余地は現行本文に残っていない。`MESSAGE_SIGN` にも共通4条件、pre-sign revalidation、result binding および fail-closed が適用される。
-- 必要な最小修正または確認: 現在の structured contract、message-specific context、同一 inspection model、replay / domain / purpose 境界および raw fallback prohibition を確認した。nonce の exact format、serialization、expiry 秒数等の詳細は、本文が明示するとおり Specification への委譲であり、追加修正は不要。
-- 完了条件または再確認方法: §2、§10.2〜§10.3、§20、§23 と Signing Flow / Signing Protocol の message 節を照合し、Browser Signer が structured message を inspection し、同じ model を UI / signing input / result に使い、replay と raw fallback を拒否することを確認した。`DR-002: RESOLVED`。
-
-### DR-003: RESOLVED — success result binding
-
-- Severity: `Major`
-- Target: [`browser-extension.md`](../../design/browser-extension.md) §7.3、§10.3、§12、§18、§20。
-- 発生条件または確認できた事実: §7.3 と §12 が success の条件として original request、browser-observed caller / Origin、tab / frame / document、signer、Profile、Account、Chain / Network、operation、exact signing target / trusted digest、署名時点の Authentication、Signing-capable unlock、Account authorization、Explicit user approval および approval context を同じ binding に要求する。§18 と §20 は context loss、stale、revoked、locked、mismatch、unknown を success にせず、`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` を分離し、delivery failure を再署名の根拠にしない。
-- 既存の根拠: [Signing Flow §20](../../design/signing-flow.md)、[Interfaces §6.4](../../design/interfaces.md)、[Browser Extension Requirements BR-007〜BR-008](../../requirements/browser-extension.md) および [Signing Protocol §16 / §19](../../specifications/signing-protocol.md)。
-- 問題・影響: 前回の不足は解消した。Profile switch、Account / permission change、lock、navigation、caller mismatch、target mismatch、signing-time context unknown または result disposition unknown を cryptographic success だけで成功へ昇格する余地はない。navigation 後の新 document に旧 result を返さず、delivery-only failure 後に再署名しない。
-- 必要な最小修正または確認: current request、signer、Profile、全4条件、approval context、target および delivery disposition の対応を確認した。具体 response schema や delivery query は下位仕様への委譲であり、追加修正は不要。
-- 完了条件または再確認方法: §7.3、§10.3、§12、§18、§20 と下流の result contract を照合し、成功条件、失効時の no-success、document binding、unknown 区分および no-resign が一意に追跡できることを確認した。`DR-003: RESOLVED`。
-
-### DR-004: RESOLVED — `MESSAGE_SIGN` capability の確定
-
-- Severity: `Major`
-- Target: [`browser-extension.md`](../../design/browser-extension.md) §2、§23。
-- 発生条件または確認できた事実: §2 は Browser v1 の `MESSAGE_SIGN` 提供、structured message contract、arbitrary raw bytes signing なし、解析・表示不能 message の fallback なしを適用範囲としている。§23 は `MESSAGE_SIGN` の capability 自体を OPEN にせず、Browser API、field、wire representation、serialization、nonce format、expiry window、version negotiation 等の integration detail だけを OPEN としている。
-- 既存の根拠: [Common Requirements CR-007 / CR-007-MSG](../../requirements/requirements.md)、[Signing Flow §14](../../design/signing-flow.md)、[Browser Extension Specification §16](../../specifications/browser-extension.md) および [Signing Protocol §15](../../specifications/signing-protocol.md)。
-- 問題・影響: 前回の capability の OPEN は解消した。実装者が `MESSAGE_SIGN` を v1 外、任意 capability、transaction signing の raw fallback または弱い replay / approval semantics と解釈する余地はない。
-- 必要な最小修正または確認: §23 の OPEN が下位統合詳細だけに限定され、上位で確定した capability、security invariant、trusted UI / inspection および共通4条件を戻していないことを確認した。追加修正は不要。
-- 完了条件または再確認方法: §2、§10.2〜§10.3、§20、§23 および下流 message contract を照合し、capability の existence と実装詳細の OPEN が分離されていることを確認した。`DR-004: RESOLVED`。
-
-### DR-005: RESOLVED — traceability の補強
-
-- Severity: `Minor`
-- Target: [`browser-extension.md`](../../design/browser-extension.md) §2、§22、§24。
-- 発生条件または確認できた事実: §24 の表は、caller / Origin authority、Provider / Content Script non-authority、共通4条件 gate、Profile / Account authority と authorization、structured `MESSAGE_SIGN`、Chain / Network inspection、Aggregate / cosignature inspection、result binding と `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、lifecycle / concurrent isolation、automatic fallback prohibition、wallet-core raw signing / secret boundary および Mainnet gate について、上位 / 共通根拠、下流 contract / owner および本文での適用箇所を直接対応付けている。
-- 既存の根拠: [Architecture §17.1](../../design/architecture.md)、[Security Design](../../design/security-design.md)、[Signing Flow](../../design/signing-flow.md)、[Interfaces §14.1](../../design/interfaces.md) および各 Browser / SDK / Protocol / Profile / Chain / wallet-core contract。
-- 問題・影響: 前回の直接追跡不足は解消した。各責務から上位根拠と downstream owner へ進めるため、4条件、message、result、wallet-core および Mainnet gate の取りこぼしを、単なる資料リンク一覧ではなく責務・invariant・owner・boundary の対応として確認できる。
-- 必要な最小修正または確認: §24 の対応表を、ユーザー指定の責務一覧と下流資料へ照合した。API、DTO、wire、exact serialization の追加を要求せずに traceability が成立しているため、追加修正は不要。
-- 完了条件または再確認方法: §24 の各行から、Requirements / Architecture / Security / Signing Flow / Interfaces / SDK / Browser Specification / Signing Protocol / Handoff / Profile / Chain Compatibility / wallet-core / Mainnet ADR の根拠と downstream owner を確認した。`DR-005: RESOLVED`。
-
-## 10. Deferred Findings
-
-正式な Deferred finding はない。以下は現行本文が基本方針と owner を固定したうえで、下位 Specification、platform adapter、wallet-core host integration または release operation へ委譲している事項であり、今回の不足 finding ではない。
-
-- Browser API、Manifest、Provider API、RPC method、JSON / DTO / wire schema、field 名、serialization、versioning、error code および response delivery / retrieval 契約。
-- Origin canonicalization、frame / navigation observation の具体方式、session record、permission revision の形式、storage API / schema、queue / mutex、timeout、retry、rate limit および concrete state machine。
-- `MESSAGE_SIGN` の exact API、field、wire representation、serialization、nonce format、expiry window、domain separator encoding および version negotiation。
-- Symbol / NEM の transaction schema、supported type / version、signature bytes、Aggregate / cosignature / Partial / NEM multisig の具体 encoding と表示 field。
-- wallet-core Binding DTO、host memory の concrete lifecycle、Store migration、具体 error mapping および Browser host integration。
-- trusted UI の exact layout、文言、認証 UI、accessibility、localization、window / side panel、release evidence の具体 CI / distribution / runtime embedding。
-
-これらの委譲は、`MESSAGE_SIGN` の提供、structured inspection、共通4条件、result binding、replay / duplicate protection、fail-closed、automatic fallback prohibition、wallet-core secret / raw signing boundary または Mainnet gate を弱めてはならない。
-
-## 11. Scope and Traceability
-
-| Browser の責務 / invariant                           | 上位根拠                                                                                                                                                                                                                                                         | 下流 contract / owner                                                                                                                                                                                                                                                                                                                                                                              | 本書での適用・評価                                                                                                                                                                    |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| caller / Origin authority                            | [Browser Requirements BR-003〜BR-004](../../requirements/browser-extension.md)、[Architecture §6.3](../../design/architecture.md)、[Security Design §9](../../design/security-design.md)                                                                         | [Browser Extension Specification §6〜§7](../../specifications/browser-extension.md)、[SDK Requirements SDK-FR-005](../../requirements/sdk.md)、[Web Handoff §5〜§6](../../specifications/web-transaction-handoff-spec.md)、最終 owner は browser-observed context を検証する privileged host                                                                                                       | §5.1〜§5.3、§7、§20〜§21。Browser が観測した caller / Origin を authority とし、page / SDK / Provider / Content Script の自己申告を昇格させない。                                     |
-| Provider / Content Script non-authority              | [Architecture §6.2〜§6.3](../../design/architecture.md)、[Interfaces §4.1 / §7](../../design/interfaces.md)、[Browser Requirements BR-006](../../requirements/browser-extension.md)                                                                              | [Browser Extension Specification §4 / §6](../../specifications/browser-extension.md)、[SDK Design §4 / §6〜§8](../../design/sdk.md)                                                                                                                                                                                                                                                                | §5.1〜§5.3、§21。Provider / Content Script は transport / forwarding のみで、caller authority、inspection、4条件、approval、signing decision を持たない。                             |
-| 共通4条件 gate                                       | [Requirements CR-016 / CR-AC-017](../../requirements/requirements.md)、[Architecture §6.9](../../design/architecture.md)、[Security Design §8](../../design/security-design.md)、[Signing Flow §8 / §16 / §23](../../design/signing-flow.md)                     | [Browser Extension Specification §9 / §11 / §17〜§18](../../specifications/browser-extension.md)、[Signing Protocol §8](../../specifications/signing-protocol.md)、[Profile / Account Specification §20](../../specifications/profile-account-spec.md)。Owner は Browser privileged layer。                                                                                                        | §4〜§6、§8〜§12、§15、§20〜§21。4条件を独立必須とし、pre-sign、失効、success context、外部主体の非代替を固定している。                                                                |
-| Profile / Account authority と Account authorization | [Requirements CR-005 / CR-009 / CR-013 / CR-016](../../requirements/requirements.md)、[Architecture §6.6 / §6.8〜§6.9](../../design/architecture.md)、[Interfaces §6](../../design/interfaces.md)                                                                | [Profile / Account Specification §2 / §12 / §20 / §26](../../specifications/profile-account-spec.md)、[Browser Extension Specification §9〜§10](../../specifications/browser-extension.md)、wallet-core は cryptographic identity / Store / raw signing owner                                                                                                                                      | §5.4、§7〜§10、§15、§20〜§21。Application Account authority と wallet-core identity を分離し、privileged host が Account authorization を独立確認する。                               |
-| structured `MESSAGE_SIGN`                            | [Requirements CR-007-MSG / CR-AC-006](../../requirements/requirements.md)、[Security Design §8.3](../../design/security-design.md)、[Signing Flow §14 / §16 / §23](../../design/signing-flow.md)                                                                 | [Browser Extension Specification §16](../../specifications/browser-extension.md)、[Signing Protocol §15 / §20](../../specifications/signing-protocol.md)、[Web Handoff §2 / §5](../../specifications/web-transaction-handoff-spec.md)、[Chain Compatibility §6.3](../../specifications/chain-compatibility-spec.md)。Owner は Browser Signer / chain-specific inspection。                         | §2、§10〜§12、§20、§23。message context、同一 trusted model、replay 境界、4条件、pre-sign、result および raw fallback 禁止を適用する。                                                |
-| Chain / Network inspection                           | [Requirements CR-005 / CR-NFR-005](../../requirements/requirements.md)、[Browser Requirements BR-005](../../requirements/browser-extension.md)、[Architecture §6.7](../../design/architecture.md)                                                                | [Chain Compatibility Specification §3〜§6](../../specifications/chain-compatibility-spec.md)、[Browser Extension Specification §10〜§15](../../specifications/browser-extension.md)、owner は chain-specific integration、gate / lifecycle は privileged host                                                                                                                                      | §5.5、§9〜§11、§16、§20〜§21。Symbol / NEM、Mainnet / Testnet、transaction / message の意味を混同せず、解析・表示不能を fail-closed とする。                                          |
-| Aggregate / cosignature inspection                   | [Browser Requirements BR-005](../../requirements/browser-extension.md)、[Signing Flow §10〜§13](../../design/signing-flow.md)、[Security Design §8](../../design/security-design.md)                                                                             | [Chain Compatibility §4](../../specifications/chain-compatibility-spec.md)、[Signing Protocol §11〜§14](../../specifications/signing-protocol.md)、[Browser Extension Specification §15](../../specifications/browser-extension.md)                                                                                                                                                                | §10.2、§16、§20。parent / embedded / inner / existing signature / expected signer / role の全体 inspection を要求し、hash-only、外部 lookup または unrenderable target を署名しない。 |
-| result binding                                       | [Requirements CR-006 / CR-NFR-012 / CR-AC-004](../../requirements/requirements.md)、[Signing Flow §20](../../design/signing-flow.md)、[Interfaces §6.4 / §9〜§10](../../design/interfaces.md)                                                                    | [Browser Extension Specification §22](../../specifications/browser-extension.md)、[Interfaces Specification §10](../../specifications/interfaces.md)、[Web Handoff §7 / §10](../../specifications/web-transaction-handoff-spec.md)。署名時 context owner は privileged host。                                                                                                                      | §7.3、§10.2〜§10.3、§12、§18、§20〜§22。original request から target、signer、Profile、4条件、approval context および recipient まで対応付ける。                                      |
-| `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`                | [Signing Flow §7.4 / §20.3](../../design/signing-flow.md)、[Interfaces §6.4](../../design/interfaces.md)、[Security Design §15](../../design/security-design.md)                                                                                                 | [Signing Protocol §16 / §19](../../specifications/signing-protocol.md)、[Web Handoff §7 / §10](../../specifications/web-transaction-handoff-spec.md)。既存 result の resend / retrieval のみ下流で定義する。                                                                                                                                                                                       | §12、§18、§20。署名生成自体の不明と確定済み result の配送不明を分離し、delivery failure を再署名の根拠にしない。                                                                      |
-| automatic fallback prohibition                       | [Requirements CR-007 / CR-011 / CR-015 / CR-AC-015](../../requirements/requirements.md)、[Security Design §15 / §17](../../design/security-design.md)、[Signing Flow §21 / §23](../../design/signing-flow.md)                                                    | [SDK Requirements SDK-FR-009〜011 / SDK-SEC-006〜007](../../requirements/sdk.md)、[SDK Design §17 / §21〜§22](../../design/sdk.md)、[Signing Protocol §19](../../specifications/signing-protocol.md)、[Relay Design §29](../../design/relay.md)                                                                                                                                                    | §3、§7.3、§18、§21〜§23。security failure、rejection、unknown、delivery failure 後に SDK / Relay / Mobile 等へ確認境界を迂回する自動 fallback を許可しない。                          |
-| wallet-core raw signing / secret boundary            | [Requirements CR-008 / CR-013 / CR-NFR-004](../../requirements/requirements.md)、[Architecture §6.8〜§6.9](../../design/architecture.md)、[Security Design §5〜§6 / §12](../../design/security-design.md)                                                        | [wallet-core requirements §2](../../../_snwc/docs/requirements/requirements.md)、[wallet-core Specification §2 / §7 / §12〜§13](../../../_snwc/docs/specifications/specification.md)、[Binding decision](../../../_snwc/docs/decisions/binding-implementation.md)。wallet-core は Store / secret / cryptographic identity / raw signing owner、privileged host は gate / approval / caller owner。 | §5.3、§6、§13〜§15、§20〜§22。approved・revalidated input だけを渡し、wallet-core の password / Store validation / signing success を Browser-level gate の証明としない。             |
-| Mainnet gate                                         | [Browser Requirements BR-013](../../requirements/browser-extension.md)、[Requirements CR-NFR-006 / CR-AC-008](../../requirements/requirements.md)、[Security Design §16](../../design/security-design.md)、[Architecture §16〜§17](../../design/architecture.md) | [Mainnet Evidence Lite ADR 0001](../../adr/0001-mainnet-evidence-lite.md)、release evidence policy / operation。Release / evidence owner が gate を管理し、未達成・判定不能時は Mainnet capability を無効化する。                                                                                                                                                                                  | §9、§19、§22〜§23。Mainnet gate の存在と fail-closed を固定し、build-time / runtime の具体運用は下流へ委譲する。                                                                      |
-
-単なる資料リンク一覧ではなく、各行に責務または invariant、上位根拠、下流 contract / owner および Browser Design の適用箇所を対応付けている。これにより `DR-001`〜`DR-005` の再確認条件を、要求から downstream boundary へ直接追跡できる。
-
-## 12. Domain Checks
-
-| Check                                             | Result | Basis / regression assessment                                                                                                                                                                                                                                                                              |
-| ------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| System context / purpose / scope                  | Pass   | §1〜§3 が local Browser Signer の対象、Chrome 初回 milestone、Mobile / Relay / node announce の対象外および上位 Design の優先関係を明示する。                                                                                                                                                              |
-| Browser trust boundary / privileged Signer        | Pass   | Web App / dApp、Provider、Content Script を untrusted とし、Browser privileged layer を唯一の Signer-side orchestration owner、wallet-core を secret / raw signing owner とする。                                                                                                                          |
-| Caller / Origin authority                         | Pass   | Browser-observed sender、Origin、tab / frame / document が authority であり、dApp、SDK、Provider、Content Script metadata および自己申告を代替にしない。navigation / context loss で失効する。                                                                                                             |
-| Provider / Content Script / SDK non-authority     | Pass   | Provider / Content Script は transport / forwarding、SDK は transport-independent contract / correlation に限定され、4条件、inspection、approval、authentication、signing decision または secret を担わない。                                                                                              |
-| Common four-condition gate                        | Pass   | `Authentication`、`Signing-capable unlock`、Profile / Chain / Network / Account に対する `Account authorization`、`Explicit user approval` を独立必須とし、同一 binding、pre-sign revalidation、失効、unknown / locked 時の fail-closed を確認できる。問題なし。                                           |
-| Profile / Account authority                       | Pass   | Profile-local context、Profile Network、Application Account association / authorization と wallet-core cryptographic identity / Store を分離し、Profile / Account / Chain / Network change で旧 authorization を失効させる。                                                                               |
-| `MESSAGE_SIGN` / replay invariant                 | Pass   | Browser v1 の structured message capability、Signer inspection、同一 trusted model、domain / purpose / nonce / issued / expiry / freshness / replay binding、cross-Origin / cross-domain / cross-purpose 防止、expired / duplicate / replay 拒否、raw fallback 禁止および共通4条件を確認できる。問題なし。 |
-| Semantic / Chain / Network / Aggregate inspection | Pass   | Symbol / NEM と Mainnet / Testnet を分離し、transaction、message、Aggregate、cosignature、Partial の chain-specific inspection と unrenderable / unknown fail-closed を維持する。                                                                                                                          |
-| Success result binding                            | Pass   | original request、caller / Origin、tab / frame / document、signer、Profile、Account、Chain / Network、operation、exact target / digest、署名時点4条件および approval context が success 条件である。問題なし。                                                                                             |
-| `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`             | Pass   | signing outcome unknown と delivery-only unknown を分離し、navigation 後の旧 result を返さず、delivery failure を再署名根拠にしない。問題なし。                                                                                                                                                            |
-| Lifecycle / navigation / Service Worker           | Pass   | restart、reload、Service Worker regeneration、navigation、tab / frame / document change、context loss、lock、permission / Profile / Account change で旧 approval、auth、unlock、authorization を復元・継続しない。回帰なし。                                                                               |
-| Concurrent request isolation                      | Pass   | request identity、caller context、session、permission revision、Profile、Account、Chain / Network、operation、target、inspection、4条件、approval、result recipient を request ごとに分離し、batch / cross-request reuse を許可しない。回帰なし。                                                          |
-| Wallet-core / secret boundary                     | Pass   | wallet-core の Store、key lifecycle、secret processing、raw signing と host の caller / UI / approval / gate を分離し、secret を Web / Provider / Content Script / SDK / log / response へ出さない。責任逆流なし。                                                                                         |
-| Automatic fallback                                | Pass   | rejection、security failure、replay、unknown、delivery failure、Relay / external failure 後に別 transport、Provider、SDK、Mobile route へ自動 fallback しない。回帰なし。                                                                                                                                  |
-| Mainnet gate                                      | Pass   | release evidence / Mainnet gate の未達成・判定不能時に Mainnet signing capability を有効化しない。ADR 0001 と整合する。                                                                                                                                                                                    |
-| OPEN items                                        | Pass   | OPEN は exact API、field、wire、serialization、nonce、expiry、version negotiation、platform integration 等だけであり、`MESSAGE_SIGN` capability、4条件、replay invariant、result binding、fail-closed を未決へ戻していない。問題なし。                                                                     |
-| Design phase boundary                             | Pass   | API、schema、browser API、storage schema、concrete state machine、concurrency algorithm、cryptographic parameter および exact UI layout の不足を finding にしていない。                                                                                                                                    |
-
-## 13. Validation Results
-
-- `pnpm exec prettier --write docs/reviews/design/browser-extension-review-003.md` — PASS
-- `pnpm exec prettier --check docs/reviews/design/browser-extension-review-003.md` — PASS
-- `git diff --check` — PASS
-- Markdown local link validation — PASS。レビュー成果物から参照する対象 Design、前回 review、共通 Design、requirements、specifications、ADR、wallet-core、Skill / project context の local target を確認した。
-- Finding ID 重複確認 — PASS。正式 finding は `DR-001`〜`DR-005` の5件のみで、Finding Status と Resolved Findings の各宣言に重複する別 ID はない。
-- Review Gate と finding status の整合確認 — PASS。全 finding が `RESOLVED`、Required Changes はなし、8 Gate はすべて Pass、Review Result / Final Decision は `READY` で整合する。
-- 変更範囲確認 — PASS。レビュー成果物以外の設計本文、仕様、ADR、実装および既存 review は変更していない。
-
-Source code の変更はないため、lint、typecheck、test、build は実行対象外とした。
-
-## 14. Review Gates
-
-| Gate                             | Result | Evidence / blocking finding                                                                                                                                                                                     |
-| -------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Purpose and scope             | Pass   | §1〜§3 が Browser local Signer の目的、対象、対象外、前提を明示する。Blocking finding なし。                                                                                                                    |
-| 2. Context and responsibility    | Pass   | §5〜§6、§21 が外部主体、privileged host、trusted UI、chain integration、wallet-core、secret boundary および責務 owner を明示する。`DR-001` は Resolved。                                                        |
-| 3. Dependency direction          | Pass   | Provider / Content Script / SDK → privileged host → chain integration / trusted UI / wallet-core Binding の方向を維持し、Provider / SDK / wallet-core へ gate authority を逆流させない。Blocking finding なし。 |
-| 4. Major flows                   | Pass   | §7、§10〜§12、§15〜§18 が receive、validation、inspection、approval、4条件、pre-sign、signing、success / failure、restart、replay、delivery を確認可能にする。`DR-002`、`DR-003` は Resolved。                  |
-| 5. Data ownership                | Pass   | §9、§13〜§15、§20〜§21 が Profile / Account metadata、permission / session、transient request、Wallet Store、secret、result の owner と保持境界を分離する。Blocking finding なし。                              |
-| 6. Security and interoperability | Pass   | §5.5、§10.2、§16、§20 が Symbol / NEM、Mainnet / Testnet、semantic inspection、message replay、blind signing prohibition、4条件、wallet-core boundary を弱めない。`DR-001`、`DR-002`、`DR-004` は Resolved。    |
-| 7. Upstream consistency          | Pass   | Requirements、Architecture、Security Design、Signing Flow、Interfaces、Profile / Account、Chain Compatibility、wallet-core 契約および Mainnet ADR と重大な矛盾はない。`DR-004`、`DR-005` は Resolved。          |
-| 8. Downstream implementability   | Pass   | §22〜§24 が高位の責務 / invariant を固定し、API、wire、storage、crypto parameter 等を適切な downstream owner へ委譲する。`DR-005` は Resolved。                                                                 |
-
-Critical / Major の未解消 finding はなく、Review Gate は `READY` である。
-
-## 15. Remaining Risks and Open Decisions
-
-- `MESSAGE_SIGN` の exact API、field、wire representation、serialization、nonce format、expiry window、domain separator encoding および version negotiation は、§23 と下流 Specification の OPEN / 委譲範囲として残る。ただし capability の存在、structured inspection、message context、replay / cross-context replay 防止、共通4条件および raw / uninspectable fallback 禁止は確定済みである。
-- Browser API、Manifest、storage schema、concurrency algorithm、wallet-core host integration、具体的 UI、release evidence の運用実装および error mapping は下流で決定する。これらは Browser Design の security invariant と責任境界を弱めてはならない。
-- source code、runtime、E2E、Mainnet release evidence の実物検証は今回の設計レビュー範囲外である。実装・公開前には各下流 contract と release gate に従って別途検証する必要がある。
-- 新規 Critical / Major finding、重大な責務逆流、共通4条件 gate の欠落、`MESSAGE_SIGN` / replay invariant の欠落、success result binding の欠落、lifecycle / navigation・concurrent isolation・unknown result の回帰は確認されなかった。
-
-## 16. Automatic Changes
-
-なし。レビュー中に変更したのは新規レビュー成果物 [`docs/reviews/design/browser-extension-review-003.md`](./browser-extension-review-003.md) のみであり、Browser Design、要件、仕様、ADR、実装、テストおよび既存 review は変更していない。
-
-## 17. Final Decision
+## 4. レビュー結果
 
 `READY`
 
-`DR-001`〜`DR-005` はすべて `RESOLVED`、新規 Critical / Major finding はなく、重大な回帰も確認されなかった。Browser privileged layer の共通4条件 gate、structured `MESSAGE_SIGN` と replay invariant、success result binding、Provider / Content Script / SDK / wallet-core の責任分界、lifecycle / navigation、concurrent request isolation、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、automatic fallback prohibition および Mainnet gate は、現在の Browser Extension Design から上位根拠と下流 owner へ追跡できる。Browser Extension Design は、下位仕様・実装・検証へ進められる状態である。
+## 5. 要約
+
+現行のブラウザ拡張機能設計は、前回指摘された `DR-001`〜`DR-005` の再確認条件を、ブラウザ特権を持つ層の責務、主要フロー、セキュリティ上の不変条件、結果意味および §24 の追跡可能性へ反映している。`DR-001`〜`DR-005` はすべて `RESOLVED` であり、新規重大 / 主要指摘はない。
+
+- `DR-001: RESOLVED`。認証、署名可能な状態へのロック解除、対象プロファイル / チェーン / ネットワーク / アカウントに対するアカウントの利用認可、利用者による明示的な承認の4条件を独立した必須条件としてブラウザ特権を持つ層が成立・再確認・失効・結果帰属する。接続、許可、対応能力、セッション、通常の `UNLOCKED`、前回認証、アカウント選択、Provider / SDK 状態、dApp 自己申告、コンテンツスクリプトメタデータおよび wallet-core 処理結果は代替にならない。
+- `DR-002: RESOLVED`。ブラウザ v1 の `MESSAGE_SIGN` は構造化されたメッセージ操作として確定し、ブラウザで観測した呼び出し元 / オリジン、タブ / フレーム / 文書、プロファイル、アカウント、チェーン / ネットワーク、操作、ドメイン、目的、メッセージ内容、ノンス、発行された / 期限切れ、鮮度、リプレイ状態および共通4条件を同じ文脈に結び付ける。署名主体内容検査、同一信頼されたモデル、文脈間のリプレイ防止、生の / 内容検査できない代替経路禁止および署名前再検証がある。
+- `DR-003: RESOLVED`。成功は元の要求、呼び出し元 / オリジン、タブ / フレーム / 文書、署名主体、プロファイル、アカウント、チェーン / ネットワーク、操作、厳密な対象 / 信頼されたダイジェスト、署名時点の4条件および承認文脈を安全に確認できる場合だけ成立する。ページ遷移、文脈消失、古くなった、失効済み、ロック済み、不一致、不明は成功にせず、配送のみ失敗は再署名へ使わない。
+- `DR-004: RESOLVED`。`MESSAGE_SIGN` の提供、構造化された契約、message-specific 文脈 / リプレイ保護、共通4条件、信頼された UI / 内容検査および生の / 内容検査できない代替経路禁止は確定事項であり、§23 の未決は API・フィールド・通信上の・シリアライズ・ノンス・期限切れ等の統合詳細に限定されている。
+- `DR-005: RESOLVED`。§24 は呼び出し元の信頼性判断、Provider / コンテンツスクリプト判断権限を持たないこと、4条件判定条件、プロファイル / アカウント、メッセージ、チェーン / ネットワーク、アグリゲート / 連署署名、結果不明、代替経路、wallet-core 境界および Mainnet 判定条件を、上位根拠と下流契約 / 責任主体へ直接追跡できる責務表として記載している。
+
+回帰確認でも、Web アプリ / dApp の信頼されていない性、SDK の署名主体ではないこと性、Provider / コンテンツスクリプトの判断権限を持たないこと、信頼された UI、意味上の内容検査、プロファイル内の文脈、アプリケーションアカウントと wallet-core 識別情報の分離、サービスワーカー / ページ遷移の安全側での終了、並行する要求分離、リプレイ / 重複、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、自動代替経路禁止および Mainnet 判定条件の重大な破壊は確認されなかった。
+
+## 6. 指摘の状態
+
+| ID       | 重要度 | 状態       | 初出レビュー                   | 今回の状態根拠                                                                                                                                                                       |
+| -------- | ------ | ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DR-001` | 重大   | `RESOLVED` | `browser-extension-review-002` | §4、§5.3〜§5.4、§6〜§10、§12、§15、§20〜§21 が、4条件の独立性、ブラウザ特権を持つ層の唯一の責任主体、同一結び付け、署名前再確認、失効および安全側での終了を明示する。                |
+| `DR-002` | 重大   | `RESOLVED` | `browser-extension-review-002` | §2、§5.5〜§5.6、§10.2〜§10.3、§11、§20、§23 が `MESSAGE_SIGN`、構造化された内容検査、メッセージ文脈、リプレイ境界、同一信頼されたモデル、生の代替経路禁止および共通4条件を明示する。 |
+| `DR-003` | 主要   | `RESOLVED` | `browser-extension-review-002` | §7.3、§10.3、§12、§18、§20 が元の要求から署名時の文脈、厳密な対象、成功、ページ遷移、不明結果および配送のみ失敗の対応を明示する。                                                    |
+| `DR-004` | 主要   | `RESOLVED` | `browser-extension-review-002` | §2 と §23 が `MESSAGE_SIGN` の v1 対応能力 / 不変条件を確定し、未決を下位統合詳細へ限定する。                                                                                        |
+| `DR-005` | 軽微   | `RESOLVED` | `browser-extension-review-002` | §24 が要求された各責務について上位根拠、下流契約 / 責任主体および本文適用箇所を直接対応付ける。                                                                                      |
+
+## 7. 必須の修正
+
+なし。重大 / 主要の新規、未決または再発指摘はない。`DR-001`〜`DR-005` はすべて `RESOLVED` である。
+
+## 8. 任意の改善
+
+なし。今回の主目的に関係しない軽微 / 細部の新規探索は行わず、現在対応が必要な任意改善もない。
+
+## 9. 解消済みの指摘
+
+### DR-001: 解消済み — 共通署名ゲート4条件
+
+- 重要度: `Critical`
+- 対象: [`browser-extension.md`](../../design/browser-extension.md) §4、§5.3〜§5.4、§6〜§10、§12、§15、§20〜§21。
+- 発生条件または確認できた事実: §4、§5.3、§6、§7.2、§10.3、§12、§15 および §20 が、認証、署名可能な状態へのロック解除、対象プロファイル / チェーン / ネットワーク / アカウントに対するアカウントの利用認可、利用者による明示的な承認を独立した必須条件として同じ要求 / 呼び出し元 / プロファイル / アカウント / チェーン / ネットワーク / 操作 / 厳密な対象 / 鮮度文脈に結び付けしている。ブラウザ特権を持つ層が唯一の署名主体側の処理の調整責任主体とされ、4条件の署名前再検証、失効および成功結果への帰属も記載されている。
+- 既存の根拠: [アーキテクチャ §6.9](../../design/architecture.md)、[セキュリティ設計 §8](../../design/security-design.md)、[署名フロー §16](../../design/signing-flow.md)、[インターフェース §9](../../design/interfaces.md) および [ブラウザ拡張機能要件 BR-003〜BR-009](../../requirements/browser-extension.md)。
+- 問題・影響: 前回の不足は解消した。接続、許可、対応能力、セッション、通常の `UNLOCKED`、前回認証、アカウント選択、Provider / SDK 状態、dApp 自己申告、コンテンツスクリプトメタデータ、wallet-core パスワード / ストア検証および wallet-core 署名成功は、4条件またはブラウザレベルの成功の代替にならない。いずれかが失効、ロック済み、古くなった、不明または再確認不能なら安全側での終了となる。
+- 必要な最小修正または確認: 現在の本文で、特権を持つホストによる独立した4条件、同一結び付け、署名前の再確認、失効、結果結び付けおよび外部主体による迂回禁止が確認できるため、追加修正は不要。
+- 完了条件または再確認方法: §4、§5.3〜§5.4、§7.2〜§7.3、§10.3、§12、§15、§20〜§21を相互照合し、4条件の成立責任主体、署名前、成功、安全側での終了および非代替条件が一貫していることを確認した。`DR-001: RESOLVED`。
+
+### DR-002: 解消済み — 構造化された `MESSAGE_SIGN` とリプレイ境界
+
+- 重要度: `Critical`
+- 対象: [`browser-extension.md`](../../design/browser-extension.md) §2、§5.5〜§5.6、§10.2〜§10.3、§11、§20、§23。
+- 発生条件または確認できた事実: §2 がブラウザ v1 の `MESSAGE_SIGN` を構造化されたメッセージ契約に従う操作として確定し、§10.2 がブラウザで観測した呼び出し元 / オリジン、タブ / フレーム / 文書、プロファイル、アカウント、チェーン / ネットワーク、操作、ドメイン、目的、メッセージ内容、ノンス、発行された / 期限切れ、要求鮮度、リプレイ状態を同じメッセージ署名文脈として扱う。署名主体内容検査と同じ信頼された構造化されたメッセージモデルから UI と署名入力を導出し、期限切れ、重複、再送された、オリジン間の、ドメイン間の、目的間の、内容検査できない、解析失敗および不明メッセージを署名しない。
+- 既存の根拠: [共通の要件 CR-007-MSG](../../requirements/requirements.md)、[署名フロー §14](../../design/signing-flow.md)、[署名プロトコル §15](../../specifications/signing-protocol.md) および [ブラウザ拡張機能仕様 §16](../../specifications/browser-extension.md)。
+- 問題・影響: 前回の不足は解消した。メッセージを任意生のペイロードとして扱う余地、表示と署名入力の分離、文脈間のリプレイ、期限切れ・重複・リプレイの署名、生の / 内容検査できない代替経路の余地は現行本文に残っていない。`MESSAGE_SIGN` にも共通4条件、署名前再検証、結果との結び付けおよび安全側での終了が適用される。
+- 必要な最小修正または確認: 現在の構造化された契約、message-specific 文脈、同一内容検査モデル、リプレイ / ドメイン / 目的境界および生の代替経路禁止を確認した。ノンスの厳密な形式、シリアライズ、期限切れ秒数等の詳細は、本文が明示するとおり仕様への委譲であり、追加修正は不要。
+- 完了条件または再確認方法: §2、§10.2〜§10.3、§20、§23 と署名フロー / 署名プロトコルのメッセージ節を照合し、ブラウザ署名主体が構造化されたメッセージを内容検査し、同じモデルを UI / 署名入力 / 結果に使い、リプレイと生の代替経路を拒否することを確認した。`DR-002: RESOLVED`。
+
+### DR-003: 解消済み — 成功結果との結び付け
+
+- 重要度: `Major`
+- 対象: [`browser-extension.md`](../../design/browser-extension.md) §7.3、§10.3、§12、§18、§20。
+- 発生条件または確認できた事実: §7.3 と §12 が成功の条件として元の要求、ブラウザで観測した呼び出し元 / オリジン、タブ / フレーム / 文書、署名主体、プロファイル、アカウント、チェーン / ネットワーク、操作、厳密な署名対象 / 信頼されたダイジェスト、署名時点の認証、署名可能な状態へのロック解除、アカウントの利用認可、利用者による明示的な承認および承認文脈を同じ結び付けに要求する。§18 と §20 は文脈消失、古くなった、失効済み、ロック済み、不一致、不明を成功にせず、`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` を分離し、配送失敗を再署名の根拠にしない。
+- 既存の根拠: [署名フロー §20](../../design/signing-flow.md)、[インターフェース §6.4](../../design/interfaces.md)、[ブラウザ拡張機能要件 BR-007〜BR-008](../../requirements/browser-extension.md) および [署名プロトコル §16 / §19](../../specifications/signing-protocol.md)。
+- 問題・影響: 前回の不足は解消した。プロファイル切り替え、アカウント / 許可変更、ロック、ページ遷移、呼び出し元不一致、対象不一致、署名時の文脈不明または結果処理結果の区分不明を暗号学的な成功だけで成功へ昇格する余地はない。ページ遷移後の新文書に旧結果を返さず、配送のみ失敗後に再署名しない。
+- 必要な最小修正または確認: 現在の要求、署名主体、プロファイル、全4条件、承認文脈、対象および配送処理結果の区分の対応を確認した。具体応答スキーマや配送照会は下位仕様への委譲であり、追加修正は不要。
+- 完了条件または再確認方法: §7.3、§10.3、§12、§18、§20 と下流の結果契約を照合し、成功条件、失効時の成功を確定しない、文書結び付け、不明区分および no-resign が一意に追跡できることを確認した。`DR-003: RESOLVED`。
+
+### DR-004: 解消済み — `MESSAGE_SIGN` 対応能力の確定
+
+- 重要度: `Major`
+- 対象: [`browser-extension.md`](../../design/browser-extension.md) §2、§23。
+- 発生条件または確認できた事実: §2 はブラウザ v1 の `MESSAGE_SIGN` 提供、構造化されたメッセージ契約、任意の生バイト列署名なし、解析・表示不能メッセージの代替経路なしを適用範囲としている。§23 は `MESSAGE_SIGN` の対応能力自体を未決にせず、ブラウザ API、フィールド、通信上の表現、シリアライズ、ノンス形式、期限切れ window、バージョン協議等の統合詳細だけを未決としている。
+- 既存の根拠: [共通の要件 CR-007 / CR-007-MSG](../../requirements/requirements.md)、[署名フロー §14](../../design/signing-flow.md)、[ブラウザ拡張機能仕様 §16](../../specifications/browser-extension.md) および [署名プロトコル §15](../../specifications/signing-protocol.md)。
+- 問題・影響: 前回の対応能力の未決は解消した。実装者が `MESSAGE_SIGN` を v1 外、任意対応能力、トランザクション署名の生の代替経路または弱いリプレイ / 承認意味と解釈する余地はない。
+- 必要な最小修正または確認: §23 の未決が下位統合詳細だけに限定され、上位で確定した対応能力、セキュリティ上の不変条件、信頼された UI / 内容検査および共通4条件を戻していないことを確認した。追加修正は不要。
+- 完了条件または再確認方法: §2、§10.2〜§10.3、§20、§23 および下流メッセージ契約を照合し、対応能力の存在と実装詳細の未決が分離されていることを確認した。`DR-004: RESOLVED`。
+
+### DR-005: 解消済み — 追跡可能性の補強
+
+- 重要度: `Minor`
+- 対象: [`browser-extension.md`](../../design/browser-extension.md) §2、§22、§24。
+- 発生条件または確認できた事実: §24 の表は、呼び出し元 / オリジンの信頼性判断、Provider / コンテンツスクリプト判断権限を持たないこと、共通4条件判定条件、プロファイル / アカウントに関する判断権限と認可、構造化された `MESSAGE_SIGN`、チェーン / ネットワーク内容検査、アグリゲート / 連署署名内容検査、結果との結び付けと `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、ライフサイクル / 並行する分離、自動代替経路禁止、wallet-core 生の署名 / 秘密情報境界および Mainnet 判定条件について、上位 / 共通根拠、下流契約 / 責任主体および本文での適用箇所を直接対応付けている。
+- 既存の根拠: [アーキテクチャ §17.1](../../design/architecture.md)、[セキュリティ設計](../../design/security-design.md)、[署名フロー](../../design/signing-flow.md)、[インターフェース §14.1](../../design/interfaces.md) および各ブラウザ / SDK / プロトコル / プロファイル / チェーン / wallet-core 契約。
+- 問題・影響: 前回の直接追跡不足は解消した。各責務から上位根拠と下流責任主体へ進めるため、4条件、メッセージ、結果、wallet-core および Mainnet 判定条件の取りこぼしを、単なる資料リンク一覧ではなく責務・不変条件・責任主体・境界の対応として確認できる。
+- 必要な最小修正または確認: §24 の対応表を、ユーザー指定の責務一覧と下流資料へ照合した。API、DTO、通信上の、厳密なシリアライズの追加を要求せずに追跡可能性が成立しているため、追加修正は不要。
+- 完了条件または再確認方法: §24 の各行から、要件 / アーキテクチャ / セキュリティ / 署名フロー / インターフェース / SDK / ブラウザ仕様 / 署名プロトコル / 受け渡し / プロファイル / チェーン互換性 / wallet-core / Mainnet ADR の根拠と下流責任主体を確認した。`DR-005: RESOLVED`。
+
+## 10. 後続工程へ委譲する指摘
+
+正式な後続工程へ委譲指摘はない。以下は現行本文が基本方針と責任主体を固定したうえで、下位仕様、プラットフォームアダプター、wallet-core ホスト統合またはリリース操作へ委譲している事項であり、今回の不足指摘ではない。
+
+- ブラウザ API、マニフェスト、Provider API、RPC メソッド、JSON / DTO / 通信上のスキーマ、フィールド名、シリアライズ、バージョン管理、エラーコードおよび応答配送 / 取得契約。
+- オリジン正規化、フレーム / ページ遷移観測の具体方式、セッションレコード、許可リビジョンの形式、保存領域 API / スキーマ、キュー / 排他制御、タイムアウト、再試行、頻度上限および具体的な状態遷移。
+- `MESSAGE_SIGN` の厳密な API、フィールド、通信上の表現、シリアライズ、ノンス形式、期限切れ window、ドメイン区切り文字エンコーディングおよびバージョン協議。
+- Symbol / NEM のトランザクションスキーマ、対応済みの型 / バージョン、署名バイト列、アグリゲート / 連署署名 / 部分トランザクション / NEM マルチシグの具体エンコーディングと表示フィールド。
+- wallet-core バインディング DTO、ホストメモリの具体的なライフサイクル、ストア移行、具体エラー対応付けおよびブラウザホスト統合。
+- 信頼された UI の厳密な配置、文言、認証 UI、アクセシビリティ、ローカライズ、window / 側パネル、リリース証跡の具体 CI / 配布 / 実行環境埋め込み。
+
+これらの委譲は、`MESSAGE_SIGN` の提供、構造化された内容検査、共通4条件、結果との結び付け、リプレイ / 重複保護、安全側での終了、自動代替経路禁止、wallet-core 秘密情報 / 生の署名境界または Mainnet 判定条件を弱めてはならない。
+
+## 11. 対象範囲と追跡可能性
+
+| ブラウザの責務 / 不変条件                                       | 上位根拠                                                                                                                                                                                                                                            | 下流契約 / 責任主体                                                                                                                                                                                                                                                                                                                                                                   | 本書での適用・評価                                                                                                                                              |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 呼び出し元 / オリジンの信頼性判断                               | [ブラウザ要件 BR-003〜BR-004](../../requirements/browser-extension.md)、[アーキテクチャ §6.3](../../design/architecture.md)、[セキュリティ設計 §9](../../design/security-design.md)                                                                 | [ブラウザ拡張機能仕様 §6〜§7](../../specifications/browser-extension.md)、[SDK 要件 SDK-FR-005](../../requirements/sdk.md)、[Web 受け渡し §5〜§6](../../specifications/web-transaction-handoff-spec.md)、最終責任主体はブラウザで観測した文脈を検証する特権を持つホスト                                                                                                               | §5.1〜§5.3、§7、§20〜§21。ブラウザが観測した呼び出し元 / オリジンを判断権限とし、ページ / SDK / Provider / コンテンツスクリプトの自己申告を昇格させない。       |
+| Provider / コンテンツスクリプト判断権限を持たないこと           | [アーキテクチャ §6.2〜§6.3](../../design/architecture.md)、[インターフェース §4.1 / §7](../../design/interfaces.md)、[ブラウザ要件 BR-006](../../requirements/browser-extension.md)                                                                 | [ブラウザ拡張機能仕様 §4 / §6](../../specifications/browser-extension.md)、[SDK 設計 §4 / §6〜§8](../../design/sdk.md)                                                                                                                                                                                                                                                                | §5.1〜§5.3、§21。Provider / コンテンツスクリプトは通信経路 / forwarding のみで、呼び出し元の信頼性判断、内容検査、4条件、承認、署名判断を持たない。             |
+| 共通4条件判定条件                                               | [要件 CR-016 / CR-AC-017](../../requirements/requirements.md)、[アーキテクチャ §6.9](../../design/architecture.md)、[セキュリティ設計 §8](../../design/security-design.md)、[署名フロー §8 / §16 / §23](../../design/signing-flow.md)               | [ブラウザ拡張機能仕様 §9 / §11 / §17〜§18](../../specifications/browser-extension.md)、[署名プロトコル §8](../../specifications/signing-protocol.md)、[プロファイル / アカウント仕様 §20](../../specifications/profile-account-spec.md)。責任主体はブラウザ特権を持つ層。                                                                                                             | §4〜§6、§8〜§12、§15、§20〜§21。4条件を独立必須とし、署名前、失効、成功文脈、外部主体の非代替を固定している。                                                   |
+| プロファイル / アカウントに関する判断権限とアカウントの利用認可 | [要件 CR-005 / CR-009 / CR-013 / CR-016](../../requirements/requirements.md)、[アーキテクチャ §6.6 / §6.8〜§6.9](../../design/architecture.md)、[インターフェース §6](../../design/interfaces.md)                                                   | [プロファイル / アカウント仕様 §2 / §12 / §20 / §26](../../specifications/profile-account-spec.md)、[ブラウザ拡張機能仕様 §9〜§10](../../specifications/browser-extension.md)、wallet-core は暗号学的な識別情報 / ストア / 生の署名責任主体                                                                                                                                           | §5.4、§7〜§10、§15、§20〜§21。アプリケーションアカウントに関する判断権限と wallet-core 識別情報を分離し、特権を持つホストがアカウントの利用認可を独立確認する。 |
+| 構造化された `MESSAGE_SIGN`                                     | [要件 CR-007-MSG / CR-AC-006](../../requirements/requirements.md)、[セキュリティ設計 §8.3](../../design/security-design.md)、[署名フロー §14 / §16 / §23](../../design/signing-flow.md)                                                             | [ブラウザ拡張機能仕様 §16](../../specifications/browser-extension.md)、[署名プロトコル §15 / §20](../../specifications/signing-protocol.md)、[Web 受け渡し §2 / §5](../../specifications/web-transaction-handoff-spec.md)、[チェーン互換性 §6.3](../../specifications/chain-compatibility-spec.md)。責任主体はブラウザ署名主体 / チェーン固有の内容検査。                             | §2、§10〜§12、§20、§23。メッセージ文脈、同一信頼されたモデル、リプレイ境界、4条件、署名前、結果および生の代替経路禁止を適用する。                               |
+| チェーン / ネットワーク内容検査                                 | [要件 CR-005 / CR-NFR-005](../../requirements/requirements.md)、[ブラウザ要件 BR-005](../../requirements/browser-extension.md)、[アーキテクチャ §6.7](../../design/architecture.md)                                                                 | [チェーン互換性仕様 §3〜§6](../../specifications/chain-compatibility-spec.md)、[ブラウザ拡張機能仕様 §10〜§15](../../specifications/browser-extension.md)、責任主体はチェーン固有の統合、判定条件 / ライフサイクルは特権を持つホスト                                                                                                                                                  | §5.5、§9〜§11、§16、§20〜§21。Symbol / NEM、Mainnet / Testnet、トランザクション / メッセージの意味を混同せず、解析・表示不能を安全側での終了とする。            |
+| アグリゲート / 連署署名内容検査                                 | [ブラウザ要件 BR-005](../../requirements/browser-extension.md)、[署名フロー §10〜§13](../../design/signing-flow.md)、[セキュリティ設計 §8](../../design/security-design.md)                                                                         | [チェーン互換性 §4](../../specifications/chain-compatibility-spec.md)、[署名プロトコル §11〜§14](../../specifications/signing-protocol.md)、[ブラウザ拡張機能仕様 §15](../../specifications/browser-extension.md)                                                                                                                                                                     | §10.2、§16、§20。親 / 埋め込み / 内部 / 既存の署名 / 期待される署名主体 / 役割の全体内容検査を要求し、ハッシュのみ、外部照会または表示不能の対象を署名しない。  |
+| 結果との結び付け                                                | [要件 CR-006 / CR-NFR-012 / CR-AC-004](../../requirements/requirements.md)、[署名フロー §20](../../design/signing-flow.md)、[インターフェース §6.4 / §9〜§10](../../design/interfaces.md)                                                           | [ブラウザ拡張機能仕様 §22](../../specifications/browser-extension.md)、[インターフェース仕様 §10](../../specifications/interfaces.md)、[Web 受け渡し §7 / §10](../../specifications/web-transaction-handoff-spec.md)。署名時文脈責任主体は特権を持つホスト。                                                                                                                          | §7.3、§10.2〜§10.3、§12、§18、§20〜§22。元の要求から対象、署名主体、プロファイル、4条件、承認文脈および受信者まで対応付ける。                                   |
+| `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`                           | [署名フロー §7.4 / §20.3](../../design/signing-flow.md)、[インターフェース §6.4](../../design/interfaces.md)、[セキュリティ設計 §15](../../design/security-design.md)                                                                               | [署名プロトコル §16 / §19](../../specifications/signing-protocol.md)、[Web 受け渡し §7 / §10](../../specifications/web-transaction-handoff-spec.md)。既存結果の再送 / 取得のみ下流で定義する。                                                                                                                                                                                        | §12、§18、§20。署名生成自体の不明と確定済み結果の配送不明を分離し、配送失敗を再署名の根拠にしない。                                                             |
+| 自動代替経路禁止                                                | [要件 CR-007 / CR-011 / CR-015 / CR-AC-015](../../requirements/requirements.md)、[セキュリティ設計 §15 / §17](../../design/security-design.md)、[署名フロー §21 / §23](../../design/signing-flow.md)                                                | [SDK 要件 SDK-FR-009〜011 / SDK-SEC-006〜007](../../requirements/sdk.md)、[SDK 設計 §17 / §21〜§22](../../design/sdk.md)、[署名プロトコル §19](../../specifications/signing-protocol.md)、[Relay 設計 §29](../../design/relay.md)                                                                                                                                                     | §3、§7.3、§18、§21〜§23。セキュリティ失敗、拒否、不明、配送失敗後に SDK / Relay / モバイル等へ確認境界を迂回する自動代替経路を許可しない。                      |
+| wallet-core 生の署名 / 秘密情報境界                             | [要件 CR-008 / CR-013 / CR-NFR-004](../../requirements/requirements.md)、[アーキテクチャ §6.8〜§6.9](../../design/architecture.md)、[セキュリティ設計 §5〜§6 / §12](../../design/security-design.md)                                                | [wallet-core 要件 §2](../../../_snwc/docs/requirements/requirements.md)、[wallet-core 仕様 §2 / §7 / §12〜§13](../../../_snwc/docs/specifications/specification.md)、[バインディング判断](../../../_snwc/docs/decisions/binding-implementation.md)。wallet-core はストア / 秘密情報 / 暗号学的な識別情報 / 生の署名責任主体、特権を持つホストは判定条件 / 承認 / 呼び出し元責任主体。 | §5.3、§6、§13〜§15、§20〜§22。承認済み・revalidated 入力だけを渡し、wallet-core のパスワード / ストア検証 / 署名成功をブラウザレベルの判定条件の証明としない。  |
+| Mainnet 判定条件                                                | [ブラウザ要件 BR-013](../../requirements/browser-extension.md)、[要件 CR-NFR-006 / CR-AC-008](../../requirements/requirements.md)、[セキュリティ設計 §16](../../design/security-design.md)、[アーキテクチャ §16〜§17](../../design/architecture.md) | [Mainnet 根拠 Lite ADR 0001](../../adr/0001-mainnet-evidence-lite.md)、リリース証跡ポリシー / 操作。リリース / 根拠責任主体が判定条件を管理し、未達成・判定不能時は Mainnet 対応能力を無効化する。                                                                                                                                                                                    | §9、§19、§22〜§23。Mainnet 判定条件の存在と安全側での終了を固定し、ビルド時の / 実行環境の具体運用は下流へ委譲する。                                            |
+
+単なる資料リンク一覧ではなく、各行に責務または不変条件、上位根拠、下流契約 / 責任主体およびブラウザ設計の適用箇所を対応付けている。これにより `DR-001`〜`DR-005` の再確認条件を、要求から下流境界へ直接追跡できる。
+
+## 12. ドメイン別の確認
+
+| 確認                                                         | 結果 | 根拠 / 回帰評価                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------ | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| システム文脈 / 目的 / 対象範囲                               | 合格 | §1〜§3 がローカルブラウザ署名主体の対象、Chrome 初回マイルストーン、モバイル / Relay / ノードアナウンスの対象外および上位設計の優先関係を明示する。                                                                                                                                                   |
+| ブラウザ信頼境界 / 特権を持つ署名主体                        | 合格 | Web アプリ / dApp、Provider、コンテンツスクリプトを信頼されていないとし、ブラウザ特権を持つ層を唯一の署名主体側の処理の調整責任主体、wallet-core を秘密情報 / 生の署名責任主体とする。                                                                                                                |
+| 呼び出し元 / オリジンの信頼性判断                            | 合格 | ブラウザで観測した送信者、オリジン、タブ / フレーム / 文書が判断権限であり、dApp、SDK、Provider、コンテンツスクリプトメタデータおよび自己申告を代替にしない。ページ遷移 / 文脈消失で失効する。                                                                                                        |
+| Provider / コンテンツスクリプト / SDK 判断権限を持たないこと | 合格 | Provider / コンテンツスクリプトは通信経路 / forwarding、SDK は通信方式に依存しない契約 / 対応付けに限定され、4条件、内容検査、承認、認証、署名判断または秘密情報を担わない。                                                                                                                          |
+| 共通の四条件判定条件                                         | 合格 | `Authentication`、`Signing-capable unlock`、プロファイル / チェーン / ネットワーク / アカウントに対する `Account authorization`、`Explicit user approval` を独立必須とし、同一結び付け、署名前再検証、失効、不明 / ロック済み時の安全側での終了を確認できる。問題なし。                               |
+| プロファイル / アカウントに関する判断権限                    | 合格 | プロファイル内の文脈、プロファイルネットワーク、アプリケーションアカウント関連付け / 認可と wallet-core 暗号学的な識別情報 / ストアを分離し、プロファイル / アカウント / チェーン / ネットワーク変更で旧認可を失効させる。                                                                            |
+| `MESSAGE_SIGN` / リプレイ不変条件                            | 合格 | ブラウザ v1 の構造化されたメッセージ対応能力、署名主体内容検査、同一信頼されたモデル、ドメイン / 目的 / ノンス / 発行された / 期限切れ / 鮮度 / リプレイ結び付け、オリジン間の / ドメイン間の / 目的間の防止、期限切れ / 重複 / リプレイ拒否、生の代替経路禁止および共通4条件を確認できる。問題なし。 |
+| 意味上の / チェーン / ネットワーク / アグリゲート内容検査    | 合格 | Symbol / NEM と Mainnet / Testnet を分離し、トランザクション、メッセージ、アグリゲート、連署署名、部分トランザクションのチェーン固有の内容検査と表示不能の / 不明安全側での終了を維持する。                                                                                                           |
+| 成功結果との結び付け                                         | 合格 | 元の要求、呼び出し元 / オリジン、タブ / フレーム / 文書、署名主体、プロファイル、アカウント、チェーン / ネットワーク、操作、厳密な対象 / ダイジェスト、署名時点4条件および承認文脈が成功条件である。問題なし。                                                                                        |
+| `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`                        | 合格 | 署名結果不明と配送のみ不明を分離し、ページ遷移後の旧結果を返さず、配送失敗を再署名根拠にしない。問題なし。                                                                                                                                                                                            |
+| ライフサイクル / ページ遷移 / サービスワーカー               | 合格 | 再起動、再読み込み、サービスワーカー regeneration、ページ遷移、タブ / フレーム / 文書変更、文脈消失、ロック、許可 / プロファイル / アカウント変更で旧承認、認証、ロック解除、認可を復元・継続しない。回帰なし。                                                                                       |
+| 並行する要求分離                                             | 合格 | 要求識別情報、呼び出し元文脈、セッション、許可リビジョン、プロファイル、アカウント、チェーン / ネットワーク、操作、対象、内容検査、4条件、承認、結果受信者を要求ごとに分離し、一括処理 / 要求間の再利用を許可しない。回帰なし。                                                                       |
+| Wallet-core / 秘密情報境界                                   | 合格 | wallet-core のストア、鍵ライフサイクル、秘密情報処理、生の署名とホストの呼び出し元 / UI / 承認 / 判定条件を分離し、秘密情報を Web / Provider / コンテンツスクリプト / SDK / ログ / 応答へ出さない。責任逆流なし。                                                                                     |
+| 自動代替経路                                                 | 合格 | 拒否、セキュリティ失敗、リプレイ、不明、配送失敗、Relay / 外部失敗後に別通信経路、Provider、SDK、モバイル経路へ自動代替経路しない。回帰なし。                                                                                                                                                         |
+| Mainnet 判定条件                                             | 合格 | リリース証跡 / Mainnet 判定条件の未達成・判定不能時に Mainnet 署名対応能力を有効化しない。ADR 0001 と整合する。                                                                                                                                                                                       |
+| 未決項目                                                     | 合格 | 未決は厳密な API、フィールド、通信上の、シリアライズ、ノンス、期限切れ、バージョン協議、プラットフォーム統合等だけであり、`MESSAGE_SIGN` 対応能力、4条件、リプレイ不変条件、結果との結び付け、安全側での終了を未決へ戻していない。問題なし。                                                          |
+| 設計工程境界                                                 | 合格 | API、スキーマ、ブラウザ API、保存領域スキーマ、具体的な状態遷移、並行処理アルゴリズム、暗号学的なパラメーターおよび厳密な UI 配置の不足を指摘にしていない。                                                                                                                                           |
+
+## 13. 検証結果
+
+- `pnpm exec prettier --write docs/reviews/design/browser-extension-review-003.md` — 合格
+- `pnpm exec prettier --check docs/reviews/design/browser-extension-review-003.md` — 合格
+- `git diff --check` — 合格
+- Markdown ローカルリンク検証 — 合格。レビュー成果物から参照する対象設計、前回レビュー、共通設計、要件、仕様書、ADR、wallet-core、スキル / プロジェクト文脈のローカル対象を確認した。
+- 指摘 ID 重複確認 — 合格。正式指摘は `DR-001`〜`DR-005` の5件のみで、指摘の状態と解消済みの指摘の各宣言に重複する別 ID はない。
+- レビュー判定条件と指摘の状態の整合確認 — 合格。全指摘が `RESOLVED`、必須の修正はなし、8 判定条件はすべて合格、レビュー結果 / 最終判断は `READY` で整合する。
+- 変更範囲確認 — 合格。レビュー成果物以外の設計本文、仕様、ADR、実装および既存レビューは変更していない。
+
+送信元コードの変更はないため、lint、typecheck、テスト、ビルドは実行対象外とした。
+
+## 14. レビュー判定基準
+
+| 判定条件                    | 結果 | 根拠 / 判定を妨げる指摘                                                                                                                                                                                                   |
+| --------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. 目的と対象範囲           | 合格 | §1〜§3 がブラウザローカル署名主体の目的、対象、対象外、前提を明示する。判定を妨げる指摘なし。                                                                                                                             |
+| 2. 文脈と責務               | 合格 | §5〜§6、§21 が外部主体、特権を持つホスト、信頼された UI、チェーン統合、wallet-core、秘密情報境界および責務責任主体を明示する。`DR-001` は解消済み。                                                                       |
+| 3. 依存関係方向             | 合格 | Provider / コンテンツスクリプト / SDK → 特権を持つホスト → チェーン統合 / 信頼された UI / wallet-core バインディングの方向を維持し、Provider / SDK / wallet-core へ判定条件判断権限を逆流させない。判定を妨げる指摘なし。 |
+| 4. 主要フロー               | 合格 | §7、§10〜§12、§15〜§18 が receive、検証、内容検査、承認、4条件、署名前、署名、成功 / 失敗、再起動、リプレイ、配送を確認可能にする。`DR-002`、`DR-003` は解消済み。                                                        |
+| 5. データ所有責任           | 合格 | §9、§13〜§15、§20〜§21 がプロファイル / アカウントメタデータ、許可 / セッション、一時的な要求、ウォレットストア、秘密情報、結果の責任主体と保持境界を分離する。判定を妨げる指摘なし。                                     |
+| 6. セキュリティと相互運用性 | 合格 | §5.5、§10.2、§16、§20 が Symbol / NEM、Mainnet / Testnet、意味上の内容検査、メッセージリプレイ、内容を確認しない署名禁止、4条件、wallet-core 境界を弱めない。`DR-001`、`DR-002`、`DR-004` は解消済み。                    |
+| 7. 上流整合性               | 合格 | 要件、アーキテクチャ、セキュリティ設計、署名フロー、インターフェース、プロファイル / アカウント、チェーン互換性、wallet-core 契約および Mainnet ADR と重大な矛盾はない。`DR-004`、`DR-005` は解消済み。                   |
+| 8. 下流実装可能性           | 合格 | §22〜§24 が高位の責務 / 不変条件を固定し、API、通信上の、保存領域、暗号処理パラメーター等を適切な下流責任主体へ委譲する。`DR-005` は解消済み。                                                                            |
+
+重大 / 主要の未解消指摘はなく、レビュー判定条件は `READY` である。
+
+## 15. 残存リスクと未決定事項
+
+- `MESSAGE_SIGN` の厳密な API、フィールド、通信上の表現、シリアライズ、ノンス形式、期限切れ window、ドメイン区切り文字エンコーディングおよびバージョン協議は、§23 と下流仕様の未決 / 委譲範囲として残る。ただし対応能力の存在、構造化された内容検査、メッセージ文脈、リプレイ / 文脈間のリプレイ防止、共通4条件および生の / 内容検査できない代替経路禁止は確定済みである。
+- ブラウザ API、マニフェスト、保存領域スキーマ、並行処理アルゴリズム、wallet-core ホスト統合、具体的 UI、リリース証跡の運用実装およびエラー対応付けは下流で決定する。これらはブラウザ設計のセキュリティ上の不変条件と責任境界を弱めてはならない。
+- 送信元コード、実行環境、E2E、Mainnet リリース証跡の実物検証は今回の設計レビュー範囲外である。実装・公開前には各下流契約とリリース判定に従って別途検証する必要がある。
+- 新規重大 / 主要指摘、重大な責務逆流、共通4条件判定条件の欠落、`MESSAGE_SIGN` / リプレイ不変条件の欠落、成功結果との結び付けの欠落、ライフサイクル / ページ遷移・並行する分離・不明結果の回帰は確認されなかった。
+
+## 16. 自動変更
+
+なし。レビュー中に変更したのは新規レビュー成果物 [`docs/reviews/design/browser-extension-review-003.md`](./browser-extension-review-003.md) のみであり、ブラウザ設計、要件、仕様、ADR、実装、テストおよび既存レビューは変更していない。
+
+## 17. 最終判断
+
+`READY`
+
+`DR-001`〜`DR-005` はすべて `RESOLVED`、新規重大 / 主要指摘はなく、重大な回帰も確認されなかった。ブラウザ特権を持つ層の共通4条件判定条件、構造化された `MESSAGE_SIGN` とリプレイ不変条件、成功結果との結び付け、Provider / コンテンツスクリプト / SDK / wallet-core の責任分界、ライフサイクル / ページ遷移、並行する要求分離、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、自動代替経路禁止および Mainnet 判定条件は、現在のブラウザ拡張機能設計から上位根拠と下流責任主体へ追跡できる。ブラウザ拡張機能設計は、下位仕様・実装・検証へ進められる状態である。

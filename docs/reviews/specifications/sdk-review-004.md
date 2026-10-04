@@ -1,15 +1,15 @@
-# MosaicLynx SDK Specification 再レビュー
+# MosaicLynx SDK 仕様再レビュー
 
-## 1. Review Target
+## 1. レビュー対象
 
-| 項目          | 内容                                                                                     |
-| ------------- | ---------------------------------------------------------------------------------------- |
-| 対象          | [`docs/specifications/sdk.md`](../../specifications/sdk.md)                              |
-| 対象 revision | `3f577523cfc79f198c721b76688a2b8367bb6cda`                                               |
-| 実施日        | 2026-08-28                                                                               |
-| レビュー種別  | 最新 `spec-review` Skill による独立再レビュー                                            |
-| 今回の焦点    | 前回の `SR-001`（Mainnet release / evidence gate）修正確認と、現行仕様全文の回帰レビュー |
-| 成果物        | `docs/reviews/specifications/sdk-review-004.md`                                          |
+| 項目           | 内容                                                                                     |
+| -------------- | ---------------------------------------------------------------------------------------- |
+| 対象           | [`docs/specifications/sdk.md`](../../specifications/sdk.md)                              |
+| 対象リビジョン | `3f577523cfc79f198c721b76688a2b8367bb6cda`                                               |
+| 実施日         | 2026-08-28                                                                               |
+| レビュー種別   | 最新 `spec-review` スキルによる独立再レビュー                                            |
+| 今回の焦点     | 前回の `SR-001`（Mainnet リリース / 根拠判定条件）修正確認と、現行仕様全文の回帰レビュー |
+| 成果物         | `docs/reviews/specifications/sdk-review-004.md`                                          |
 
 前回レビュー成果物はステータスと履歴の確認に限って参照した。
 
@@ -17,29 +17,29 @@
 - [`sdk-review-002.md`](./sdk-review-002.md)
 - [`sdk-review-003.md`](./sdk-review-003.md)
 
-レビュー中に変更したのは本成果物だけであり、対象仕様、Requirements、Design、関連 Specification、ADR、source、test、README、過去レビューは変更していない。
+レビュー中に変更したのは本成果物だけであり、対象仕様、要件、設計、関連仕様、ADR、送信元、テスト、README、過去レビューは変更していない。
 
-## 2. Execution Audit
+## 2. 実行記録
 
-現行の以下を全文確認し、Phase 0〜3 を実施した。
+現行の以下を全文確認し、工程 0〜3 を実施した。
 
-- Phase 0: 対象 revision、要求された上流・関連文書、過去 finding、既存 OPEN、変更制約を確認。
-- Phase 1 Reviewer A: public API、型、Promise、mapping、authority、実装可能性を独立確認。
-- Phase 1 Reviewer B: Requirements / Design traceability、責務、Mainnet gate、Testnet 継続、release 境界を独立確認。
-- Phase 1 Reviewer C: trust boundary、four conditions、unknown、fallback、retry、secret、Relay、相互運用性を独立確認。
-- Phase 2: A/B/C の観点を突合し、修正が新たな矛盾を導入していないか反証確認。
-- Phase 3: Review Gate、finding status、required change、final decision、validation の整合を確認。
+- 工程 0: 対象リビジョン、要求された上流・関連文書、過去指摘、既存未決、変更制約を確認。
+- 工程 1 レビュアー A: 公開 API、型、保証、対応付け、判断権限、実装可能性を独立確認。
+- 工程 1 レビュアー B: 要件 / 設計追跡可能性、責務、Mainnet 判定条件、Testnet 継続、リリース境界を独立確認。
+- 工程 1 レビュアー C: 信頼境界、四つの条件、不明、代替経路、再試行、秘密情報、Relay、相互運用性を独立確認。
+- 工程 2: A/B/C の観点を突合し、修正が新たな矛盾を導入していないか反証確認。
+- 工程 3: レビュー判定条件、指摘の状態、必須変更、最終判断、検証の整合を確認。
 
-| 観点                                       | 結果                                                                                                                    |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| Reviewer A — Contract                      | `MosaicLynxSigningResult<T>`、Handoff mapping、Mainnet gate の public semantics は一貫している。                        |
-| Reviewer B — Requirements / Responsibility | `CR-NFR-006`、`CR-AC-008`、SDK Requirements、release/evidence authority との責務分離は追跡可能である。                  |
-| Reviewer C — Safety / Interoperability     | Signer authority、fail-closed、transport 分離、no automatic re-sign / fallback、local / remote 同値性は維持されている。 |
-| Chair — Integrated result                  | 新規 Critical / Major / Minor finding なし。`SDK-001` と `SR-001` は現行本文で Resolved。                               |
+| 観点                               | 結果                                                                                                                  |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| レビュアー A — 契約                | `MosaicLynxSigningResult<T>`、受け渡し対応付け、Mainnet 判定条件の公開意味は一貫している。                            |
+| レビュアー B — 要件 / 責務         | `CR-NFR-006`、`CR-AC-008`、SDK 要件、release/evidence 判断権限との責務分離は追跡可能である。                          |
+| レビュアー C — 安全性 / 相互運用性 | 署名主体判断権限、安全側での終了、通信経路分離、no 自動再署名 / 代替経路、ローカル / リモート同値性は維持されている。 |
+| レビュー統括 — Integrated 結果     | 新規重大 / 主要 / 軽微指摘なし。`SDK-001` と `SR-001` は現行本文で解消済み。                                          |
 
-## 3. Evidence Used
+## 3. 参照した根拠
 
-### Skill / repository instructions
+### スキル / リポジトリ作業規則
 
 - [`.agents/skills/spec-review/SKILL.md`](../../../.agents/skills/spec-review/SKILL.md)
 - [`.agents/skills/spec-review/reviewers.md`](../../../.agents/skills/spec-review/reviewers.md)
@@ -50,208 +50,208 @@
 - [`.agents/project-context.md`](../../../.agents/project-context.md)
 - [`AGENTS.md`](../../../AGENTS.md)
 
-### Requirements / Design
+### 要件 / 設計
 
 - [`docs/requirements/requirements.md`](../../requirements/requirements.md): `CR-015`、`CR-016`、`CR-NFR-006`、`CR-AC-008`。
-- [`docs/requirements/sdk.md`](../../requirements/sdk.md): `SDK-NFR-004`、`SDK-AC-010`、`SDK-PLAT-001〜005` と SDK の責務・error model。
-- [`docs/requirements/browser-extension.md`](../../requirements/browser-extension.md)、[`mobile-app.md`](../../requirements/mobile-app.md)、[`relay.md`](../../requirements/relay.md): downstream / transport 境界。
-- [`docs/design/architecture.md`](../../design/architecture.md)、[`sdk.md`](../../design/sdk.md)、[`interfaces.md`](../../design/interfaces.md)、[`signing-flow.md`](../../design/signing-flow.md)、[`security-design.md`](../../design/security-design.md): 責務、Signer trust boundary、release/evidence ownership、failure / fallback 方針。
+- [`docs/requirements/sdk.md`](../../requirements/sdk.md): `SDK-NFR-004`、`SDK-AC-010`、`SDK-PLAT-001〜005` と SDK の責務・エラーモデル。
+- [`docs/requirements/browser-extension.md`](../../requirements/browser-extension.md)、[`mobile-app.md`](../../requirements/mobile-app.md)、[`relay.md`](../../requirements/relay.md): 下流 / 通信経路境界。
+- [`docs/design/architecture.md`](../../design/architecture.md)、[`sdk.md`](../../design/sdk.md)、[`interfaces.md`](../../design/interfaces.md)、[`signing-flow.md`](../../design/signing-flow.md)、[`security-design.md`](../../design/security-design.md): 責務、署名主体信頼境界、release/evidence 所有責任、失敗 / 代替経路方針。
 
-### Related Specifications
+### 関連する仕様書
 
 - [`docs/specifications/interfaces.md`](../../specifications/interfaces.md)、特に §7.4、§9.7、§10.3、§13.1、§16、§17。
 - [`docs/specifications/signing-protocol.md`](../../specifications/signing-protocol.md)、特に §21.1。
 - [`docs/specifications/web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md)、特に §5〜§7、§10。
 - [`docs/specifications/chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md)、[`profile-account-spec.md`](../../specifications/profile-account-spec.md)、[`product-spec.md`](../../specifications/product-spec.md)。
-- Browser Extension / Relay Specification: local Provider の downstream contract と Relay の opaque 境界を確認。
+- ブラウザ拡張機能 / Relay 仕様: ローカル Provider の下流契約と Relay の内容を解釈しない境界を確認。
 
-レビュー成果物を製品要求や Specification の normative authority として使用していない。
+レビュー成果物を製品要求や仕様の規範の正本として使用していない。
 
-## 4. Review Result
-
-`READY`
-
-現行 `sdk.md` は、前回の Critical finding `SR-001` を解消し、上流 Requirements / Design / Interfaces / Signing Protocol / Handoff と整合している。現行の actionable な `New` / `Open` / `Reopened` finding はない。
-
-| Severity | New / Open / Reopened | Resolved history |
-| -------- | --------------------: | ---------------: |
-| Critical |                     0 |                2 |
-| Major    |                     0 |                0 |
-| Minor    |                     0 |                0 |
-
-## 5. Summary
-
-`§3`、`§6.5`、`§9.4`、`§13.1〜13.3`、`§15〜17`、`§19 Case A/B`、`§20` が、Mainnet signing capability を current release と適用中の release / evidence policy を満たす trusted Signer / release security authority の責務として明示している。SDK は evidence evaluator、gate authority、Mainnet capability の独自認定主体ではなく、route availability、Provider discovery / capability、connection、permission、Account disclosure、Relay / App Link、version、test、signed response、transport success から Mainnet signing を推測・昇格・有効化しない。
-
-gate が missing、invalid、expired、inconsistent、unverifiable、unknown の場合も、SDK は fail-closed にし、trusted Signer / release authority の既存 unavailable / disabled / unsupported / rejected の意味を保持する。`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、transport failure、success への誤変換、automatic fallback、automatic re-sign はない。Testnet-only の安全な継続も明記され、Case A / B と traceability が追加されている。
-
-従来の SDK の non-Signer 境界、four conditions の Signer authority、`MosaicLynxSigningResult<T>`、local / remote semantic equivalence、Relay ACK と Signer-side delivery disposition の分離、公開 Account 境界、Origin、correlation、lifecycle、error authority に回帰はない。
-
-## 6. Finding Status
-
-| Finding   | Severity               | Status     | 判定根拠                                                                                                                                                                          |
-| --------- | ---------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SDK-001` | Critical（旧レビュー） | `Resolved` | `isAvailable()` は current route availability として Handoff の local Provider route または Mobile Relay route を扱い、connection / permission / signing success と分離している。 |
-| `SR-001`  | Critical               | `Resolved` | Mainnet release / evidence gate、authority、fail-closed、result / error semantics、retry / fallback 禁止、Case A/B、traceability が現行本文に反映されている。                     |
-
-今回の新規 finding はない。過去 finding の ID は変更していない。
-
-## 7. Required Changes
-
-なし。現行の Critical / Major `New`、`Open`、`Reopened` はなく、Specification の修正を要求する事項はない。
-
-## 8. Optional Improvements
-
-なし。Minor の actionable finding はない。
-
-## 9. Resolved Findings
-
-### `SDK-001` — Resolved
-
-過去の問題は、Provider が存在しない場合の `isAvailable()` と Mobile Relay route availability の整合が不明確だったことである。現行 `sdk.md` §6.2 は、`isAvailable()` を Handoff §5.3 / §6 の route availability とし、compatible local Provider route または mobile relay route が利用可能なら Provider の不在だけで `false` にしない。両 route が利用不能なら `false` とする。また、incompatible / malformed Provider を trusted route とせず、Mobile route への security failure の silent fallback も行わない。
-
-現行 §5.3、§6.2、§6.5、§15、§19 は、availability が connected、permission granted、Account authorized、authenticated、unlocked、approved、Mainnet signing enabled、signing succeeds、Mobile App installed の確定を意味しないと明記する。従って、local Provider route と Mobile Relay route の current availability contract は維持され、同じ問題の再発はない。
-
-### `SR-001` — Resolved
-
-前回は SDK の public contract に Mainnet release / evidence gate の authority と non-substitution rule が不足していた。現行本文を直接再確認した結果、次を満たす。
-
-1. §3、§6.5、§13.1、§16、§17 は、current release と適用中 policy を満たす trusted Signer / release security authority だけが Mainnet capability を有効化でき、SDK は authority / evaluator ではないと定める。
-2. §5.3、§6.5、§9.4、§13.1、§16 は、`isAvailable()`、route、discovery、capability、version、connection、permission、Account disclosure、Relay、App Link、Mobile App、wallet-core、test、signed response、transport success を Mainnet gate の代替にしない。`route available ≠ Mainnet signing enabled` は一意である。
-3. §6.5、§13.3、§16、§19 Case A/B は、gate の missing / invalid / expired / inconsistent / unverifiable / unknown で SDK が Mainnet success を推測・昇格・有効化しない fail-closed 契約を定める。
-4. §5.4、§6.5、§9.4、§13.3 は、trusted Signer の unavailable / disabled / unsupported / rejected 等を意味保持し、success、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、transport failure に変換せず、SDK 独自 Mainnet error taxonomy も追加しない。
-5. §12.3、§15、§16、§19 は、gate failure / unknown を理由とする automatic re-sign、local ↔ remote、Provider A ↔ B、Signer A ↔ B の fallback を禁止する。
-6. §6.5、§15、§19 Case A は、Mainnet gate の不達成で Testnet-only の安全な利用まで不必要に unavailable にしない。
-7. §19 Case A / Case B は、route / dependency success と Mainnet gate failure / unknown の分離を実装・contract test で検証可能な観測結果として定める。
-8. §20 は `CR-NFR-006`、`CR-AC-008`、`SDK-NFR-004`、`SDK-AC-010`、`SDK-PLAT-001〜005`、Interfaces §7.4、Signing Protocol §21.1 への traceability を示す。
-
-以上により `SR-001` は `Resolved` とする。evidence evaluator の実装、trusted key format、SBOM、rollout 等は Specification phase boundary に従い、SDK の不足として要求していない。
-
-## 10. Deferred Findings
-
-現行 SDK 仕様の formal deferred finding はない。
-
-ただし、次の事項は本文で安全制約を維持したまま OPEN とされており、今回のレビューで勝手に確定されていない。
-
-- `OPEN-SDK-001`: multiple Provider selection。
-- `OPEN-SDK-002`: capability / version negotiation の詳細。
-- `OPEN-SDK-003`: cancellation / timeout / transport failure の追加詳細。
-- `OPEN-SDK-004`: cosignature public scope。
-- `OPEN-SDK-005`: runtime / caller binding / release compatibility の具体的 matrix。
-- message expiry の `messageExpiresAt` と structured message `expiresAt` の未決定事項。
-
-Browser Extension / Provider 側に旧 Provider result shape、旧 error code、selector / internal Account ID が残る場合は、SDK / Handoff common contract が明確な限り downstream Browser Extension / Provider synchronization issue である。SDK の finding へ逆流させない。現在ワークスペースに Mobile 実装がないこと、release evidence evaluator や実機経路の実行未確認も、仕様上の blocking finding とはしていない。
-
-## 11. Scope and Traceability
-
-**Cross-document Consistency**
-
-| 上流 / 関連項目                                  | 現行 SDK の反映                                                                    | 判定 |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------- | ---- |
-| `CR-NFR-006`、`CR-AC-008`                        | §3、§6.5、§13.1〜13.3、§15〜17、§19 Case A/B                                       | Pass |
-| `SDK-NFR-004`、`SDK-AC-010`、`SDK-PLAT-001〜005` | §3、§6.2〜6.5、§13、§15〜19、§20                                                   | Pass |
-| Interfaces §7.4                                  | Mainnet gate authority、non-substitution、fail-closed、Testnet 継続                | Pass |
-| Signing Protocol §21.1                           | Signer / release authority、既存 failure semantics、no downgrade                   | Pass |
-| Handoff §5〜§7、§10                              | public API、route availability、result union、disposition、error mapping           | Pass |
-| Profile / Security Design                        | Profile-local context、four conditions、Public / Internal Account、secret boundary | Pass |
-
-要求された上流の normative authority と、現行 `sdk.md` の外部可視契約の間に blocking contradiction はない。
-
-**Scope / Responsibility**
-
-SDK の責務は request construction、Provider discovery、compatibility check、dispatch、correlation、transport abstraction、response validation、public result mapping、local lifecycle、public error normalization に限定される。Authentication、signing-capable unlock、Account authorization、explicit user approval、semantic signing decision、trusted confirmation、final target validation、signing generation、result disposition decision、secret handling、Mainnet evidence evaluation は SDK の authority ではない。
-
-**Specification phase boundary**
-
-internal class、source layout、browser / Mobile OS API、Redis / DB schema、queue / mutex、exact retry / timeout、UI、crypto implementation、wallet-core API、evidence evaluator algorithm、trusted key / SBOM format、rollout / rollback を不足として要求していない。一方、外部可視の API、Promise、mapping、authority、error、lifecycle、retry / fallback prohibition、public / internal boundary は現行本文で検証可能である。
-
-## 12. Domain Checks
-
-**Regression Review**
-
-| 確認項目                                                                              | 判定                                                                                                                                                                                                  |
-| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SDK non-Signer / non-privileged integration layer                                     | Pass。§1〜§3、§17 で authority を持たない。                                                                                                                                                           |
-| Authentication、signing-capable unlock、Account authorization、explicit user approval | Pass。4 条件は trusted Signer の authority であり、SDK / Relay / route から推測しない。                                                                                                               |
-| Profile-local security context                                                        | Pass。connection、permission、Account、request context、fresh operation を混同しない。                                                                                                                |
-| Mainnet gate authority                                                                | Pass。trusted Signer と current release / evidence policy が authority。SDK は evaluator ではない。                                                                                                   |
-| availability / capability 分離                                                        | Pass。route available は Mainnet signing enabled を意味しない。                                                                                                                                       |
-| Mainnet fail-closed / Testnet-only 継続                                               | Pass。gate の不確実性で Mainnet を推測せず、Testnet-only を不必要に止めない。                                                                                                                         |
-| Public API                                                                            | Pass。`isAvailable()`、`connect()`、`isConnected()`、`getActiveAccount()`、`refreshActiveAccount()`、`disconnect()`、`signTransaction()`、`signData()`、`cosignTransaction()` は Handoff と一致する。 |
-| `MosaicLynxSigningResult<T>`                                                          | Pass。transaction、message、Signer-originated disposition、`resultUnknown` の union が一貫する。                                                                                                      |
-| Promise resolve / reject                                                              | Pass。known result は succeeded resolve、Signer-originated `RESULT_UNKNOWN` は `resultUnknown` resolve、通常 failure は Handoff §10 reject。                                                          |
-| Handoff → SDK mapping                                                                 | Pass。signed transaction / data、result unknown、rejected / failed が一意に対応する。                                                                                                                 |
-| `RESULT_UNKNOWN` authority                                                            | Pass。trusted Signer-originated value のみ受け付け、SDK timeout / transport / lifecycle から生成しない。                                                                                              |
-| `DELIVERY_UNKNOWN` authority                                                          | Pass。known signed result と Signer-side delivery uncertainty のみで、SDK transport failure から生成しない。                                                                                          |
-| `PENDING` / `DELIVERED` と Relay ACK                                                  | Pass。SDK は disposition を変更せず、Relay ACK / consumed state と分離する。                                                                                                                          |
-| local / remote semantic equivalence                                                   | Pass。同じ public result / error semantics で、adapter は Signer-originated shape の変換に限定される。                                                                                                |
-| connection / permission / Account disclosure                                          | Pass。`connect()` success は signing approval、authentication、unlock、authorization ではない。                                                                                                       |
-| Public / Internal Account boundary                                                    | Pass。profileId、internal accountId、Wallet Store ID、key slot、secret-derived identifier を public Account として公開しない。                                                                        |
-| Origin authority                                                                      | Pass。SDK は caller-originated context を構築・伝達するが、最終 Origin verification authority ではない。                                                                                              |
-| request / response correlation                                                        | Pass。requestId、operation、Scope、Account、Signer、target / digest、session / generation、stale / duplicate を検証する。                                                                             |
-| concurrent request isolation                                                          | Pass。invocation ごとの logical request、identity、context、result、error、session、Account を共有しない。                                                                                            |
-| timeout / cancellation                                                                | Pass。SDK lifecycle failure と Signer outcome を分離し、未署名や unknown を推測しない。                                                                                                               |
-| transport failure                                                                     | Pass。Relay / Provider / page lifecycle / network failure を signing outcome に変換しない。                                                                                                           |
-| known-result recovery                                                                 | Pass。resend / retrieval / lookup と new signing / re-sign を分離する。                                                                                                                               |
-| automatic re-sign / route fallback                                                    | Pass。failure、unknown、gate failure、rejection のいずれからも automatic retry / fallback しない。                                                                                                    |
-| Handoff §10 error authority                                                           | Pass。SDK 独自 taxonomy や旧 Provider code を public authority として再導入しない。                                                                                                                   |
-| secret boundary / diagnostics                                                         | Pass。private key、Mnemonic、seed、password、Wallet Store、raw secret、session secret 等を SDK public surface / log / error に出さない。                                                              |
-| Relay opaque boundary                                                                 | Pass。Relay status、HTTP success、ACK を Signer / signing authority としない。                                                                                                                        |
-| Provider discovery / compatibility                                                    | Pass。malformed、fake、conflicting、incompatible、unsupported Provider を trusted Signer として使用しない。                                                                                           |
-| version / capability                                                                  | Pass。authorization、approval、Mainnet evidence gate の代替にせず、未決 negotiation を勝手に閉じない。                                                                                                |
-| Existing OPEN                                                                         | Pass。`OPEN-SDK-001〜005` 等を残し、安全制約だけを確定している。                                                                                                                                      |
-
-**Mainnet acceptance cases**
-
-| Case                                              | 期待結果                                                                                                                                                                                | 判定                     |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| Case A — route available、Mainnet gate 未達成     | route / `isAvailable()` は Mainnet enabled を意味せず、Signer の unavailable / disabled / existing rejection を保持。fallback、re-sign、unknown 変換をしない。Testnet-only は継続可能。 | Pass。§6.5、§9.4、§19。  |
-| Case B — dependency success、Mainnet gate unknown | SDK は Mainnet capability を推測・有効化せず fail-closed。Signer / release authority の既存意味を保持し、fallback、re-sign、独自 taxonomy を追加しない。                                | Pass。§6.5、§13.3、§19。 |
-
-## 13. Validation Results
-
-| 検証                                                                                         | 結果                                                                                                                   |
-| -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `pnpm exec prettier --check docs/specifications/sdk.md`                                      | Pass。                                                                                                                 |
-| 新規 review artifact の Prettier check                                                       | 作成後に実行し Pass。                                                                                                  |
-| `git diff --check`                                                                           | Pass。                                                                                                                 |
-| Markdown local link / path                                                                   | Pass。対象および成果物から参照する local path の存在を確認した。                                                       |
-| `sdk.md` Markdown table 構造                                                                 | Pass。全 table の列数を確認し、§13.1 は 2 列、§17 は 3 列で各行が一貫している。                                        |
-| TypeScript code block syntax                                                                 | Pass。対象の TypeScript fence を Prettier TypeScript parser で確認した。                                               |
-| public method return type / Promise semantics                                                | Pass。§5.1〜5.4 と Handoff の mapping を照合した。                                                                     |
-| `SR-001` required change 各項目                                                              | Pass。authority、代替禁止、fail-closed、result/error、retry/fallback、Testnet、Case A/B、traceability を確認した。     |
-| `SDK-001` regression                                                                         | Pass。local Provider route、Mobile Relay route、Handoff availability、Provider unavailable / incompatible を確認した。 |
-| finding ID / status、Review Gate / Final Decision                                            | Pass。`SDK-001` / `SR-001` を既存 ID のまま Resolved とし、Gate と READY を整合させた。                                |
-| source build / runtime / Provider E2E / Relay E2E / Mobile 実機 / release evidence evaluator | Not validated。今回の Specification Review の必須実行範囲外。                                                          |
-
-## 14. Review Gates
-
-| Gate                               | 判定 | 根拠                                                                                                    |
-| ---------------------------------- | ---- | ------------------------------------------------------------------------------------------------------- |
-| Gate 1 — Purpose / Scope           | Pass | SDK の non-Signer integration scope と out-of-scope が明確。                                            |
-| Gate 2 — Contract                  | Pass | Handoff API、result union、disposition、Mainnet authority、public boundary が明確。                     |
-| Gate 3 — Processing / Exceptions   | Pass | response mapping、error authority、unknown、timeout、cancellation、transport、retry / fallback が明確。 |
-| Gate 4 — Internal Consistency      | Pass | local / remote、Mainnet gate、Relay ACK、§13.1 table、OPEN と確定事項の間に矛盾なし。                   |
-| Gate 5 — Verifiability             | Pass | Case A / B、traceability、correlation、fail-closed、public type を contract test で検証可能。           |
-| Gate 6 — Safety / Interoperability | Pass | four conditions、Signer trust、secret / Relay boundary、no re-sign / fallback、Testnet 継続を保護。     |
-| Gate 7 — Upstream Alignment        | Pass | Requirements、Design、Interfaces §7.4、Signing Protocol §21.1、Handoff と blocking contradiction なし。 |
-
-全 Review Gate が Pass であり、Critical / Major の未解消 finding はない。
-
-## 15. Remaining Risks and Open Decisions
-
-- `OPEN-SDK-001〜005`、message expiry 表現などの既存 OPEN は残っている。これらは現行本文が安全制約と未決境界を明示しているため、今回の READY を阻害しない。
-- Browser Extension / Provider の旧 result / error / Account selector 契約が実装・下流仕様に残る可能性がある。これは downstream synchronization の owner であり、SDK contract の finding ではない。
-- release evidence evaluator、trusted key、build embedding、Mobile route、Provider / Relay / 実機 runtime の実行結果は今回検証していない。これらは別の implementation / release / downstream review の証跡で確認する。
-
-現行 SDK Specification に対する残存 blocking risk はない。
-
-## 16. Automatic Changes
-
-レビュー中の自動修正は行っていない。変更は新規 review artifact の作成だけであり、対象 Specification と関連文書は未変更である。
-
-## 17. Final Decision
+## 4. レビュー結果
 
 `READY`
 
-`SR-001` は、Mainnet release / evidence gate の authority、availability / capability との分離、fail-closed、Signer-originated result / error semantics、retry / fallback 禁止、Testnet-only 継続、Case A/B、traceability の追加によって `Resolved` と判定する。`SDK-001` も `Resolved` を維持する。その他の blocking finding はなく、現行 `sdk.md` は Specification Review の Review Gate を満たしている。
+現行 `sdk.md` は、前回の重大指摘 `SR-001` を解消し、上流要件 / 設計 / インターフェース / 署名プロトコル / 受け渡しと整合している。現行の actionable な `New` / `Open` / `Reopened` 指摘はない。
+
+| 重要度 | 新規 / 未決 / 再発 | 解消済み履歴 |
+| ------ | -----------------: | -----------: |
+| 重大   |                  0 |            2 |
+| 主要   |                  0 |            0 |
+| 軽微   |                  0 |            0 |
+
+## 5. 要約
+
+`§3`、`§6.5`、`§9.4`、`§13.1〜13.3`、`§15〜17`、`§19 Case A/B`、`§20` が、Mainnet 署名対応能力を現在のリリースと適用中のリリース / 根拠ポリシーを満たす信頼された署名主体 / リリースセキュリティ判断権限の責務として明示している。SDK は根拠評価器、判定条件判断権限、Mainnet 対応能力の独自認定主体ではなく、経路利用可能性、Provider 検出 / 対応能力、接続、許可、アカウント情報公開、Relay / App Link、バージョン、テスト、署名済み応答、通信経路成功から Mainnet 署名を推測・昇格・有効化しない。
+
+判定条件が欠落、無効な、期限切れ、不整合の、検証不能の、不明の場合も、SDK は安全側での終了にし、信頼された署名主体 / リリース判断権限の既存利用不能 / 無効 / 未対応の / 拒否済みの意味を保持する。`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、通信経路失敗、成功への誤変換、自動代替経路、自動再署名はない。Testnet 専用の安全な継続も明記され、事例 A / B と追跡可能性が追加されている。
+
+従来の SDK の署名主体ではないこと境界、四つの条件の署名主体判断権限、`MosaicLynxSigningResult<T>`、ローカル / リモート意味上の equivalence、Relay 受領確認と署名主体側の配送処理結果の区分の分離、公開アカウント境界、オリジン、対応付け、ライフサイクル、エラー定義の正本に回帰はない。
+
+## 6. 指摘の状態
+
+| 指摘      | 重要度             | 状態       | 判定根拠                                                                                                                                              |
+| --------- | ------------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SDK-001` | 重大（旧レビュー） | `Resolved` | `isAvailable()` は現在の経路利用可能性として受け渡しのローカル Provider 経路またはモバイル Relay 経路を扱い、接続 / 許可 / 署名成功と分離している。   |
+| `SR-001`  | 重大               | `Resolved` | Mainnet リリース / 根拠判定条件、判断権限、安全側での終了、結果 / エラー意味、再試行 / 代替経路禁止、事例 A/B、追跡可能性が現行本文に反映されている。 |
+
+今回の新規指摘はない。過去指摘の ID は変更していない。
+
+## 7. 必須の修正
+
+なし。現行の重大 / 主要 `New`、`Open`、`Reopened` はなく、仕様の修正を要求する事項はない。
+
+## 8. 任意の改善
+
+なし。軽微の actionable 指摘はない。
+
+## 9. 解消済みの指摘
+
+### `SDK-001` — 解消済み
+
+過去の問題は、Provider が存在しない場合の `isAvailable()` とモバイル Relay 経路利用可能性の整合が不明確だったことである。現行 `sdk.md` §6.2 は、`isAvailable()` を受け渡し §5.3 / §6 の経路利用可能性とし、互換性のあるローカル Provider 経路またはモバイル relay 経路が利用可能なら Provider の不在だけで `false` にしない。両経路が利用不能なら `false` とする。また、互換性のない / 不正な形式の Provider を信頼された経路とせず、モバイル経路へのセキュリティ失敗の利用者に知らせない代替経路も行わない。
+
+現行 §5.3、§6.2、§6.5、§15、§19 は、利用可能性が接続済み、許可 granted、アカウント認可済みの、認証済みの、ロック解除済み、承認済み、Mainnet 署名有効、署名 succeeds、モバイルアプリインストール済みの確定を意味しないと明記する。従って、ローカル Provider 経路とモバイル Relay 経路の現在の利用可能性契約は維持され、同じ問題の再発はない。
+
+### `SR-001` — 解消済み
+
+前回は SDK の公開契約に Mainnet リリース / 根拠判定条件の判断権限と代替しないこと規則が不足していた。現行本文を直接再確認した結果、次を満たす。
+
+1. §3、§6.5、§13.1、§16、§17 は、現在のリリースと適用中ポリシーを満たす信頼された署名主体 / リリースセキュリティ判断権限だけが Mainnet 対応能力を有効化でき、SDK は判断権限 / 評価器ではないと定める。
+2. §5.3、§6.5、§9.4、§13.1、§16 は、`isAvailable()`、経路、検出、対応能力、バージョン、接続、許可、アカウント情報公開、Relay、App Link、モバイルアプリ、wallet-core、テスト、署名済み応答、通信経路成功を Mainnet 判定条件の代替にしない。`route available ≠ Mainnet signing enabled` は一意である。
+3. §6.5、§13.3、§16、§19 事例 A/B は、判定条件の欠落 / 無効な / 期限切れ / 不整合の / 検証不能の / 不明で SDK が Mainnet 成功を推測・昇格・有効化しない安全側での終了契約を定める。
+4. §5.4、§6.5、§9.4、§13.3 は、信頼された署名主体の利用不能 / 無効 / 未対応の / 拒否済み等を意味保持し、成功、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、通信経路失敗に変換せず、SDK 独自 Mainnet エラー分類体系も追加しない。
+5. §12.3、§15、§16、§19 は、判定条件失敗 / 不明を理由とする自動再署名、ローカル ↔ リモート、Provider A ↔ B、署名主体 A ↔ B の代替経路を禁止する。
+6. §6.5、§15、§19 事例 A は、Mainnet 判定条件の不達成で Testnet 専用の安全な利用まで不必要に利用不能にしない。
+7. §19 事例 A / 事例 B は、経路 / 依存関係成功と Mainnet 判定条件失敗 / 不明の分離を実装・契約テストで検証可能な観測結果として定める。
+8. §20 は `CR-NFR-006`、`CR-AC-008`、`SDK-NFR-004`、`SDK-AC-010`、`SDK-PLAT-001〜005`、インターフェース §7.4、署名プロトコル §21.1 への追跡可能性を示す。
+
+以上により `SR-001` は `Resolved` とする。根拠評価器の実装、信頼された鍵形式、SBOM、展開等は仕様工程境界に従い、SDK の不足として要求していない。
+
+## 10. 後続工程へ委譲する指摘
+
+現行 SDK 仕様の正式な後続工程へ委譲指摘はない。
+
+ただし、次の事項は本文で安全制約を維持したまま未決とされており、今回のレビューで勝手に確定されていない。
+
+- `OPEN-SDK-001`: 複数の Provider 選択。
+- `OPEN-SDK-002`: 対応能力 / バージョン協議の詳細。
+- `OPEN-SDK-003`: キャンセル / タイムアウト / 通信経路失敗の追加詳細。
+- `OPEN-SDK-004`: 連署署名公開対象範囲。
+- `OPEN-SDK-005`: 実行環境 / 呼び出し元結び付け / リリース互換性の具体的対応表。
+- メッセージ期限切れの `messageExpiresAt` と構造化されたメッセージ `expiresAt` の未決定事項。
+
+ブラウザ拡張機能 / Provider 側に旧 Provider 結果構造、旧エラーコード、選択子 / 内部アカウント ID が残る場合は、SDK / 受け渡し共通の契約が明確な限り下流ブラウザ拡張機能 / Provider 同期課題である。SDK の指摘へ逆流させない。現在ワークスペースにモバイル実装がないこと、リリース証跡評価器や実機経路の実行未確認も、仕様上の判定を妨げる指摘とはしていない。
+
+## 11. 対象範囲と追跡可能性
+
+**文書間の整合性**
+
+| 上流 / 関連項目                                  | 現行 SDK の反映                                                        | 判定 |
+| ------------------------------------------------ | ---------------------------------------------------------------------- | ---- |
+| `CR-NFR-006`、`CR-AC-008`                        | §3、§6.5、§13.1〜13.3、§15〜17、§19 事例 A/B                           | 合格 |
+| `SDK-NFR-004`、`SDK-AC-010`、`SDK-PLAT-001〜005` | §3、§6.2〜6.5、§13、§15〜19、§20                                       | 合格 |
+| インターフェース §7.4                            | Mainnet 判定条件判断権限、代替しないこと、安全側での終了、Testnet 継続 | 合格 |
+| 署名プロトコル §21.1                             | 署名主体 / リリース判断権限、既存失敗意味、no 格下げ                   | 合格 |
+| 受け渡し §5〜§7、§10                             | 公開 API、経路利用可能性、結果共用体、処理結果の区分、エラー対応付け   | 合格 |
+| プロファイル / セキュリティ設計                  | プロファイル内の文脈、四つの条件、公開 / 内部アカウント、秘密情報境界  | 合格 |
+
+要求された上流の規範の正本と、現行 `sdk.md` の外部可視契約の間に判定を妨げる矛盾はない。
+
+**対象範囲 / 責務**
+
+SDK の責務は要求組み立て、Provider 検出、互換性確認、振り分け、対応付け、通信経路抽象化、応答検証、公開結果対応付け、ローカルライフサイクル、公開エラー正規化に限定される。認証、署名可能な状態へのロック解除、アカウントの利用認可、利用者による明示的な承認、意味上の署名判断、信頼された確認、最終対象検証、署名生成、結果処理結果の区分判断、秘密情報処理、Mainnet 根拠 evaluation は SDK の判断権限ではない。
+
+**仕様工程境界**
+
+内部クラス、送信元配置、ブラウザ / モバイル OS API、Redis / DB スキーマ、キュー / 排他制御、厳密な再試行 / タイムアウト、UI、暗号処理実装、wallet-core API、根拠評価器アルゴリズム、信頼された鍵 / SBOM 形式、展開 / ロールバックを不足として要求していない。一方、外部可視の API、保証、対応付け、判断権限、エラー、ライフサイクル、再試行 / 代替経路禁止、公開 / 内部境界は現行本文で検証可能である。
+
+## 12. ドメイン別の確認
+
+**回帰レビュー**
+
+| 確認項目                                                                           | 判定                                                                                                                                                                                                 |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SDK 署名主体ではないこと / non-privileged 統合層                                   | 合格。§1〜§3、§17 で判断権限を持たない。                                                                                                                                                             |
+| 認証、署名可能な状態へのロック解除、アカウントの利用認可、利用者による明示的な承認 | 合格。4 条件は信頼された署名主体の判断権限であり、SDK / Relay / 経路から推測しない。                                                                                                                 |
+| プロファイル内のセキュリティ文脈                                                   | 合格。接続、許可、アカウント、要求文脈、新鮮な操作を混同しない。                                                                                                                                     |
+| Mainnet 判定条件判断権限                                                           | 合格。信頼された署名主体と現在のリリース / 根拠ポリシーが判断権限。SDK は評価器ではない。                                                                                                            |
+| 利用可能性 / 対応能力分離                                                          | 合格。経路利用可能は Mainnet 署名有効を意味しない。                                                                                                                                                  |
+| Mainnet 安全側での終了 / Testnet 専用継続                                          | 合格。判定条件の不確実性で Mainnet を推測せず、Testnet 専用を不必要に止めない。                                                                                                                      |
+| 公開 API                                                                           | 合格。`isAvailable()`、`connect()`、`isConnected()`、`getActiveAccount()`、`refreshActiveAccount()`、`disconnect()`、`signTransaction()`、`signData()`、`cosignTransaction()` は受け渡しと一致する。 |
+| `MosaicLynxSigningResult<T>`                                                       | 合格。トランザクション、メッセージ、署名主体が生成した処理結果の区分、`resultUnknown` の共用体が一貫する。                                                                                           |
+| 保証解決 / 拒否                                                                    | 合格。既知の結果は成功解決、署名主体が生成した `RESULT_UNKNOWN` は `resultUnknown` 解決、通常失敗は受け渡し §10 拒否。                                                                               |
+| 受け渡し → SDK 対応付け                                                            | 合格。署名済みトランザクション / データ、結果不明、拒否済み / 失敗が一意に対応する。                                                                                                                 |
+| `RESULT_UNKNOWN` 判断権限                                                          | 合格。信頼された署名主体が生成した値のみ受け付け、SDK タイムアウト / 通信経路 / ライフサイクルから生成しない。                                                                                       |
+| `DELIVERY_UNKNOWN` 判断権限                                                        | 合格。既知の署名済み結果と署名主体側の配送不確実性のみで、SDK 通信経路失敗から生成しない。                                                                                                           |
+| `PENDING` / `DELIVERED` と Relay 受領確認                                          | 合格。SDK は処理結果の区分を変更せず、Relay 受領確認 / 消費済み状態と分離する。                                                                                                                      |
+| ローカル / リモート意味上の equivalence                                            | 合格。同じ公開結果 / エラー意味で、アダプターは署名主体が生成した構造の変換に限定される。                                                                                                            |
+| 接続 / 許可 / アカウント情報公開                                                   | 合格。`connect()` 成功は署名承認、認証、ロック解除、認可ではない。                                                                                                                                   |
+| 公開 / 内部アカウント境界                                                          | 合格。profileId、内部 accountId、ウォレットストア ID、鍵枠、secret-derived 識別子を公開アカウントとして公開しない。                                                                                  |
+| オリジンの信頼性判断                                                               | 合格。SDK は caller-originated 文脈を構築・伝達するが、最終オリジン検証判断権限ではない。                                                                                                            |
+| 要求 / 応答対応付け                                                                | 合格。requestId、操作、対象範囲、アカウント、署名主体、対象 / ダイジェスト、セッション / 世代、古くなった / 重複を検証する。                                                                         |
+| 並行する要求分離                                                                   | 合格。呼び出しごとの論理的な要求、識別情報、文脈、結果、エラー、セッション、アカウントを共有しない。                                                                                                 |
+| タイムアウト / キャンセル                                                          | 合格。SDK ライフサイクル失敗と署名主体結果を分離し、未署名や不明を推測しない。                                                                                                                       |
+| 通信経路失敗                                                                       | 合格。Relay / Provider / ページライフサイクル / ネットワーク失敗を署名結果に変換しない。                                                                                                             |
+| 確定済みの結果復旧                                                                 | 合格。再送 / 取得 / 照会と新規署名 / 再署名を分離する。                                                                                                                                              |
+| 自動再署名 / 経路代替経路                                                          | 合格。失敗、不明、判定条件失敗、拒否のいずれからも自動再試行 / 代替経路しない。                                                                                                                      |
+| 受け渡し §10 エラー定義の正本                                                      | 合格。SDK 独自分類体系や旧 Provider コードを公開判断権限として再導入しない。                                                                                                                         |
+| 秘密情報境界 / 診断情報                                                            | 合格。秘密鍵、ニーモニック、シード、パスワード、ウォレットストア、生の秘密情報、セッション秘密情報等を SDK 公開接点 / ログ / エラーに出さない。                                                      |
+| Relay 内容を解釈しない境界                                                         | 合格。Relay 状態、HTTP 成功、受領確認を署名主体 / 署名判断権限としない。                                                                                                                             |
+| Provider 検出 / 互換性                                                             | 合格。不正な形式の、偽の、競合する、互換性のない、未対応の Provider を信頼された署名主体として使用しない。                                                                                           |
+| バージョン / 対応能力                                                              | 合格。認可、承認、Mainnet 根拠判定条件の代替にせず、未決協議を勝手に閉じない。                                                                                                                       |
+| 既存の未決                                                                         | 合格。`OPEN-SDK-001〜005` 等を残し、安全制約だけを確定している。                                                                                                                                     |
+
+**Mainnet 受け入れ cases**
+
+| 事例                                          | 期待結果                                                                                                                                                     | 判定                     |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
+| 事例 A — 経路利用可能、Mainnet 判定条件未達成 | 経路 / `isAvailable()` は Mainnet 有効を意味せず、署名主体の利用不能 / 無効 / 既存の拒否を保持。代替経路、再署名、不明変換をしない。Testnet 専用は継続可能。 | 合格。§6.5、§9.4、§19。  |
+| 事例 B — 依存関係成功、Mainnet 判定条件不明   | SDK は Mainnet 対応能力を推測・有効化せず安全側での終了。署名主体 / リリース判断権限の既存意味を保持し、代替経路、再署名、独自分類体系を追加しない。         | 合格。§6.5、§13.3、§19。 |
+
+## 13. 検証結果
+
+| 検証                                                                                   | 結果                                                                                                                |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `pnpm exec prettier --check docs/specifications/sdk.md`                                | 合格。                                                                                                              |
+| 新規レビュー成果物の Prettier 確認                                                     | 作成後に実行し合格。                                                                                                |
+| `git diff --check`                                                                     | 合格。                                                                                                              |
+| Markdown ローカルリンク / パス                                                         | 合格。対象および成果物から参照するローカルパスの存在を確認した。                                                    |
+| `sdk.md` Markdown 表構造                                                               | 合格。全表の列数を確認し、§13.1 は 2 列、§17 は 3 列で各行が一貫している。                                          |
+| TypeScript コードブロック構文                                                          | 合格。対象の TypeScript コードフェンスを Prettier TypeScript パーサーで確認した。                                   |
+| 公開メソッド返却型 / 保証意味                                                          | 合格。§5.1〜5.4 と受け渡しの対応付けを照合した。                                                                    |
+| `SR-001` 必須変更各項目                                                                | 合格。判断権限、代替禁止、安全側での終了、result/error、retry/fallback、Testnet、事例 A/B、追跡可能性を確認した。   |
+| `SDK-001` 回帰                                                                         | 合格。ローカル Provider 経路、モバイル Relay 経路、受け渡し利用可能性、Provider 利用不能 / 互換性のないを確認した。 |
+| 指摘 ID / 状態、レビュー判定条件 / 最終判断                                            | 合格。`SDK-001` / `SR-001` を既存 ID のまま解消済みとし、判定条件と READY を整合させた。                            |
+| 送信元ビルド / 実行環境 / Provider E2E / Relay E2E / モバイル実機 / リリース証跡評価器 | 未検証。今回の仕様レビューの必須実行範囲外。                                                                        |
+
+## 14. レビュー判定基準
+
+| 判定条件                         | 判定 | 根拠                                                                                                |
+| -------------------------------- | ---- | --------------------------------------------------------------------------------------------------- |
+| 判定条件 1 — 目的 / 対象範囲     | 合格 | SDK の署名主体ではないこと統合対象範囲と対象外が明確。                                              |
+| 判定条件 2 — 契約                | 合格 | 受け渡し API、結果共用体、処理結果の区分、Mainnet 判断権限、公開境界が明確。                        |
+| 判定条件 3 — 処理 / Exceptions   | 合格 | 応答対応付け、エラー定義の正本、不明、タイムアウト、キャンセル、通信経路、再試行 / 代替経路が明確。 |
+| 判定条件 4 — 内部整合性          | 合格 | ローカル / リモート、Mainnet 判定条件、Relay 受領確認、§13.1 表、未決と確定事項の間に矛盾なし。     |
+| 判定条件 5 — 検証可能性          | 合格 | 事例 A / B、追跡可能性、対応付け、安全側での終了、公開型を契約テストで検証可能。                    |
+| 判定条件 6 — 安全性 / 相互運用性 | 合格 | 四つの条件、署名主体信頼、秘密情報 / Relay 境界、再署名の禁止 / 代替経路、Testnet 継続を保護。      |
+| 判定条件 7 — 上流整合            | 合格 | 要件、設計、インターフェース §7.4、署名プロトコル §21.1、受け渡しと判定を妨げる矛盾なし。           |
+
+全レビュー判定条件が合格であり、重大 / 主要の未解消指摘はない。
+
+## 15. 残存リスクと未決定事項
+
+- `OPEN-SDK-001〜005`、メッセージ期限切れ表現などの既存未決は残っている。これらは現行本文が安全制約と未決境界を明示しているため、今回の READY を阻害しない。
+- ブラウザ拡張機能 / Provider の旧結果 / エラー / アカウント選択子契約が実装・下流仕様に残る可能性がある。これは下流同期の責任主体であり、SDK 契約の指摘ではない。
+- リリース証跡評価器、信頼された鍵、ビルド埋め込み、モバイル経路、Provider / Relay / 実機実行環境の実行結果は今回検証していない。これらは別の実装 / リリース / 下流レビューの証跡で確認する。
+
+現行 SDK 仕様に対する残存判定を妨げるリスクはない。
+
+## 16. 自動変更
+
+レビュー中の自動修正は行っていない。変更は新規レビュー成果物の作成だけであり、対象仕様と関連文書は未変更である。
+
+## 17. 最終判断
+
+`READY`
+
+`SR-001` は、Mainnet リリース / 根拠判定条件の判断権限、利用可能性 / 対応能力との分離、安全側での終了、署名主体が生成した結果 / エラー意味、再試行 / 代替経路禁止、Testnet 専用継続、事例 A/B、追跡可能性の追加によって `Resolved` と判定する。`SDK-001` も `Resolved` を維持する。その他の判定を妨げる指摘はなく、現行 `sdk.md` は仕様レビューのレビュー判定条件を満たしている。

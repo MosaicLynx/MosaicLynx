@@ -1,130 +1,130 @@
-# Browser Extension Implementation Review 002
+# ブラウザ拡張機能実装レビュー 002
 
-## 1. Review Target
+## 1. レビュー対象
 
-- 対象: `browser-extension-review-001` で未検証だった lint / Extension build と、その解消に伴う lint toolchain 差分
+- 対象: `browser-extension-review-001` で未検証だった lint / 拡張機能ビルドと、その解消に伴う lint ツールチェーン差分
 - 確認日: 2026-09-20
 - 成果物: `docs/reviews/implementation/browser-extension-review-002.md`
-- レビュー範囲: Oxlint 設定、TypeScript 7、Extension / Core / SDK の関連差分、workspace typecheck / test、Extension production build
-- 未確認範囲: 実 Chrome runtime の E2E、Chrome Web Store 配布、外部 wallet-core / Native / WASM Binding
+- レビュー範囲: Oxlint 設定、TypeScript 7、拡張機能 / コア / SDK の関連差分、ワークスペース typecheck / テスト、拡張機能本番環境ビルド
+- 未確認範囲: 実 Chrome 実行環境の E2E、Chrome Web ストア配布、外部 wallet-core / ネイティブ / WASM バインディング
 
-## 2. Execution Audit
+## 2. 実行記録
 
-サブエージェントは使用せず、Review Board Chair が4パスを独立に確認した。
+サブエージェントは使用せず、レビュー Board レビュー統括が4パスを独立に確認した。
 
-| Pass                                 | 確認結果                                                                                                                      |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| Reviewer A: 仕様適合性               | lint toolchain の置換は製品契約を変更せず、Extension 実装差分は前回確認した仕様境界を維持している。                           |
-| Reviewer B: Security                 | 秘密鍵の無効な上書きを局所スコープ化し、SDK の意図的な error 正規化は内部 cause を外部公開しないまま維持した。                |
-| Reviewer C: 相互運用性               | TypeScript / lint / build の変更に Symbol / NEM の serialization、signing bytes、network 判定の変更はない。                   |
-| Reviewer D: ソフトウェア品質・テスト | Oxlint の correctness、unused、無効代入、caught error 規則を確認し、全体 typecheck / test と正規 Extension build を実行した。 |
+| 合格                                   | 確認結果                                                                                                              |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| レビュアー A: 仕様適合性               | lint ツールチェーンの置換は製品契約を変更せず、拡張機能実装差分は前回確認した仕様境界を維持している。                 |
+| レビュアー B: セキュリティ             | 秘密鍵の無効な上書きを局所スコープ化し、SDK の意図的なエラー正規化は内部原因を外部公開しないまま維持した。            |
+| レビュアー C: 相互運用性               | TypeScript / lint / ビルドの変更に Symbol / NEM のシリアライズ、署名バイト列、ネットワーク判定の変更はない。          |
+| レビュアー D: ソフトウェア品質・テスト | Oxlint の正確性、unused、無効代入、caught エラー規則を確認し、全体 typecheck / テストと正規拡張機能ビルドを実行した。 |
 
-## 3. Evidence Used
+## 3. 参照した根拠
 
-| 資料 / 実装                                                                      | 確認目的                                                  |
-| -------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `docs/reviews/implementation/browser-extension-review-001.md`                    | 前回の未検証項目と対象境界                                |
-| `package.json`、`.oxlintrc.json`、`pnpm-lock.yaml`                               | lint command、TypeScript 7、Oxlint の依存・規則・除外対象 |
-| `apps/test-dapp/src/vite-env.d.ts`                                               | TypeScript 7 での Vite CSS side-effect import 型宣言      |
-| `apps/extension/src/approval/main.tsx`、`apps/extension/src/background/index.ts` | lint 指摘の解消と既存署名処理の維持                       |
-| `packages/sdk/src/transaction.ts`                                                | chain SDK error を外部へ露出しない既存 error 正規化       |
-| workspace tests / typecheck / Extension build                                    | lint toolchain 置換後の回帰と配布 bundle の成立性         |
+| 資料 / 実装                                                                      | 確認目的                                                   |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `docs/reviews/implementation/browser-extension-review-001.md`                    | 前回の未検証項目と対象境界                                 |
+| `package.json`、`.oxlintrc.json`、`pnpm-lock.yaml`                               | lint コマンド、TypeScript 7、Oxlint の依存・規則・除外対象 |
+| `apps/test-dapp/src/vite-env.d.ts`                                               | TypeScript 7 での Vite CSS side-effect インポート型宣言    |
+| `apps/extension/src/approval/main.tsx`、`apps/extension/src/background/index.ts` | lint 指摘の解消と既存署名処理の維持                        |
+| `packages/sdk/src/transaction.ts`                                                | チェーン SDK エラーを外部へ露出しない既存エラー正規化      |
+| ワークスペーステスト / typecheck / 拡張機能ビルド                                | lint ツールチェーン置換後の回帰と配布 bundle の成立性      |
 
-## 4. Review Result
+## 4. レビュー結果
 
 `READY`
 
-## 5. Summary
+## 5. 要約
 
-前回未検証だった `pnpm lint` と `pnpm build:extension` はともに成功した。lint は TypeScript compiler API を必要とする ESLint / typescript-eslint から Oxlint へ置換し、TypeScript は 7.0.2 を単独使用する。正規の Extension build は package-local Vite 7.3.6 で完了し、前回の Vite 8 を直接実行した結果は build failure の根拠ではなかった。CRITICAL / HIGH を含む新規 finding はない。
+前回未検証だった `pnpm lint` と `pnpm build:extension` はともに成功した。lint は TypeScript compiler API を必要とする ESLint / typescript-eslint から Oxlint へ置換し、TypeScript は 7.0.2 を単独使用する。正規の拡張機能ビルドは package-local Vite 7.3.6 で完了し、前回の Vite 8 を直接実行した結果はビルド失敗の根拠ではなかった。重大 / HIGH を含む新規指摘はない。
 
-## 6. Finding Status
+## 6. 指摘の状態
 
-| ID   | Severity | Status | 初出レビュー / 今回の状態根拠          |
-| ---- | -------- | ------ | -------------------------------------- |
-| なし | —        | —      | New / Open / Reopened finding はない。 |
+| ID   | 重要度 | 状態 | 初出レビュー / 今回の状態根拠  |
+| ---- | ------ | ---- | ------------------------------ |
+| なし | —      | —    | 新規 / 未決 / 再発指摘はない。 |
 
-## 7. Required Changes
-
-なし。
-
-## 8. Optional Improvements
+## 7. 必須の修正
 
 なし。
 
-## 9. Resolved Findings
-
-formal finding の追跡対象はない。`browser-extension-review-001` の Deferred Findings のうち、lint toolchain 非互換と Extension build は解消済みである。
-
-## 10. Upstream Feedback
+## 8. 任意の改善
 
 なし。
 
-## 11. Deferred Findings
+## 9. 解消済みの指摘
 
-- 実 Chrome runtime での navigation、reload、tab close、side panel close、Provider event delivery は、ブラウザ E2E harness または手動 runtime 検証で確認する。
-- Mainnet capability と配布時の release evidence は release gate で確認する。
+正式な指摘の追跡対象はない。`browser-extension-review-001` の後続工程へ委譲する指摘のうち、lint ツールチェーン非互換と拡張機能ビルドは解消済みである。
 
-## 12. Scope and Traceability
+## 10. 上流工程へのフィードバック
 
-lint toolchain は repository の静的検査だけを変更し、Provider API、Relay wire format、chain adapter、backup format、署名 byte 列を変更していない。Extension 実装差分の仕様追跡は `browser-extension-review-001` を継承し、今回の再確認では lint、TypeScript 7、production build の成立性を追加した。
+なし。
 
-## 13. Domain Checks
+## 11. 後続工程へ委譲する指摘
 
-### Specification Conformance
+- 実 Chrome 実行環境でのページ遷移、再読み込み、タブ終了、側パネル終了、Provider イベント配送は、ブラウザ E2E harness または手動実行環境検証で確認する。
+- Mainnet 対応能力と配布時のリリース証跡はリリース判定で確認する。
 
-Pass。toolchain 差分に外部可視動作の追加・緩和はない。
+## 12. 対象範囲と追跡可能性
 
-### Security
+lint ツールチェーンはリポジトリの静的検査だけを変更し、Provider API、Relay 通信上の形式、チェーンアダプター、バックアップ形式、署名バイト列を変更していない。拡張機能実装差分の仕様追跡は `browser-extension-review-001` を継承し、今回の再確認では lint、TypeScript 7、本番環境ビルドの成立性を追加した。
 
-Pass。秘密鍵文字列は必要な署名分岐内へスコープを限定した。JavaScript string の上書きを消去保証として扱っていない。SDK の caught error は untrusted transaction details を cause として外部公開しない。暗号 primitive、KDF、AEAD、Native / WASM ownership は変更対象外である。
+## 13. ドメイン別の確認
+
+### 仕様適合性
+
+合格。ツールチェーン差分に外部可視動作の追加・緩和はない。
+
+### セキュリティ
+
+合格。秘密鍵文字列は必要な署名分岐内へスコープを限定した。JavaScript 文字列の上書きを消去保証として扱っていない。SDK の caught エラーは信頼されていないトランザクション詳細を原因として外部公開しない。暗号基本機構、KDF、AEAD、ネイティブ / WASM 所有責任は変更対象外である。
 
 ### 相互運用性
 
-Pass。Symbol / NEM、Mainnet / Testnet、canonical bytes に変更はない。
+合格。Symbol / NEM、Mainnet / Testnet、正規バイト列に変更はない。
 
 ### 異常系
 
-Pass。署名検証器の生成・実行時例外は従来どおり Provider error へ fail-closed で変換される。
+合格。署名検証器の生成・実行時例外は従来どおり Provider エラーへ安全側に終了して変換される。
 
 ### テスト評価
 
-Pass。全12 workspace project の test、全体 typecheck、Extension production build、lint が成功した。
+合格。全12 ワークスペースプロジェクトのテスト、全体 typecheck、拡張機能本番環境ビルド、lint が成功した。
 
 ### 型・依存・公開互換性
 
-Pass。TypeScript 7.0.2 を維持し、typescript-eslint の TypeScript 6 API 制約を Oxlint への置換で除去した。公開 package export の変更はない。
+合格。TypeScript 7.0.2 を維持し、typescript-eslint の TypeScript 6 API 制約を Oxlint への置換で除去した。公開パッケージエクスポートの変更はない。
 
-## 14. Validation Results
+## 14. 検証結果
 
 | 検証                                    | 結果                                      |
 | --------------------------------------- | ----------------------------------------- |
-| `pnpm lint`                             | PASS: Oxlint 1.83.0、warning なし         |
-| `pnpm typecheck`                        | PASS: 12 / 13 workspace projects          |
-| `pnpm test`                             | PASS: workspace 全 test script            |
-| `pnpm build:extension`                  | PASS: Vite 7.3.6、692 modules transformed |
-| `pnpm exec prettier --check <変更対象>` | PASS                                      |
-| `git diff --check`                      | PASS                                      |
+| `pnpm lint`                             | 合格: Oxlint 1.83.0、警告なし             |
+| `pnpm typecheck`                        | 合格: 12 / 13 ワークスペース projects     |
+| `pnpm test`                             | 合格: ワークスペース全テストスクリプト    |
+| `pnpm build:extension`                  | 合格: Vite 7.3.6、692 modules transformed |
+| `pnpm exec prettier --check <変更対象>` | 合格                                      |
+| `git diff --check`                      | 合格                                      |
 
-## 15. Review Gates
+## 15. レビュー判定基準
 
-| Gate                        | 判定 | 根拠                                                                    |
-| --------------------------- | ---- | ----------------------------------------------------------------------- |
-| 1. 仕様適合性               | Pass | toolchain 置換は製品契約を変更しない。                                  |
-| 2. セキュリティ             | Pass | secret scope と fail-closed error mapping を維持した。                  |
-| 3. 相互運用性               | Pass | chain / network / wire format に変更がない。                            |
-| 4. 異常系                   | Pass | lint 指摘解消で例外経路を緩和していない。                               |
-| 5. テスト十分性             | Pass | lint、全体 typecheck / test、正規 Extension build が成功した。          |
-| 6. 実装品質・runtime safety | Pass | TypeScript 7、Oxlint、Vite 7 の repository-defined command が成立した。 |
+| 判定条件                    | 判定 | 根拠                                                                  |
+| --------------------------- | ---- | --------------------------------------------------------------------- |
+| 1. 仕様適合性               | 合格 | ツールチェーン置換は製品契約を変更しない。                            |
+| 2. セキュリティ             | 合格 | 秘密情報対象範囲と安全側での終了エラー対応付けを維持した。            |
+| 3. 相互運用性               | 合格 | チェーン / ネットワーク / 通信上の形式に変更がない。                  |
+| 4. 異常系                   | 合格 | lint 指摘解消で例外経路を緩和していない。                             |
+| 5. テスト十分性             | 合格 | lint、全体 typecheck / テスト、正規拡張機能ビルドが成功した。         |
+| 6. 実装品質・実行環境安全性 | 合格 | TypeScript 7、Oxlint、Vite 7 のリポジトリで定めたコマンドが成立した。 |
 
-## 16. Remaining Risks and Open Decisions
+## 16. 残存リスクと未決定事項
 
-実ブラウザ E2E と release gate は今回のローカル静的・単体・build 検証の対象外である。lint / Extension build に未検証項目は残っていない。
+実ブラウザ E2E とリリース判定は今回のローカル静的・単体・ビルド検証の対象外である。lint / 拡張機能ビルドに未検証項目は残っていない。
 
-## 17. Automatic Changes
+## 17. 自動変更
 
 レビュー中に変更したのは、この新規レビュー成果物のみである。
 
-## 18. Final Decision
+## 18. 最終判断
 
 **`READY` — `BROWSER EXTENSION IMPLEMENTATION READY`**

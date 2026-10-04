@@ -1,177 +1,177 @@
-# Relay 基本設計 最終再レビュー
+# Relay 基本設計最終再レビュー
 
-## 1. Review Target
+## 1. レビュー対象
 
 - 対象: [`relay.md`](../../design/relay.md)
-- 対象 revision: 修正コミット `ebe5557035d14aa24a80cec98a4c2d0ab37ddb7f`
+- 対象リビジョン: 修正コミット `ebe5557035d14aa24a80cec98a4c2d0ab37ddb7f`
 - 確認日: 2026-08-28
 - 今回の成果物: `docs/reviews/design/relay-review-004.md`
 - 前回レビュー: [`relay-review-003.md`](./relay-review-003.md)
-- レビュー範囲: 前回の新規 `DR-005` の修正確認、および修正箇所による `DR-001`〜`DR-004` の再発、SDK / Relay / Signer の authority、result disposition、retry / fallback、共通4条件、Mainnet gate および Design phase boundary の影響確認。
-- 未確認範囲: Mobile runtime、Relay runtime、SDK runtime および実装・テストの挙動。今回は設計本文の再レビューであり、source code は変更しない。
+- レビュー範囲: 前回の新規 `DR-005` の修正確認、および修正箇所による `DR-001`〜`DR-004` の再発、SDK / Relay / 署名主体の判断権限、結果処理結果の区分、再試行 / 代替経路、共通4条件、Mainnet 判定条件および設計工程境界の影響確認。
+- 未確認範囲: モバイル実行環境、Relay 実行環境、SDK 実行環境および実装・テストの挙動。今回は設計本文の再レビューであり、送信元コードは変更しない。
 - 前回の `READY` と修正コミットの説明は今回の判定根拠へ自動継承せず、現在の本文と承認済み資料を照合した。
 
-## 2. Execution Audit
+## 2. 実行記録
 
-サブエージェントは使用していない。Chair が同一資料を混ぜない自己レビューの4パスとして実施した。
+サブエージェントは使用していない。レビュー統括が同一資料を混ぜない自己レビューの4パスとして実施した。
 
-| Review pass                        | 確認範囲                                                                                                                                  | 結果                                                                                                                   |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Reviewer A: 構造と責務             | §29 の4主体、SDK / Relay / Signer / wallet-core の責務、依存方向、修正差分の影響                                                          | SDK の許可責任と禁止責任が分離され、責務逆流なし。DR-005 の完了条件を満たす。                                          |
-| Reviewer B: セキュリティと信頼境界 | `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、共通4条件、source / caller、secret、Profile / Account、Chain / Network、MESSAGE_SIGN、Mainnet gate | SDK / Relay が Signer authority を取得していない。DR-001、DR-003 の再発なし。                                          |
-| Reviewer C: フローと運用           | timeout、response absence、Provider / Relay failure、known result、retry / redelivery、state loss、fallback                               | transport normalization と Signer-side disposition が分離され、再署名・自動 fallback の禁止を維持。DR-001 の再発なし。 |
-| Reviewer D: 追跡と下流実装可能性   | §29 の単独可読性、traceability、RR-OPEN-001 / 002、下位仕様への委譲、実装者の誤読余地                                                     | §29 だけでも SDK の非生成・非再解釈が読め、既決境界と下位委譲を維持。DR-004 の再発なし。                               |
+| レビュー合格                         | 確認範囲                                                                                                                                                            | 結果                                                                                                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| レビュアー A: 構造と責務             | §29 の4主体、SDK / Relay / 署名主体 / wallet-core の責務、依存方向、修正差分の影響                                                                                  | SDK の許可責任と禁止責任が分離され、責務逆流なし。DR-005 の完了条件を満たす。                               |
+| レビュアー B: セキュリティと信頼境界 | `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、共通4条件、送信元 / 呼び出し元、秘密情報、プロファイル / アカウント、チェーン / ネットワーク、MESSAGE_SIGN、Mainnet 判定条件 | SDK / Relay が署名主体判断権限を取得していない。DR-001、DR-003 の再発なし。                                 |
+| レビュアー C: フローと運用           | タイムアウト、応答欠如、Provider / Relay 失敗、既知の結果、再試行 / 再配送、状態消失、代替経路                                                                      | 通信経路正規化と署名主体側の処理結果の区分が分離され、再署名・自動代替経路の禁止を維持。DR-001 の再発なし。 |
+| レビュアー D: 追跡と下流実装可能性   | §29 の単独可読性、追跡可能性、RR-OPEN-001 / 002、下位仕様への委譲、実装者の誤読余地                                                                                 | §29 だけでも SDK の非生成・非再解釈が読め、既決境界と下位委譲を維持。DR-004 の再発なし。                    |
 
-## 3. Evidence Used
+## 3. 参照した根拠
 
-| 資料                                                                                                                                                                                                                                                                                                                                                                                            | 用途                                                                                                                                                                 |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`relay.md`](../../design/relay.md) §10、§15、§20、§25〜§32                                                                                                                                                                                                                                                                                                                                     | 現在の Relay の result、failure、責任、security invariant、OPEN、traceability を確認。特に §29 行609 を修正対象とした。                                              |
-| [`relay-review-003.md`](./relay-review-003.md)                                                                                                                                                                                                                                                                                                                                                  | `DR-001`〜`DR-005` の初出、severity、修正条件および今回の status 追跡を確認。前回の Gate 判定は今回へ継承していない。                                                |
-| 修正コミット `ebe5557035d14aa24a80cec98a4c2d0ab37ddb7f`                                                                                                                                                                                                                                                                                                                                         | §29 の変更範囲と、対象設計以外を変更していないことを確認。コミット説明自体は根拠にしていない。                                                                       |
-| [`relay.md` Requirements](../../requirements/relay.md) RR-001〜RR-011、RR-NFR、RR-OPEN                                                                                                                                                                                                                                                                                                          | transaction / message の v1 scope、opaque transport、generation、retry、secret、DoS、OPEN の上流根拠を確認。                                                         |
-| [`sdk.md` Requirements](../../requirements/sdk.md) SDK-ERR-001、SDK-AC-007〜011、SDK-OPEN-003                                                                                                                                                                                                                                                                                                   | SDK の error normalization、safe category、no fallback、non-Signer boundary を確認。                                                                                 |
-| [`requirements.md` Requirements](../../requirements/requirements.md) CR-011、CR-012、CR-013、CR-015、CR-016、CR-NFR-001〜006、CR-NFR-008〜011                                                                                                                                                                                                                                                   | 共通4条件、SDK / Relay / Signer、secret、binding、Mainnet gate および fail-closed を確認。                                                                           |
-| [`mobile-app.md` Requirements](../../requirements/mobile-app.md) MR-AC-013                                                                                                                                                                                                                                                                                                                      | Mobile が Relay input を検証し、表示・承認・認証・署名を担う境界を確認。                                                                                             |
-| [`architecture.md`](../../design/architecture.md)、[`security-design.md`](../../design/security-design.md)、[`signing-flow.md`](../../design/signing-flow.md)、[`interfaces.md`](../../design/interfaces.md)                                                                                                                                                                                    | 共通の責務、trust boundary、4条件、result / delivery disposition、retry / fallback を確認。                                                                          |
-| [`sdk.md`](../../design/sdk.md)、[`browser-extension.md`](../../design/browser-extension.md)、[`mobile-app.md`](../../design/mobile-app.md)                                                                                                                                                                                                                                                     | SDK non-Signer、Browser local Signer、Mobile remote Signer および Relay の downstream boundary を確認。                                                              |
-| [`interfaces.md` Specification](../../specifications/interfaces.md)、[`signing-protocol.md`](../../specifications/signing-protocol.md)、[`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md)、[`profile-account-spec.md`](../../specifications/profile-account-spec.md)、[`chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md) | result disposition、retry、opaque handoff、Profile / Account、Chain / Network、MESSAGE_SIGN の責務境界を確認。詳細仕様を Relay Design の不足補完には使用していない。 |
-| [`wallet-store-format-v1.md`](../../../_snwc/docs/specifications/wallet-store-format-v1.md)、[`specification.md`](../../../_snwc/docs/specifications/specification.md)、[`binding-implementation.md`](../../../_snwc/docs/decisions/binding-implementation.md)                                                                                                                                  | Wallet Store、secret、raw signing、wallet-core / Binding の責任が Relay / SDK へ移らないことを確認。                                                                 |
-| [`0001-mainnet-evidence-lite.md`](../../adr/0001-mainnet-evidence-lite.md)、[`evidence-policy.json`](../../evidence/evidence-policy.json)、[`mainnet-release-evidence.md`](../../release/mainnet-release-evidence.md)                                                                                                                                                                           | Mainnet capability が release / evidence gate の責任であり、Relay health / delivery の authority でないことを確認。                                                  |
+| 資料                                                                                                                                                                                                                                                                                                                                                                                   | 用途                                                                                                                                                                                         |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`relay.md`](../../design/relay.md) §10、§15、§20、§25〜§32                                                                                                                                                                                                                                                                                                                            | 現在の Relay の結果、失敗、責任、セキュリティ上の不変条件、未決、追跡可能性を確認。特に §29 行609 を修正対象とした。                                                                         |
+| [`relay-review-003.md`](./relay-review-003.md)                                                                                                                                                                                                                                                                                                                                         | `DR-001`〜`DR-005` の初出、重要度、修正条件および今回の状態追跡を確認。前回の判定条件判定は今回へ継承していない。                                                                            |
+| 修正コミット `ebe5557035d14aa24a80cec98a4c2d0ab37ddb7f`                                                                                                                                                                                                                                                                                                                                | §29 の変更範囲と、対象設計以外を変更していないことを確認。コミット説明自体は根拠にしていない。                                                                                               |
+| [`relay.md` 要件](../../requirements/relay.md) RR-001〜RR-011、RR-NFR、RR-OPEN                                                                                                                                                                                                                                                                                                         | トランザクション / メッセージの v1 対象範囲、内容を解釈しない通信経路、世代、再試行、秘密情報、DoS、未決の上流根拠を確認。                                                                   |
+| [`sdk.md` 要件](../../requirements/sdk.md) SDK-ERR-001、SDK-AC-007〜011、SDK-OPEN-003                                                                                                                                                                                                                                                                                                  | SDK のエラー正規化、安全な分類、no 代替経路、署名主体ではないこと境界を確認。                                                                                                                |
+| [`requirements.md` 要件](../../requirements/requirements.md) CR-011、CR-012、CR-013、CR-015、CR-016、CR-NFR-001〜006、CR-NFR-008〜011                                                                                                                                                                                                                                                  | 共通4条件、SDK / Relay / 署名主体、秘密情報、結び付け、Mainnet 判定条件および安全側での終了を確認。                                                                                          |
+| [`mobile-app.md` 要件](../../requirements/mobile-app.md) MR-AC-013                                                                                                                                                                                                                                                                                                                     | モバイルが Relay 入力を検証し、表示・承認・認証・署名を担う境界を確認。                                                                                                                      |
+| [`architecture.md`](../../design/architecture.md)、[`security-design.md`](../../design/security-design.md)、[`signing-flow.md`](../../design/signing-flow.md)、[`interfaces.md`](../../design/interfaces.md)                                                                                                                                                                           | 共通の責務、信頼境界、4条件、結果 / 配送処理結果の区分、再試行 / 代替経路を確認。                                                                                                            |
+| [`sdk.md`](../../design/sdk.md)、[`browser-extension.md`](../../design/browser-extension.md)、[`mobile-app.md`](../../design/mobile-app.md)                                                                                                                                                                                                                                            | SDK 署名主体ではないこと、ブラウザローカル署名主体、モバイルリモート署名主体および Relay の下流境界を確認。                                                                                  |
+| [`interfaces.md` 仕様](../../specifications/interfaces.md)、[`signing-protocol.md`](../../specifications/signing-protocol.md)、[`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md)、[`profile-account-spec.md`](../../specifications/profile-account-spec.md)、[`chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md) | 結果処理結果の区分、再試行、内容を解釈しない受け渡し、プロファイル / アカウント、チェーン / ネットワーク、MESSAGE_SIGN の責務境界を確認。詳細仕様を Relay 設計の不足補完には使用していない。 |
+| [`wallet-store-format-v1.md`](../../../_snwc/docs/specifications/wallet-store-format-v1.md)、[`specification.md`](../../../_snwc/docs/specifications/specification.md)、[`binding-implementation.md`](../../../_snwc/docs/decisions/binding-implementation.md)                                                                                                                         | ウォレットストア、秘密情報、生の署名、wallet-core / バインディングの責任が Relay / SDK へ移らないことを確認。                                                                                |
+| [`0001-mainnet-evidence-lite.md`](../../adr/0001-mainnet-evidence-lite.md)、[`evidence-policy.json`](../../evidence/evidence-policy.json)、[`mainnet-release-evidence.md`](../../release/mainnet-release-evidence.md)                                                                                                                                                                  | Mainnet 対応能力がリリース / 根拠判定条件の責任であり、Relay 正常性 / 配送の判断権限でないことを確認。                                                                                       |
 
-## 4. Review Result
+## 4. レビュー結果
 
 `READY`
 
-## 5. Summary
+## 5. 要約
 
-今回の修正により、前回の `DR-005` は `Resolved` である。§29 の SDK responsibility row は、SDK が担うものを Web Application integration、transport / Provider orchestration、correlation、handoff context、transport / Provider / Relay error normalization、transport-level failure category の公開、および Signer-originated result / disposition の意味不変伝達に限定している。同じ row の非責任欄は、SDK に signing generation result、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、transport failure 由来の result disposition、signing result correctness authority、semantic validation、共通4条件、signing、secret または final caller / source authority を与えていない。
+今回の修正により、前回の `DR-005` は `Resolved` である。§29 の SDK 責務行は、SDK が担うものを Web アプリケーション統合、通信経路 / Provider 処理の調整、対応付け、受け渡し文脈、通信経路 / Provider / Relay エラー正規化、通信経路レベルの失敗分類の公開、および署名主体が生成した結果 / 処理結果の区分の意味不変伝達に限定している。同じ行の非責任欄は、SDK に署名生成結果、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、通信経路失敗由来の結果処理結果の区分、署名結果正確性判断権限、意味上の検証、共通4条件、署名、秘密情報または最終呼び出し元 / 送信元判断権限を与えていない。
 
-`RESULT_UNKNOWN` は Signer が signing generation 自体の成否を確定できない場合、`DELIVERY_UNKNOWN` は既知の signed result の配送 disposition を確定できない場合に限られる。SDK / Relay はこれらを生成・推測・確定せず、Signer-originated disposition を意味不変に伝達する。Relay / SDK transport failure、timeout、response absence、recipient offline、state loss、reconnect failure、delivery failure、Provider failure または SDK transport state は signing-result authority にならない。
+`RESULT_UNKNOWN` は署名主体が署名生成自体の成否を確定できない場合、`DELIVERY_UNKNOWN` は既知の署名済み結果の配送処理結果の区分を確定できない場合に限られる。SDK / Relay はこれらを生成・推測・確定せず、署名主体が生成した処理結果の区分を意味不変に伝達する。Relay / SDK 通信経路失敗、タイムアウト、応答欠如、受信者オフライン、状態消失、再接続失敗、配送失敗、Provider 失敗または SDK 通信経路状態は署名結果判断権限にならない。
 
-`DR-001`〜`DR-004` の境界も再発していない。opaque structural validation と Signer semantic validation、SDK / Browser / Mobile / Relay の trust boundary、RR-OPEN-001 / 002、traceability、retry / redelivery と signing retry、automatic re-sign / fallback prohibition、共通4条件および Mainnet release / evidence gate は維持されている。新規 Critical / Major finding はない。
+`DR-001`〜`DR-004` の境界も再発していない。内容を解釈しない構造上の検証と署名主体意味上の検証、SDK / ブラウザ / モバイル / Relay の信頼境界、RR-OPEN-001 / 002、追跡可能性、再試行 / 再配送と署名再試行、自動再署名 / 代替経路禁止、共通4条件および Mainnet リリース / 根拠判定条件は維持されている。新規重大 / 主要指摘はない。
 
-## 6. Finding Status
+## 6. 指摘の状態
 
-| ID       | Severity | Status   | 初出レビュー                                   | 今回の状態根拠                                                                                                                                                                                                                  |
-| -------- | -------- | -------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DR-001` | Critical | Resolved | [`relay-review-002.md`](./relay-review-002.md) | §10.1、§25、§26、§28 が Signer-side の `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` と Relay transport disposition を分離し、§29 が SDK にもこれらの生成・推測・確定 authority を与えていない。                                        |
-| `DR-002` | Critical | Resolved | [`relay-review-002.md`](./relay-review-002.md) | §3.1、§8、§25、§27、§28〜§29 が outer structural validation を Relay、operation / transaction / message / `MESSAGE_SIGN` semantics を Signer として維持している。                                                               |
-| `DR-003` | Minor    | Resolved | [`relay-review-002.md`](./relay-review-002.md) | §5、§15、§29 が SDK non-Signer、Browser local Signer、Relay opaque transport、Mobile remote Signer を分離し、Browser local path に Relay を挿入していない。                                                                     |
-| `DR-004` | Minor    | Resolved | [`relay-review-002.md`](./relay-review-002.md) | §31 の既決 operation scope / result boundary と §32 の責務単位 traceability が維持され、OPEN に既決事項を戻していない。                                                                                                         |
-| `DR-005` | Minor    | Resolved | [`relay-review-003.md`](./relay-review-003.md) | 修正後 §29 行609 が SDK の normalization / transport-level category と Signer-originated disposition の意味不変伝達を明記し、両 disposition の生成・推測・確定と transport failure の signing-result 化を明示的に禁止している。 |
+| ID       | 重要度 | 状態     | 初出レビュー                                   | 今回の状態根拠                                                                                                                                                                                        |
+| -------- | ------ | -------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DR-001` | 重大   | 解消済み | [`relay-review-002.md`](./relay-review-002.md) | §10.1、§25、§26、§28 が署名主体側の `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` と Relay 通信経路処理結果の区分を分離し、§29 が SDK にもこれらの生成・推測・確定判断権限を与えていない。                    |
+| `DR-002` | 重大   | 解消済み | [`relay-review-002.md`](./relay-review-002.md) | §3.1、§8、§25、§27、§28〜§29 が外側構造上の検証を Relay、操作 / トランザクション / メッセージ / `MESSAGE_SIGN` 意味を署名主体として維持している。                                                     |
+| `DR-003` | 軽微   | 解消済み | [`relay-review-002.md`](./relay-review-002.md) | §5、§15、§29 が SDK 署名主体ではないこと、ブラウザローカル署名主体、Relay 内容を解釈しない通信経路、モバイルリモート署名主体を分離し、ブラウザローカルパスに Relay を挿入していない。                 |
+| `DR-004` | 軽微   | 解消済み | [`relay-review-002.md`](./relay-review-002.md) | §31 の既決操作対象範囲 / 結果境界と §32 の責務単位追跡可能性が維持され、未決に既決事項を戻していない。                                                                                                |
+| `DR-005` | 軽微   | 解消済み | [`relay-review-003.md`](./relay-review-003.md) | 修正後 §29 行609 が SDK の正規化 / 通信経路レベルの分類と署名主体が生成した処理結果の区分の意味不変伝達を明記し、両処理結果の区分の生成・推測・確定と通信経路失敗の署名結果化を明示的に禁止している。 |
 
-`DR-001`〜`DR-005` に `Reopened` はない。過去 finding を言い換えた新規 finding は発行していない。今回の新規 finding は 0 件である。
+`DR-001`〜`DR-005` に `Reopened` はない。過去指摘を言い換えた新規指摘は発行していない。今回の新規指摘は 0 件である。
 
-## 7. Required Changes
+## 7. 必須の修正
 
-なし。Critical / Major の New、Open または Reopened finding はない。
+なし。重大 / 主要の新規、未決または再発指摘はない。
 
-## 8. Optional Improvements
+## 8. 任意の改善
 
-なし。前回の `DR-005` は修正確認済みであり、今回の対象範囲に追加の正式 Minor finding はない。
+なし。前回の `DR-005` は修正確認済みであり、今回の対象範囲に追加の正式軽微指摘はない。
 
-## 9. Resolved Findings
+## 9. 解消済みの指摘
 
-### DR-005: RESOLVED
+### DR-005: 解消済み
 
-- Severity: `Minor`
-- Status: `Resolved`
-- Target: [`relay.md`](../../design/relay.md) §29 行605〜616、特に SDK responsibility row の行609。
-- Previous condition: SDK の「安全側の結果分類」が、transport / error normalization と Signer-originated `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の authority を表だけでは区別しきれず、SDK が Relay failure 等から signer-side disposition を作る余地があった。
-- Confirmation facts: 行609 の SDK responsibility は、transport / Provider / Relay error normalization、transport-level failure category の公開、および Signer-originated result / disposition の意味を変更しない受け渡しに限定される。非責任欄は signing generation result の確定、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の生成・推測・確定、Relay outage・timeout・response absence・recipient offline・state loss・reconnect failure・delivery failure からの result disposition 生成、transport failure の signing result への昇格・再解釈および signing result correctness authority を明記的に除外する。
-- Evidence: [`signing-flow.md`](../../design/signing-flow.md) §7.3〜§7.4、§20〜§21、[`docs/design/sdk.md`](../../design/sdk.md) §1、§15、§20〜§22、[`docs/requirements/sdk.md`](../../requirements/sdk.md) SDK-ERR-001、SDK-AC-007〜011、[`interfaces.md` Specification](../../specifications/interfaces.md) §10.2〜§10.3。これらは Signer-side disposition、SDK の error normalization、safe category、no fallback および意味不変の result handling を分離している。
-- Problem after correction: §29 の単独読解でも、SDK が transport / Provider / Relay failure を公開 category へ normalize できることと、signing generation / known-result delivery の disposition authority を持たないことが区別できる。Provider failure、SDK transport state、response absence、timeout または delivery failure を `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` へ昇格する読み方は、行609 の明示的禁止と §10.1 / §28 の共通 invariant に反する。
-- Impact: SDK 実装者が Relay / Provider / SDK の状態を Signer の result correctness、署名生成結果または known-result delivery authority と誤認する経路が閉じられ、known result の resend / retrieval / lookup と re-sign、transport retry と signing retry、security failure と fallback を分離して downstream へ引き継げる。
-- Minimum correction confirmed: §29 の SDK row に、許可される normalization / transport-level category / 意味不変伝達と、禁止される両 disposition の生成・推測・確定、transport failure の signing-result 化、result correctness authority を同じ責任表で明記した。
-- Reconfirmation: §29 だけを起点に、SDK は non-Signer、Signer-originated disposition は意味不変に伝達するだけであり、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` を transport / Provider / Relay / SDK state から生成しないことを確認した。`DR-005` は `Resolved` とする。
+- 重要度: `Minor`
+- 状態: `Resolved`
+- 対象: [`relay.md`](../../design/relay.md) §29 行605〜616、特に SDK 責務行の行609。
+- 前回条件: SDK の「安全側の結果分類」が、通信経路 / エラー正規化と署名主体が生成した `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の判断権限を表だけでは区別しきれず、SDK が Relay 失敗等から署名主体側の処理結果の区分を作る余地があった。
+- 確認事実: 行609 の SDK 責務は、通信経路 / Provider / Relay エラー正規化、通信経路レベルの失敗分類の公開、および署名主体が生成した結果 / 処理結果の区分の意味を変更しない受け渡しに限定される。非責任欄は署名生成結果の確定、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の生成・推測・確定、Relay 障害・タイムアウト・応答欠如・受信者オフライン・状態消失・再接続失敗・配送失敗からの結果処理結果の区分生成、通信経路失敗の署名結果への昇格・再解釈および署名結果正確性判断権限を明記的に除外する。
+- 根拠: [`signing-flow.md`](../../design/signing-flow.md) §7.3〜§7.4、§20〜§21、[`docs/design/sdk.md`](../../design/sdk.md) §1、§15、§20〜§22、[`docs/requirements/sdk.md`](../../requirements/sdk.md) SDK-ERR-001、SDK-AC-007〜011、[`interfaces.md` 仕様](../../specifications/interfaces.md) §10.2〜§10.3。これらは署名主体側の処理結果の区分、SDK のエラー正規化、安全な分類、no 代替経路および意味不変の結果処理を分離している。
+- 問題 after 修正: §29 の単独読解でも、SDK が通信経路 / Provider / Relay 失敗を公開分類へ正規化できることと、署名生成 / 確定済みの結果配送の処理結果の区分判断権限を持たないことが区別できる。Provider 失敗、SDK 通信経路状態、応答欠如、タイムアウトまたは配送失敗を `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` へ昇格する読み方は、行609 の明示的禁止と §10.1 / §28 の共通不変条件に反する。
+- 影響: SDK 実装者が Relay / Provider / SDK の状態を署名主体の結果正確性、署名生成結果または確定済みの結果配送判断権限と誤認する経路が閉じられ、既知の結果の再送 / 取得 / 照会と再署名、通信経路再試行と署名再試行、セキュリティ失敗と代替経路を分離して下流へ引き継げる。
+- 最低限必要な修正確認済み: §29 の SDK 行に、許可される正規化 / 通信経路レベルの分類 / 意味不変伝達と、禁止される両処理結果の区分の生成・推測・確定、通信経路失敗の署名結果化、結果正確性判断権限を同じ責任表で明記した。
+- 再確認: §29 だけを起点に、SDK は署名主体ではないこと、署名主体が生成した処理結果の区分は意味不変に伝達するだけであり、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` を通信経路 / Provider / Relay / SDK 状態から生成しないことを確認した。`DR-005` は `Resolved` とする。
 
 ### DR-001〜DR-004: 非再発確認
 
-- `DR-001`: §10.1 は `RESULT_UNKNOWN` を signing generation の不明、`DELIVERY_UNKNOWN` を既知 result の配送不明に限定し、Relay transport state からの生成・推測・確定を禁止する。§29 の SDK row にも同じ禁止が追加され、SDK / Relay の authority 取得はない。
-- `DR-002`: §3.1、§8、§25、§27、§28 は unknown outer transport version / kind / structure を Relay が fail-closed とし、unknown signing operation、transaction / message format、`MESSAGE_SIGN`、Chain / Network、Account、approval および target semantics を Signer に残す。§29 の修正はこの境界を変更していない。
-- `DR-003`: §5 の図と §29 の責任表は SDK、Browser Extension、Relay、Mobile App を別主体として維持する。SDK は four gate、semantic validation、signing、secret、final source authority を持たず、Browser local signing に Relay は入らない。
-- `DR-004`: §31 は transaction signing / message signing を v1 の既決 scope とし、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の意味、transport failure 分離、delivery retry / signing retry 分離、automatic re-sign / fallback prohibition を OPEN に戻していない。§32 の責務単位 traceability も維持されている。
+- `DR-001`: §10.1 は `RESULT_UNKNOWN` を署名生成の不明、`DELIVERY_UNKNOWN` を既知結果の配送不明に限定し、Relay 通信経路状態からの生成・推測・確定を禁止する。§29 の SDK 行にも同じ禁止が追加され、SDK / Relay の判断権限取得はない。
+- `DR-002`: §3.1、§8、§25、§27、§28 は不明外側通信経路バージョン / 種別 / 構造を Relay が安全側での終了とし、不明署名操作、トランザクション / メッセージ形式、`MESSAGE_SIGN`、チェーン / ネットワーク、アカウント、承認および対象意味を署名主体に残す。§29 の修正はこの境界を変更していない。
+- `DR-003`: §5 の図と §29 の責任表は SDK、ブラウザ拡張機能、Relay、モバイルアプリを別主体として維持する。SDK は四つの判定条件、意味上の検証、署名、秘密情報、最終送信元判断権限を持たず、ブラウザローカル署名に Relay は入らない。
+- `DR-004`: §31 はトランザクション署名 / メッセージ署名を v1 の既決対象範囲とし、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の意味、通信経路失敗分離、配送再試行 / 署名再試行分離、自動再署名 / 代替経路禁止を未決に戻していない。§32 の責務単位追跡可能性も維持されている。
 
-## 10. Deferred Findings
+## 10. 後続工程へ委譲する指摘
 
-正式な Deferred finding はない。error code、public API 名、exact result enum、JSON / wire schema、timeout、retry contract、storage、transport implementation、deployment および wallet-core Binding の詳細は、現行 Design phase boundary に従い下位仕様・実装・運用へ委譲されている。
+正式な後続工程へ委譲指摘はない。エラーコード、公開 API 名、厳密な結果列挙型、JSON / 通信上のスキーマ、タイムアウト、再試行契約、保存領域、通信経路実装、配置および wallet-core バインディングの詳細は、現行設計工程境界に従い下位仕様・実装・運用へ委譲されている。
 
-これらの委譲は、SDK / Relay が Signer-side result disposition、semantic validation、共通4条件、secret、Profile / Account、Chain / Network、MESSAGE_SIGN、Mainnet gate または result correctness authority を担うことを許可しない。関連 SDK 資料の外部向け safe category の具体 mapping も、§29 の authority separation と `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の意味を変更しない範囲で下位契約へ委譲される。
+これらの委譲は、SDK / Relay が署名主体側の結果処理結果の区分、意味上の検証、共通4条件、秘密情報、プロファイル / アカウント、チェーン / ネットワーク、MESSAGE_SIGN、Mainnet 判定条件または結果正確性判断権限を担うことを許可しない。関連 SDK 資料の外部向け安全な分類の具体対応付けも、§29 の判断権限分離と `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の意味を変更しない範囲で下位契約へ委譲される。
 
-## 11. Scope and Traceability
+## 11. 対象範囲と追跡可能性
 
-| 責務・設計判断                                                                                                 | 上流・関連根拠                                                                            | downstream owner                                                                                                     | 対象本文                                    | 判定                             |
-| -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | -------------------------------- |
-| SDK non-Signer、transport / Provider / Relay error normalization、Signer-originated disposition の意味不変伝達 | CR-011、CR-015、SDK-ERR-001、SDK-AC-007〜011、Security §3.2、SDK Design §1、§15、§20〜§22 | SDK は orchestration / normalization のみ。Signer が result correctness と disposition authority を持つ              | §15、§29                                    | 適合。DR-005 解消。              |
-| `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` と transport failure の分離                                              | RR-004、Signing Flow §7.3〜§7.4、Interfaces Specification §10.3                           | Signer が signing generation / known-result delivery disposition を確定。Relay / SDK は生成・推測・確定しない        | §10、§14、§20、§25〜§29                     | 適合。DR-001 非再発。            |
-| opaque / structural validation と Signer semantic validation                                                   | RR-003、Architecture §6.5〜§6.7、Interfaces §7〜§8、Mobile §8、Browser §10                | Relay は outer transport、Browser / Mobile Signer は operation、target、意味および approval                          | §3、§8、§16、§25、§27〜§29                  | 適合。DR-002 非再発。            |
-| SDK / Browser / Mobile / Relay trust boundary                                                                  | CR-011、CR-015、Architecture §6.2〜§6.5、Browser §4 / §21、Mobile §25                     | SDK non-Signer、Browser local Signer、Mobile remote Signer、Relay opaque transport                                   | §5、§15〜§16、§29                           | 適合。DR-003 非再発。            |
-| retry / redelivery / resend / lookup、no re-sign、automatic fallback prohibition                               | RR-004、RR-006、SDK-OPEN-003、Signing Flow §20〜§23、Signing Protocol §19                 | Relay は delivery、client / Signer は known result の回収。new signing は fresh request、4条件、approval             | §10、§12、§14、§20、§25〜§26、§29、§31〜§32 | 適合。                           |
-| RR-OPEN-001 / 002 と traceability                                                                              | Relay Requirements RR-OPEN-001 / 002、common Requirements、ADR-0001                       | operation scope と disposition meaning は既決。具体 code / mapping / timing / retry は下位へ委譲                     | §31〜§32                                    | 適合。DR-004 非再発。            |
-| four-condition gate、source / caller、Profile / Account、Chain / Network、MESSAGE_SIGN                         | CR-016、CR-NFR-008〜011、Security、Browser、Mobile、Chain Compatibility                   | Browser / Mobile trusted Signer、wallet-core、release policy                                                         | §5〜§8、§15〜§17、§27〜§29                  | 適合。SDK / Relay は代替しない。 |
-| secret / wallet-core / E2E boundary                                                                            | RR-008 / RR-009、CR-013、wallet-core specification / Binding decision                     | wallet-core は Wallet Store / raw signing、Signer host は approval / orchestration。SDK / Relay は secret を扱わない | §3.3、§13、§21〜§24、§28〜§29               | 適合。                           |
-| Mainnet release / evidence gate                                                                                | CR-NFR-006、ADR-0001、evidence policy、mainnet release evidence                           | release / evidence policy と Signer。Relay health / connection / delivery は authority でない                        | §20、§28〜§29、§32                          | 適合。                           |
+| 責務・設計判断                                                                                                     | 上流・関連根拠                                                                              | 下流責任主体                                                                                                   | 対象本文                                    | 判定                             |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | -------------------------------- |
+| SDK 署名主体ではないこと、通信経路 / Provider / Relay エラー正規化、署名主体が生成した処理結果の区分の意味不変伝達 | CR-011、CR-015、SDK-ERR-001、SDK-AC-007〜011、セキュリティ §3.2、SDK 設計 §1、§15、§20〜§22 | SDK は処理の調整 / 正規化のみ。署名主体が結果正確性と処理結果の区分判断権限を持つ                              | §15、§29                                    | 適合。DR-005 解消。              |
+| `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` と通信経路失敗の分離                                                         | RR-004、署名フロー §7.3〜§7.4、インターフェース仕様 §10.3                                   | 署名主体が署名生成 / 確定済みの結果配送処理結果の区分を確定。Relay / SDK は生成・推測・確定しない              | §10、§14、§20、§25〜§29                     | 適合。DR-001 非再発。            |
+| 内容を解釈しない / 構造上の検証と署名主体意味上の検証                                                              | RR-003、アーキテクチャ §6.5〜§6.7、インターフェース §7〜§8、モバイル §8、ブラウザ §10       | Relay は外側通信経路、ブラウザ / モバイル署名主体は操作、対象、意味および承認                                  | §3、§8、§16、§25、§27〜§29                  | 適合。DR-002 非再発。            |
+| SDK / ブラウザ / モバイル / Relay 信頼境界                                                                         | CR-011、CR-015、アーキテクチャ §6.2〜§6.5、ブラウザ §4 / §21、モバイル §25                  | SDK 署名主体ではないこと、ブラウザローカル署名主体、モバイルリモート署名主体、Relay 内容を解釈しない通信経路   | §5、§15〜§16、§29                           | 適合。DR-003 非再発。            |
+| 再試行 / 再配送 / 再送 / 照会、再署名の禁止、自動代替経路禁止                                                      | RR-004、RR-006、SDK-OPEN-003、署名フロー §20〜§23、署名プロトコル §19                       | Relay は配送、クライアント / 署名主体は既知の結果の回収。新規署名は新鮮な要求、4条件、承認                     | §10、§12、§14、§20、§25〜§26、§29、§31〜§32 | 適合。                           |
+| RR-OPEN-001 / 002 と追跡可能性                                                                                     | Relay 要件 RR-OPEN-001 / 002、共通の要件、ADR-0001                                          | 操作対象範囲と処理結果の区分意味は既決。具体コード / 対応付け / タイミング / 再試行は下位へ委譲                | §31〜§32                                    | 適合。DR-004 非再発。            |
+| 四条件判定条件、送信元 / 呼び出し元、プロファイル / アカウント、チェーン / ネットワーク、MESSAGE_SIGN              | CR-016、CR-NFR-008〜011、セキュリティ、ブラウザ、モバイル、チェーン互換性                   | ブラウザ / モバイル信頼された署名主体、wallet-core、リリースポリシー                                           | §5〜§8、§15〜§17、§27〜§29                  | 適合。SDK / Relay は代替しない。 |
+| 秘密情報 / wallet-core / E2E 境界                                                                                  | RR-008 / RR-009、CR-013、wallet-core 仕様 / バインディング判断                              | wallet-core はウォレットストア / 生の署名、署名主体ホストは承認 / 処理の調整。SDK / Relay は秘密情報を扱わない | §3.3、§13、§21〜§24、§28〜§29               | 適合。                           |
+| Mainnet リリース / 根拠判定条件                                                                                    | CR-NFR-006、ADR-0001、根拠ポリシー、Mainnet リリース証跡                                    | リリース / 根拠ポリシーと署名主体。Relay 正常性 / 接続 / 配送は判断権限でない                                  | §20、§28〜§29、§32                          | 適合。                           |
 
-## 12. Domain Checks
+## 12. ドメイン別の確認
 
-| 評価項目                                              | 判定 | 根拠                                                                                                                                                                                 |
-| ----------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| SDK transport / error normalization                   | Pass | §29 行609 は transport / Provider / Relay error normalization と transport-level failure category の公開を許可し、signing-result authority を禁止する。                              |
-| `RESULT_UNKNOWN` authority                            | Pass | signing generation 自体の成否不明を Signer-side に限定し、SDK / Relay の生成・推測・確定を禁止する（§10.1、§25、§28〜§29）。                                                         |
-| `DELIVERY_UNKNOWN` authority                          | Pass | 既知 signed result の配送不明を Signer-side disposition とし、response absence、timeout、Relay unavailable、delivery failure から SDK / Relay が生成しない（§10.1、§25、§28〜§29）。 |
-| transport failure との分離                            | Pass | Relay / Provider / SDK state は transport / error category として扱い、Signer-originated disposition の意味を変更しない伝達だけを許可する。                                          |
-| DR-001〜DR-004 の回帰                                 | Pass | result / delivery、opaque validation、4主体、OPEN / traceability の既決境界に変更なし。                                                                                              |
-| retry / re-sign / fallback                            | Pass | known result は redelivery / resend / retrieval / lookup、unknown / transport / security failure から automatic re-sign / fallback なし（§10、§12、§25〜§26、§29）。                 |
-| 共通4条件                                             | Pass | Authentication、Signing-capable unlock、Account authorization、Explicit user approval は Browser / Mobile Signer の責任で、SDK / Relay は代替しない（§7、§15〜§16、§28〜§29）。      |
-| source / caller / Profile / Account / Chain / Network | Pass | Relay metadata、SDK correlation、session、Provider state は最終 authority ではなく、Signer が binding を検証する（§5〜§8、§15〜§17）。                                               |
-| MESSAGE_SIGN / semantic authority                     | Pass | domain、purpose、message semantics、operation、target、approval は Signer authority。Relay / SDK は opaque / orchestration に留まる（§3.1、§8、§27〜§29）。                          |
-| secret / E2E / wallet-core                            | Pass | plaintext signing target、Wallet Store、private key、Mnemonic、session secret、signing-capable secret は Relay / SDK に渡らない（§3.3、§13、§28〜§29）。                             |
-| replay / duplicate / correlation                      | Pass | session / request / response / generation / recipient の相関と client-side integrity / replay validation を維持し、ID 単独を authority にしない（§6、§11、§17〜§19、§28）。          |
-| retention / logging / DoS                             | Pass | bounded short-lived opaque state、minimum telemetry、resource / abuse control、fail-closed を維持する。具体値は要求していない（§4、§12〜§13、§21〜§24、§28）。                       |
-| Mainnet release / evidence gate                       | Pass | Relay availability / connection / delivery / health は Mainnet capability または release evidence の根拠にならない（§20、§28〜§29）。                                                |
-| Design phase boundary                                 | Pass | SDK API、error code、enum、schema、timeout、retry count、storage、deployment、implementation class を本文へ逆流させていない。                                                        |
+| 評価項目                                                                  | 判定 | 根拠                                                                                                                                                                          |
+| ------------------------------------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SDK 通信経路 / エラー正規化                                               | 合格 | §29 行609 は通信経路 / Provider / Relay エラー正規化と通信経路レベルの失敗分類の公開を許可し、署名結果判断権限を禁止する。                                                    |
+| `RESULT_UNKNOWN` 判断権限                                                 | 合格 | 署名生成自体の成否不明を署名主体側のに限定し、SDK / Relay の生成・推測・確定を禁止する（§10.1、§25、§28〜§29）。                                                              |
+| `DELIVERY_UNKNOWN` 判断権限                                               | 合格 | 既知署名済み結果の配送不明を署名主体側の処理結果の区分とし、応答欠如、タイムアウト、Relay 利用不能、配送失敗から SDK / Relay が生成しない（§10.1、§25、§28〜§29）。           |
+| 通信経路失敗との分離                                                      | 合格 | Relay / Provider / SDK 状態は通信経路 / エラー分類として扱い、署名主体が生成した処理結果の区分の意味を変更しない伝達だけを許可する。                                          |
+| DR-001〜DR-004 の回帰                                                     | 合格 | 結果 / 配送、内容を解釈しない検証、4主体、未決 / 追跡可能性の既決境界に変更なし。                                                                                             |
+| 再試行 / 再署名 / 代替経路                                                | 合格 | 既知の結果は再配送 / 再送 / 取得 / 照会、不明 / 通信経路 / セキュリティ失敗から自動再署名 / 代替経路なし（§10、§12、§25〜§26、§29）。                                         |
+| 共通4条件                                                                 | 合格 | 認証、署名可能な状態へのロック解除、アカウントの利用認可、利用者による明示的な承認はブラウザ / モバイル署名主体の責任で、SDK / Relay は代替しない（§7、§15〜§16、§28〜§29）。 |
+| 送信元 / 呼び出し元 / プロファイル / アカウント / チェーン / ネットワーク | 合格 | Relay メタデータ、SDK 対応付け、セッション、Provider 状態は最終判断権限ではなく、署名主体が結び付けを検証する（§5〜§8、§15〜§17）。                                           |
+| MESSAGE_SIGN / 意味上の判断権限                                           | 合格 | ドメイン、目的、メッセージ意味、操作、対象、承認は署名主体判断権限。Relay / SDK は内容を解釈しない / 処理の調整に留まる（§3.1、§8、§27〜§29）。                               |
+| 秘密情報 / E2E / wallet-core                                              | 合格 | 平文署名対象、ウォレットストア、秘密鍵、ニーモニック、セッション秘密情報、署名可能な秘密情報は Relay / SDK に渡らない（§3.3、§13、§28〜§29）。                                |
+| リプレイ / 重複 / 対応付け                                                | 合格 | セッション / 要求 / 応答 / 世代 / 受信者の相関とクライアント側の完全性 / リプレイ検証を維持し、ID 単独を判断権限にしない（§6、§11、§17〜§19、§28）。                          |
+| 保持 / ログ出力 / DoS                                                     | 合格 | 上限のある短期間のみ有効な内容を解釈しない状態、最小遠隔計測データ、リソース / 悪用制御、安全側での終了を維持する。具体値は要求していない（§4、§12〜§13、§21〜§24、§28）。    |
+| Mainnet リリース / 根拠判定条件                                           | 合格 | Relay 利用可能性 / 接続 / 配送 / 正常性は Mainnet 対応能力またはリリース証跡の根拠にならない（§20、§28〜§29）。                                                               |
+| 設計工程境界                                                              | 合格 | SDK API、エラーコード、列挙型、スキーマ、タイムアウト、再試行回数、保存領域、配置、実装クラスを本文へ逆流させていない。                                                       |
 
-## 13. Validation Results
+## 13. 検証結果
 
 - `pnpm exec prettier --check docs/design/relay.md`: `PASS`。
 - `pnpm exec prettier --write docs/reviews/design/relay-review-004.md`: `PASS`。
 - `pnpm exec prettier --check docs/reviews/design/relay-review-004.md`: `PASS`。
 - `git diff --check`: `PASS`。
-- Markdown link / path check: 成果物内の相対 Markdown link を実在 path へ解決し、`PASS`。
-- Finding ID / status consistency: `DR-001`〜`DR-005` を status table と Resolved Findings で対応付け、重複する新規 ID なし。`PASS`。
-- Review Result / Review Gate / Final Decision consistency: すべて `READY`、全8 Gate `Pass`、Required Changes はなし。`PASS`。
-- 変更範囲: 修正コミットは `docs/design/relay.md` のみ。今回の作業では `docs/design/relay.md`、Requirements、Design、Specifications、ADR、source code、tests を変更せず、新規 review artifact のみを作成する。`PASS`。
-- source lint / typecheck / test / build: source code を変更しないため未実行。`Not validated` として扱い、成功とはしていない。
+- Markdown リンク / パス確認: 成果物内の相対 Markdown リンクを実在パスへ解決し、`PASS`。
+- 指摘 ID / 状態整合性: `DR-001`〜`DR-005` を状態表と解消済みの指摘で対応付け、重複する新規 ID なし。`PASS`。
+- レビュー結果 / レビュー判定条件 / 最終判断整合性: すべて `READY`、全8 判定条件 `Pass`、必須の修正はなし。`PASS`。
+- 変更範囲: 修正コミットは `docs/design/relay.md` のみ。今回の作業では `docs/design/relay.md`、要件、設計、仕様書、ADR、送信元コード、テストを変更せず、新規レビュー成果物のみを作成する。`PASS`。
+- 送信元 lint / typecheck / テスト / ビルド: 送信元コードを変更しないため未実行。`未検証` として扱い、成功とはしていない。
 
-## 14. Review Gates
+## 14. レビュー判定基準
 
-| Gate                        | 判定 | 根拠                                                                                                                                    | 対応 finding                           |
-| --------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| 1. 目的と範囲               | Pass | Relay v1 の transaction signing / message signing handoff と、SDK / Relay の transport boundary が維持されている。                      | なし                                   |
-| 2. コンテキストと責任       | Pass | §5、§15〜§16、§29 が SDK、Relay、Browser、Mobile、wallet-core、Signer の境界を明示する。                                                | `DR-001`〜`DR-003`: Resolved           |
-| 3. 依存方向                 | Pass | SDK / Relay は Signer、wallet-core、Profile / Account authority、release / evidence authority を代替しない。                            | `DR-003`: Resolved                     |
-| 4. 主要フロー               | Pass | result / delivery、transport failure、retry / redelivery、known result、state loss、fresh handoff、fallback を分離する。                | `DR-001`: Resolved                     |
-| 5. データ所有               | Pass | Relay は opaque short-lived state、SDK は orchestration / normalization、Signer / wallet-core は result / secret authority を所有する。 | `DR-001`、`DR-005`: Resolved           |
-| 6. セキュリティと相互運用性 | Pass | opaque boundary、semantic validation、共通4条件、MESSAGE_SIGN、Chain / Network、secret isolation、Mainnet gate を弱めていない。         | `DR-001`、`DR-002`、`DR-003`: Resolved |
-| 7. 上流整合性               | Pass | Requirements、common / client Design、Specifications、wallet-core 資料、ADR / release policy と重大な矛盾がない。                       | `DR-001`〜`DR-004`: Resolved           |
-| 8. 下流実装可能性           | Pass | §29 だけから SDK の normalization と Signer-side disposition authority の違いを読み取れ、具体 API / schema は適切に委譲されている。     | `DR-005`: Resolved                     |
+| 判定条件                    | 判定 | 根拠                                                                                                                                   | 対応指摘                               |
+| --------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| 1. 目的と範囲               | 合格 | Relay v1 のトランザクション署名 / メッセージ署名受け渡しと、SDK / Relay の通信経路境界が維持されている。                               | なし                                   |
+| 2. コンテキストと責任       | 合格 | §5、§15〜§16、§29 が SDK、Relay、ブラウザ、モバイル、wallet-core、署名主体の境界を明示する。                                           | `DR-001`〜`DR-003`: 解消済み           |
+| 3. 依存方向                 | 合格 | SDK / Relay は署名主体、wallet-core、プロファイル / アカウントに関する判断権限、リリース / 根拠判断権限を代替しない。                  | `DR-003`: 解消済み                     |
+| 4. 主要フロー               | 合格 | 結果 / 配送、通信経路失敗、再試行 / 再配送、既知の結果、状態消失、新鮮な受け渡し、代替経路を分離する。                                 | `DR-001`: 解消済み                     |
+| 5. データ所有               | 合格 | Relay は内容を解釈しない短期間のみ有効な状態、SDK は処理の調整 / 正規化、署名主体 / wallet-core は結果 / 秘密情報判断権限を所有する。  | `DR-001`、`DR-005`: 解消済み           |
+| 6. セキュリティと相互運用性 | 合格 | 内容を解釈しない境界、意味上の検証、共通4条件、MESSAGE_SIGN、チェーン / ネットワーク、秘密情報の分離、Mainnet 判定条件を弱めていない。 | `DR-001`、`DR-002`、`DR-003`: 解消済み |
+| 7. 上流整合性               | 合格 | 要件、共通の / クライアント設計、仕様書、wallet-core 資料、ADR / リリースポリシーと重大な矛盾がない。                                  | `DR-001`〜`DR-004`: 解消済み           |
+| 8. 下流実装可能性           | 合格 | §29 だけから SDK の正規化と署名主体側の処理結果の区分判断権限の違いを読み取れ、具体 API / スキーマは適切に委譲されている。             | `DR-005`: 解消済み                     |
 
-全8 Gate が `Pass` であり、Critical / Major の New、Open または Reopened finding はない。Minor の `DR-005` も `Resolved` である。
+全8 判定条件が `Pass` であり、重大 / 主要の新規、未決または再発指摘はない。軽微の `DR-005` も `Resolved` である。
 
-## 15. Remaining Risks and Open Decisions
+## 15. 残存リスクと未決定事項
 
-- `RR-OPEN-001`: transaction signing と message signing は Relay v1 の既決 operation scope。未決は external handoff contract、milestone completion condition および SDK / Mobile boundary の残余詳細であり、scope を OPEN に戻していない。
-- `RR-OPEN-002`: concrete error code、failure mapping、timing、retry contract は未決でよい。ただし `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の意味、transport failure との分離、delivery retry / signing retry の分離、automatic re-sign / fallback prohibition は既決のままである。
-- SDK の公開 safe category と下位 error mapping の具体形式は後続仕様の責任である。`docs/design/relay.md` §29 の「transport-level failure category」と Signer-originated disposition の意味不変伝達を維持することが前提である。
-- Mobile App は現在の workspace に実装されていないため、runtime の再検証は別工程で必要だが、今回の設計 Gate の未確認範囲であり finding にはしていない。
+- `RR-OPEN-001`: トランザクション署名とメッセージ署名は Relay v1 の既決操作対象範囲。未決は外部受け渡し契約、マイルストーン完了条件および SDK / モバイル境界の残余詳細であり、対象範囲を未決に戻していない。
+- `RR-OPEN-002`: 具体的なエラーコード、失敗対応付け、タイミング、再試行契約は未決でよい。ただし `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の意味、通信経路失敗との分離、配送再試行 / 署名再試行の分離、自動再署名 / 代替経路禁止は既決のままである。
+- SDK の公開安全な分類と下位エラー対応付けの具体形式は後続仕様の責任である。`docs/design/relay.md` §29 の「通信経路レベルの失敗分類」と署名主体が生成した処理結果の区分の意味不変伝達を維持することが前提である。
+- モバイルアプリは現在のワークスペースに実装されていないため、実行環境の再検証は別工程で必要だが、今回の設計判定条件の未確認範囲であり指摘にはしていない。
 
-## 16. Automatic Changes
+## 16. 自動変更
 
-なし。`docs/design/relay.md`、Requirements、他の Design、Specifications、ADR、source code、tests は変更していない。変更したのは本レビュー成果物のみである。
+なし。`docs/design/relay.md`、要件、他の設計、仕様書、ADR、送信元コード、テストは変更していない。変更したのは本レビュー成果物のみである。
 
-## 17. Final Decision
+## 17. 最終判断
 
 `READY`
 
-`DR-005` は、§29 の SDK responsibility row によって Resolved である。SDK は transport / Provider / Relay error の normalization と transport-level category の公開、および Signer-originated disposition の意味不変伝達だけを担い、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の生成・推測・確定、transport failure の signing-result 化、signing result correctness authority を持たない。`DR-001`〜`DR-004` の opaque / non-Signer、semantic validation、trust boundary、OPEN / traceability、retry / fallback の境界も再発していない。全8 Review Gate が Pass で、新規 Critical / Major finding はないため、Relay Design を `READY` と判断する。
+`DR-005` は、§29 の SDK 責務行によって解消済みである。SDK は通信経路 / Provider / Relay エラーの正規化と通信経路レベルの分類の公開、および署名主体が生成した処理結果の区分の意味不変伝達だけを担い、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の生成・推測・確定、通信経路失敗の署名結果化、署名結果正確性判断権限を持たない。`DR-001`〜`DR-004` の内容を解釈しない / 署名主体ではないこと、意味上の検証、信頼境界、未決 / 追跡可能性、再試行 / 代替経路の境界も再発していない。全8 レビュー判定条件が合格で、新規重大 / 主要指摘はないため、Relay 設計を `READY` と判断する。

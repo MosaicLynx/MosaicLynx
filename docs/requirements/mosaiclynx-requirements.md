@@ -8,4 +8,4 @@
 - [Relay 要件](./relay.md)
 - [SDK 要件](./sdk.md)
 
-共通要求は `requirements.md`、Browser Extension、Mobile App、Relay、SDK の固有要求は各文書を参照する。
+共通要求は `requirements.md`、ブラウザ拡張機能、モバイルアプリ、Relay、SDK の固有要求は各文書を参照する。

@@ -1,124 +1,124 @@
-# Interfaces Design Review 006
+# インターフェース設計レビュー 006
 
-## 1. Review Target
+## 1. レビュー対象
 
-- 対象: [Interfaces Design](../../design/interfaces.md)
+- 対象: [インターフェース設計](../../design/interfaces.md)
 - 確認日: 2026-09-20
 - 成果物: `docs/reviews/design/interfaces-review-006.md`
-- レビュー範囲: 共通 SigningRequest / SigningResponse、cancellation、terminal outcome、handoff participant / recipient、device / Signer identity、response channel / direction、検証責任、security invariant、traceability。
-- 未確認範囲: 公開 API 名、JSON / DTO / wire schema、device identifier の形式、Relay route、暗号 envelope、具体的 error code、実装・テストの動作正しさ。
+- レビュー範囲: 共通 SigningRequest / SigningResponse、キャンセル、終端結果、受け渡し参加者 / 受信者、端末 / 署名主体識別情報、応答チャネル / 方向、検証責任、セキュリティ上の不変条件、追跡可能性。
+- 未確認範囲: 公開 API 名、JSON / DTO / 通信上のスキーマ、端末識別子の形式、Relay 経路、暗号エンベロープ、具体的エラーコード、実装・テストの動作正しさ。
 
-## 2. Execution Audit
+## 2. 実行記録
 
-サブエージェントは使用せず、Review Board Chair が4つの独立 self-review pass を実施した。
+サブエージェントは使用せず、レビュー Board レビュー統括が4つの独立自己確認合格を実施した。
 
-| Pass            | 確認結果                                                                                                                                                           |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Reviewer A 相当 | SDK、Signer、Relay、Browser、Mobile、wallet-core の共通 interface responsibility と data ownership を確認。cancel / recipient の owner が重複していない。          |
-| Reviewer B 相当 | request / response binding、wrong participant / channel、secret isolation、fail-closed を確認。Relay ACK と署名 authority の混同はない。                           |
-| Reviewer C 相当 | cancel acknowledgement、terminal state、`SIGNING` race、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN` および concurrent isolation を確認。outcome precedence は一意である。 |
-| Reviewer D 相当 | Requirements、Signing Flow、Security、Relay / Handoff Specification、Signing Protocol への traceability を確認。`DR-006` / `DR-007` は解消済み。                   |
+| 合格              | 確認結果                                                                                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| レビュアー A 相当 | SDK、署名主体、Relay、ブラウザ、モバイル、wallet-core の共通インターフェース責務とデータ所有責任を確認。キャンセル / 受信者の責任主体が重複していない。 |
+| レビュアー B 相当 | 要求 / 応答結び付け、誤った参加者 / チャネル、秘密情報の分離、安全側での終了を確認。Relay 受領確認と署名判断権限の混同はない。                          |
+| レビュアー C 相当 | キャンセル受領確認、終端状態、`SIGNING` 競合、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN` および並行する分離を確認。結果優先順位は一意である。                 |
+| レビュアー D 相当 | 要件、署名フロー、セキュリティ、Relay / 受け渡し仕様、署名プロトコルへの追跡可能性を確認。`DR-006` / `DR-007` は解消済み。                              |
 
-## 3. Evidence Used
+## 3. 参照した根拠
 
-| 資料                                                    | 確認目的                                                                                        |
-| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Interfaces Design §6.3〜§6.6、§7.3、§7.6、§8、§9、§14.1 | 共通概念、cancel、recipient/channel binding、validator、traceability。                          |
-| Common / SDK / Mobile / Relay Requirements              | cancellation、correlation、handoff participant、direction、fail-closed の上流根拠。             |
-| Signing Flow §5、§7、§16、§19〜§20                      | 共通 lifecycle と同じ outcome / binding semantics であることの確認。                            |
-| Relay Design / Relay Specification §6〜§9               | participant、direction、generation、transport status が Signer outcome と分離されることの確認。 |
-| Signing Protocol §6、§19〜§20                           | cancel precedence、delivery disposition、terminal reuse 禁止の補助確認。                        |
-| `interfaces-review-005.md`                              | `DR-006` / `DR-007` の required correction と continuity を確認。                               |
+| 資料                                                       | 確認目的                                                               |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------- |
+| インターフェース設計 §6.3〜§6.6、§7.3、§7.6、§8、§9、§14.1 | 共通概念、キャンセル、recipient/channel 結び付け、検証器、追跡可能性。 |
+| 共通の / SDK / モバイル / Relay 要件                       | キャンセル、対応付け、受け渡し参加者、方向、安全側での終了の上流根拠。 |
+| 署名フロー §5、§7、§16、§19〜§20                           | 共通ライフサイクルと同じ結果 / 結び付け意味であることの確認。          |
+| Relay 設計 / Relay 仕様 §6〜§9                             | 参加者、方向、世代、通信経路状態が署名主体結果と分離されることの確認。 |
+| 署名プロトコル §6、§19〜§20                                | キャンセル優先順位、配送処理結果の区分、終端再利用禁止の補助確認。     |
+| `interfaces-review-005.md`                                 | `DR-006` / `DR-007` の必須修正と継続性を確認。                         |
 
-## 4. Review Result
+## 4. レビュー結果
 
 `READY`
 
-## 5. Summary
+## 5. 要約
 
-共通 interface は cancellation を単なる error category ではなく、同一 request identity と binding context に対する lifecycle operation として扱うようになった。署名前の `CANCELLED`、`SIGNING` 中の成否不明による `RESULT_UNKNOWN`、既知成功後の `SUCCEEDED + DELIVERY_UNKNOWN`、terminal state の再利用禁止が共通意味として追跡できる。
+共通インターフェースはキャンセルを単なるエラー分類ではなく、同一要求識別情報と結び付け文脈に対するライフサイクル操作として扱うようになった。署名前の `CANCELLED`、`SIGNING` 中の成否不明による `RESULT_UNKNOWN`、既知成功後の `SUCCEEDED + DELIVERY_UNKNOWN`、終端状態の再利用禁止が共通意味として追跡できる。
 
-また、handoff participant / recipient、device または Signer-local identity、session / generation、response channel / direction を request / response context として明示し、Mobile / adapter / Relay / Signer の検証責任と mismatch 時の fail-closed を定義した。Critical、Major、Minor の新規 finding は確認しなかった。
+また、受け渡し参加者 / 受信者、端末または署名主体内の識別情報、セッション / 世代、応答チャネル / 方向を要求 / 応答文脈として明示し、モバイル / アダプター / Relay / 署名主体の検証責任と不一致時の安全側での終了を定義した。重大、主要、軽微の新規指摘は確認しなかった。
 
-## 6. Finding Status
+## 6. 指摘の状態
 
-| ID                 | Severity | Status              | 今回の状態根拠                                                                                                                                   |
-| ------------------ | -------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `DR-001`           | Critical | Resolved            | Profile-local security context と cross-request invalidation が維持されている。                                                                  |
-| `DR-002`           | Major    | Resolved            | Application Account authority と wallet-core identity authority が分離されている。                                                               |
-| `DR-003`           | Critical | Resolved            | 共通4条件が同一 request / target context に binding されている。                                                                                 |
-| `DR-004`           | Major    | Resolved            | failure taxonomy、cancel、expiry、unknown、delivery unknown、automatic re-sign prohibition が整理されている。                                    |
-| `DR-005`           | Critical | Resolved            | caller、Profile、Account、target、result、recipient の cross-request reuse が禁止されている。                                                    |
-| `DR-006`           | Major    | Resolved            | cancel authority / scope、acknowledgement、race outcome、terminal reuse 禁止を §6.4、§7.6、§8、§9 に追加した。                                   |
-| `DR-007`           | Major    | Resolved            | intended recipient / participant、device / Signer identity、session / generation、channel / direction と validator を共通 interface に追加した。 |
-| `IF-001`〜`IF-003` | —        | Resolved / 再発なし | public / internal identity、unknown / delivery distinction、Relay / Node non-authority を再確認した。                                            |
+| ID                 | 重要度 | 状態                | 今回の状態根拠                                                                                                                 |
+| ------------------ | ------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `DR-001`           | 重大   | 解消済み            | プロファイル内のセキュリティ文脈と要求間の無効化が維持されている。                                                             |
+| `DR-002`           | 主要   | 解消済み            | アプリケーションアカウントに関する判断権限と wallet-core 識別情報判断権限が分離されている。                                    |
+| `DR-003`           | 重大   | 解消済み            | 共通4条件が同一要求 / 対象文脈に結び付けされている。                                                                           |
+| `DR-004`           | 主要   | 解消済み            | 失敗分類体系、キャンセル、期限切れ、不明、配送不明、自動再署名禁止が整理されている。                                           |
+| `DR-005`           | 重大   | 解消済み            | 呼び出し元、プロファイル、アカウント、対象、結果、受信者の要求間の再利用が禁止されている。                                     |
+| `DR-006`           | 主要   | 解消済み            | キャンセル判断権限 / 対象範囲、受領確認、競合結果、終端再利用禁止を §6.4、§7.6、§8、§9 に追加した。                            |
+| `DR-007`           | 主要   | 解消済み            | 意図した受信者 / 参加者、端末 / 署名主体識別情報、セッション / 世代、チャネル / 方向と検証器を共通インターフェースに追加した。 |
+| `IF-001`〜`IF-003` | —      | 解消済み / 再発なし | 公開 / 内部識別情報、不明 / 配送区別、Relay / ノード判断権限を持たないことを再確認した。                                       |
 
-## 7. Required Changes
+## 7. 必須の修正
 
-なし。Critical の New / Open / Reopened finding はない。
+なし。重大の新規 / 未決 / 再発指摘はない。
 
-## 8. Optional Improvements
+## 8. 任意の改善
 
 なし。
 
-## 9. Resolved Findings
+## 9. 解消済みの指摘
 
-`DR-006` は、cancel の authority / scope と acknowledgement の意味、state ごとの outcome precedence および terminal reuse prohibition を共通 interface に固定したことで解消した。`DR-007` は、recipient / participant、device / signer identity、channel / direction の概念と検証責任を追加し、wrong-device、wrong-direction、stale generation、別 request の response を fail-closed としたことで解消した。
+`DR-006` は、キャンセルの判断権限 / 対象範囲と受領確認の意味、状態ごとの結果優先順位および終端再利用禁止を共通インターフェースに固定したことで解消した。`DR-007` は、受信者 / 参加者、端末 / 署名主体識別情報、チャネル / 方向の概念と検証責任を追加し、誤った端末、wrong-direction、古くなった世代、別要求の応答を安全側での終了としたことで解消した。
 
-## 10. Upstream Feedback
+## 10. 上流工程へのフィードバック
 
-なし。既存 Requirements は cancellation、handoff、correlation および failure distinction の根拠として十分である。
+なし。既存要件はキャンセル、受け渡し、対応付けおよび失敗区別の根拠として十分である。
 
-## 11. Deferred Findings
+## 11. 後続工程へ委譲する指摘
 
-- cancel method、ack field、concurrency、retry / lookup、HTTP status および公開 error code は下位仕様へ委譲する。
-- device identifier の公開可否、OS identity、Relay route、Deep Link、WebSocket、暗号 binding は下位仕様・platform design の責務である。
-- `SDK-OPEN-007`、Mobile handoff、Relay reconnect / recovery および具体 API は既存 OPEN として維持する。
+- キャンセルメソッド、受領確認フィールド、並行処理、再試行 / 照会、HTTP 状態および公開エラーコードは下位仕様へ委譲する。
+- 端末識別子の公開可否、OS 識別情報、Relay 経路、ディープリンク、WebSocket、暗号結び付けは下位仕様・プラットフォーム設計の責務である。
+- `SDK-OPEN-007`、モバイル受け渡し、Relay 再接続 / 復旧および具体 API は既存未決として維持する。
 
-## 12. Scope and Traceability
+## 12. 対象範囲と追跡可能性
 
-Common / SDK / Mobile / Relay Requirements の cancellation、request / response correlation、direction、participant および fail-closed を Interfaces の共通 concept、validator、security invariant および traceability table へ接続している。Exact schema は Interfaces Specification、transport は Relay / Handoff、Signer lifecycle は Signing Flow / Signing Protocol が引き続き所有する。
+共通の / SDK / モバイル / Relay 要件のキャンセル、要求 / 応答対応付け、方向、参加者および安全側での終了をインターフェースの共通コンセプト、検証器、セキュリティ上の不変条件および追跡可能性表へ接続している。厳密なスキーマはインターフェース仕様、通信経路は Relay / 受け渡し、署名主体ライフサイクルは署名フロー / 署名プロトコルが引き続き所有する。
 
-## 13. Domain Checks
+## 13. ドメイン別の確認
 
-| 観点                                      | 判定                                                                                                            |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Context / responsibility / trust boundary | Pass。SDK / Relay は非権限、Browser / Mobile Signer が判断主体、wallet-core は raw signing 主体である。         |
-| Request / response lifecycle              | Pass。cancel acknowledgement、terminal outcome、delivery disposition、cross-request isolation が追跡できる。    |
-| Handoff binding                           | Pass。recipient / participant、device / signer identity、generation、channel / direction を受信側が再検証する。 |
-| Security / secret boundary                | Pass。Relay ACK、transport status、session existence が approval / signing success の代替にならない。           |
-| Downstream handoff                        | Pass。具体 field / wire を固定せず、必要な semantic boundary を下位仕様へ渡している。                           |
+| 観点                        | 判定                                                                                                  |
+| --------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 文脈 / 責務 / 信頼境界      | 合格。SDK / Relay は非権限、ブラウザ / モバイル署名主体が判断主体、wallet-core は生の署名主体である。 |
+| 要求 / 応答ライフサイクル   | 合格。キャンセル受領確認、終端結果、配送処理結果の区分、要求間の分離が追跡できる。                    |
+| 受け渡し結び付け            | 合格。受信者 / 参加者、端末 / 署名主体識別情報、世代、チャネル / 方向を受信側が再検証する。           |
+| セキュリティ / 秘密情報境界 | 合格。Relay 受領確認、通信経路状態、セッション存在が承認 / 署名成功の代替にならない。                 |
+| 下流受け渡し                | 合格。具体フィールド / 通信上のを固定せず、必要な意味上の境界を下位仕様へ渡している。                 |
 
-## 14. Validation Results
+## 14. 検証結果
 
 | 検証                                                                                                                                                    | 結果                                           |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | `pnpm exec prettier --check ...`                                                                                                                        | 無出力のまま完了しなかったため中断。           |
-| `./node_modules/.bin/prettier --check docs/design/architecture.md docs/design/interfaces.md docs/design/signing-flow.md docs/design/security-design.md` | PASS。                                         |
-| `git diff --check`                                                                                                                                      | PASS。                                         |
-| app / package lint、typecheck、test、build                                                                                                              | Not applicable。docs/design のみの変更である。 |
+| `./node_modules/.bin/prettier --check docs/design/architecture.md docs/design/interfaces.md docs/design/signing-flow.md docs/design/security-design.md` | 合格。                                         |
+| `git diff --check`                                                                                                                                      | 合格。                                         |
+| アプリ / パッケージ lint、typecheck、テスト、ビルド                                                                                                     | Not 適用可能な。docs/design のみの変更である。 |
 
-## 15. Review Gates
+## 15. レビュー判定基準
 
-| Gate                                         | 判定 | 根拠                                                                                             |
-| -------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------ |
-| 1. 目的と範囲                                | Pass | 共通 concept と non-goals が維持されている。                                                     |
-| 2. Context / responsibility / trust boundary | Pass | Relay、Signer、SDK、wallet-core の authority が明確である。                                      |
-| 3. Dependencies / direction                  | Pass | recipient / channel の検証責任が transport と Signer に分かれている。                            |
-| 4. Main flows                                | Pass | cancel race、terminal、delivery unknown、late / stale response を区別している。                  |
-| 5. Data ownership                            | Pass | request、approval、result、recipient、delivery state を request 間で共有しない。                 |
-| 6. Security / interoperability               | Pass | wrong participant / device / direction を fail-closed とし、Chain / Network binding を維持する。 |
-| 7. Upstream consistency                      | Pass | Requirements、Signing Flow、Relay / Handoff と重大な矛盾がない。                                 |
-| 8. Downstream implementability               | Pass | exact API / schema は委譲しつつ semantic contract の推測余地を解消している。                     |
+| 判定条件                     | 判定 | 根拠                                                                                        |
+| ---------------------------- | ---- | ------------------------------------------------------------------------------------------- |
+| 1. 目的と範囲                | 合格 | 共通コンセプトと対象外が維持されている。                                                    |
+| 2. 文脈 / 責務 / 信頼境界    | 合格 | Relay、署名主体、SDK、wallet-core の判断権限が明確である。                                  |
+| 3. 依存関係 / 方向           | 合格 | 受信者 / チャネルの検証責任が通信経路と署名主体に分かれている。                             |
+| 4. Main フロー               | 合格 | キャンセル競合、終端、配送不明、遅延した / 古くなった応答を区別している。                   |
+| 5. データ所有責任            | 合格 | 要求、承認、結果、受信者、配送状態を要求間で共有しない。                                    |
+| 6. セキュリティ / 相互運用性 | 合格 | 誤った参加者 / 端末 / 方向を安全側での終了とし、チェーン / ネットワーク結び付けを維持する。 |
+| 7. 上流整合性                | 合格 | 要件、署名フロー、Relay / 受け渡しと重大な矛盾がない。                                      |
+| 8. 下流実装可能性            | 合格 | 厳密な API / スキーマは委譲しつつ意味上の契約の推測余地を解消している。                     |
 
-## 16. Remaining Risks and Open Decisions
+## 16. 残存リスクと未決定事項
 
-Public API と transport-specific representation、cancel acknowledgement の wire 契約、device identity の具体化および実装適合性は下位工程で確認する。これらは共通 interface の high-level semantics を変更しない。
+公開 API と通信経路固有の表現、キャンセル受領確認の通信上の契約、端末識別情報の具体化および実装適合性は下位工程で確認する。これらは共通インターフェースの上位の意味を変更しない。
 
-## 17. Automatic Changes
+## 17. 自動変更
 
-本レビュー中に Interfaces、Requirements、Specifications、実装、テスト、設定は変更していない。変更は本 review artifact の新規作成のみである。
+本レビュー中にインターフェース、要件、仕様書、実装、テスト、設定は変更していない。変更は本レビュー成果物の新規作成のみである。
 
-## 18. Final Decision
+## 18. 最終判断
 
 **`READY` — `INTERFACES DESIGN READY`**

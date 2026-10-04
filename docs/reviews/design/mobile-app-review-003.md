@@ -1,20 +1,20 @@
-# MosaicLynx Mobile App 基本設計レビュー 003
+# MosaicLynx モバイルアプリ基本設計レビュー 003
 
-## Review Target
+## レビュー対象
 
 - 対象: [`docs/design/mobile-app.md`](../../design/mobile-app.md)
 - 確認日: 2026-08-28
 - 成果物: `docs/reviews/design/mobile-app-review-003.md`
 - レビュー種別: `design-review` の再レビュー
 - 主目的: [`mobile-app-review-002.md`](./mobile-app-review-002.md) の `DR-001`〜`DR-005` の修正確認
-- 判定根拠: 過去レビューの判定を継承せず、現行の Mobile App 基本設計と上流・共通・下流資料を再確認した。
+- 判定根拠: 過去レビューの判定を継承せず、現行のモバイルアプリ基本設計と上流・共通・下流資料を再確認した。
 - 変更範囲: レビュー成果物の新規作成のみ。設計本文、仕様、実装、既存レビューは変更していない。
-- 対象境界: Mobile trusted host / Signer、handoff、4 条件署名ゲート、structured `MESSAGE_SIGN`、result binding、lifecycle、同時実行、wallet-core、backup / migration、Mainnet release gate、責務 traceability。
-- Design フェーズ境界: exact Deep Link schema、Universal Link / App Link 設定、OS API、Keychain / Keystore API、notification API、DTO / JSON schema、exact message field / nonce / expiry、timeout / retry count、concrete state enum、storage schema、cryptographic parameter、concurrency algorithm、implementation class、exact UI layout は不足 finding の対象外とした。
-- 未確認範囲: Mobile の実装、実機 OS 統合、実行時 enforcement、hardware matrix、release tooling の実装検証は行っていない。これらは現行設計が下位仕様・実装・運用へ委譲している範囲であり、今回の Design Gate の不足とは判定していない。
-- `docs/specifications/mobile-app.md` は存在しない。Mobile 固有の不在仕様を finding にはせず、既存の共通 / handoff / Profile / Chain / wallet-core / release contract への委譲と追跡を確認した。
+- 対象境界: モバイル信頼されたホスト / 署名主体、受け渡し、4 条件署名ゲート、構造化された `MESSAGE_SIGN`、結果との結び付け、ライフサイクル、同時実行、wallet-core、バックアップ / 移行、Mainnet リリース判定、責務追跡可能性。
+- 設計フェーズ境界: 厳密なディープリンクスキーマ、普遍的な Link / App Link 設定、OS API、Keychain / Keystore API、通知 API、DTO / JSON スキーマ、厳密なメッセージフィールド / ノンス / 期限切れ、タイムアウト / 再試行回数、具体的な状態列挙型、保存領域スキーマ、暗号学的なパラメーター、並行処理アルゴリズム、実装クラス、厳密な UI 配置は不足指摘の対象外とした。
+- 未確認範囲: モバイルの実装、実機 OS 統合、実行時強制、ハードウェア対応表、リリース補助ツールの実装検証は行っていない。これらは現行設計が下位仕様・実装・運用へ委譲している範囲であり、今回の設計判定条件の不足とは判定していない。
+- `docs/specifications/mobile-app.md` は存在しない。モバイル固有の不在仕様を指摘にはせず、既存の共通 / 受け渡し / プロファイル / チェーン / wallet-core / リリース契約への委譲と追跡を確認した。
 
-## Execution Audit
+## 実行記録
 
 - 以下を読み、最新版を適用した。
   - `.agents/skills/design-review/SKILL.md`
@@ -25,188 +25,188 @@
   - `.agents/skills/design-review/output-format.md`
   - `.agents/project-context.md`
   - `AGENTS.md`
-- サブエージェントは使用していない。Chair による以下 4 つの独立 self-review pass を実施した。
-  - Pass A — 構造・責務・authority: trusted host、Signer authority、handoff source、Profile / Account、Relay / SDK / wallet-core の境界。
-  - Pass B — security invariant: 4 条件ゲート、structured `MESSAGE_SIGN`、inspection、replay、pre-sign、result binding、fail-closed。
-  - Pass C — flow・lifecycle・運用: process recreation、device lock、concurrent request、unknown result / delivery、fallback、Mainnet gate。
-  - Pass D — traceability・下流委譲: requirements / common Design / ADR から Mobile 本文、downstream owner、detail delegation boundary までの直接対応。
-- READY 済み共通 Design の過去 Review Gate は今回へ自動継承していない。各 Design 本文、要求、仕様、ADR、release contract と現行 Mobile 本文の整合を個別に確認した。
+- サブエージェントは使用していない。レビュー統括による以下 4 つの独立自己確認合格を実施した。
+  - 合格 A — 構造・責務・判断権限: 信頼されたホスト、署名主体判断権限、受け渡し送信元、プロファイル / アカウント、Relay / SDK / wallet-core の境界。
+  - 合格 B — セキュリティ上の不変条件: 4 条件ゲート、構造化された `MESSAGE_SIGN`、内容検査、リプレイ、署名前、結果との結び付け、安全側での終了。
+  - 合格 C — フロー・ライフサイクル・運用: プロセス再作成、端末ロック、並行する要求、不明結果 / 配送、代替経路、Mainnet 判定条件。
+  - 合格 D — 追跡可能性・下流委譲: 要件 / 共通の設計 / ADR からモバイル本文、下流責任主体、詳細委譲境界までの直接対応。
+- READY 済み共通設計の過去レビュー判定条件は今回へ自動継承していない。各設計本文、要求、仕様、ADR、リリース契約と現行モバイル本文の整合を個別に確認した。
 
-## Evidence Used
+## 参照した根拠
 
-| 資料                                                                                                                                                                                                                                                                                                                                                                                                  | 用途                                                                                                                         |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| [`docs/design/mobile-app.md`](../../design/mobile-app.md)                                                                                                                                                                                                                                                                                                                                             | 現行 Mobile 基本設計、各修正箇所、§28 の責務 traceability を確認                                                             |
-| [`docs/reviews/design/mobile-app-review-002.md`](./mobile-app-review-002.md)                                                                                                                                                                                                                                                                                                                          | `DR-001`〜`DR-005` の初出、要求内容、今回の status 対応を確認。判定は再利用していない                                        |
-| [`docs/design/architecture.md`](../../design/architecture.md)、[`security-design.md`](../../design/security-design.md)、[`signing-flow.md`](../../design/signing-flow.md)、[`interfaces.md`](../../design/interfaces.md)、[`browser-extension.md`](../../design/browser-extension.md)                                                                                                                 | 共通の authority、trust boundary、4 条件、signing flow、result、message、責務方向との整合を確認                              |
-| `docs/reviews/design/architecture-review-004.md`、`security-design-review-004.md`、`signing-flow-review-004.md`、`interfaces-review-004.md`、`browser-extension-review-003.md`                                                                                                                                                                                                                        | 共通 Design の確認対象を特定するため参照。Review Gate は自動継承していない                                                   |
-| [`docs/requirements/requirements.md`](../../requirements/requirements.md)、[`mobile-app.md`](../../requirements/mobile-app.md)、[`relay.md`](../../requirements/relay.md)、[`sdk.md`](../../requirements/sdk.md)                                                                                                                                                                                      | Mobile、共通 signing、Relay、SDK の upstream requirement と acceptance を確認                                                |
-| [`docs/design/relay.md`](../../design/relay.md)、[`sdk.md`](../../design/sdk.md)                                                                                                                                                                                                                                                                                                                      | Relay opaque boundary、SDK non-Signer、handoff / response / concurrency の owner を確認                                      |
-| [`docs/specifications/interfaces.md`](../../specifications/interfaces.md)、[`signing-protocol.md`](../../specifications/signing-protocol.md)、[`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md)、[`profile-account-spec.md`](../../specifications/profile-account-spec.md)、[`chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md) | structured message、署名 context、Profile / Account、handoff、Chain / Network、result / replay の downstream contract を確認 |
-| [`docs/adr/0001-mainnet-evidence-lite.md`](../../adr/0001-mainnet-evidence-lite.md)、[`docs/mobile/mobile-store-release.md`](../../mobile/mobile-store-release.md)、[`docs/release/mainnet-release-evidence.md`](../../release/mainnet-release-evidence.md)                                                                                                                                           | Mainnet release evidence gate、Testnet-only の現行運用、trust source と fail-closed を確認                                   |
-| `wallet-core` の requirements / specification / Binding decision                                                                                                                                                                                                                                                                                                                                      | Store、password、Profile network、secret、raw signing、Binding の責務境界を確認                                              |
-| `.agents/skills/*`、[`.agents/project-context.md`](../../../.agents/project-context.md)、[`AGENTS.md`](../../../AGENTS.md)                                                                                                                                                                                                                                                                            | review procedure、phase boundary、repository の変更・検証・報告規約を確認                                                    |
+| 資料                                                                                                                                                                                                                                                                                                                                                                                                  | 用途                                                                                                                            |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| [`docs/design/mobile-app.md`](../../design/mobile-app.md)                                                                                                                                                                                                                                                                                                                                             | 現行モバイル基本設計、各修正箇所、§28 の責務追跡可能性を確認                                                                    |
+| [`docs/reviews/design/mobile-app-review-002.md`](./mobile-app-review-002.md)                                                                                                                                                                                                                                                                                                                          | `DR-001`〜`DR-005` の初出、要求内容、今回の状態対応を確認。判定は再利用していない                                               |
+| [`docs/design/architecture.md`](../../design/architecture.md)、[`security-design.md`](../../design/security-design.md)、[`signing-flow.md`](../../design/signing-flow.md)、[`interfaces.md`](../../design/interfaces.md)、[`browser-extension.md`](../../design/browser-extension.md)                                                                                                                 | 共通の判断権限、信頼境界、4 条件、署名フロー、結果、メッセージ、責務方向との整合を確認                                          |
+| `docs/reviews/design/architecture-review-004.md`、`security-design-review-004.md`、`signing-flow-review-004.md`、`interfaces-review-004.md`、`browser-extension-review-003.md`                                                                                                                                                                                                                        | 共通設計の確認対象を特定するため参照。レビュー判定条件は自動継承していない                                                      |
+| [`docs/requirements/requirements.md`](../../requirements/requirements.md)、[`mobile-app.md`](../../requirements/mobile-app.md)、[`relay.md`](../../requirements/relay.md)、[`sdk.md`](../../requirements/sdk.md)                                                                                                                                                                                      | モバイル、共通署名、Relay、SDK の上流要求と受け入れを確認                                                                       |
+| [`docs/design/relay.md`](../../design/relay.md)、[`sdk.md`](../../design/sdk.md)                                                                                                                                                                                                                                                                                                                      | Relay 内容を解釈しない境界、SDK 署名主体ではないこと、受け渡し / 応答 / 並行処理の責任主体を確認                                |
+| [`docs/specifications/interfaces.md`](../../specifications/interfaces.md)、[`signing-protocol.md`](../../specifications/signing-protocol.md)、[`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md)、[`profile-account-spec.md`](../../specifications/profile-account-spec.md)、[`chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md) | 構造化されたメッセージ、署名文脈、プロファイル / アカウント、受け渡し、チェーン / ネットワーク、結果 / リプレイの下流契約を確認 |
+| [`docs/adr/0001-mainnet-evidence-lite.md`](../../adr/0001-mainnet-evidence-lite.md)、[`docs/mobile/mobile-store-release.md`](../../mobile/mobile-store-release.md)、[`docs/release/mainnet-release-evidence.md`](../../release/mainnet-release-evidence.md)                                                                                                                                           | Mainnet リリース証跡判定条件、Testnet 専用の現行運用、信頼送信元と安全側での終了を確認                                          |
+| `wallet-core` の要件 / 仕様 / バインディング判断                                                                                                                                                                                                                                                                                                                                                      | ストア、パスワード、プロファイルネットワーク、秘密情報、生の署名、バインディングの責務境界を確認                                |
+| `.agents/skills/*`、[`.agents/project-context.md`](../../../.agents/project-context.md)、[`AGENTS.md`](../../../AGENTS.md)                                                                                                                                                                                                                                                                            | レビュー手順、工程境界、リポジトリの変更・検証・報告規約を確認                                                                  |
 
-## Review Result
+## レビュー結果
 
 `READY`
 
-## Summary
+## 要約
 
-現行の [`docs/design/mobile-app.md`](../../design/mobile-app.md) では、前回の `DR-001`〜`DR-005` に対応する高位設計判断が明記されている。Mobile trusted host が Signer-side orchestration の唯一の owner とされ、4 条件は独立した必須条件として同一 context に binding され、pre-sign と success result の双方で再確認される。
+現行の [`docs/design/mobile-app.md`](../../design/mobile-app.md) では、前回の `DR-001`〜`DR-005` に対応する高位設計判断が明記されている。モバイル信頼されたホストが署名主体側の処理の調整の唯一の責任主体とされ、4 条件は独立した必須条件として同一文脈に結び付けされ、署名前と成功結果の双方で再確認される。
 
-structured `MESSAGE_SIGN` は Mobile Signer 自身の inspection と trusted structured message model を中心に定義され、raw fallback、cross-source / cross-Origin、cross-domain、cross-purpose、expired / duplicate / replay を fail-closed で拒否する。Result は original request、verified handoff、signer identity、Profile / Account、Chain / Network、exact target、signing-time の 4 条件、approval / inspection、freshness、recipient / disposition に binding され、`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN`、resend / lookup と re-sign が分離されている。
+構造化された `MESSAGE_SIGN` はモバイル署名主体自身の内容検査と信頼された構造化されたメッセージモデルを中心に定義され、生の代替経路、送信元間の / オリジン間の、ドメイン間の、目的間の、期限切れ / 重複 / リプレイを安全側に終了して拒否する。結果は元の要求、検証済み受け渡し、署名主体識別情報、プロファイル / アカウント、チェーン / ネットワーク、厳密な対象、署名時の 4 条件、承認 / 内容検査、鮮度、受信者 / 処理結果の区分に結び付けされ、`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN`、再送 / 照会と再署名が分離されている。
 
-Mainnet capability は適用中の release policy / evidence gate 成立時だけ有効で、evidence の missing / mismatch / invalid / expired、signature verification failure、trusted key / source 不備、policy 判定不能、status unknown で無効化される。Testnet-only 継続も許容される。§28 は指定された責務単位を直接対応する traceability table として補強している。
+Mainnet 対応能力は適用中のリリースポリシー / 根拠判定条件成立時だけ有効で、根拠の欠落 / 不一致 / 無効な / 期限切れ、署名検証失敗、信頼された鍵 / 送信元不備、ポリシー判定不能、状態不明で無効化される。Testnet 専用継続も許容される。§28 は指定された責務単位を直接対応する追跡可能性表として補強している。
 
-新規 Critical / Major finding、重大な回帰、責務の逆流は確認されなかった。
+新規重大 / 主要指摘、重大な回帰、責務の逆流は確認されなかった。
 
-## Finding Status
+## 指摘の状態
 
-| ID     | Severity | Status   | 初出レビュー            | 今回の状態根拠                                                                                                                                    |
-| ------ | -------- | -------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DR-001 | Critical | RESOLVED | `mobile-app-review-002` | §4.1、§5.5、§12.3、§24 が Mobile host の唯一の orchestration ownership、独立した 4 条件、binding、pre-sign、fail-closed、result validation を明記 |
-| DR-002 | Critical | RESOLVED | `mobile-app-review-002` | §5.6.1、§12.2.1 が structured `MESSAGE_SIGN`、同一 model、inspection、context binding、replay 防止、raw fallback 禁止を明記                       |
-| DR-003 | Major    | RESOLVED | `mobile-app-review-002` | §8.3、§12.3、§14〜§15 が success result の全 binding、signing-time 4 条件、unknown / delivery、再署名禁止を明記                                   |
-| DR-004 | Major    | RESOLVED | `mobile-app-review-002` | §3.3、§23.1、§24、§27 が Mainnet evidence gate の成立条件、無効化条件、Testnet-only、下位 detail 委譲を明記                                       |
-| DR-005 | Minor    | RESOLVED | `mobile-app-review-002` | §28 が指定 17 責務について upstream、Mobile section、downstream contract / owner、detail delegation boundary を直接対応                           |
+| ID     | 重要度 | 状態     | 初出レビュー            | 今回の状態根拠                                                                                                                       |
+| ------ | ------ | -------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| DR-001 | 重大   | 解消済み | `mobile-app-review-002` | §4.1、§5.5、§12.3、§24 がモバイルホストの唯一の処理の調整所有責任、独立した 4 条件、結び付け、署名前、安全側での終了、結果検証を明記 |
+| DR-002 | 重大   | 解消済み | `mobile-app-review-002` | §5.6.1、§12.2.1 が構造化された `MESSAGE_SIGN`、同一モデル、内容検査、文脈結び付け、リプレイ防止、生の代替経路禁止を明記              |
+| DR-003 | 主要   | 解消済み | `mobile-app-review-002` | §8.3、§12.3、§14〜§15 が成功結果の全結び付け、署名時の 4 条件、不明 / 配送、再署名禁止を明記                                         |
+| DR-004 | 主要   | 解消済み | `mobile-app-review-002` | §3.3、§23.1、§24、§27 が Mainnet 根拠判定条件の成立条件、無効化条件、Testnet 専用、下位詳細委譲を明記                                |
+| DR-005 | 軽微   | 解消済み | `mobile-app-review-002` | §28 が指定 17 責務について上流、モバイル節、下流契約 / 責任主体、詳細委譲境界を直接対応                                              |
 
-新規 finding: なし。今回の確認範囲で New / Open / Reopened の Critical / Major / Minor はない。
+新規指摘: なし。今回の確認範囲で新規 / 未決 / 再発の重大 / 主要 / 軽微はない。
 
-## Required Changes
+## 必須の修正
 
-なし。Critical または Major の New / Open / Reopened finding はない。
+なし。重大または主要の新規 / 未決 / 再発指摘はない。
 
-## Optional Improvements
+## 任意の改善
 
-なし。今回の修正確認範囲で Minor の New / Open / Reopened finding はない。
+なし。今回の修正確認範囲で軽微の新規 / 未決 / 再発指摘はない。
 
-## Resolved Findings
+## 解消済みの指摘
 
-### DR-001: RESOLVED
+### DR-001: 解消済み
 
 - 対象箇所: `docs/design/mobile-app.md` §4.1、§5.5、§12.3、§14、§16、§24〜§25。
-- 確認事実: Mobile trusted host が唯一の Signer-side orchestration owner であり、`Authentication`、`Signing-capable unlock`、Profile / Chain / Network / Account に対する `Account authorization`、`Explicit user approval` の 4 条件を独立した必須条件として定義している。
-- 各条件は同一 request / source status / verified handoff / session-generation / Profile / Account / Chain / Network / operation / exact target or trusted digest / freshness / inspection・approval context に binding される。どの条件も他の条件を含意せず、connection、permission、pairing、capability、session、ordinary `UNLOCKED`、previous authentication、OS / device unlock、biometric のみ、Account selection、SDK / Relay state、handoff metadata、wallet-core の password / Store validation / signing success などを代替にしていない。
-- Mobile host が pre-sign で 4 条件を request ごとに再確認し、missing / stale / revoked / locked / unknown / mismatch なら wallet-core を呼ばず fail-closed とする。success result も signing-time の 4 条件を含む context validation 後だけ成立する。
-- SDK、Relay、external app、OS metadata / adapter、wallet-core は gate を成立・変更・免除・迂回できない。これにより前回の authority、TOCTOU、fail-closed の不足は解消された。
+- 確認事実: モバイル信頼されたホストが唯一の署名主体側の処理の調整責任主体であり、`Authentication`、`Signing-capable unlock`、プロファイル / チェーン / ネットワーク / アカウントに対する `Account authorization`、`Explicit user approval` の 4 条件を独立した必須条件として定義している。
+- 各条件は同一要求 / 送信元状態 / 検証済み受け渡し / session-generation / プロファイル / アカウント / チェーン / ネットワーク / 操作 / 厳密な対象または信頼されたダイジェスト / 鮮度 / 内容検査・承認文脈に結び付けされる。どの条件も他の条件を含意せず、接続、許可、ペアリング、対応能力、セッション、通常の `UNLOCKED`、前回認証、OS / 端末ロック解除、生体認証のみ、アカウント選択、SDK / Relay 状態、受け渡しメタデータ、wallet-core のパスワード / ストア検証 / 署名成功などを代替にしていない。
+- モバイルホストが署名前で 4 条件を要求ごとに再確認し、欠落 / 古くなった / 失効済み / ロック済み / 不明 / 不一致なら wallet-core を呼ばず安全側での終了とする。成功結果も署名時の 4 条件を含む文脈検証後だけ成立する。
+- SDK、Relay、外部アプリ、OS メタデータ / アダプター、wallet-core は判定条件を成立・変更・免除・迂回できない。これにより前回の判断権限、TOCTOU、安全側での終了の不足は解消された。
 
-### DR-002: RESOLVED
+### DR-002: 解消済み
 
 - 対象箇所: `docs/design/mobile-app.md` §5.6.1、§12.2.1、§16、§24。
-- 確認事実: Mobile v1 の `MESSAGE_SIGN` は structured operation として扱い、Mobile Signer 自身が message を inspection する。trusted UI の表示内容と wallet-core signing input は同一の trusted structured message model から導出する。
-- verified / unverified source status、verified handoff context、Profile、Account、Chain / Network、`operation = MESSAGE_SIGN`、domain、purpose、message content、nonce、issued / expiry、request freshness、message replay state、4 条件、approval context、inspection result、exact target / trusted digest が同じ context に binding される。
-- parse failure、unknown、uninspectable、expired、duplicate、replay、cross-source / cross-Origin、cross-domain、cross-purpose は署名せず、arbitrary raw bytes、raw fallback、automatic operation upgrade、transport conversion を許さない。request-level と message-level の replay をともに検査し、pre-sign revalidation と result binding を適用する。
-- exact schema、nonce format、serialization、expiry duration は Specification detail への委譲であり、今回の Design Gate の不足ではない。これにより前回の structured message、inspection、replay、blind/raw fallback の不足は解消された。
+- 確認事実: モバイル v1 の `MESSAGE_SIGN` は構造化された操作として扱い、モバイル署名主体自身がメッセージを内容検査する。信頼された UI の表示内容と wallet-core 署名入力は同一の信頼された構造化されたメッセージモデルから導出する。
+- 検証済み / 未検証の送信元状態、検証済み受け渡し文脈、プロファイル、アカウント、チェーン / ネットワーク、`operation = MESSAGE_SIGN`、ドメイン、目的、メッセージ内容、ノンス、発行された / 期限切れ、要求鮮度、メッセージリプレイ状態、4 条件、承認文脈、内容検査結果、厳密な対象 / 信頼されたダイジェストが同じ文脈に結び付けされる。
+- 解析失敗、不明、内容検査できない、期限切れ、重複、リプレイ、送信元間の / オリジン間の、ドメイン間の、目的間のは署名せず、任意の生バイト列、生の代替経路、自動操作 upgrade、通信経路変換を許さない。要求単位のとメッセージ単位のリプレイをともに検査し、署名前再検証と結果との結び付けを適用する。
+- 厳密なスキーマ、ノンス形式、シリアライズ、有効期間は仕様詳細への委譲であり、今回の設計判定条件の不足ではない。これにより前回の構造化されたメッセージ、内容検査、リプレイ、blind/raw 代替経路の不足は解消された。
 
-### DR-003: RESOLVED
+### DR-003: 解消済み
 
 - 対象箇所: `docs/design/mobile-app.md` §8.3、§12.3、§14〜§15、§22、§24。
-- 確認事実: success は original request、request correlation、verified source / handoff context、signer identity、Profile、Account、Chain / Network、operation、exact target / trusted digest、signing-time の 4 条件、approval context、inspection result、freshness、result recipient / disposition を Mobile trusted host が安全に確認できる場合に限定される。
-- context loss、stale、revoked、locked、source / signer / Profile / Account / Chain / Network / target mismatch、signing-time gate context unknown、result disposition unknown は success にしない。wallet-core password / Store / signing success だけでは Mobile success としない。
-- known result の delivery failure は `DELIVERY_UNKNOWN` として resend / lookup の対象に限り、`RESULT_UNKNOWN` は署名結果自体が不明な状態として扱う。delivery failure を再署名の根拠にせず、既知 result の resend / lookup と re-sign を分離し、old request の自動再実行も禁止する。
-- これにより前回の result binding、wallet-core success の過信、unknown / delivery の混同、自動再署名の不足は解消された。
+- 確認事実: 成功は元の要求、要求対応付け、検証済み送信元 / 受け渡し文脈、署名主体識別情報、プロファイル、アカウント、チェーン / ネットワーク、操作、厳密な対象 / 信頼されたダイジェスト、署名時の 4 条件、承認文脈、内容検査結果、鮮度、結果受信者 / 処理結果の区分をモバイル信頼されたホストが安全に確認できる場合に限定される。
+- 文脈消失、古くなった、失効済み、ロック済み、送信元 / 署名主体 / プロファイル / アカウント / チェーン / ネットワーク / 対象不一致、署名時の判定条件文脈不明、結果処理結果の区分不明は成功にしない。wallet-core パスワード / ストア / 署名成功だけではモバイル成功としない。
+- 既知の結果の配送失敗は `DELIVERY_UNKNOWN` として再送 / 照会の対象に限り、`RESULT_UNKNOWN` は署名結果自体が不明な状態として扱う。配送失敗を再署名の根拠にせず、既知結果の再送 / 照会と再署名を分離し、旧要求の自動再実行も禁止する。
+- これにより前回の結果との結び付け、wallet-core 成功の過信、不明 / 配送の混同、自動再署名の不足は解消された。
 
-### DR-004: RESOLVED
+### DR-004: 解消済み
 
 - 対象箇所: `docs/design/mobile-app.md` §3.3、§23.1、§24、§27、§28。
-- 確認事実: Mainnet signing capability は、適用中の release policy / evidence gate が成立した場合にだけ有効化される。required evidence の missing / mismatch / invalid / expired、signature verification failure、trusted key / trust source の不備、policy 判定不能、gate status unknown では Mainnet signing を無効化する。
-- OS unlock、biometric、hardware-backed capability、secure storage capability、App Store / Play Store 配布成功、App 起動成功、Relay connection、wallet-core signing success は Mainnet gate の代替ではない。gate 未成立時は安全な範囲で Testnet-only を継続できる。
-- exact evidence format、runtime enforcement、OS integration、hardware matrix、release tooling は下位 detail へ委譲されているが、Mainnet gate の存在、失敗時の無効化、unknown 時の fail-closed は OPEN ではない。現行の公開 Mobile release が Testnet-only であることとも矛盾しない。
-- これにより前回の Mainnet gate の高位判断と OPEN 境界の不足は解消された。
+- 確認事実: Mainnet 署名対応能力は、適用中のリリースポリシー / 根拠判定条件が成立した場合にだけ有効化される。必須根拠の欠落 / 不一致 / 無効な / 期限切れ、署名検証失敗、信頼された鍵 / 信頼送信元の不備、ポリシー判定不能、判定条件状態不明では Mainnet 署名を無効化する。
+- OS ロック解除、生体認証、ハードウェアで保護された対応能力、安全な保存領域対応能力、アプリストア / Play ストア配布成功、アプリ起動成功、Relay 接続、wallet-core 署名成功は Mainnet 判定条件の代替ではない。判定条件未成立時は安全な範囲で Testnet 専用を継続できる。
+- 厳密な根拠形式、実行環境強制、OS 統合、ハードウェア対応表、リリース補助ツールは下位詳細へ委譲されているが、Mainnet 判定条件の存在、失敗時の無効化、不明時の安全側での終了は未決ではない。現行の公開モバイルリリースが Testnet 専用であることとも矛盾しない。
+- これにより前回の Mainnet 判定条件の高位判断と未決境界の不足は解消された。
 
-### DR-005: RESOLVED
+### DR-005: 解消済み
 
-- 対象箇所: `docs/design/mobile-app.md` §28。表は Mobile trusted host / Signer authority、verified handoff source authority、external app / SDK / Relay / OS metadata non-authority、4 条件 gate、Profile / Account authority、Account authorization、structured `MESSAGE_SIGN`、Chain / Network inspection、Aggregate / cosignature、lifecycle invalidation、concurrent request isolation、result binding、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、automatic fallback prohibition、wallet-core raw signing / secret boundary、backup / migration、Mainnet gate の 17 行を持つ。
-- 確認事実: 各行に upstream requirement / common Design、Mobile 本文 section、downstream contract / owner、detail delegation boundary が直接記載されている。単なる資料リンク一覧ではなく、責務、security invariant、owner、下流委譲を一行単位で対応させている。
-- Mobile 固有仕様の不在は finding にせず、既存の common / handoff / Profile / Chain / wallet-core / release contract へ下流責務を割り当てていることを確認した。
-- これにより前回の broad link list による traceability 不足は解消された。
+- 対象箇所: `docs/design/mobile-app.md` §28。表はモバイル信頼されたホスト / 署名主体判断権限、検証済み受け渡し送信元判断権限、外部アプリ / SDK / Relay / OS メタデータ判断権限を持たないこと、4 条件判定条件、プロファイル / アカウントに関する判断権限、アカウントの利用認可、構造化された `MESSAGE_SIGN`、チェーン / ネットワーク内容検査、アグリゲート / 連署署名、ライフサイクル無効化、並行する要求分離、結果との結び付け、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、自動代替経路禁止、wallet-core 生の署名 / 秘密情報境界、バックアップ / 移行、Mainnet 判定条件の 17 行を持つ。
+- 確認事実: 各行に上流要求 / 共通の設計、モバイル本文節、下流契約 / 責任主体、詳細委譲境界が直接記載されている。単なる資料リンク一覧ではなく、責務、セキュリティ上の不変条件、責任主体、下流委譲を一行単位で対応させている。
+- モバイル固有仕様の不在は指摘にせず、既存の共通の / 受け渡し / プロファイル / チェーン / wallet-core / リリース契約へ下流責務を割り当てていることを確認した。
+- これにより前回の broad リンク一覧による追跡可能性不足は解消された。
 
-## Deferred Findings
+## 後続工程へ委譲する指摘
 
-正式な Deferred finding はなし。
+正式な後続工程へ委譲指摘はなし。
 
-現行設計が下位工程へ委譲している exact schema、OS API / secure storage integration、notification、DTO、exact nonce / expiry、timeout / retry、storage schema、cryptographic parameter、concurrency algorithm、implementation class、UI layout、hardware matrix、release tooling は、設計 invariant と owner が明確であるため今回の Required / Optional finding にはしない。Mainnet gate の有無、失敗時無効化、fail-closed は委譲せず現行設計で確定している。
+現行設計が下位工程へ委譲している厳密なスキーマ、OS API / 安全な保存領域統合、通知、DTO、厳密なノンス / 期限切れ、タイムアウト / 再試行、保存領域スキーマ、暗号学的なパラメーター、並行処理アルゴリズム、実装クラス、UI 配置、ハードウェア対応表、リリース補助ツールは、設計不変条件と責任主体が明確であるため今回の必須 / 任意指摘にはしない。Mainnet 判定条件の有無、失敗時無効化、安全側での終了は委譲せず現行設計で確定している。
 
-## Scope and Traceability
+## 対象範囲と追跡可能性
 
-Mobile 本文 §28 の直接 traceability table を再確認した。以下はその対応の要約であり、各責務の詳細な行は `docs/design/mobile-app.md` §28 を正本とする。
+モバイル本文 §28 の直接追跡可能性表を再確認した。以下はその対応の要約であり、各責務の詳細な行は `docs/design/mobile-app.md` §28 を正本とする。
 
-| 責務単位                                                                              | upstream requirement / common Design                                                     | Mobile 本文                      | downstream contract / owner                                                                                                          | detail delegation boundary                                           |
-| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| Mobile trusted host / Signer authority、verified handoff source authority             | CR-011、CR-016、MR-001〜MR-003、common Architecture / Signing Flow                       | §4、§4.1、§5.5、§7〜§8、§24〜§25 | Mobile trusted host; handoff spec / Profile-Account contract                                                                         | handoff field detail と OS invocation detail                         |
-| external app / SDK / Relay / OS metadata non-authority                                | CR-011、CR-015、MR-001、Relay / SDK Design                                               | §3、§4.1、§7〜§8、§24〜§25       | Mobile host; Relay opaque owner; SDK non-Signer                                                                                      | transport / platform API detail                                      |
-| 共通 4 条件 gate、Profile / Account authority、Account authorization                  | CR-016、CR-AC-017〜019、Profile-Account Design                                           | §4.1、§9〜§10、§12.3、§16、§24   | Mobile host; Profile / Account contract; wallet-core only key / Store owner                                                          | authentication / OS adapter / account persistence detail             |
-| structured `MESSAGE_SIGN`、Chain / Network inspection、Aggregate / cosignature        | CR-007-MSG、CR-NFR-005、chain requirements / compatibility spec                          | §5.6、§5.6.1、§12.2.1、§20、§24  | Mobile Signer; Interfaces / signing protocol; Symbol / NEM adapters                                                                  | exact message schema / chain serialization / cryptographic parameter |
-| lifecycle invalidation、concurrent request isolation                                  | MR-005〜MR-006、CR-NFR-003、common Signing Flow / Interfaces                             | §10、§14〜§15、§21〜§22、§24     | Mobile host; request / handoff contracts                                                                                             | state enum、storage schema、concurrency algorithm                    |
-| result binding、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、automatic fallback prohibition | CR-NFR-008〜012、Relay / SDK requirements and Design                                     | §8.3、§12.3、§14〜§15、§22、§24  | Mobile host; handoff / Interfaces / Relay / SDK response owners                                                                      | DTO、retry count、concrete delivery mechanism                        |
-| wallet-core raw signing / secret boundary、backup / migration responsibility          | CR-013〜014、MR-007〜MR-010、wallet-core requirements / specification / Binding decision | §5.7、§18〜§19、§24〜§25         | wallet-core owns Store / password / key / secret / raw signing; Mobile owns meaning / approval / orchestration; Profile backup owner | Binding conversion、backup envelope、storage / migration detail      |
-| Mainnet gate                                                                          | CR-NFR-006、MR-013、ADR-0001、release evidence contract                                  | §3.3、§23.1、§24、§27            | release / evidence policy owner; Mobile capability gate enforcement                                                                  | evidence format、runtime / OS / hardware / tooling detail            |
+| 責務単位                                                                              | 上流要求 / 共通の設計                                                     | モバイル本文                     | 下流契約 / 責任主体                                                                                                                       | 詳細委譲境界                                                             |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| モバイル信頼されたホスト / 署名主体判断権限、検証済み受け渡し送信元判断権限           | CR-011、CR-016、MR-001〜MR-003、共通のアーキテクチャ / 署名フロー         | §4、§4.1、§5.5、§7〜§8、§24〜§25 | モバイル信頼されたホスト; 受け渡し spec / Profile-Account 契約                                                                            | 受け渡しフィールド詳細と OS 呼び出し詳細                                 |
+| 外部アプリ / SDK / Relay / OS メタデータ判断権限を持たないこと                        | CR-011、CR-015、MR-001、Relay / SDK 設計                                  | §3、§4.1、§7〜§8、§24〜§25       | モバイルホスト; Relay 内容を解釈しない責任主体; SDK 署名主体ではないこと                                                                  | 通信経路 / プラットフォーム API 詳細                                     |
+| 共通 4 条件判定条件、プロファイル / アカウントに関する判断権限、アカウントの利用認可  | CR-016、CR-AC-017〜019、Profile-Account 設計                              | §4.1、§9〜§10、§12.3、§16、§24   | モバイルホスト; プロファイル / アカウント契約; wallet-core のみ鍵 / ストア責任主体                                                        | 認証 / OS アダプター / アカウント永続化詳細                              |
+| 構造化された `MESSAGE_SIGN`、チェーン / ネットワーク内容検査、アグリゲート / 連署署名 | CR-007-MSG、CR-NFR-005、チェーン要件 / 互換性 spec                        | §5.6、§5.6.1、§12.2.1、§20、§24  | モバイル署名主体; インターフェース / 署名プロトコル; Symbol / NEM アダプター                                                              | 厳密なメッセージスキーマ / チェーンシリアライズ / 暗号学的なパラメーター |
+| ライフサイクル無効化、並行する要求分離                                                | MR-005〜MR-006、CR-NFR-003、共通の署名フロー / インターフェース           | §10、§14〜§15、§21〜§22、§24     | モバイルホスト; 要求 / 受け渡し契約                                                                                                       | 状態列挙型、保存領域スキーマ、並行処理アルゴリズム                       |
+| 結果との結び付け、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、自動代替経路禁止             | CR-NFR-008〜012、Relay / SDK 要件と設計                                   | §8.3、§12.3、§14〜§15、§22、§24  | モバイルホスト; 受け渡し / インターフェース / Relay / SDK 応答 owners                                                                     | DTO、再試行回数、具体的な配送仕組み                                      |
+| wallet-core 生の署名 / 秘密情報境界、バックアップ / 移行責務                          | CR-013〜014、MR-007〜MR-010、wallet-core 要件 / 仕様 / バインディング判断 | §5.7、§18〜§19、§24〜§25         | wallet-core owns ストア / パスワード / 鍵 / 秘密情報 / 生の署名; モバイル owns 意味 / 承認 / 処理の調整; プロファイルバックアップ責任主体 | バインディング変換、バックアップエンベロープ、保存領域 / 移行詳細        |
+| Mainnet 判定条件                                                                      | CR-NFR-006、MR-013、ADR-0001、リリース証跡契約                            | §3.3、§23.1、§24、§27            | リリース / 根拠ポリシー責任主体; モバイル対応能力判定条件強制                                                                             | 根拠形式、実行環境 / OS / ハードウェア / 補助ツール詳細                  |
 
-この対応により、責務・security invariant・owner・下流委譲のいずれも資料リンクだけに依存せず追跡できる。関連する共通 Design の Review Gate はこのレビューの判定へ自動継承していない。
+この対応により、責務・セキュリティ上の不変条件・責任主体・下流委譲のいずれも資料リンクだけに依存せず追跡できる。関連する共通設計のレビュー判定条件はこのレビューの判定へ自動継承していない。
 
-## Domain Checks
+## ドメイン別の確認
 
-| 評価項目                                   | 結果 | 確認内容                                                                                                                                                                                  |
-| ------------------------------------------ | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| システムコンテキスト                       | PASS | Mobile は local trusted host / Signer、external app / Web / SDK / Relay / OS metadata は untrusted。Relay は opaque boundary。                                                            |
-| 責務と依存方向                             | PASS | Mobile host が Signer-side orchestration owner。SDK / Relay / external app / OS / wallet-core から gate や approval への責務逆流なし。                                                    |
-| 4 条件署名 gate                            | PASS | 4 条件を独立必須とし、同一 context binding、pre-sign 再確認、result validation、missing / stale / revoked / locked / unknown / mismatch の fail-closed を確認。                           |
-| verified handoff と source authority       | PASS | verified handoff context を Mobile host が検証し、unverified source / metadata / self-declaration は authority にならない。                                                               |
-| Profile / Account / Chain / Network        | PASS | Profile / Account authority と wallet-core identity を分離し、Chain / Network を inspection・表示・署名対象へ binding。Symbol / NEM、Mainnet / Testnet を混在させない。                   |
-| structured `MESSAGE_SIGN` と blind signing | PASS | Mobile Signer の semantic inspection、同一 model からの UI / input 導出、raw / uninspectable fallback 禁止を確認。                                                                        |
-| replay / duplicate / cross-context         | PASS | request-level / message-level replay、duplicate、expired、cross-source / Origin、cross-domain、cross-purpose を拒否し、freshness を再確認。                                               |
-| Aggregate / cosignature                    | PASS | Aggregate / parent / embedded / cosignature と NEM-specific inspection を signer-side で扱い、hash-only / partial blind signing を許さない。                                              |
-| lifecycle / process recreation             | PASS | background、device lock、process death、restart、cold start、session-generation 変更で旧 approval / authorization / context を再利用せず fail-closed。                                    |
-| trusted UI / sensitive UI / secure storage | PASS | trusted foreground UI と semantic inspection を Mobile host の責務とし、secret / sensitive UI exposure、secure storage / OS protection の責任を混同しない。                               |
-| wallet-core boundary                       | PASS | wallet-core は Store / password / key / secret / raw signing を所有し、UI、source、permission、device auth、meaning、approval、orchestration を所有しない。                               |
-| concurrent request isolation               | PASS | request ごとに identity、source、session、expiry、Profile / Account、Chain / Network、operation、target、inspection、response channel を分離し、merge / reuse / overwrite しない。        |
-| result binding / unknown state             | PASS | original request、correlation、signer、target、signing-time 4 条件、approval / inspection、freshness、recipient / disposition を binding。`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` を分離。 |
-| automatic fallback / re-sign               | PASS | old approval / auto-sign / auto-retry / automatic fallback を禁止し、known result の resend / lookup と re-sign を分離。                                                                  |
-| backup / migration                         | PASS | backup / migration を common signing authority や wallet-core secret boundaryへ逆流させず、Profile / backup owner と Mobile lifecycle を分離。                                            |
-| Mainnet / Testnet release operation        | PASS | evidence gate 成立時のみ Mainnet capability。指定された evidence / trust / policy failure と unknown で無効化し、Testnet-only 継続を許す。                                                |
-| traceability / Design phase                | PASS | §28 の 17 責務行で直接追跡でき、下位 detail を設計不足とせず、設計本文に新しい API / schema / implementation を発明していない。                                                           |
+| 評価項目                                            | 結果 | 確認内容                                                                                                                                                                                |
+| --------------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| システムコンテキスト                                | 合格 | モバイルはローカル信頼されたホスト / 署名主体、外部アプリ / Web / SDK / Relay / OS メタデータは信頼されていない。Relay は内容を解釈しない境界。                                         |
+| 責務と依存方向                                      | 合格 | モバイルホストが署名主体側の処理の調整責任主体。SDK / Relay / 外部アプリ / OS / wallet-core から判定条件や承認への責務逆流なし。                                                        |
+| 4 条件署名判定条件                                  | 合格 | 4 条件を独立必須とし、同一文脈結び付け、署名前再確認、結果検証、欠落 / 古くなった / 失効済み / ロック済み / 不明 / 不一致の安全側での終了を確認。                                       |
+| 検証済み受け渡しと送信元判断権限                    | 合格 | 検証済み受け渡し文脈をモバイルホストが検証し、未検証の送信元 / メタデータ / 自己申告は判断権限にならない。                                                                              |
+| プロファイル / アカウント / チェーン / ネットワーク | 合格 | プロファイル / アカウントに関する判断権限と wallet-core 識別情報を分離し、チェーン / ネットワークを内容検査・表示・署名対象へ結び付け。Symbol / NEM、Mainnet / Testnet を混在させない。 |
+| 構造化された `MESSAGE_SIGN` と内容を確認しない署名  | 合格 | モバイル署名主体の意味上の内容検査、同一モデルからの UI / 入力導出、生の / 内容検査できない代替経路禁止を確認。                                                                         |
+| リプレイ / 重複 / 文脈間の                          | 合格 | 要求単位の / メッセージ単位のリプレイ、重複、期限切れ、送信元間の / オリジン、ドメイン間の、目的間のを拒否し、鮮度を再確認。                                                            |
+| アグリゲート / 連署署名                             | 合格 | アグリゲート / 親 / 埋め込み / 連署署名と NEM 固有の内容検査を署名主体側ので扱い、ハッシュのみ / 部分トランザクション内容を確認しない署名を許さない。                                   |
+| ライフサイクル / プロセス再作成                     | 合格 | バックグラウンド、端末ロック、プロセス death、再起動、初回開始、session-generation 変更で旧承認 / 認可 / 文脈を再利用せず安全側での終了。                                               |
+| 信頼された UI / 機微な UI / 安全な保存領域          | 合格 | 信頼されたフォアグラウンド UI と意味上の内容検査をモバイルホストの責務とし、秘密情報 / 機微な UI 露出、安全な保存領域 / OS 保護の責任を混同しない。                                     |
+| wallet-core 境界                                    | 合格 | wallet-core はストア / パスワード / 鍵 / 秘密情報 / 生の署名を所有し、UI、送信元、許可、端末認証、意味、承認、処理の調整を所有しない。                                                  |
+| 並行する要求分離                                    | 合格 | 要求ごとに識別情報、送信元、セッション、期限切れ、プロファイル / アカウント、チェーン / ネットワーク、操作、対象、内容検査、応答チャネルを分離し、統合 / 再利用 / 上書きしない。        |
+| 結果との結び付け / 不明状態                         | 合格 | 元の要求、対応付け、署名主体、対象、署名時の 4 条件、承認 / 内容検査、鮮度、受信者 / 処理結果の区分を結び付け。`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` を分離。                          |
+| 自動代替経路 / 再署名                               | 合格 | 旧承認 / auto-sign / auto-retry / 自動代替経路を禁止し、既知の結果の再送 / 照会と再署名を分離。                                                                                         |
+| バックアップ / 移行                                 | 合格 | バックアップ / 移行を共通の署名判断権限や wallet-core 秘密情報境界へ逆流させず、プロファイル / バックアップ責任主体とモバイルライフサイクルを分離。                                     |
+| Mainnet / Testnet リリース操作                      | 合格 | 根拠判定条件成立時のみ Mainnet 対応能力。指定された根拠 / 信頼 / ポリシー失敗と不明で無効化し、Testnet 専用継続を許す。                                                                 |
+| 追跡可能性 / 設計工程                               | 合格 | §28 の 17 責務行で直接追跡でき、下位詳細を設計不足とせず、設計本文に新しい API / スキーマ / 実装を発明していない。                                                                      |
 
-## Validation Results
+## 検証結果
 
-| 検証                                                                      | 結果          | 備考                                                                   |
-| ------------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------- |
-| `pnpm exec prettier --write docs/reviews/design/mobile-app-review-003.md` | PASS          | 成果物のみを整形                                                       |
-| `pnpm exec prettier --check docs/reviews/design/mobile-app-review-003.md` | PASS          | 成果物の Markdown format を確認                                        |
-| `git diff --check`                                                        | PASS          | whitespace error なし                                                  |
-| Markdown link check                                                       | PASS          | 成果物内の repository-relative link の存在先を確認                     |
-| finding ID 重複確認                                                       | PASS          | `DR-001`〜`DR-005` を一意に管理し、新規 ID なし                        |
-| Review Gate と finding status の整合                                      | PASS          | 8 gate がすべて PASS、既存 5 finding がすべて RESOLVED、最終判定 READY |
-| 変更ファイル範囲                                                          | PASS          | レビュー成果物以外の変更なし                                           |
-| lint / typecheck / test / build                                           | Not validated | Source code を変更していないため、依頼条件に従い実行していない         |
-| Mobile 実装 / runtime / 実機 OS / hardware matrix / release tooling       | Not validated | 現行 workspace に Mobile 実装はなく、Design が下位工程へ委譲する範囲   |
+| 検証                                                                        | 結果   | 備考                                                                 |
+| --------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------- |
+| `pnpm exec prettier --write docs/reviews/design/mobile-app-review-003.md`   | 合格   | 成果物のみを整形                                                     |
+| `pnpm exec prettier --check docs/reviews/design/mobile-app-review-003.md`   | 合格   | 成果物の Markdown 形式を確認                                         |
+| `git diff --check`                                                          | 合格   | 空白文字エラーなし                                                   |
+| Markdown リンク確認                                                         | 合格   | 成果物内の repository-relative リンクの存在先を確認                  |
+| 指摘 ID 重複確認                                                            | 合格   | `DR-001`〜`DR-005` を一意に管理し、新規 ID なし                      |
+| レビュー判定条件と指摘の状態の整合                                          | 合格   | 8 判定条件がすべて合格、既存 5 指摘がすべて解消済み、最終判定 READY  |
+| 変更ファイル範囲                                                            | 合格   | レビュー成果物以外の変更なし                                         |
+| lint / typecheck / テスト / ビルド                                          | 未検証 | 送信元コードを変更していないため、依頼条件に従い実行していない       |
+| モバイル実装 / 実行環境 / 実機 OS / ハードウェア対応表 / リリース補助ツール | 未検証 | 現行ワークスペースにモバイル実装はなく、設計が下位工程へ委譲する範囲 |
 
-## Review Gates
+## レビュー判定基準
 
-| Gate                        | 結果 | 根拠                                                                                                                          | 対応 ID                |
-| --------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| 1. 目的と範囲               | PASS | Mobile の Signer 範囲、対象外、Testnet / Mainnet 条件、下位 detail の phase boundary が明確                                   | なし                   |
-| 2. コンテキストと責任       | PASS | trusted host、external / SDK / Relay / OS / wallet-core、secret、handoff、trusted UI の境界が明確                             | DR-001、DR-005         |
-| 3. 依存方向                 | PASS | Mobile host が orchestration owner で、Relay / SDK / wallet-core から approval / gate への逆流がない                          | DR-001、DR-005         |
-| 4. 主要フロー               | PASS | pre-sign、success、failure、replay、restart、duplicate、unknown、resend / lookup、re-sign の責任が明確                        | DR-001、DR-002、DR-003 |
-| 5. データ所有               | PASS | Profile / Account、request context、secret、wallet-core Store、result、backup / migration の所有が分離                        | DR-001、DR-003、DR-005 |
-| 6. セキュリティと相互運用性 | PASS | 4 条件、semantic inspection、blind signing 禁止、replay 防止、Symbol / NEM、Mainnet / Testnet、Relay / wallet-core 境界を維持 | DR-001、DR-002、DR-004 |
-| 7. 上流整合性               | PASS | requirements、common Design、handoff / Profile / Chain contract、ADR、release evidence と重大な矛盾なし                       | DR-001〜DR-005         |
-| 8. 下流実装可能性           | PASS | 各 invariant と owner を確定し、exact schema / OS / runtime / tooling 等は妥当な下位 boundary へ委譲                          | DR-002、DR-004、DR-005 |
+| 判定条件                    | 結果 | 根拠                                                                                                                              | 対応 ID                |
+| --------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| 1. 目的と範囲               | 合格 | モバイルの署名主体範囲、対象外、Testnet / Mainnet 条件、下位詳細の工程境界が明確                                                  | なし                   |
+| 2. コンテキストと責任       | 合格 | 信頼されたホスト、外部 / SDK / Relay / OS / wallet-core、秘密情報、受け渡し、信頼された UI の境界が明確                           | DR-001、DR-005         |
+| 3. 依存方向                 | 合格 | モバイルホストが処理の調整責任主体で、Relay / SDK / wallet-core から承認 / 判定条件への逆流がない                                 | DR-001、DR-005         |
+| 4. 主要フロー               | 合格 | 署名前、成功、失敗、リプレイ、再起動、重複、不明、再送 / 照会、再署名の責任が明確                                                 | DR-001、DR-002、DR-003 |
+| 5. データ所有               | 合格 | プロファイル / アカウント、要求文脈、秘密情報、wallet-core ストア、結果、バックアップ / 移行の所有が分離                          | DR-001、DR-003、DR-005 |
+| 6. セキュリティと相互運用性 | 合格 | 4 条件、意味上の内容検査、内容を確認しない署名禁止、リプレイ防止、Symbol / NEM、Mainnet / Testnet、Relay / wallet-core 境界を維持 | DR-001、DR-002、DR-004 |
+| 7. 上流整合性               | 合格 | 要件、共通の設計、受け渡し / プロファイル / チェーン契約、ADR、リリース証跡と重大な矛盾なし                                       | DR-001〜DR-005         |
+| 8. 下流実装可能性           | 合格 | 各不変条件と責任主体を確定し、厳密なスキーマ / OS / 実行環境 / 補助ツール等は妥当な下位境界へ委譲                                 | DR-002、DR-004、DR-005 |
 
-## Remaining Risks and Open Decisions
+## 残存リスクと未決定事項
 
-- Mobile 実装、実機の process recreation / device lock、OS protected storage、hardware matrix、runtime enforcement、release tooling の実装・E2E 検証は未実施である。後工程では §24 の MUST invariant と §28 の owner を満たすことを確認する必要がある。
-- exact handoff / message schema、nonce / expiry、storage、timeout / retry、OS API、cryptographic parameter、concurrency algorithm、UI layout は既存の specification / 下位工程の責務である。今回の Design Gate では高位 invariant と委譲境界のみを判定した。
-- 現行公開 Mobile release は Testnet-only であり、将来 Mainnet を有効化する場合は適用中 release policy / signed evidence gate と trusted key / source の検証が必要である。gate 自体は OPEN ではない。
-- 上記は残存する実装・運用リスクまたは下位決定であり、今回の修正による Critical / Major の設計不備ではない。
+- モバイル実装、実機のプロセス再作成 / 端末ロック、OS 保護された保存領域、ハードウェア対応表、実行環境強制、リリース補助ツールの実装・E2E 検証は未実施である。後工程では §24 の MUST 不変条件と §28 の責任主体を満たすことを確認する必要がある。
+- 厳密な受け渡し / メッセージスキーマ、ノンス / 期限切れ、保存領域、タイムアウト / 再試行、OS API、暗号学的なパラメーター、並行処理アルゴリズム、UI 配置は既存の仕様 / 下位工程の責務である。今回の設計判定条件では高位不変条件と委譲境界のみを判定した。
+- 現行公開モバイルリリースは Testnet 専用であり、将来 Mainnet を有効化する場合は適用中リリースポリシー / 署名済み根拠判定条件と信頼された鍵 / 送信元の検証が必要である。判定条件自体は未決ではない。
+- 上記は残存する実装・運用リスクまたは下位決定であり、今回の修正による重大 / 主要の設計不備ではない。
 
-## Automatic Changes
+## 自動変更
 
 なし。設計本文、仕様、実装、既存レビューは変更せず、本レビュー成果物のみ新規作成した。
 
-## Final Decision
+## 最終判断
 
 `READY`
 
-`DR-001`〜`DR-005` はすべて `RESOLVED`。新規 Critical / Major finding、重大な回帰、Relay / SDK / wallet-core への責務逆流、lifecycle / concurrent isolation / result unknown / fallback の回帰は確認されないため、Mobile App Design を READY と判断する。
+`DR-001`〜`DR-005` はすべて `RESOLVED`。新規重大 / 主要指摘、重大な回帰、Relay / SDK / wallet-core への責務逆流、ライフサイクル / 並行する分離 / 結果不明 / 代替経路の回帰は確認されないため、モバイルアプリ設計を READY と判断する。

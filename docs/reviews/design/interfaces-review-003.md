@@ -1,356 +1,356 @@
-# MosaicLynx 共通 Data Model / Interface 基本設計レビュー 003
+# MosaicLynx 共通データモデル / インターフェース基本設計レビュー 003
 
-## 1. Review Target
+## 1. レビュー対象
 
 - 対象: [`docs/design/interfaces.md`](../../design/interfaces.md)
 - 確認日: 2026-08-27
 - レビュー成果物: `docs/reviews/design/interfaces-review-003.md`
-- レビュー範囲: 共通 Data Model / Interface 基本設計の目的、責務境界、trust boundary、request / response / result context、Profile / Account、Chain / Network、operation、failure、lifecycle、correlation、permission / capability、SDK、Relay、wallet-core、traceability および OPEN 項目の独立評価。
-- 設計フェーズ境界: API signature、JSON / DTO schema、field type、wire encoding、exact error code、timeout / retry 数、DB / Redis schema、暗号方式、byte serialization、実装 class、UI layout は評価対象の不足としない。
-- 未確認範囲: 本レビューでは source code、runtime 挙動および未実装 Mobile App の実装検証を行っていない。これらは本書の基本設計レビュー対象外である。
-- 指定された [`docs/reviews/design/signing-flow-review-004.md`](./signing-flow-review-004.md) と `signing-flow-review-003.md` を関連資料として確認した。Signing Flow review 004 の `READY` およびその他の上位 review の判定は今回へ自動継承していない。
+- レビュー範囲: 共通データモデル / インターフェース基本設計の目的、責務境界、信頼境界、要求 / 応答 / 結果文脈、プロファイル / アカウント、チェーン / ネットワーク、操作、失敗、ライフサイクル、対応付け、許可 / 対応能力、SDK、Relay、wallet-core、追跡可能性および未決項目の独立評価。
+- 設計フェーズ境界: API 署名、JSON / DTO スキーマ、フィールド型、通信上のエンコーディング、厳密なエラーコード、タイムアウト / 再試行数、DB / Redis スキーマ、暗号方式、バイトシリアライズ、実装クラス、UI 配置は評価対象の不足としない。
+- 未確認範囲: 本レビューでは送信元コード、実行環境挙動および未実装モバイルアプリの実装検証を行っていない。これらは本書の基本設計レビュー対象外である。
+- 指定された [`docs/reviews/design/signing-flow-review-004.md`](./signing-flow-review-004.md) と `signing-flow-review-003.md` を関連資料として確認した。署名フローレビュー 004 の `READY` およびその他の上位レビューの判定は今回へ自動継承していない。
 
-## 2. Execution Audit
+## 2. 実行記録
 
-`design-review` Skill、共通 review playbook、reviewers、review gates、output format、[`AGENTS.md`](../../../AGENTS.md) および [`.agents/project-context.md`](../../../.agents/project-context.md) を確認した。サブエージェントは使用せず、Chair が次の4観点を別走査で実施した。
+`design-review` スキル、共通レビュー作業手順、レビュアー、レビュー判定基準、出力形式、[`AGENTS.md`](../../../AGENTS.md) および [`.agents/project-context.md`](../../../.agents/project-context.md) を確認した。サブエージェントは使用せず、レビュー統括が次の4観点を別走査で実施した。
 
-| 観点                                   | 独立確認                                                                                                                                                     | 候補の扱い                                                                                                            |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| Reviewer A: structure / responsibility | dApp、SDK、Provider / Content Script、Browser / Mobile Signer、Relay、wallet-core、Application Profile / Account、依存方向を確認                             | `DR-001`、`DR-002`、`DR-003`、`DR-005` を採用。大枠の依存方向と secret boundary は適合。                              |
-| Reviewer B: security / trust boundary  | Authentication、signing-capable unlock、Account authorization、explicit approval、caller、target、Chain / Network、Relay、wallet-core、secret leakage を確認 | `DR-001`、`DR-002`、`DR-003` を採用。Relay / SDK / wallet-core が gate authority になる記述は確認されなかった。       |
-| Reviewer C: flow / operations          | request lifecycle、response、result unknown、delivery unknown、concurrent request、replay、freshness、failure、fallback、lifecycle loss を確認               | `DR-001`、`DR-004`、`DR-005` を採用。`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` と automatic fallback prohibition は適合。 |
-| Reviewer D: traceability / downstream  | Requirements、上位 Design、platform / SDK / Relay Design、Specification、wallet-core、ADR、OPEN と下流の実装判断の境界を確認                                 | `DR-001`〜`DR-005` を採用。exact schema / API / wire 詳細は finding にしなかった。                                    |
+| 観点                                  | 独立確認                                                                                                                                                    | 候補の扱い                                                                                                      |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| レビュアー A: 構造 / 責務             | dApp、SDK、Provider / コンテンツスクリプト、ブラウザ / モバイル署名主体、Relay、wallet-core、アプリケーションプロファイル / アカウント、依存方向を確認      | `DR-001`、`DR-002`、`DR-003`、`DR-005` を採用。大枠の依存方向と秘密情報境界は適合。                             |
+| レビュアー B: セキュリティ / 信頼境界 | 認証、署名可能な状態へのロック解除、アカウントの利用認可、明示的な承認、呼び出し元、対象、チェーン / ネットワーク、Relay、wallet-core、秘密情報漏えいを確認 | `DR-001`、`DR-002`、`DR-003` を採用。Relay / SDK / wallet-core が判定条件判断権限になる記述は確認されなかった。 |
+| レビュアー C: フロー / 操作           | 要求ライフサイクル、応答、結果不明、配送不明、並行する要求、リプレイ、鮮度、失敗、代替経路、ライフサイクル消失を確認                                        | `DR-001`、`DR-004`、`DR-005` を採用。`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` と自動代替経路禁止は適合。           |
+| レビュアー D: 追跡可能性 / 下流       | 要件、上位設計、プラットフォーム / SDK / Relay 設計、仕様、wallet-core、ADR、未決と下流の実装判断の境界を確認                                               | `DR-001`〜`DR-005` を採用。厳密なスキーマ / API / 通信上の詳細は指摘にしなかった。                              |
 
-## 3. Evidence Used
+## 3. 参照した根拠
 
-| 資料                                                                                                                                                                                                                                                                                                                                                                                                  | 用途                                                                                                                          |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| [`docs/design/interfaces.md`](../../design/interfaces.md)                                                                                                                                                                                                                                                                                                                                             | 今回の主対象。現在の本文、責任表、論理モデル、validation、security、委譲、OPEN を直接確認した。                               |
-| [`docs/reviews/design/interfaces-review-001.md`](./interfaces-review-001.md)、[`interfaces-review-002.md`](./interfaces-review-002.md)                                                                                                                                                                                                                                                                | 過去の `IF-001`〜`IF-003` の ID と現在状態の再確認だけに使用した。過去の READY 判定は継承していない。                         |
-| [`docs/design/architecture.md`](../../design/architecture.md)、[`security-design.md`](../../design/security-design.md)、[`signing-flow.md`](../../design/signing-flow.md)                                                                                                                                                                                                                             | authoritative な上位 Design として責務、4条件の共通署名 gate、Profile / Account、結果、lifecycle、fallback を照合した。       |
-| [`docs/reviews/design/architecture-review-004.md`](./architecture-review-004.md)、[`security-design-review-004.md`](./security-design-review-004.md)、[`signing-flow-review-003.md`](./signing-flow-review-003.md)、[`signing-flow-review-004.md`](./signing-flow-review-004.md)                                                                                                                      | 関連 review の存在と指摘・判定の境界を確認した。今回の判定は各 review の READY / REVISE を自動継承していない。                |
-| [`docs/concept/concept-sheet.md`](../../concept/concept-sheet.md)                                                                                                                                                                                                                                                                                                                                     | Product の責任境界と信頼モデルの上流根拠を確認した。                                                                          |
-| [`docs/requirements/requirements.md`](../../requirements/requirements.md)、[`browser-extension.md`](../../requirements/browser-extension.md)、[`mobile-app.md`](../../requirements/mobile-app.md)、[`relay.md`](../../requirements/relay.md)、[`sdk.md`](../../requirements/sdk.md)                                                                                                                   | CR-013、CR-015、CR-016、CR-NFR-008〜012、CR-AC-017〜019 と各主体の要求を確認した。                                            |
-| [`docs/design/browser-extension.md`](../../design/browser-extension.md)、[`mobile-app.md`](../../design/mobile-app.md)、[`relay.md`](../../design/relay.md)、[`sdk.md`](../../design/sdk.md)                                                                                                                                                                                                          | Browser / Mobile caller context、Profile / Account invalidation、SDK / Relay の責務、concurrency、result binding を照合した。 |
-| [`docs/specifications/interfaces.md`](../../specifications/interfaces.md)、[`signing-protocol.md`](../../specifications/signing-protocol.md)、[`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md)、[`profile-account-spec.md`](../../specifications/profile-account-spec.md)、[`chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md) | 下流で既に具体化された意味の区別と binding を確認した。ただし exact schema / field / encoding は本設計へ逆流させていない。    |
-| [`docs/adr/0001-mainnet-evidence-lite.md`](../../adr/0001-mainnet-evidence-lite.md)                                                                                                                                                                                                                                                                                                                   | Mainnet capability / release gate の owner と、Interface Design がそれを無断で緩和していないことを確認した。                  |
-| `_snwc/README.md`、`_snwc/docs/requirements/requirements.md`、`_snwc/docs/specifications/specification.md`、`_snwc/docs/decisions/binding-implementation.md`                                                                                                                                                                                                                                          | wallet-core の Wallet Store、secret processing、public identity、raw signing、Binding の責務と Application 側責務を確認した。 |
-| `design-review` Skill 一式、共通 playbook、project context、`AGENTS.md`                                                                                                                                                                                                                                                                                                                               | レビュー手順、正式 ID、重大度、gate、出力順、変更範囲および検証規則を確認した。                                               |
+| 資料                                                                                                                                                                                                                                                                                                                                                                                                  | 用途                                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| [`docs/design/interfaces.md`](../../design/interfaces.md)                                                                                                                                                                                                                                                                                                                                             | 今回の主対象。現在の本文、責任表、論理モデル、検証、セキュリティ、委譲、未決を直接確認した。                                           |
+| [`docs/reviews/design/interfaces-review-001.md`](./interfaces-review-001.md)、[`interfaces-review-002.md`](./interfaces-review-002.md)                                                                                                                                                                                                                                                                | 過去の `IF-001`〜`IF-003` の ID と現在状態の再確認だけに使用した。過去の READY 判定は継承していない。                                  |
+| [`docs/design/architecture.md`](../../design/architecture.md)、[`security-design.md`](../../design/security-design.md)、[`signing-flow.md`](../../design/signing-flow.md)                                                                                                                                                                                                                             | 正本となるな上位設計として責務、4条件の共通署名判定条件、プロファイル / アカウント、結果、ライフサイクル、代替経路を照合した。         |
+| [`docs/reviews/design/architecture-review-004.md`](./architecture-review-004.md)、[`security-design-review-004.md`](./security-design-review-004.md)、[`signing-flow-review-003.md`](./signing-flow-review-003.md)、[`signing-flow-review-004.md`](./signing-flow-review-004.md)                                                                                                                      | 関連レビューの存在と指摘・判定の境界を確認した。今回の判定は各レビューの READY / REVISE を自動継承していない。                         |
+| [`docs/concept/concept-sheet.md`](../../concept/concept-sheet.md)                                                                                                                                                                                                                                                                                                                                     | プロダクトの責任境界と信頼モデルの上流根拠を確認した。                                                                                 |
+| [`docs/requirements/requirements.md`](../../requirements/requirements.md)、[`browser-extension.md`](../../requirements/browser-extension.md)、[`mobile-app.md`](../../requirements/mobile-app.md)、[`relay.md`](../../requirements/relay.md)、[`sdk.md`](../../requirements/sdk.md)                                                                                                                   | CR-013、CR-015、CR-016、CR-NFR-008〜012、CR-AC-017〜019 と各主体の要求を確認した。                                                     |
+| [`docs/design/browser-extension.md`](../../design/browser-extension.md)、[`mobile-app.md`](../../design/mobile-app.md)、[`relay.md`](../../design/relay.md)、[`sdk.md`](../../design/sdk.md)                                                                                                                                                                                                          | ブラウザ / モバイル呼び出し元文脈、プロファイル / アカウント無効化、SDK / Relay の責務、並行処理、結果との結び付けを照合した。         |
+| [`docs/specifications/interfaces.md`](../../specifications/interfaces.md)、[`signing-protocol.md`](../../specifications/signing-protocol.md)、[`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md)、[`profile-account-spec.md`](../../specifications/profile-account-spec.md)、[`chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md) | 下流で既に具体化された意味の区別と結び付けを確認した。ただし厳密なスキーマ / フィールド / エンコーディングは本設計へ逆流させていない。 |
+| [`docs/adr/0001-mainnet-evidence-lite.md`](../../adr/0001-mainnet-evidence-lite.md)                                                                                                                                                                                                                                                                                                                   | Mainnet 対応能力 / リリース判定の責任主体と、インターフェース設計がそれを無断で緩和していないことを確認した。                          |
+| `_snwc/README.md`、`_snwc/docs/requirements/requirements.md`、`_snwc/docs/specifications/specification.md`、`_snwc/docs/decisions/binding-implementation.md`                                                                                                                                                                                                                                          | wallet-core のウォレットストア、秘密情報処理、公開識別情報、生の署名、バインディングの責務とアプリケーション側責務を確認した。         |
+| `design-review` スキル一式、共通作業手順、プロジェクト文脈、`AGENTS.md`                                                                                                                                                                                                                                                                                                                               | レビュー手順、正式 ID、重大度、判定条件、出力順、変更範囲および検証規則を確認した。                                                    |
 
-## 4. Review Result
+## 4. レビュー結果
 
 `REVISE DESIGN`
 
-## 5. Summary
+## 5. 要約
 
-現在の本文は、dApp / SDK / Provider / Content Script を untrusted とし、Browser / Mobile を Signer、Relay を opaque transport、wallet-core を secret processing / raw signing の owner とする大枠を保持している。Chain と Network の分離、chain-specific operation、secret isolation、target-derived summary、wallet-core result の直接転送禁止、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の区別および automatic fallback 禁止も確認できる。
+現在の本文は、dApp / SDK / Provider / コンテンツスクリプトを信頼されていないとし、ブラウザ / モバイルを署名主体、Relay を内容を解釈しない通信経路、wallet-core を秘密情報処理 / 生の署名の責任主体とする大枠を保持している。チェーンとネットワークの分離、チェーン固有の操作、秘密情報の分離、対象から導出した要約、wallet-core 結果の直接転送禁止、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の区別および自動代替経路禁止も確認できる。
 
-ただし、上位で確定した安全条件を共通 interface の全 lifecycle へ引き渡す基本設計として、次の問題がある。
+ただし、上位で確定した安全条件を共通インターフェースの全ライフサイクルへ引き渡す基本設計として、次の問題がある。
 
-- `DR-001`（Critical）: Profile は公開 request field として必要ではないが、Signer-local な Profile / Profile Network context として request、approval、authentication、signing、result、delivery に binding され、Profile switch で失効する条件が明示されていない。
-- `DR-002`（Major）: Application の Account identity / Profile association と wallet-core の Software Key public identity の authoritative source が、共通 Account model 上で二重に解釈できる。
-- `DR-003`（Critical）: Authentication、signing-capable unlock、Account authorization、explicit user approval の4条件を全て満たすことが Signer の署名・success の前提であること、および capability がその代替でないことが肯定形の共通 invariant として不足している。
-- `DR-004`（Major）: Error model が広いカテゴリへ集約され、invalid、cancelled、expired、authentication failure、Account authorization failure、locked、replay / duplicate、wallet-core failure、transport failure の意味上の区別を実装者へ十分に伝えない。
-- `DR-005`（Critical）: 複数の Browser tab / frame または Mobile handoff request を、caller、Profile / Account、approval / authentication、target、result ごとに独立させる共通 invariant がない。
+- `DR-001`（重大）: プロファイルは公開要求フィールドとして必要ではないが、署名主体内のなプロファイル / プロファイルネットワーク文脈として要求、承認、認証、署名、結果、配送に結び付けされ、プロファイル切り替えで失効する条件が明示されていない。
+- `DR-002`（主要）: アプリケーションのアカウントの識別情報 / プロファイル関連付けと wallet-core のソフトウェア鍵公開識別情報の正本となる送信元が、共通アカウントモデル上で二重に解釈できる。
+- `DR-003`（重大）: 認証、署名可能な状態へのロック解除、アカウントの利用認可、利用者による明示的な承認の4条件を全て満たすことが署名主体の署名・成功の前提であること、および対応能力がその代替でないことが肯定形の共通不変条件として不足している。
+- `DR-004`（主要）: エラーモデルが広いカテゴリへ集約され、無効な、キャンセル済み、期限切れ、認証失敗、アカウントの利用認可失敗、ロック済み、リプレイ / 重複、wallet-core 失敗、通信経路失敗の意味上の区別を実装者へ十分に伝えない。
+- `DR-005`（重大）: 複数のブラウザタブ / フレームまたはモバイル受け渡し要求を、呼び出し元、プロファイル / アカウント、承認 / 認証、対象、結果ごとに独立させる共通不変条件がない。
 
-## 6. Finding Status
+## 6. 指摘の状態
 
-| ID       | Severity | Status   | 初出レビュー            | 今回の状態根拠                                                                                                |
-| -------- | -------- | -------- | ----------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `DR-001` | Critical | New      | 今回                    | Profile-local context の request / approval / result binding が本文の共通モデルに不足している。               |
-| `DR-002` | Major    | New      | 今回                    | Account の Application authority と wallet-core identity authority の境界が本文で一意に固定されていない。     |
-| `DR-003` | Critical | New      | 今回                    | 共通4条件と capability の非代替性が、署名 gate の肯定形 invariant として不足している。                        |
-| `DR-004` | Major    | New      | 今回                    | Error の概念カテゴリが安全な failure branching に必要な意味区分を十分に表していない。                         |
-| `DR-005` | Critical | New      | 今回                    | Concurrent request の context、approval、authentication、result を混線させない高位 invariant が不足している。 |
-| `IF-001` | —        | Resolved | `interfaces-review-001` | Public account identity と Internal account reference の分離が現在本文で確認できる。                          |
-| `IF-002` | —        | Resolved | `interfaces-review-001` | `failed`、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN` の意味と自動再署名禁止が現在本文で確認できる。                 |
-| `IF-003` | —        | Resolved | `interfaces-review-001` | Relay / node は Network authority ではなく untrusted source であることが現在本文で明記されている。            |
+| ID       | 重要度 | 状態     | 初出レビュー            | 今回の状態根拠                                                                                            |
+| -------- | ------ | -------- | ----------------------- | --------------------------------------------------------------------------------------------------------- |
+| `DR-001` | 重大   | 新規     | 今回                    | プロファイル内の文脈の要求 / 承認 / 結果との結び付けが本文の共通モデルに不足している。                    |
+| `DR-002` | 主要   | 新規     | 今回                    | アカウントのアプリケーション判断権限と wallet-core 識別情報判断権限の境界が本文で一意に固定されていない。 |
+| `DR-003` | 重大   | 新規     | 今回                    | 共通4条件と対応能力の非代替性が、署名判定条件の肯定形不変条件として不足している。                         |
+| `DR-004` | 主要   | 新規     | 今回                    | エラーの概念カテゴリが安全な失敗 branching に必要な意味区分を十分に表していない。                         |
+| `DR-005` | 重大   | 新規     | 今回                    | 並行する要求の文脈、承認、認証、結果を混線させない高位不変条件が不足している。                            |
+| `IF-001` | —      | 解消済み | `interfaces-review-001` | アカウントの公開識別情報とアカウントの内部参照の分離が現在本文で確認できる。                              |
+| `IF-002` | —      | 解消済み | `interfaces-review-001` | `failed`、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN` の意味と自動再署名禁止が現在本文で確認できる。             |
+| `IF-003` | —      | 解消済み | `interfaces-review-001` | Relay / ノードはネットワーク判断権限ではなく信頼されていない送信元であることが現在本文で明記されている。  |
 
-過去 `IF-001`〜`IF-003` は全て `RESOLVED` であり、今回 `REOPENED` となるものはない。過去 `READY` は今回の Review Gate 判定へ継承していない。
+過去 `IF-001`〜`IF-003` は全て `RESOLVED` であり、今回 `REOPENED` となるものはない。過去 `READY` は今回のレビュー判定条件判定へ継承していない。
 
-## 7. Required Changes
+## 7. 必須の修正
 
-### DR-001: Profile-local context の request / result binding が不足している
+### DR-001: プロファイル内の文脈の要求 / 結果との結び付けが不足している
 
 - ID: `DR-001`
-- Severity: `Critical`
-- Target: [`interfaces.md`](../../design/interfaces.md) §6.1〜§6.4、§7〜§9（特に request の概念列挙、response の対応付け、validation、context change の扱い）
+- 重要度: `Critical`
+- 対象: [`interfaces.md`](../../design/interfaces.md) §6.1〜§6.4、§7〜§9（特に要求の概念列挙、応答の対応付け、検証、文脈変更の扱い）
 
-#### Facts / conditions
+#### 事実 / 条件
 
-`SigningRequest` の binding 対象は request identity、caller、session、operation、Account、Chain / Network、target 等として列挙されているが、Application Profile は独立した Signer-local context として列挙されていない。Profile は Network / Account との照合対象、または Internal account reference を解決する現在 context として断片的に登場するだけである。`SigningResponse` の success 対応も request identity、operation、signer、Account、Chain / Network、target が中心で、同じ Profile context と元 caller / browser context / Mobile source へ安全に返す条件が明記されていない。
+`SigningRequest` の結び付け対象は要求識別情報、呼び出し元、セッション、操作、アカウント、チェーン / ネットワーク、対象等として列挙されているが、アプリケーションプロファイルは独立した署名主体内の文脈として列挙されていない。プロファイルはネットワーク / アカウントとの照合対象、またはアカウントの内部参照を解決する現在文脈として断片的に登場するだけである。`SigningResponse` の成功対応も要求識別情報、操作、署名主体、アカウント、チェーン / ネットワーク、対象が中心で、同じプロファイル文脈と元呼び出し元 / ブラウザ文脈 / モバイル送信元へ安全に返す条件が明記されていない。
 
-#### Evidence
+#### 根拠
 
-- 上位 Architecture §6.6、§6.9 は Application Profile / Account association と、Profile / Chain / Network / Account authorization を Signer 側 gate の context として扱う。
-- [Profile / Account specification](../../specifications/profile-account-spec.md) §2 は Network を Profile 単位で固定し、§20 は unlock と signing authentication を分離する。
-- Browser Extension Design の authorization tuple、result binding、Profile / Account / Chain / Network change の invalidation は、public Profile field の追加ではなく trusted host 内部 context の再利用禁止を要求している。
-- 対象本文 §6.2、§6.3、§6.4、§8、§9（現行行 147〜217、306〜334）は Profile を Account / payload の補助照合に留めている。
+- 上位アーキテクチャ §6.6、§6.9 はアプリケーションプロファイル / アカウント関連付けと、プロファイル / チェーン / ネットワーク / アカウントの利用認可を署名主体側判定条件の文脈として扱う。
+- [プロファイル / アカウント仕様](../../specifications/profile-account-spec.md) §2 はネットワークをプロファイル単位で固定し、§20 はロック解除と署名認証を分離する。
+- ブラウザ拡張機能設計の認可組、結果との結び付け、プロファイル / アカウント / チェーン / ネットワーク変更の無効化は、公開プロファイルフィールドの追加ではなく信頼されたホスト内部文脈の再利用禁止を要求している。
+- 対象本文 §6.2、§6.3、§6.4、§8、§9（現行行 147〜217、306〜334）はプロファイルをアカウント / ペイロードの補助照合に留めている。
 
-#### Problem
+#### 問題
 
-実装者が、request 受信時の Profile、approval / authentication 時の active Profile、署名時の current Profile、result delivery 時の Profile を同一であることを確認せずに扱える。Profile ID を公開 request / response に追加しない場合でも、Profile-local binding とその失効条件を共通設計で明示しなければ、同じ request identity や public Account だけで異なる Profile context を結び付ける余地が残る。
+実装者が、要求受信時のプロファイル、承認 / 認証時の有効なプロファイル、署名時の現在のプロファイル、結果配送時のプロファイルを同一であることを確認せずに扱える。プロファイル ID を公開要求 / 応答に追加しない場合でも、プロファイル内の結び付けとその失効条件を共通設計で明示しなければ、同じ要求識別情報や公開アカウントだけで異なるプロファイル文脈を結び付ける余地が残る。
 
-#### Impact
+#### 影響
 
-Profile Network、chain-specific Account、permission、approval、署名結果の帰属が異なる Profile 間で混線し、wrong Profile / Account への署名または別 caller への結果 delivery を安全に拒否できない解釈が生じる。これは data ownership、trust boundary、result safety および上位の共通署名 gate を損なう。
+プロファイルネットワーク、チェーン固有のアカウント、許可、承認、署名結果の帰属が異なるプロファイル間で混線し、誤ったプロファイル / アカウントへの署名または別呼び出し元への結果配送を安全に拒否できない解釈が生じる。これはデータ所有責任、信頼境界、結果安全性および上位の共通署名判定条件を損なう。
 
-#### Minimum correction
+#### 最低限必要な修正
 
-Application Profile とその固定された Profile Network を、public request field ではない Signer-local security context として定義する。wallet-core の Profile / Store と同一視せず、Application が Profile / Account association、permission、active context を所有し、Signer が request、approval、authentication、pre-sign revalidation、wallet-core call、result validation、delivery recipient の同一 context binding を確認することを明記する。Profile switch、active context loss、permission revoke、Account / Chain / Network change が影響する pending request、approval、authentication、result delivery を invalid にすることも定める。Profile ID の外部公開は必須化しない。
+アプリケーションプロファイルとその固定されたプロファイルネットワークを、公開要求フィールドではない署名主体内のセキュリティ文脈として定義する。wallet-core のプロファイル / ストアと同一視せず、アプリケーションがプロファイル / アカウント関連付け、許可、有効な文脈を所有し、署名主体が要求、承認、認証、署名前再検証、wallet-core 呼び出し、結果検証、配送受信者の同一文脈結び付けを確認することを明記する。プロファイル切り替え、有効な文脈消失、許可失効、アカウント / チェーン / ネットワーク変更が影響する保留中の要求、承認、認証、結果配送を無効なにすることも定める。プロファイル ID の外部公開は必須化しない。
 
-#### Reconfirmation criteria
+#### 再確認条件
 
-本文に、Profile / Profile Network が Signer-local context であり、公開 request field ではないこと、同一 Profile context が request から result delivery まで維持されること、context change 後に古い authorization / result を再利用しないことが明記されている。Browser の tab / frame / document、Mobile の handoff source とも結び付く同一 caller context の検証条件が確認できる。
+本文に、プロファイル / プロファイルネットワークが署名主体内の文脈であり、公開要求フィールドではないこと、同一プロファイル文脈が要求から結果配送まで維持されること、文脈変更後に古い認可 / 結果を再利用しないことが明記されている。ブラウザのタブ / フレーム / 文書、モバイルの受け渡し送信元とも結び付く同一呼び出し元文脈の検証条件が確認できる。
 
-### DR-002: Account identity の authoritative source が二重に解釈できる
+### DR-002: アカウントの識別情報の正本となる送信元が二重に解釈できる
 
 - ID: `DR-002`
-- Severity: `Major`
-- Target: [`interfaces.md`](../../design/interfaces.md) §4.1、§5.1、§6.2、§8（特に Account producer / validator と public identity の記述）
+- 重要度: `Major`
+- 対象: [`interfaces.md`](../../design/interfaces.md) §4.1、§5.1、§6.2、§8（特にアカウント生成主体 / 検証器と公開識別情報の記述）
 
-#### Facts / conditions
+#### 事実 / 条件
 
-境界表は wallet-core を `key identity` の authority とし、Account 節は Signer が address / public key を「検証・導出」すると記述する。また validation table は Chain / Network / Account の主な責任主体を Signer と chain-specific integration としている。Application の Profile / Account association、permission、選択と、wallet-core の Software Key / public identity のどちらが Account のどの部分の正本かは明示的に分かれていない。
+境界表は wallet-core を `key identity` の判断権限とし、アカウント節は署名主体がアドレス / 公開鍵を「検証・導出」すると記述する。また検証表はチェーン / ネットワーク / アカウントの主な責任主体を署名主体とチェーン固有の統合としている。アプリケーションのプロファイル / アカウント関連付け、許可、選択と、wallet-core のソフトウェア鍵 / 公開識別情報のどちらがアカウントのどの部分の正本かは明示的に分かれていない。
 
-#### Evidence
+#### 根拠
 
-- Architecture §6.6、§6.8、§6.9 は Application が Profile / Account association、選択、permission を所有し、wallet-core が key identity、public identity、Store、raw signing を所有すると分けている。
-- `_snwc` の wallet-core contract は Software Key の public key / address の取得と raw signing を wallet-core 側の責務とし、host に transaction meaning や approval を委譲しない。
-- 対象本文 §4.1、§6.2、§8（現行行 77〜84、135〜170、306〜320）は両方の authority を示すが、Account の source-of-truth と checked projection の関係を固定していない。
+- アーキテクチャ §6.6、§6.8、§6.9 はアプリケーションがプロファイル / アカウント関連付け、選択、許可を所有し、wallet-core が鍵識別情報、公開識別情報、ストア、生の署名を所有すると分けている。
+- `_snwc` の wallet-core 契約はソフトウェア鍵の公開鍵 / アドレスの取得と生の署名を wallet-core 側の責務とし、ホストにトランザクション意味や承認を委譲しない。
+- 対象本文 §4.1、§6.2、§8（現行行 77〜84、135〜170、306〜320）は両方の判断権限を示すが、アカウントの正本と checked 投影の関係を固定していない。
 
-#### Problem
+#### 問題
 
-実装者が Application の public Account を独自に生成・更新し、wallet-core の key identity と異なる Account を選択できる、または逆に wallet-core の key reference を Application-level authorization の根拠として扱える。外部 requester の Account self-declaration も、どの authority と照合すべきかが一意でない。
+実装者がアプリケーションの公開アカウントを独自に生成・更新し、wallet-core の鍵識別情報と異なるアカウントを選択できる、または逆に wallet-core の鍵参照をアプリケーションレベルの認可の根拠として扱える。外部要求元のアカウント自己申告も、どの判断権限と照合すべきかが一意でない。
 
-#### Impact
+#### 影響
 
-Account authorization、expected signer、address / public key、Profile / Chain / Network の対応が崩れ、利用者が承認した Account と wallet-core が署名する key identity が異なる可能性がある。Symbol / NEM の chain-specific identity を共通 Account へ誤って統合する危険も残る。
+アカウントの利用認可、期待される署名主体、アドレス / 公開鍵、プロファイル / チェーン / ネットワークの対応が崩れ、利用者が承認したアカウントと wallet-core が署名する鍵識別情報が異なる可能性がある。Symbol / NEM のチェーン固有の識別情報を共通アカウントへ誤って統合する危険も残る。
 
-#### Minimum correction
+#### 最低限必要な修正
 
-wallet-core が Software Key に対応する cryptographic public identity の source-of-truth であること、Application / Signer が Application Profile における Account の選択、表示、association、permission および authorization の source-of-truth であることを明記する。chain-specific integration は target、expected signer、address / public key と wallet-core identity の整合を検証する。共通 `Account` はこれらを検証済みで対応付けた public projection とし、外部 Account self-declaration、internal key reference または wallet-core の成功だけを authorization としない。具体的な key schema は決めない。
+wallet-core がソフトウェア鍵に対応する暗号学的な公開識別情報の正本であること、アプリケーション / 署名主体がアプリケーションプロファイルにおけるアカウントの選択、表示、関連付け、許可および認可の正本であることを明記する。チェーン固有の統合は対象、期待される署名主体、アドレス / 公開鍵と wallet-core 識別情報の整合を検証する。共通 `Account` はこれらを検証済みで対応付けた公開投影とし、外部アカウント自己申告、内部鍵参照または wallet-core の成功だけを認可としない。具体的な鍵スキーマは決めない。
 
-#### Reconfirmation criteria
+#### 再確認条件
 
-本文の Account / validation / wallet-core sections で、Application Account と wallet-core Software Key identity の owner が分離され、Signer が両者の対応を検証すること、外部 Account は authority ではないことが一意に読める。Symbol / NEM ごとの identity を共通秘密鍵として扱わない条件も維持されている。
+本文のアカウント / 検証 / wallet-core sections で、アプリケーションアカウントと wallet-core ソフトウェア鍵識別情報の責任主体が分離され、署名主体が両者の対応を検証すること、外部アカウントは判断権限ではないことが一意に読める。Symbol / NEM ごとの識別情報を共通秘密鍵として扱わない条件も維持されている。
 
-### DR-003: 共通署名 gate の4条件と capability の非代替性が不足している
+### DR-003: 共通署名判定条件の4条件と対応能力の非代替性が不足している
 
 - ID: `DR-003`
-- Severity: `Critical`
-- Target: [`interfaces.md`](../../design/interfaces.md) §4.1、§6.3、§7、§9、§10（特に producer / validator、permission、capability、署名前提）
+- 重要度: `Critical`
+- 対象: [`interfaces.md`](../../design/interfaces.md) §4.1、§6.3、§7、§9、§10（特に生成主体 / 検証器、許可、対応能力、署名前提）
 
-#### Facts / conditions
+#### 事実 / 条件
 
-対象本文は Signer の caller / permission / target / Account / Chain / Network validation、trusted UI の approval、署名ごとの authentication を記載し、connection permission、session、`UNLOCKED`、過去の認証を代替にしないと否定している。しかし、Authentication、signing-capable unlock、対象 Profile / Chain / Network / Account の Account authorization、explicit user approval の4条件が全て成立した場合に限り wallet-core を呼び success を返す、という肯定形の共通 gate は示されていない。Capability も version / support context としては列挙されるが、authentication、unlock、Account authorization、approval、signing authority のいずれも意味しないことが明示されていない。
+対象本文は署名主体の呼び出し元 / 許可 / 対象 / アカウント / チェーン / ネットワーク検証、信頼された UI の承認、署名ごとの認証を記載し、接続許可、セッション、`UNLOCKED`、過去の認証を代替にしないと否定している。しかし、認証、署名可能な状態へのロック解除、対象プロファイル / チェーン / ネットワーク / アカウントのアカウントの利用認可、利用者による明示的な承認の4条件が全て成立した場合に限り wallet-core を呼び成功を返す、という肯定形の共通判定条件は示されていない。対応能力もバージョン / サポート文脈としては列挙されるが、認証、ロック解除、アカウントの利用認可、承認、署名判断権限のいずれも意味しないことが明示されていない。
 
-#### Evidence
+#### 根拠
 
-- Architecture §6.9 と Requirements `CR-016` / `CR-AC-017` は4条件を全て必須とし、dApp、SDK、Relay、wallet-core が成立・更新・迂回できないと定めている。
-- Security Design §7〜§9 は unlock、署名時 authentication、permission、Account authorization を別の条件として扱う。
-- Signing Flow §4、§16 は approval / authorization tuple を定めるが、対象本文の §9（現行行 325〜334）は主に代替禁止の否定表現に留まる。
-- SDK Design は capability を「できる可能性」とし、個別 authorization、Account permission、approval、unlock、success と区別している。
+- アーキテクチャ §6.9 と要件 `CR-016` / `CR-AC-017` は4条件を全て必須とし、dApp、SDK、Relay、wallet-core が成立・更新・迂回できないと定めている。
+- セキュリティ設計 §7〜§9 はロック解除、署名時認証、許可、アカウントの利用認可を別の条件として扱う。
+- 署名フロー §4、§16 は承認 / 認可組を定めるが、対象本文の §9（現行行 325〜334）は主に代替禁止の否定表現に留まる。
+- SDK 設計は対応能力を「できる可能性」とし、個別認可、アカウント許可、承認、ロック解除、成功と区別している。
 
-#### Problem
+#### 問題
 
-受信側実装が `permission`、capability、通常の unlocked state、wallet-core の password / Store 成功または transport session の有効性を、4条件の一部または全ての代替と解釈できる。拒否条件の列挙だけでは、Signer's trusted authority がどの条件をいつ成立させ、どの条件を再確認してから raw signing / success に進めるかを一意に伝えられない。
+受信側実装が `permission`、対応能力、通常のロック解除済み状態、wallet-core のパスワード / ストア成功または通信経路セッションの有効性を、4条件の一部または全ての代替と解釈できる。拒否条件の列挙だけでは、署名主体's 信頼された判断権限がどの条件をいつ成立させ、どの条件を再確認してから生の署名 / 成功に進めるかを一意に伝えられない。
 
-#### Impact
+#### 影響
 
-認証済みでも signing-capable unlock でない状態、Account authorization がない状態、または explicit approval がない状態から署名・成功結果へ到達する責任逆流が起こり得る。SDK、Relay、dApp、Provider、Content Script または wallet-core が gate authority と誤認されると、共通 trust boundary の重大な弱体化になる。
+認証済みでも署名可能な状態へのロック解除でない状態、アカウントの利用認可がない状態、または明示的な承認がない状態から署名・成功結果へ到達する責任逆流が起こり得る。SDK、Relay、dApp、Provider、コンテンツスクリプトまたは wallet-core が判定条件判断権限と誤認されると、共通信頼境界の重大な弱体化になる。
 
-#### Minimum correction
+#### 最低限必要な修正
 
-Signer が次の4条件を全て成立・再確認した場合に限り、承認済み target を wallet-core へ渡し、対応する success result を生成する共通 invariant を明記する: (1) Authentication、(2) signing-capable unlock、(3) Profile / Chain / Network / Account に対する Account authorization、(4) explicit user approval。各条件の authority は Signer / Application host とし、permission、capability、connection、session、wallet-core result、Relay metadata、dApp / SDK self-declaration は代替にならないと定める。公開 request に自己申告 gate field を追加する必要はない。
+署名主体が次の4条件を全て成立・再確認した場合に限り、承認済み対象を wallet-core へ渡し、対応する成功結果を生成する共通不変条件を明記する: (1) 認証、(2) 署名可能な状態へのロック解除、(3) プロファイル / チェーン / ネットワーク / アカウントに対するアカウントの利用認可、(4) 利用者による明示的な承認。各条件の判断権限は署名主体 / アプリケーションホストとし、許可、対応能力、接続、セッション、wallet-core 結果、Relay メタデータ、dApp / SDK 自己申告は代替にならないと定める。公開要求に自己申告判定条件フィールドを追加する必要はない。
 
-#### Reconfirmation criteria
+#### 再確認条件
 
-本文の共通 security invariant、request validation、pre-sign validation、result validation に4条件が肯定形で現れ、全条件が同一 caller / Profile / Account / Chain / Network / operation / target / freshness context に binding されている。capability negotiation は support / availability に限定され、gate authority と明確に分離されている。
+本文の共通セキュリティ上の不変条件、要求検証、署名前検証、結果検証に4条件が肯定形で現れ、全条件が同一呼び出し元 / プロファイル / アカウント / チェーン / ネットワーク / 操作 / 対象 / 鮮度文脈に結び付けされている。対応能力協議はサポート / 利用可能性に限定され、判定条件判断権限と明確に分離されている。
 
-### DR-004: Error の意味上の区別が不十分である
+### DR-004: エラーの意味上の区別が不十分である
 
 - ID: `DR-004`
-- Severity: `Major`
-- Target: [`interfaces.md`](../../design/interfaces.md) §6.4、§6.6、§7.6、§9、§11（特に Error category と下位委譲）
+- 重要度: `Major`
+- 対象: [`interfaces.md`](../../design/interfaces.md) §6.4、§6.6、§7.6、§9、§11（特にエラー分類と下位委譲）
 
-#### Facts / conditions
+#### 事実 / 条件
 
-Error model は validation、protocol、unsupported、user rejection、security rejection、signing、network、relay、internal に集約されている。`USER_REJECTED` と `SIGNING_FAILED`、`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` は区別できるが、invalid、cancelled、expired、authentication failure、Account authorization failure、locked、replay / duplicate、wallet-core failure、transport failure を共通 interface の意味として個別に識別する責任が明示されていない。
+エラーモデルは検証、プロトコル、未対応の、利用者拒否、セキュリティ拒否、署名、ネットワーク、relay、内部に集約されている。`USER_REJECTED` と `SIGNING_FAILED`、`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` は区別できるが、無効な、キャンセル済み、期限切れ、認証失敗、アカウントの利用認可失敗、ロック済み、リプレイ / 重複、wallet-core 失敗、通信経路失敗を共通インターフェースの意味として個別に識別する責任が明示されていない。
 
-#### Evidence
+#### 根拠
 
-- Signing Flow §22 は invalid request、unsupported、permission denied、authentication failed、expired、cancelled、duplicate / replay、signing failed、transport unavailable / timeout、result unknown を意味上区別している。
-- Requirements `CR-012`、`CR-NFR-010`、`CR-NFR-011` は安全な失敗、freshness、replay / duplicate の異なる扱いを要求している。
-- 下流 [Interfaces Specification](../../specifications/interfaces.md) §10 は具体的 code へ落とす前の意味カテゴリを既に分けているが、対象本文 §6.6（現行行 238〜254）は広い分類へまとめている。
+- 署名フロー §22 は無効な要求、未対応の、許可拒否済み、認証失敗、期限切れ、キャンセル済み、重複 / リプレイ、署名失敗、通信経路利用不能 / タイムアウト、結果不明を意味上区別している。
+- 要件 `CR-012`、`CR-NFR-010`、`CR-NFR-011` は安全な失敗、鮮度、リプレイ / 重複の異なる扱いを要求している。
+- 下流 [インターフェース仕様](../../specifications/interfaces.md) §10 は具体的コードへ落とす前の意味カテゴリを既に分けているが、対象本文 §6.6（現行行 238〜254）は広い分類へまとめている。
 
-#### Problem
+#### 問題
 
-下位実装が、locked / authentication failure / Account authorization failure を validation または security rejection に、cancelled / expired を user rejection または generic signing error に、wallet-core failure を internal error に、transport failure を network / relay error に自由に畳み込める。結果として SDK / dApp は再試行、利用者案内、状態保持、再署名禁止を意味安全に判断できない。
+下位実装が、ロック済み / 認証失敗 / アカウントの利用認可失敗を検証またはセキュリティ拒否に、キャンセル済み / 期限切れを利用者拒否または一般的な署名エラーに、wallet-core 失敗を内部エラーに、通信経路失敗をネットワーク / relay エラーに自由に畳み込める。結果として SDK / dApp は再試行、利用者案内、状態保持、再署名禁止を意味安全に判断できない。
 
-#### Impact
+#### 影響
 
-確定失敗、利用者キャンセル、期限切れ、認証不成立、配送失敗および結果不明が混同され、同一 request の誤った再試行や `RESULT_UNKNOWN` への誤変換が起こり得る。`DELIVERY_UNKNOWN` と result outcome を分ける現在の安全境界も、広い error mapping により下流で失われる。
+確定失敗、利用者キャンセル、期限切れ、認証不成立、配送失敗および結果不明が混同され、同一要求の誤った再試行や `RESULT_UNKNOWN` への誤変換が起こり得る。`DELIVERY_UNKNOWN` と結果結果を分ける現在の安全境界も、広いエラー対応付けにより下流で失われる。
 
-#### Minimum correction
+#### 最低限必要な修正
 
-具体的な error code / JSON shape を定めず、共通 Error の semantic contract として少なくとも invalid、unsupported、user rejected、cancelled、expired、authentication failure、Account authorization / permission failure、locked / signing-capable unlock failure、replay / duplicate、wallet-core / signing failure、transport / relay failure、internal failure、result unknown の責任と意味を区別する。確定 failure と result / delivery unknown は別の概念であり、automatic re-sign の根拠にしないことを維持する。具体的 code、番号、retryability 表現は下位仕様へ委譲する。
+具体的なエラーコード / JSON 構造を定めず、共通エラーの意味上の契約として少なくとも無効な、未対応の、利用者拒否済み、キャンセル済み、期限切れ、認証失敗、アカウントの利用認可 / 許可失敗、ロック済み / 署名可能な状態へのロック解除失敗、リプレイ / 重複、wallet-core / 署名失敗、通信経路 / relay 失敗、内部失敗、結果不明の責任と意味を区別する。確定失敗と結果 / 配送不明は別の概念であり、自動再署名の根拠にしないことを維持する。具体的コード、番号、retryability 表現は下位仕様へ委譲する。
 
-#### Reconfirmation criteria
+#### 再確認条件
 
-本文の Error model が上記の意味区分を実装者の推測なしに示し、各区分が Signer、SDK / adapter、Relay、wallet-core のどの責任境界から生じるかを追跡できる。具体的 code、schema、timeout、retry 数を本書で決めていないことも維持されている。
+本文のエラーモデルが上記の意味区分を実装者の推測なしに示し、各区分が署名主体、SDK / アダプター、Relay、wallet-core のどの責任境界から生じるかを追跡できる。具体的コード、スキーマ、タイムアウト、再試行数を本書で決めていないことも維持されている。
 
-### DR-005: Concurrent request の context isolation が共通モデルにない
+### DR-005: 並行する要求の文脈分離が共通モデルにない
 
 - ID: `DR-005`
-- Severity: `Critical`
-- Target: [`interfaces.md`](../../design/interfaces.md) §6.3〜§6.4、§7、§8、§9（request identity / correlation、response、lifecycle、validation）
+- 重要度: `Critical`
+- 対象: [`interfaces.md`](../../design/interfaces.md) §6.3〜§6.4、§7、§8、§9（要求識別情報 / 対応付け、応答、ライフサイクル、検証）
 
-#### Facts / conditions
+#### 事実 / 条件
 
-対象本文には request identity / correlation、caller context、session、freshness、duplicate / replay、別 request への result 流用禁止の概念がある。しかし、複数 request が同時に存在する場合に、各 request が独立した caller、Browser tab / frame / document または Mobile handoff source、Profile / Account、permission revision、operation、target、approval、authentication、wallet-core call、result、delivery recipient を持ち、他 request の context を組み合わせてはならないという共通 invariant はない。
+対象本文には要求識別情報 / 対応付け、呼び出し元文脈、セッション、鮮度、重複 / リプレイ、別要求への結果流用禁止の概念がある。しかし、複数要求が同時に存在する場合に、各要求が独立した呼び出し元、ブラウザタブ / フレーム / 文書またはモバイル受け渡し送信元、プロファイル / アカウント、許可リビジョン、操作、対象、承認、認証、wallet-core 呼び出し、結果、配送受信者を持ち、他要求の文脈を組み合わせてはならないという共通不変条件はない。
 
-#### Evidence
+#### 根拠
 
-- Security Design §10.2 は concurrent request ごとの request identity、caller、Profile / Account、Chain / Network、承認・認証・result の分離を要求する。
-- Browser Extension Design §7.2〜§7.3 は tab / frame / document context と response binding を request ごとに扱う。
-- Mobile Design の request lifecycle と SDK 要件は、複数 handoff / request を独立 identity、session、context、result として扱う。
-- 対象本文の `rg` 確認では、`concurrent`、`同時`、複数 request の独立性を直接定める記述はなく、§6.3〜§6.4 の一般的な correlation と重複禁止だけである。
+- セキュリティ設計 §10.2 は並行する要求ごとの要求識別情報、呼び出し元、プロファイル / アカウント、チェーン / ネットワーク、承認・認証・結果の分離を要求する。
+- ブラウザ拡張機能設計 §7.2〜§7.3 はタブ / フレーム / 文書文脈と応答結び付けを要求ごとに扱う。
+- モバイル設計の要求ライフサイクルと SDK 要件は、複数受け渡し / 要求を独立識別情報、セッション、文脈、結果として扱う。
+- 対象本文の `rg` 確認では、`concurrent`、`同時`、複数要求の独立性を直接定める記述はなく、§6.3〜§6.4 の一般的な対応付けと重複禁止だけである。
 
-#### Problem
+#### 問題
 
-requestId や transport session の相関だけを実装した場合、別 request の caller / Account / Profile / approval / authentication / target を同一 request の response として合成する解釈が残る。Browser の複数 tab / frame と Mobile の複数 handoff では、同じ SDK instance、Relay session または signer UI が存在しても、承認・署名・結果を共有してはならない。
+requestId や通信経路セッションの相関だけを実装した場合、別要求の呼び出し元 / アカウント / プロファイル / 承認 / 認証 / 対象を同一要求の応答として合成する解釈が残る。ブラウザの複数タブ / フレームとモバイルの複数受け渡しでは、同じ SDK インスタンス、Relay セッションまたは署名主体 UI が存在しても、承認・署名・結果を共有してはならない。
 
-#### Impact
+#### 影響
 
-承認済み target と異なる target、Account、Chain / Network または caller へ署名結果が対応付けられ、誤った request への success delivery、authorization reuse、または wrong-context signing が起き得る。これは request correlation を transport / SDK instance の存在だけに依存させずに守るという要件に反する。
+承認済み対象と異なる対象、アカウント、チェーン / ネットワークまたは呼び出し元へ署名結果が対応付けられ、誤った要求への成功配送、認可再利用、または wrong-context 署名が起き得る。これは要求対応付けを通信経路 / SDK インスタンスの存在だけに依存させずに守るという要件に反する。
 
-#### Minimum correction
+#### 最低限必要な修正
 
-各 SigningRequest を独立した security / lifecycle unit とし、request identity だけでなく caller context、session、permission context、Application Profile、Account、Chain / Network、operation、target、freshness、approval、authentication、wallet-core result、response recipient を同一 request の context として扱う invariant を追加する。並行 request 間で context、approval、authentication、result、delivery status を共有・合成・流用せず、late / stale result は元 request 以外へ返さない。具体的な queue、lock、state machine は下位設計へ委譲する。
+各 SigningRequest を独立したセキュリティ / ライフサイクル単体とし、要求識別情報だけでなく呼び出し元文脈、セッション、許可文脈、アプリケーションプロファイル、アカウント、チェーン / ネットワーク、操作、対象、鮮度、承認、認証、wallet-core 結果、応答受信者を同一要求の文脈として扱う不変条件を追加する。並行要求間で文脈、承認、認証、結果、配送状態を共有・合成・流用せず、遅延した / 古くなった結果は元要求以外へ返さない。具体的なキュー、ロック、状態遷移は下位設計へ委譲する。
 
-#### Reconfirmation criteria
+#### 再確認条件
 
-本文に Browser の複数 tab / frame、Mobile の複数 handoff を含む concurrent request isolation が明記され、request ごとの approval / authentication / result / recipient binding と cross-request reuse 禁止が確認できる。requestId 単独、transport session、Relay generation または SDK instance が security authority の代替になっていない。
+本文にブラウザの複数タブ / フレーム、モバイルの複数受け渡しを含む並行する要求分離が明記され、要求ごとの承認 / 認証 / 結果 / 受信者結び付けと要求間の再利用禁止が確認できる。requestId 単独、通信経路セッション、Relay 世代または SDK インスタンスがセキュリティ判断権限の代替になっていない。
 
-## 8. Optional Improvements
+## 8. 任意の改善
 
-なし。現時点で採用できる Minor finding はない。traceability の表示強化は有用だが、現在の本文は関連資料と責任表を持っており、今回の重大な不足とは分離した。
+なし。現時点で採用できる軽微指摘はない。追跡可能性の表示強化は有用だが、現在の本文は関連資料と責任表を持っており、今回の重大な不足とは分離した。
 
-## 9. Resolved Findings
+## 9. 解消済みの指摘
 
-| 過去 ID  | Status     | 現在の解消根拠                                                                                                                                                                            |
-| -------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IF-001` | `RESOLVED` | §6.2（現行行 147〜170）が Public account identity と Internal account reference を分離し、内部 reference を外部 requester の capability / authority と扱わない。                          |
-| `IF-002` | `RESOLVED` | §6.4、§6.6、§9（現行行 194〜217、238〜254、325〜334）が確定 failure、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN` を分け、同一 request の自動再署名・推測再送を禁止する。                         |
-| `IF-003` | `RESOLVED` | §4.1、§4.2、§6.1（現行行 88、95、98、133）が Relay / node を Network metadata の untrusted source とし、Signer / chain-specific integration を local context の検証・確定主体としている。 |
+| 過去 ID  | 状態       | 現在の解消根拠                                                                                                                                                                           |
+| -------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IF-001` | `RESOLVED` | §6.2（現行行 147〜170）がアカウントの公開識別情報とアカウントの内部参照を分離し、内部参照を外部要求元の対応能力 / 判断権限と扱わない。                                                   |
+| `IF-002` | `RESOLVED` | §6.4、§6.6、§9（現行行 194〜217、238〜254、325〜334）が確定失敗、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN` を分け、同一要求の自動再署名・推測再送を禁止する。                                 |
+| `IF-003` | `RESOLVED` | §4.1、§4.2、§6.1（現行行 88、95、98、133）が Relay / ノードをネットワークメタデータの信頼されていない送信元とし、署名主体 / チェーン固有の統合をローカル文脈の検証・確定主体としている。 |
 
-いずれも今回の新規 `DR-*` と同一問題の再発とは判定しない。ただし `IF-001` の内部 reference 分離だけでは `DR-001` の Profile-local lifecycle binding を満たさず、`IF-002` の unknown 区分だけでは `DR-004` の全 failure semantics を満たさない。
+いずれも今回の新規 `DR-*` と同一問題の再発とは判定しない。ただし `IF-001` の内部参照分離だけでは `DR-001` のプロファイル内のライフサイクル結び付けを満たさず、`IF-002` の不明区分だけでは `DR-004` の全失敗意味を満たさない。
 
-## 10. Deferred Findings
+## 10. 後続工程へ委譲する指摘
 
-正式な Deferred finding はない。次の事項は設計本文の適切な委譲であり、今回の gate failure の理由ではない。
+正式な後続工程へ委譲指摘はない。次の事項は設計本文の適切な委譲であり、今回の判定条件失敗の理由ではない。
 
-- API 名、function signature、公開 DTO / JSON schema、field type、wire encoding、protocol envelope。
-- Symbol / NEM の transaction schema、canonical serialization、署名 byte、aggregate / multisig / cosignature の chain-specific 詳細。
-- message の domain separator、nonce format、serialization、完全な inspection / display 規則。
-- Browser API、Mobile OS handoff、wallet-core Binding、secret lifecycle、Relay HTTP / Redis schema、TTL、exact retry / lookup 契約。
-- Error code、番号体系、公開文言、timeout、retry count。
-- Mainnet capability / release evidence の gate。これは [`ADR 0001`](../../adr/0001-mainnet-evidence-lite.md) と release 資料の owner であり、Interface Design が緩和していないことを確認した。
+- API 名、関数署名、公開 DTO / JSON スキーマ、フィールド型、通信上のエンコーディング、プロトコルエンベロープ。
+- Symbol / NEM のトランザクションスキーマ、正規シリアライズ、署名バイト、アグリゲート / マルチシグ / 連署署名のチェーン固有の詳細。
+- メッセージのドメイン区切り文字、ノンス形式、シリアライズ、完全な内容検査 / 表示規則。
+- ブラウザ API、モバイル OS 受け渡し、wallet-core バインディング、秘密情報ライフサイクル、Relay HTTP / Redis スキーマ、TTL、厳密な再試行 / 照会契約。
+- エラーコード、番号体系、公開文言、タイムアウト、再試行回数。
+- Mainnet 対応能力 / リリース証跡の判定条件。これは [`ADR 0001`](../../adr/0001-mainnet-evidence-lite.md) とリリース資料の責任主体であり、インターフェース設計が緩和していないことを確認した。
 
-対象本文 §13 の SDK、Mobile、wallet-core、Relay、Chain / NEM の OPEN は、上位で確定した trust boundary を変更しない範囲では未決でよい。Profile-local binding、4条件 gate、concurrent isolation、failure semantics は既に上位で決まった責任・安全条件であり、OPEN へ戻すべき事項ではない。
+対象本文 §13 の SDK、モバイル、wallet-core、Relay、チェーン / NEM の未決は、上位で確定した信頼境界を変更しない範囲では未決でよい。プロファイル内の結び付け、4条件判定条件、並行する分離、失敗意味は既に上位で決まった責任・安全条件であり、未決へ戻すべき事項ではない。
 
-## 11. Scope and Traceability
+## 11. 対象範囲と追跡可能性
 
-本レビューは共通概念の責任、依存、trust、所有、主要フローおよび下流へ渡す最低条件を評価した。具体的な API / schema / wire / crypto は要求していない。
+本レビューは共通概念の責任、依存、信頼、所有、主要フローおよび下流へ渡す最低条件を評価した。具体的な API / スキーマ / 通信上の / 暗号処理は要求していない。
 
-| Interface responsibility                              | 上流根拠                                                                                                      | 対象本文との追跡           | 判定                                                                                                |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------- |
-| Signer が最終判断、SDK / Relay / dApp が非署名境界    | Architecture §6.5、§6.9、Requirements `CR-015`、SDK / Relay Design                                            | §4、§7、§8                 | 大枠は適合。                                                                                        |
-| 4条件の共通署名 gate                                  | Architecture §6.9、Requirements `CR-016` / `CR-AC-017`、Security §7〜§9、Signing Flow §4 / §16                | §6.3、§7、§9               | 不足。`DR-003`。                                                                                    |
-| Application Profile / Account と wallet-core identity | Requirements `CR-013`、Architecture §6.6 / §6.8 / §6.9、Profile / Account Specification、wallet-core contract | §4、§6.1〜§6.3、§8         | 部分適合。`DR-001`、`DR-002`。                                                                      |
-| request / approval / result の context binding        | Requirements `CR-NFR-008`〜`CR-NFR-012`、Security §10、Signing Flow §5 / §16 / §20                            | §6.3〜§6.4、§8〜§9         | 不足。`DR-001`、`DR-005`。                                                                          |
-| `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` と再署名禁止    | Signing Flow §7 / §20 / §21、Interfaces Specification §10.3                                                   | §6.4、§9、§11              | 適合。過去 `IF-002` は Resolved。                                                                   |
-| Browser / Mobile caller authority                     | Browser / Mobile Requirements、Browser / Mobile Design、SDK Design §9                                         | §4.1、§5.1、§7             | 大枠は適合。Browser observed context / Mobile handoff の最終検証を Signer に置いている。            |
-| Relay opaque transport                                | Relay Requirements / Design、web handoff specification                                                        | §4.1、§4.2、§7.3           | 適合。Relay metadata は trusted interface value ではない。                                          |
-| wallet-core raw signing / secret owner                | Requirements `CR-013`、wallet-core documents、Architecture §6.8                                               | §3.4、§4.1、§7.4〜§7.5、§8 | 大枠は適合。Account identity source の明確化は `DR-002`。                                           |
-| Chain / Network と Symbol / NEM の分離                | Chain Compatibility Specification、Profile / Account Specification、Architecture §6.7                         | §3.3、§6.1〜§6.3、§6.5     | 適合。具体 schema は下流委譲。                                                                      |
-| Error / failure responsibility                        | Requirements `CR-012`、Signing Flow §22、Interfaces Specification §10                                         | §6.4、§6.6、§7.6、§9       | 部分適合。`DR-004`。                                                                                |
-| OPEN / design boundary                                | Architecture §17.1、対象本文 §11〜§13、ADR 0001                                                               | §11〜§13                   | exact detail の委譲は適切。ただし確定済み gate / Profile / concurrency を OPEN に戻してはならない。 |
+| インターフェース責務                                             | 上流根拠                                                                                          | 対象本文との追跡           | 判定                                                                                               |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------- |
+| 署名主体が最終判断、SDK / Relay / dApp が非署名境界              | アーキテクチャ §6.5、§6.9、要件 `CR-015`、SDK / Relay 設計                                        | §4、§7、§8                 | 大枠は適合。                                                                                       |
+| 4条件の共通署名判定条件                                          | アーキテクチャ §6.9、要件 `CR-016` / `CR-AC-017`、セキュリティ §7〜§9、署名フロー §4 / §16        | §6.3、§7、§9               | 不足。`DR-003`。                                                                                   |
+| アプリケーションプロファイル / アカウントと wallet-core 識別情報 | 要件 `CR-013`、アーキテクチャ §6.6 / §6.8 / §6.9、プロファイル / アカウント仕様、wallet-core 契約 | §4、§6.1〜§6.3、§8         | 部分適合。`DR-001`、`DR-002`。                                                                     |
+| 要求 / 承認 / 結果の文脈結び付け                                 | 要件 `CR-NFR-008`〜`CR-NFR-012`、セキュリティ §10、署名フロー §5 / §16 / §20                      | §6.3〜§6.4、§8〜§9         | 不足。`DR-001`、`DR-005`。                                                                         |
+| `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` と再署名禁止               | 署名フロー §7 / §20 / §21、インターフェース仕様 §10.3                                             | §6.4、§9、§11              | 適合。過去 `IF-002` は解消済み。                                                                   |
+| ブラウザ / モバイル呼び出し元の信頼性判断                        | ブラウザ / モバイル要件、ブラウザ / モバイル設計、SDK 設計 §9                                     | §4.1、§5.1、§7             | 大枠は適合。ブラウザ観測された文脈 / モバイル受け渡しの最終検証を署名主体に置いている。            |
+| Relay 内容を解釈しない通信経路                                   | Relay 要件 / 設計、web 受け渡し仕様                                                               | §4.1、§4.2、§7.3           | 適合。Relay メタデータは信頼されたインターフェース値ではない。                                     |
+| wallet-core 生の署名 / 秘密情報責任主体                          | 要件 `CR-013`、wallet-core 文書、アーキテクチャ §6.8                                              | §3.4、§4.1、§7.4〜§7.5、§8 | 大枠は適合。アカウントの識別情報送信元の明確化は `DR-002`。                                        |
+| チェーン / ネットワークと Symbol / NEM の分離                    | チェーン互換性仕様、プロファイル / アカウント仕様、アーキテクチャ §6.7                            | §3.3、§6.1〜§6.3、§6.5     | 適合。具体スキーマは下流委譲。                                                                     |
+| エラー / 失敗責務                                                | 要件 `CR-012`、署名フロー §22、インターフェース仕様 §10                                           | §6.4、§6.6、§7.6、§9       | 部分適合。`DR-004`。                                                                               |
+| 未決 / 設計境界                                                  | アーキテクチャ §17.1、対象本文 §11〜§13、ADR 0001                                                 | §11〜§13                   | 厳密な詳細の委譲は適切。ただし確定済み判定条件 / プロファイル / 並行処理を未決に戻してはならない。 |
 
-責任主体の二重化は、Relay、SDK、Browser / Mobile Signer、wallet-core の大枠では確認されなかった。残る問題は、Signer-local context の不足（`DR-001`、`DR-003`、`DR-005`）と Account identity source の表現（`DR-002`）である。
+責任主体の二重化は、Relay、SDK、ブラウザ / モバイル署名主体、wallet-core の大枠では確認されなかった。残る問題は、署名主体内の文脈の不足（`DR-001`、`DR-003`、`DR-005`）とアカウントの識別情報送信元の表現（`DR-002`）である。
 
-## 12. Domain Checks
+## 12. ドメイン別の確認
 
-| 評価項目                                      | 判定    | 根拠 / finding                                                                                                                                                                             |
-| --------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| システムコンテキストと目的・範囲              | Pass    | transport-independent な共通概念であり、Mobile が未実装であること、下位委譲範囲も明示されている。                                                                                          |
-| dApp / SDK / Provider / Content Script の責務 | Pass    | request construction、correlation、transport / bridge に限定し、Signer authority を代替していない。                                                                                        |
-| Browser / Mobile が Signer であること         | Pass    | trusted UI、caller / target validation、approval、authentication、orchestration を Browser / Mobile に置いている。                                                                         |
-| Relay boundary                                | Pass    | opaque transport、structural validation、short-lived state に限定され、署名・意味解釈・approval authority を持たない。                                                                     |
-| wallet-core boundary                          | Partial | Store、secret processing、key identity、raw signing の owner は明確だが、Account public identity の source-of-truth が `DR-002` のとおり曖昧。                                             |
-| untrusted input / trusted authority           | Partial | Browser observed context と Mobile handoff は Signer 検証、Relay / node metadata は untrusted。Profile-local gate context の不足が `DR-001`、`DR-003`。                                    |
-| Profile / Account binding                     | Fail    | Profile が public field ではなく Signer-local context として request〜result lifecycle に binding されず、Account authority も二重解釈可能（`DR-001`、`DR-002`）。                         |
-| Chain / Network                               | Pass    | Symbol / NEM、Mainnet / Testnet、payload / Account / Profile の照合と Relay / node 非authority が明確。                                                                                    |
-| SigningRequest model                          | Partial | request identity、caller、session、operation、Account、Chain / Network、target、freshness はあるが Profile-local context と concurrent isolation が不足（`DR-001`、`DR-005`）。            |
-| SigningResponse / result                      | Partial | wallet-core result の直接転送禁止、target / Account / Chain / Network / correlation 検証はあるが、Profile / caller / concurrent recipient binding が不足（`DR-001`、`DR-005`）。           |
-| 共通署名 gate                                 | Fail    | 4条件の肯定形 invariant と capability の非代替性が不足（`DR-003`）。                                                                                                                       |
-| Operation model                               | Pass    | transaction、message、cosignature を共通の意味と chain-specific detail に分離し、aggregate / multisig の具体化を委譲している。                                                             |
-| Aggregate / multisig / cosignature            | Pass    | target、parent、embedded / inner、signer identity、result correspondence を概念上扱い、byte / schema は Chain Compatibility / Specification へ委譲。                                       |
-| Message signing                               | Pass    | caller、Account、Chain / Network、operation、purpose / domain / nonce、freshness、result context を概念上扱い、具体 serialization は委譲。                                                 |
-| Correlation                                   | Partial | request identity は transport、Relay session、SDK instance 単独に依存しないが、Profile / concurrent recipient binding の不足が `DR-001`、`DR-005`。                                        |
-| `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`         | Pass    | result outcome と delivery disposition を区別し、delivery failure / unknown を再署名の根拠にしない。                                                                                       |
-| Error / failure boundary                      | Partial | rejection / signing failure / unknown は区別されるが、cancelled、expired、authentication、locked、authorization、replay / duplicate、wallet-core、transport の意味分離が不足（`DR-004`）。 |
-| Replay / freshness / duplicate                | Pass    | freshness、expiry、nonce / generation、duplicate / replay、fail-closed と自動再署名禁止が定義されている。                                                                                  |
-| Permission / capability                       | Fail    | permission、session、UNLOCKED を approval / authentication の代替にしないが、4条件の全成立と capability の非authority が肯定形で不足（`DR-003`）。                                         |
-| Concurrent requests                           | Fail    | 複数 tab / frame / Mobile handoff の request、approval、authentication、result、recipient の独立性がない（`DR-005`）。                                                                     |
-| Lifecycle / invalidation                      | Partial | lifecycle loss、context change、old authorization の再利用禁止はあるが、Profile-local context と concurrent request の失効範囲が不足（`DR-001`、`DR-005`）。                               |
-| Sensitive data                                | Pass    | private key、mnemonic、decrypted Store、password-derived secret を request / response / error / diagnostic へ出さない。                                                                    |
-| Automatic fallback                            | Pass    | unknown、version / capability mismatch、security failure 後の別 operation / raw signing / 別 transport fallback を禁止している。                                                           |
-| Traceability                                  | Partial | 関連資料、委譲先、責任表はある。上位の4条件・Profile・concurrency の全 lifecycle binding が不足するため追跡は条件付き（`DR-001`、`DR-003`、`DR-005`）。                                    |
-| OPEN 項目                                     | Pass    | API / wire / platform / binding / chain-specific detail は未決でよい。確定済みの trust boundary を OPEN に戻す記述は、今回の4条件等とは分離して修正対象とする。                            |
-| Design フェーズ境界                           | Pass    | JSON schema、exact error code、crypto、byte、UI、DB / Redis schema への逆流を finding にしていない。                                                                                       |
+| 評価項目                                           | 判定                 | 根拠 / 指摘                                                                                                                                                                          |
+| -------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| システムコンテキストと目的・範囲                   | 合格                 | 通信方式に依存しないな共通概念であり、モバイルが未実装であること、下位委譲範囲も明示されている。                                                                                     |
+| dApp / SDK / Provider / コンテンツスクリプトの責務 | 合格                 | 要求組み立て、対応付け、通信経路 / 橋渡しに限定し、署名主体判断権限を代替していない。                                                                                                |
+| ブラウザ / モバイルが署名主体であること            | 合格                 | 信頼された UI、呼び出し元 / 対象検証、承認、認証、処理の調整をブラウザ / モバイルに置いている。                                                                                      |
+| Relay 境界                                         | 合格                 | 内容を解釈しない通信経路、構造上の検証、短期間のみ有効な状態に限定され、署名・意味解釈・承認判断権限を持たない。                                                                     |
+| wallet-core 境界                                   | 部分トランザクション | ストア、秘密情報処理、鍵識別情報、生の署名の責任主体は明確だが、アカウント公開識別情報の正本が `DR-002` のとおり曖昧。                                                               |
+| 信頼されていない入力 / 信頼された判断権限          | 部分トランザクション | ブラウザ観測された文脈とモバイル受け渡しは署名主体検証、Relay / ノードメタデータは信頼されていない。プロファイル内の判定条件文脈の不足が `DR-001`、`DR-003`。                        |
+| プロファイル / アカウント結び付け                  | 不合格               | プロファイルが公開フィールドではなく署名主体内の文脈として要求〜結果ライフサイクルに結び付けされず、アカウントに関する判断権限も二重解釈可能（`DR-001`、`DR-002`）。                 |
+| チェーン / ネットワーク                            | 合格                 | Symbol / NEM、Mainnet / Testnet、ペイロード / アカウント / プロファイルの照合と Relay / ノード非判断権限が明確。                                                                     |
+| SigningRequest モデル                              | 部分トランザクション | 要求識別情報、呼び出し元、セッション、操作、アカウント、チェーン / ネットワーク、対象、鮮度はあるがプロファイル内の文脈と並行する分離が不足（`DR-001`、`DR-005`）。                  |
+| SigningResponse / 結果                             | 部分トランザクション | wallet-core 結果の直接転送禁止、対象 / アカウント / チェーン / ネットワーク / 対応付け検証はあるが、プロファイル / 呼び出し元 / 並行する受信者結び付けが不足（`DR-001`、`DR-005`）。 |
+| 共通署名判定条件                                   | 不合格               | 4条件の肯定形不変条件と対応能力の非代替性が不足（`DR-003`）。                                                                                                                        |
+| 操作モデル                                         | 合格                 | トランザクション、メッセージ、連署署名を共通の意味とチェーン固有の詳細に分離し、アグリゲート / マルチシグの具体化を委譲している。                                                    |
+| アグリゲート / マルチシグ / 連署署名               | 合格                 | 対象、親、埋め込み / 内部、署名主体識別情報、結果対応関係を概念上扱い、バイト / スキーマはチェーン互換性 / 仕様へ委譲。                                                              |
+| メッセージ署名                                     | 合格                 | 呼び出し元、アカウント、チェーン / ネットワーク、操作、目的 / ドメイン / ノンス、鮮度、結果文脈を概念上扱い、具体シリアライズは委譲。                                                |
+| 対応付け                                           | 部分トランザクション | 要求識別情報は通信経路、Relay セッション、SDK インスタンス単独に依存しないが、プロファイル / 並行する受信者結び付けの不足が `DR-001`、`DR-005`。                                     |
+| `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`              | 合格                 | 結果結果と配送処理結果の区分を区別し、配送失敗 / 不明を再署名の根拠にしない。                                                                                                        |
+| エラー / 失敗境界                                  | 部分トランザクション | 拒否 / 署名失敗 / 不明は区別されるが、キャンセル済み、期限切れ、認証、ロック済み、認可、リプレイ / 重複、wallet-core、通信経路の意味分離が不足（`DR-004`）。                         |
+| リプレイ / 鮮度 / 重複                             | 合格                 | 鮮度、期限切れ、ノンス / 世代、重複 / リプレイ、安全側での終了と自動再署名禁止が定義されている。                                                                                     |
+| 許可 / 対応能力                                    | 不合格               | 許可、セッション、ロック解除済みを承認 / 認証の代替にしないが、4条件の全成立と対応能力の非判断権限が肯定形で不足（`DR-003`）。                                                       |
+| 並行する要求                                       | 不合格               | 複数タブ / フレーム / モバイル受け渡しの要求、承認、認証、結果、受信者の独立性がない（`DR-005`）。                                                                                   |
+| ライフサイクル / 無効化                            | 部分トランザクション | ライフサイクル消失、文脈変更、旧認可の再利用禁止はあるが、プロファイル内の文脈と並行する要求の失効範囲が不足（`DR-001`、`DR-005`）。                                                 |
+| 機微なデータ                                       | 合格                 | 秘密鍵、ニーモニック、復号されたストア、password-derived 秘密情報を要求 / 応答 / エラー / 診断へ出さない。                                                                           |
+| 自動代替経路                                       | 合格                 | 不明、バージョン / 対応能力不一致、セキュリティ失敗後の別操作 / 生の署名 / 別通信経路代替経路を禁止している。                                                                        |
+| 追跡可能性                                         | 部分トランザクション | 関連資料、委譲先、責任表はある。上位の4条件・プロファイル・並行処理の全ライフサイクル結び付けが不足するため追跡は条件付き（`DR-001`、`DR-003`、`DR-005`）。                          |
+| 未決項目                                           | 合格                 | API / 通信上の / プラットフォーム / 結び付け / チェーン固有の詳細は未決でよい。確定済みの信頼境界を未決に戻す記述は、今回の4条件等とは分離して修正対象とする。                       |
+| 設計フェーズ境界                                   | 合格                 | JSON スキーマ、厳密なエラーコード、暗号処理、バイト、UI、DB / Redis スキーマへの逆流を指摘にしていない。                                                                             |
 
-## 13. Validation Results
+## 13. 検証結果
 
-- Prettier / Markdown format: `pnpm exec prettier --write docs/reviews/design/interfaces-review-003.md` と `pnpm exec prettier --check docs/reviews/design/interfaces-review-003.md` — `PASS`。
-- Git whitespace: `git diff --check` および staged artifact に対する `git diff --cached --check` — `PASS`。
-- Markdown link: review artifact 内の相対リンク 38件を存在確認 — `PASS`。
-- Finding ID duplicate: `DR-001`〜`DR-005` と過去 `IF-001`〜`IF-003` の重複および finding heading の重複なし — `PASS`。
-- Review section order: 17章が指定順序で存在 — `PASS`。
-- Review Gate / finding status consistency: `REVISE DESIGN`、Critical 3件 / Major 2件 / Minor 0件、Required Changes、gate failure の対応を確認 — `PASS`。
-- Changed files: `git status --short` と staged diff で review artifact 1件だけを確認 — `PASS`。
-- Source lint / typecheck / test / build: Source code を変更しないため実行しない。`Not validated` とする。
+- Prettier / Markdown 形式: `pnpm exec prettier --write docs/reviews/design/interfaces-review-003.md` と `pnpm exec prettier --check docs/reviews/design/interfaces-review-003.md` — `PASS`。
+- Git 空白文字: `git diff --check` およびステージ済み成果物に対する `git diff --cached --check` — `PASS`。
+- Markdown リンク: レビュー成果物内の相対リンク 38件を存在確認 — `PASS`。
+- 指摘 ID 重複: `DR-001`〜`DR-005` と過去 `IF-001`〜`IF-003` の重複および指摘見出しの重複なし — `PASS`。
+- レビュー節順序: 17章が指定順序で存在 — `PASS`。
+- レビュー判定条件 / 指摘の状態整合性: `REVISE DESIGN`、重大 3件 / 主要 2件 / 軽微 0件、必須の修正、判定条件失敗の対応を確認 — `PASS`。
+- 変更されたファイル: `git status --short` とステージ済み差分でレビュー成果物 1件だけを確認 — `PASS`。
+- 送信元 lint / typecheck / テスト / ビルド: 送信元コードを変更しないため実行しない。`未検証` とする。
 
-## 14. Review Gates
+## 14. レビュー判定基準
 
-| Gate                                         | 判定 | 根拠                                                                                                                                                      | 対応 ID                      |
-| -------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| 1. Purpose / scope                           | Pass | 共通概念、Mobile 未実装、下位委譲、Design phase boundary が明確。                                                                                         | —                            |
-| 2. Context / responsibility / trust boundary | Fail | Signer-local Profile context と4条件 gate の成立責任が全 lifecycle で不足。                                                                               | `DR-001`、`DR-003`           |
-| 3. Dependency direction                      | Pass | SDK / Relay / dApp / Provider は Signer / wallet-core の authority を逆流させず、wallet-core も Application approval を担わない。                         | —                            |
-| 4. Major flows / failure / concurrency       | Fail | 複数 request の独立性、Profile-bound result、各 gate context の流れが共通 model に不足。                                                                  | `DR-001`、`DR-003`、`DR-005` |
-| 5. Data ownership                            | Fail | Application Profile / Account、wallet-core Software Key identity、Signer-local approval context の所有境界が一意でない。                                  | `DR-001`、`DR-002`           |
-| 6. Security / interoperability               | Fail | 4条件 gate と Profile / Account context の必須 binding が不足する。Chain / Network、Relay、Symbol / NEM の大枠は適合。                                    | `DR-001`、`DR-003`           |
-| 7. Upstream consistency                      | Fail | `CR-016`、Architecture §6.9、Security Design、Signing Flow が要求する4条件・Profile-bound authorization・concurrency invariant を完全に引き継いでいない。 | `DR-001`、`DR-003`、`DR-005` |
-| 8. Downstream implementability               | Fail | 下位実装が Profile context、4条件 gate、concurrent isolation、Account source-of-truth を推測して実装する余地がある。                                      | `DR-001`〜`DR-005`           |
+| 判定条件                        | 判定   | 根拠                                                                                                                                                 | 対応 ID                      |
+| ------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| 1. 目的 / 対象範囲              | 合格   | 共通概念、モバイル未実装、下位委譲、設計工程境界が明確。                                                                                             | —                            |
+| 2. 文脈 / 責務 / 信頼境界       | 不合格 | 署名主体内のプロファイル文脈と4条件判定条件の成立責任が全ライフサイクルで不足。                                                                      | `DR-001`、`DR-003`           |
+| 3. 依存関係方向                 | 合格   | SDK / Relay / dApp / Provider は署名主体 / wallet-core の判断権限を逆流させず、wallet-core もアプリケーション承認を担わない。                        | —                            |
+| 4. 主要フロー / 失敗 / 並行処理 | 不合格 | 複数要求の独立性、プロファイルに結び付いた結果、各判定条件文脈の流れが共通モデルに不足。                                                             | `DR-001`、`DR-003`、`DR-005` |
+| 5. データ所有責任               | 不合格 | アプリケーションプロファイル / アカウント、wallet-core ソフトウェア鍵識別情報、署名主体内の承認文脈の所有境界が一意でない。                          | `DR-001`、`DR-002`           |
+| 6. セキュリティ / 相互運用性    | 不合格 | 4条件判定条件とプロファイル / アカウント文脈の必須結び付けが不足する。チェーン / ネットワーク、Relay、Symbol / NEM の大枠は適合。                    | `DR-001`、`DR-003`           |
+| 7. 上流整合性                   | 不合格 | `CR-016`、アーキテクチャ §6.9、セキュリティ設計、署名フローが要求する4条件・プロファイルに結び付いた認可・並行処理不変条件を完全に引き継いでいない。 | `DR-001`、`DR-003`、`DR-005` |
+| 8. 下流実装可能性               | 不合格 | 下位実装がプロファイル文脈、4条件判定条件、並行する分離、アカウント正本を推測して実装する余地がある。                                                | `DR-001`〜`DR-005`           |
 
-Gate 不合格は `Critical` の `DR-001`、`DR-003`、`DR-005` に対応付けている。`DR-002` と `DR-004` は現在範囲の有意な Major correction だが、単独で gate failure の根拠にはしていない。
+判定条件不合格は `Critical` の `DR-001`、`DR-003`、`DR-005` に対応付けている。`DR-002` と `DR-004` は現在範囲の有意な主要修正だが、単独で判定条件失敗の根拠にはしていない。
 
-## 15. Remaining Risks and Open Decisions
+## 15. 残存リスクと未決定事項
 
-- `DR-001`、`DR-003`、`DR-005` が解消されるまで、同じ public request / response shape を採用しても Profile、gate、concurrent context の authority を実装者が推測する残存リスクがある。
-- `DR-002` が解消されるまで、Application Account の公開 projection と wallet-core Software Key identity の対応に関する実装解釈が分岐し得る。
-- `DR-004` が解消されるまで、SDK / Provider / Relay adapter の failure mapping が安全な再試行・再署名禁止を弱める可能性がある。
-- `interfaces.md` の既存 OPEN は、SDK transport / caller の具体 API、Mobile receiving / OS / lifecycle、Relay query / redelivery、wallet-core integration、Symbol / NEM supported scope の後工程判断として維持できる。ただし上位で確定した trust boundary、4条件、Profile binding、concurrent isolation を OPEN のままにしてはならない。
-- Signing Flow review 004 は確認済みであり、同 review の `READY` は本レビューへ継承していない。共通 interface の対象本文が上位で強化された Signing Flow の条件を反映しているかを独立に判定した。
+- `DR-001`、`DR-003`、`DR-005` が解消されるまで、同じ公開要求 / 応答構造を採用してもプロファイル、判定条件、並行する文脈の判断権限を実装者が推測する残存リスクがある。
+- `DR-002` が解消されるまで、アプリケーションアカウントの公開投影と wallet-core ソフトウェア鍵識別情報の対応に関する実装解釈が分岐し得る。
+- `DR-004` が解消されるまで、SDK / Provider / Relay アダプターの失敗対応付けが安全な再試行・再署名禁止を弱める可能性がある。
+- `interfaces.md` の既存未決は、SDK 通信経路 / 呼び出し元の具体 API、モバイル receiving / OS / ライフサイクル、Relay 照会 / 再配送、wallet-core 統合、Symbol / NEM 対応済みの対象範囲の後工程判断として維持できる。ただし上位で確定した信頼境界、4条件、プロファイル結び付け、並行する分離を未決のままにしてはならない。
+- 署名フローレビュー 004 は確認済みであり、同レビューの `READY` は本レビューへ継承していない。共通インターフェースの対象本文が上位で強化された署名フローの条件を反映しているかを独立に判定した。
 
-## 16. Automatic Changes
+## 16. 自動変更
 
-なし。`docs/design/interfaces.md`、その他の設計本文、仕様、source code、test、設定は変更していない。今回作成する変更は本 review artifact のみである。
+なし。`docs/design/interfaces.md`、その他の設計本文、仕様、送信元コード、テスト、設定は変更していない。今回作成する変更は本レビュー成果物のみである。
 
-## 17. Final Decision
+## 17. 最終判断
 
 `REVISE DESIGN`
 
-`DR-001`、`DR-003`、`DR-005` の Critical findings により、共通 interface が Profile-local context、4条件の共通署名 gate、concurrent request isolation を推測なしに引き渡せる状態ではない。`DR-002` と `DR-004` もあわせて修正し、再レビューで全 Review Gate の合格を確認するまで Interfaces Design を `READY` と判断できない。
+`DR-001`、`DR-003`、`DR-005` の重大指摘により、共通インターフェースがプロファイル内の文脈、4条件の共通署名判定条件、並行する要求分離を推測なしに引き渡せる状態ではない。`DR-002` と `DR-004` もあわせて修正し、再レビューで全レビュー判定条件の合格を確認するまでインターフェース設計を `READY` と判断できない。

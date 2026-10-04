@@ -1,105 +1,105 @@
-# MosaicLynx SDK Specification 再レビュー
+# MosaicLynx SDK 仕様再レビュー
 
 ## レビュー情報
 
 - 対象: [`docs/specifications/sdk.md`](../../specifications/sdk.md)
-- 対象 revision: `3800293`
+- 対象リビジョン: `3800293`
 - 前回レビュー: [`sdk-review-001.md`](./sdk-review-001.md)
 - 確認日: 2026-08-26
-- レビュー種別: Specification 再レビュー
-- 使用 Skill: `spec-review`
-- 実施方法: `spec-review` Skill と `.agents/project-context.md` を適用した単独再レビュー。前回指摘 `SDK-001` の修正差分を中心に、Web Transaction Handoff Specification §5.3 / §6、SDK Requirements、SDK Design、Interface Specification、Signing Protocol Specification および Security Design を照合した。前回レビュー済みの範囲は、修正による回帰の有無と責任境界の維持を確認する目的に限定して再確認した。
-- 変更範囲: 本レビュー成果物のみを新規作成する。対象 Specification、Handoff Specification、Concept、Requirements、Design、他の Specification、ADR および実装は変更していない。
+- レビュー種別: 仕様再レビュー
+- 使用スキル: `spec-review`
+- 実施方法: `spec-review` スキルと `.agents/project-context.md` を適用した単独再レビュー。前回指摘 `SDK-001` の修正差分を中心に、Web トランザクション受け渡し仕様 §5.3 / §6、SDK 要件、SDK 設計、インターフェース仕様、署名プロトコル仕様およびセキュリティ設計を照合した。前回レビュー済みの範囲は、修正による回帰の有無と責任境界の維持を確認する目的に限定して再確認した。
+- 変更範囲: 本レビュー成果物のみを新規作成する。対象仕様、受け渡し仕様、コンセプト、要件、設計、他の仕様、ADR および実装は変更していない。
 
 ## 総評
 
-前回 `SDK-001` は解消されている。`isAvailable()` は、Handoff §5.3 の local Provider route または Mobile Relay route の選択可能性の論理和として定義され、Provider が存在しないことだけで `false` にはならない。一方、Mobile Relay は current release、feature flag、release / product gate、受信 App の提供、runtime、Web API および verified HTTPS App Link の条件を満たす場合だけ選択可能とされ、現行 production `1.0.0` では受信 App 公開前に無効であることも明示された。
+前回 `SDK-001` は解消されている。`isAvailable()` は、受け渡し §5.3 のローカル Provider 経路またはモバイル Relay 経路の選択可能性の論理和として定義され、Provider が存在しないことだけで `false` にはならない。一方、モバイル Relay は現在のリリース、機能フラグ、リリース / プロダクト判定条件、受信アプリの提供、実行環境、Web API および検証済み HTTPS App Link の条件を満たす場合だけ選択可能とされ、現行本番環境 `1.0.0` では受信アプリ公開前に無効であることも明示された。
 
-SDK §5.1 / §6.2 と Handoff §5.3 / §6 の availability / transport selection の authority が一致し、`isAvailable()`、`UNAVAILABLE` および silent fallback の意味を実装者が追加判断なしに決定できる状態になっている。
+SDK §5.1 / §6.2 と受け渡し §5.3 / §6 の利用可能性 / 通信経路選択の判断権限が一致し、`isAvailable()`、`UNAVAILABLE` および利用者に知らせない代替経路の意味を実装者が追加判断なしに決定できる状態になっている。
 
-修正差分は route availability と traceability に限定され、Provider 非信頼モデル、connection / permission / approval 分離、Origin authority、request / response correlation、timeout / cancellation、error authority、Relay opaque boundary、secret isolation および fail-closed の契約に回帰は確認されなかった。
+修正差分は経路利用可能性と追跡可能性に限定され、Provider 非信頼モデル、接続 / 許可 / 承認分離、オリジンの信頼性判断、要求 / 応答対応付け、タイムアウト / キャンセル、エラー定義の正本、Relay 内容を解釈しない境界、秘密情報の分離および安全側での終了の契約に回帰は確認されなかった。
 
 ## 判定
 
 ### READY
 
-前回指摘が解消され、新規 `ERROR` / `WARN` はない。SDK Specification は実装または下位仕様策定へ進められる。
+前回指摘が解消され、新規 `ERROR` / `WARN` はない。SDK 仕様は実装または下位仕様策定へ進められる。
 
 ## 前回指摘の再確認
 
-### SDK-001 — RESOLVED
+### SDK-001 — 解消済み
 
-- **前回 Severity:** `ERROR`
-- **前回 Status:** `OPEN`
-- **対象:** `isAvailable()` と Mobile Relay route availability の整合。
+- **前回重要度:** `ERROR`
+- **前回状態:** `OPEN`
+- **対象:** `isAvailable()` とモバイル Relay 経路利用可能性の整合。
 - **確認結果:** 解消。
 - **確認根拠:**
-  - SDK §5.1 は、Handoff §5.3 の選択可能な local Provider route または Mobile Relay route の存在を `isAvailable() = true` の条件としている。
-  - SDK §6.2 は、Provider 不在時でも Handoff が認める Mobile Relay route を `isAvailable()` の根拠にできるとし、route 条件を満たさない場合だけ `false` としている。
-  - Handoff §5.3 は `local_provider_route_available OR mobile_relay_route_available` を明示し、Mobile Relay の release / feature flag / product gate /受信 App 提供 / runtime / Web API 条件を定義している。
-  - Handoff §6 は §5.3 の route availability を transport selection の正本とし、選択可能な route がない場合だけ `UNAVAILABLE` としている。
+  - SDK §5.1 は、受け渡し §5.3 の選択可能なローカル Provider 経路またはモバイル Relay 経路の存在を `isAvailable() = true` の条件としている。
+  - SDK §6.2 は、Provider 不在時でも受け渡しが認めるモバイル Relay 経路を `isAvailable()` の根拠にできるとし、経路条件を満たさない場合だけ `false` としている。
+  - 受け渡し §5.3 は `local_provider_route_available OR mobile_relay_route_available` を明示し、モバイル Relay のリリース / 機能フラグ / プロダクト判定条件 /受信アプリ提供 / 実行環境 / Web API 条件を定義している。
+  - 受け渡し §6 は §5.3 の経路利用可能性を通信経路選択の正本とし、選択可能な経路がない場合だけ `UNAVAILABLE` としている。
 - **残存問題:** なし。
 
 ## 新規指摘
 
 新規 `ERROR`、`WARN`、`NIT` は確認されなかった。問題がない領域に形式的な指摘 ID は発行していない。
 
-| Severity | 件数 |
-| -------- | ---: |
-| ERROR    |    0 |
-| WARN     |    0 |
-| NIT      |    0 |
+| 重要度 | 件数 |
+| ------ | ---: |
+| エラー |    0 |
+| WARN   |    0 |
+| 細部   |    0 |
 
 ## 回帰確認
 
-### Public API / Provider / capability / version
+### 公開 API / Provider / 対応能力 / バージョン
 
-Public API の型、Promise semantics、diagnostics option、cosignature の existing / optional scope は Handoff §5.1 と整合したままである。`isAvailable()` の明確化により、transport selector、Relay URL、credential、内部 Account identifier などの新しい公開 API は追加されていない。
+公開 API の型、保証意味、診断情報 option、連署署名の既存の / 任意対象範囲は受け渡し §5.1 と整合したままである。`isAvailable()` の明確化により、通信経路選択子、Relay URL、認証情報、内部アカウント識別子などの新しい公開 API は追加されていない。
 
-Provider が存在する場合の Extension route 優先、malformed / incompatible / conflicting Provider の非信頼扱い、非対応 Provider からの Mobile Relay への silent fallback 禁止も維持されている。capability は authorization や approval を意味せず、capability identifier / version negotiation の OPEN も閉じられていない。
+Provider が存在する場合の拡張機能経路優先、不正な形式の / 互換性のない / 競合する Provider の非信頼扱い、非対応 Provider からのモバイル Relay への利用者に知らせない代替経路禁止も維持されている。対応能力は認可や承認を意味せず、対応能力識別子 / バージョン協議の未決も閉じられていない。
 
-### Connection / Permission / Approval
+### 接続 / 許可 / 承認
 
-availability と connection、permission、Account disclosure、user approval、authentication、signing success は引き続き分離されている。route が available であることや `isAvailable() = true` が、接続済み、App インストール済み、permission 付与済みまたは署名可能であることを意味しない。
+利用可能性と接続、許可、アカウント情報公開、利用者承認、認証、署名成功は引き続き分離されている。経路が利用可能であることや `isAvailable() = true` が、接続済み、アプリインストール済み、許可付与済みまたは署名可能であることを意味しない。
 
-### Request / Response / Lifecycle
+### 要求 / 応答 / ライフサイクル
 
-requestId、operation、Provider / session、Origin / caller、Scope、Account、target、digest、expiry および response freshness の binding、duplicate / stale / replay response の破棄、concurrent request の独立処理、timeout / cancellation と `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の分離に変更はない。自動 re-sign、古い approval の再利用、別 transport への無断 fallback も引き続き禁止されている。
+requestId、操作、Provider / セッション、オリジン / 呼び出し元、対象範囲、アカウント、対象、ダイジェスト、期限切れおよび応答鮮度の結び付け、重複 / 古くなった / リプレイ応答の破棄、並行する要求の独立処理、タイムアウト / キャンセルと `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の分離に変更はない。自動再署名、古い承認の再利用、別通信経路への無断代替経路も引き続き禁止されている。
 
-### Error authority / Security
+### エラー定義の正本 / セキュリティ
 
-common logical error は Interfaces、signing outcome は Signing Protocol、concrete SDK / Handoff error code は Handoff §10 が authority のままである。新しい error code / taxonomy は追加されていない。
+共通の論理的なエラーはインターフェース、署名結果は署名プロトコル、具体的な SDK / 受け渡しエラーコードは受け渡し §10 が判断権限のままである。新しいエラーコード / 分類体系は追加されていない。
 
-SDK は非特権 context に留まり、SDK / Provider / Relay が Origin authority、approval authority、signing authority または secret boundary になることはない。Relay opaque boundary、sensitive error detail 非露出、unsupported / malformed / mismatch / replay 時の fail-closed も維持されている。
+SDK は非特権文脈に留まり、SDK / Provider / Relay がオリジンの信頼性判断、承認判断権限、署名判断権限または秘密情報境界になることはない。Relay 内容を解釈しない境界、機微なエラー詳細非露出、未対応の / 不正な形式の / 不一致 / リプレイ時の安全側での終了も維持されている。
 
 ## 上流整合性と新規仕様混入
 
-前回 `SDK-001` の修正は、SDK Specification が独自に Mobile Relay の公開条件を発明するのではなく、Handoff §5.3 / §6 を availability / transport selection の正本として参照する形になっている。SDK Requirements `SDK-FR-001`、`SDK-PLAT-003`、SDK Design の Provider / transport 境界および Handoff の route availability と traceability も更新されている。
+前回 `SDK-001` の修正は、SDK 仕様が独自にモバイル Relay の公開条件を発明するのではなく、受け渡し §5.3 / §6 を利用可能性 / 通信経路選択の正本として参照する形になっている。SDK 要件 `SDK-FR-001`、`SDK-PLAT-003`、SDK 設計の Provider / 通信経路境界および受け渡しの経路利用可能性と追跡可能性も更新されている。
 
-今回の修正で、新しい Public API、Provider selection policy、capability taxonomy、error code、timeout / cancellation semantics、Relay trust decision または signing authorization は追加されていない。既存の `OPEN-SDK-001`〜`005` も、複数 Provider 選択、capability / version negotiation、timeout / cancellation / transport failure、cosignature public scope、runtime / caller binding / release compatibility の未決事項として妥当である。
+今回の修正で、新しい公開 API、Provider 選択ポリシー、対応能力分類体系、エラーコード、タイムアウト / キャンセル意味、Relay 信頼判断または署名認可は追加されていない。既存の `OPEN-SDK-001`〜`005` も、複数 Provider 選択、対応能力 / バージョン協議、タイムアウト / キャンセル / 通信経路失敗、連署署名公開対象範囲、実行環境 / 呼び出し元結び付け / リリース互換性の未決事項として妥当である。
 
 ## 基本設計・仕様粒度の評価
 
-修正後も、SDK Specification は外部 API、route availability、responsibility boundary、validation、correlation、lifecycle、error および security invariant を実装可能な粒度で定義している。Provider object の内部実装、Browser API、Mobile OS API、Relay storage、wallet-core API、wire schema の追加設計へ逸脱していない。
+修正後も、SDK 仕様は外部 API、経路利用可能性、責務境界、検証、対応付け、ライフサイクル、エラーおよびセキュリティ上の不変条件を実装可能な粒度で定義している。Provider オブジェクトの内部実装、ブラウザ API、モバイル OS API、Relay 保存領域、wallet-core API、通信上のスキーマの追加設計へ逸脱していない。
 
 ## 最終判定
 
-- 前回 `SDK-001`: **RESOLVED**
+- 前回 `SDK-001`: **解消済み**
 - 新規指摘: なし
 - 回帰: なし
 - 指摘件数: `ERROR 0 / WARN 0 / NIT 0`
 - 最終判定: **READY**
-- **SDK SPECIFICATION READY**
+- **SDK 仕様 READY**
 
-SDK Specification は次工程へ進めてよい。
+SDK 仕様は次工程へ進めてよい。
 
-## Validation
+## 検証
 
-- 前回差分の確認: `SDK-001` の修正箇所と Handoff §5.3 / §6 の整合を確認した。
-- 上流 traceability: SDK Requirements / Design、Interface Specification、Signing Protocol Specification、Web Transaction Handoff Specification および Security Design を再確認した。
-- 相対リンク: 対象 Specification、前回レビューおよび Handoff への参照先を確認した。
-- review ID: 本再レビューでは新規指摘なし。前回 `SDK-001` の重複発行なし。
+- 前回差分の確認: `SDK-001` の修正箇所と受け渡し §5.3 / §6 の整合を確認した。
+- 上流追跡可能性: SDK 要件 / 設計、インターフェース仕様、署名プロトコル仕様、Web トランザクション受け渡し仕様およびセキュリティ設計を再確認した。
+- 相対リンク: 対象仕様、前回レビューおよび受け渡しへの参照先を確認した。
+- レビュー ID: 本再レビューでは新規指摘なし。前回 `SDK-001` の重複発行なし。
 - 対象本文: `docs/specifications/sdk.md` はレビュー中に変更していない。
-- Markdown / formatter: `pnpm exec prettier --check docs/reviews/specifications/sdk-review-002.md` を実施し、成功した。
-- `git diff --check`: 実施し、成果物由来の whitespace error はなかった。
-- repository 全体の formatter / lint / typecheck / test / build: レビュー成果物のみの変更であるため実装検証としては実施対象外とする。
+- Markdown / フォーマッター: `pnpm exec prettier --check docs/reviews/specifications/sdk-review-002.md` を実施し、成功した。
+- `git diff --check`: 実施し、成果物由来の空白文字エラーはなかった。
+- リポジトリ全体のフォーマッター / lint / typecheck / テスト / ビルド: レビュー成果物のみの変更であるため実装検証としては実施対象外とする。

@@ -1,23 +1,23 @@
-# Implementation Review: Profile Chain 単一化（再レビュー）
+# 実装レビュー: プロファイルチェーン単一化（再レビュー）
 
-## Review Target
+## レビュー対象
 
 - 対象: `2bdaba9`、`3b2f32e`、`59ac1af`、`9d79f46`、`8f5c1c5` とその変更範囲（`packages/core`、`packages/profile-backup`、`apps/extension`）
 - 確認日: 2026-09-20
-- 範囲: Profile / Account の単一 Chain 境界、Vault 保存・読込、permission binding、backup 検証、Provider / Approval / UI の Chain binding、関連テスト
-- 対象外: `_snwc`、Mobile の未実装コード、Relay / SDK の無変更領域、外部 node / browser 実 runtime
+- 範囲: プロファイル / アカウントの単一チェーン境界、Vault 保存・読込、許可結び付け、バックアップ検証、Provider / 承認 / UI のチェーン結び付け、関連テスト
+- 対象外: `_snwc`、モバイルの未実装コード、Relay / SDK の無変更領域、外部ノード / ブラウザ実実行環境
 - 成果物: 本レビュー。前回レビュー [profile-chain-implementation-review-001](./profile-chain-implementation-review-001.md) の IR-001 を再確認した。
 
-## Execution Audit
+## 実行記録
 
-サブエージェントは使用せず、Review Board Chair が次の4パスを独立して実施した。
+サブエージェントは使用せず、レビュー Board レビュー統括が次の4パスを独立して実施した。
 
-- Reviewer A（仕様適合性）: Profile.chain、Account.chain / identity、permission、旧 store の扱いを Requirements / Specification / Design と照合
-- Reviewer B（Security）: Profile-local authorization、Vault / secret path、storage validation、Provider / Approval 境界を確認
-- Reviewer C（相互運用性）: Symbol / NEM、Mainnet / Testnet、chain-specific identity、既存 chain adapter / backup 契約を確認
-- Reviewer D（品質・テスト）: TypeScript、保存状態、malformed / wrong chain、関連 unit test と workspace validation を確認
+- レビュアー A（仕様適合性）: Profile.chain、Account.chain / 識別情報、許可、旧ストアの扱いを要件 / 仕様 / 設計と照合
+- レビュアー B（セキュリティ）: プロファイル内の認可、Vault / 秘密情報パス、保存領域検証、Provider / 承認境界を確認
+- レビュアー C（相互運用性）: Symbol / NEM、Mainnet / Testnet、チェーン固有の識別情報、既存チェーンアダプター / バックアップ契約を確認
+- レビュアー D（品質・テスト）: TypeScript、保存状態、不正な形式の / 誤ったチェーン、関連単体テストとワークスペース検証を確認
 
-## Evidence Used
+## 参照した根拠
 
 - `docs/requirements/requirements.md` `CR-017`、`CR-AC-020`
 - `docs/specifications/profile-account-spec.md` §3、§4、§11、§12、§26
@@ -28,101 +28,101 @@
 - `packages/core/src/domain.ts`、`packages/core/src/use-cases.ts`、`packages/core/src/ports.ts`
 - `packages/profile-backup/src/index.ts`
 - `apps/extension/src/vault.ts`、`apps/extension/src/background/`、`apps/extension/src/approval/`、`apps/extension/src/popup/`
-- 関連 unit test、package manifest、TypeScript 設定、workspace validation 結果
+- 関連単体テスト、パッケージマニフェスト、TypeScript 設定、ワークスペース検証結果
 
-## Review Result
+## レビュー結果
 
 `READY`
 
-## Summary
+## 要約
 
-Profile は `chain` を作成時に固定し、Account は `chain` と単一 `identity` を持つ構成へ移行されている。Extension の Vault、Provider、Approval、Account 管理、作成・管理 UI、backup verification は Profile.chain に一致するデータだけを扱う。旧 V1/V2 mixed store の自動 migration は行わず、V3 store の Profile、Account、permission の Chain / Network 不一致は fail-closed で拒否する。
+プロファイルは `chain` を作成時に固定し、アカウントは `chain` と単一 `identity` を持つ構成へ移行されている。拡張機能の Vault、Provider、承認、アカウント管理、作成・管理 UI、バックアップ検証は Profile.chain に一致するデータだけを扱う。旧 V1/V2 混在したストアの自動移行は行わず、V3 ストアのプロファイル、アカウント、許可のチェーン / ネットワーク不一致は安全側に終了して拒否する。
 
-前回 IR-001 の Core permission scope 検証不足は、`PermissionService` が Profile repository を参照し、存在・Chain・Network の不一致を保存前に拒否する実装とテストで解消された。
+前回 IR-001 のコア許可対象範囲検証不足は、`PermissionService` がプロファイルリポジトリを参照し、存在・チェーン・ネットワークの不一致を保存前に拒否する実装とテストで解消された。
 
-## Finding Status
+## 指摘の状態
 
-| ID     | Severity | Status   | 初出レビュー                              | 今回の状態根拠                                                                             |
-| ------ | -------- | -------- | ----------------------------------------- | ------------------------------------------------------------------------------------------ |
-| IR-001 | HIGH     | Resolved | `profile-chain-implementation-review-001` | `PermissionService.grant` の Profile scope 検証、cross-chain reject test、保存前拒否を確認 |
+| ID     | 重要度 | 状態     | 初出レビュー                              | 今回の状態根拠                                                                                 |
+| ------ | ------ | -------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| IR-001 | HIGH   | 解消済み | `profile-chain-implementation-review-001` | `PermissionService.grant` のプロファイル対象範囲検証、チェーン間の拒否テスト、保存前拒否を確認 |
 
-## Required Changes
-
-なし。
-
-## Optional Improvements
+## 必須の修正
 
 なし。
 
-## Resolved Findings
+## 任意の改善
 
-### IR-001: Core PermissionService が Profile の固定 Chain / Network を検証しない
+なし。
 
-- 解消内容: `packages/core/src/use-cases.ts` の `PermissionService` に `ProfileRepository` を追加し、Profile 未存在、scope.network 不一致、scope.chain 不一致を permission repository の保存前に拒否するよう変更した。
-- 確認テスト: `packages/core/test/core.test.ts` で valid grant、cross-chain mismatch、wrong network の境界を確認した。
-- 追加確認: `apps/extension/src/vault.ts` の V3 store 読込でも permission の Profile.chain / network 不一致を拒否し、`apps/extension/test/vault-storage.test.ts` で mixed permission state を検証した。
-- 再確認結果: permission integrity の残存 blocking defect は確認されなかった。
+## 解消済みの指摘
 
-## Upstream Feedback
+### IR-001: コア PermissionService がプロファイルの固定チェーン / ネットワークを検証しない
 
-なし。単一 Chain の要求・設計・仕様は実装判定に必要な範囲で確定している。
+- 解消内容: `packages/core/src/use-cases.ts` の `PermissionService` に `ProfileRepository` を追加し、プロファイル未存在、scope.network 不一致、scope.chain 不一致を許可リポジトリの保存前に拒否するよう変更した。
+- 確認テスト: `packages/core/test/core.test.ts` で有効な許可付与、チェーン間の不一致、誤ったネットワークの境界を確認した。
+- 追加確認: `apps/extension/src/vault.ts` の V3 ストア読込でも許可の Profile.chain / ネットワーク不一致を拒否し、`apps/extension/test/vault-storage.test.ts` で混在した許可状態を検証した。
+- 再確認結果: 許可完全性の残存判定を妨げる defect は確認されなかった。
 
-## Deferred Findings
+## 上流工程へのフィードバック
 
-- Browser 実 runtime の UI 操作、Service Worker 再起動、Extension reload 後の storage 実挙動は local unit test の対象外であり、別途 E2E / release readiness で確認する。
-- `_snwc` の native / WASM Binding は変更対象外のため、Binding 内部の実装レビューは行っていない。
-- Relay integration、external node、Mainnet release evidence は今回の変更範囲に直接含まれず、該当工程で確認する。
+なし。単一チェーンの要求・設計・仕様は実装判定に必要な範囲で確定している。
 
-## Scope and Traceability
+## 後続工程へ委譲する指摘
 
-`CR-017` / `CR-AC-020` → Profile / Account Specification §3 / §11 → Architecture §6.6 / Interfaces §6 / Security Design §6・§16 → Core domain / Core use cases / Extension Vault / Provider / Approval の変更を追跡した。permission writer と persisted store reader の双方で Profile-local Chain / Network binding を確認し、Extension の公開 projection は Account.identity 単体から生成されることを確認した。
+- ブラウザ実実行環境の UI 操作、サービスワーカー再起動、拡張機能再読み込み後の保存領域実挙動はローカル単体テストの対象外であり、別途 E2E / リリース準備状態で確認する。
+- `_snwc` のネイティブ / WASM バインディングは変更対象外のため、バインディング内部の実装レビューは行っていない。
+- Relay 統合、外部ノード、Mainnet リリース証跡は今回の変更範囲に直接含まれず、該当工程で確認する。
 
-`deriveSharedAccount` が chain adapter の fixed vector 契約として両 chain の導出 material を返す実装は維持されているが、Profile / Account / Vault / Provider が保存・公開するのは Profile.chain に対応する一つの identity に限定される。これは low-level adapter compatibility と Application Profile の責務を分離する既存境界に合致する。
+## 対象範囲と追跡可能性
 
-## Domain Checks
+`CR-017` / `CR-AC-020` → プロファイル / アカウント仕様 §3 / §11 → アーキテクチャ §6.6 / インターフェース §6 / セキュリティ設計 §6・§16 → コアドメイン / コア use cases / 拡張機能 Vault / Provider / 承認の変更を追跡した。許可 writer と永続化済みのストア読み上げの双方でプロファイル内のチェーン / ネットワーク結び付けを確認し、拡張機能の公開投影は Account.identity 単体から生成されることを確認した。
 
-- Specification Conformance: PASS。Profile 固定 Chain、single identity、別 Profile による Symbol / NEM 分離、旧 mixed state 非互換、UI / Provider / Approval の scope binding を確認。
-- Security: PASS。Profile / Account / permission binding、storage rejection、approval signer identity、Vault secret path、wrong Chain / Network failure path を確認。秘密情報のログ・例外漏えいは確認されなかった。wallet-core の内部鍵処理と Binding は対象外。
-- Interoperability: PASS。`deriveSharedAccount` の fixed vector を変更せず、selected Profile.chain の identity のみを account projection / backup verification に利用することを確認。Symbol / NEM、Mainnet / Testnet の境界を確認。
-- Error / abnormal paths: PASS。old schema、mixed Profile / Account / permission、wrong chain scope、backup identity mismatch、wrong network、duplicate mnemonic の関連 path を確認。
-- Test quality: PASS。Core、profile-backup、Extension の targeted test と全 workspace test / typecheck / build が成功し、IR-001 の保存前拒否を独立テストした。
-- 型・依存・公開互換性: PASS。Core の PermissionService constructor 変更箇所を workspace test / typecheck で追跡し、無関係な package の公開 contract は変更していない。
+`deriveSharedAccount` がチェーンアダプターの固定ベクター契約として両チェーンの導出資料を返す実装は維持されているが、プロファイル / アカウント / Vault / Provider が保存・公開するのは Profile.chain に対応する一つの識別情報に限定される。これは下位のアダプター互換性とアプリケーションプロファイルの責務を分離する既存境界に合致する。
 
-## Validation Results
+## ドメイン別の確認
 
-- `pnpm lint`: PASS（最終変更前の root run）。
-- `./node_modules/.bin/oxlint --deny-warnings`: PASS（最終変更後の repository-local direct validation）。
-- `pnpm typecheck`: PASS（12 workspace projects）。
-- `pnpm test`: PASS（12 workspace projects。Extension 10 files / 30 tests、Core 5 tests、profile-backup 3 tests を含む）。
-- `pnpm build`: PASS（Extension、test-dapp、SDK、Relay、全 workspace build）。Vite の chunk size warning は表示されたが build は成功した。
-- `pnpm --filter @mosaiclynx/core typecheck && pnpm --filter @mosaiclynx/core test`: PASS。
-- `pnpm --filter @mosaiclynx/profile-backup typecheck && pnpm --filter @mosaiclynx/profile-backup test`: PASS。
-- `pnpm --filter @mosaiclynx/extension typecheck && pnpm --filter @mosaiclynx/extension test`: PASS。最終追加後は direct `tsc` / `vitest` でも PASS。
-- 対象変更ファイルの Prettier check: PASS。
-- `git diff --check`: PASS。
-- 未確認: Browser 実 runtime、Service Worker restart / reload E2E、external node、native / WASM Binding runtime、Relay Redis integration。これらは今回の対象変更外または別工程で確認する。
+- 仕様適合性: 合格。プロファイル固定チェーン、単一の識別情報、別プロファイルによる Symbol / NEM 分離、旧混在した状態非互換、UI / Provider / 承認の対象範囲結び付けを確認。
+- セキュリティ: 合格。プロファイル / アカウント / 許可結び付け、保存領域拒否、承認署名主体識別情報、Vault 秘密情報パス、誤ったチェーン / ネットワーク失敗パスを確認。秘密情報のログ・例外漏えいは確認されなかった。wallet-core の内部鍵処理とバインディングは対象外。
+- 相互運用性: 合格。`deriveSharedAccount` の固定ベクターを変更せず、選択済みの Profile.chain の識別情報のみをアカウント投影 / バックアップ検証に利用することを確認。Symbol / NEM、Mainnet / Testnet の境界を確認。
+- エラー / abnormal パス: 合格。旧スキーマ、混在したプロファイル / アカウント / 許可、誤ったチェーン対象範囲、バックアップ識別情報不一致、誤ったネットワーク、重複ニーモニックの関連パスを確認。
+- テスト品質: 合格。コア、profile-backup、拡張機能の targeted テストと全ワークスペーステスト / typecheck / ビルドが成功し、IR-001 の保存前拒否を独立テストした。
+- 型・依存・公開互換性: 合格。コアの PermissionService constructor 変更箇所をワークスペーステスト / typecheck で追跡し、無関係なパッケージの公開契約は変更していない。
 
-## Review Gates
+## 検証結果
 
-| Gate                     | 判定 | 根拠                                                                                              |
-| ------------------------ | ---- | ------------------------------------------------------------------------------------------------- |
-| 仕様適合性               | PASS | Profile / Account / permission の単一 Chain invariant と旧 mixed state 非互換を実装・テストで確認 |
-| Security                 | PASS | Core permission writer と Extension store reader が Profile Chain / Network を fail-closed に検証 |
-| 相互運用性               | PASS | chain adapter fixed vector、selected identity、Chain / Network の境界を維持                       |
-| 異常系                   | PASS | malformed store、mixed permission、wrong chain / network、backup mismatch、duplicate の拒否を確認 |
-| テスト十分性             | PASS | IR-001 の再発を含む targeted / workspace test、typecheck、build が成功                            |
-| 実装品質・runtime safety | PASS | strict TypeScript、workspace dependency、storage replacement、公開 projection の整合を確認        |
+- `pnpm lint`: 合格（最終変更前のルート run）。
+- `./node_modules/.bin/oxlint --deny-warnings`: 合格（最終変更後のリポジトリ内の直接の検証）。
+- `pnpm typecheck`: 合格（12 ワークスペース projects）。
+- `pnpm test`: 合格（12 ワークスペース projects。拡張機能 10 ファイル / 30 テスト、コア 5 テスト、profile-backup 3 テストを含む）。
+- `pnpm build`: 合格（拡張機能、test-dapp、SDK、Relay、全ワークスペースビルド）。Vite の chunk サイズ警告は表示されたがビルドは成功した。
+- `pnpm --filter @mosaiclynx/core typecheck && pnpm --filter @mosaiclynx/core test`: 合格。
+- `pnpm --filter @mosaiclynx/profile-backup typecheck && pnpm --filter @mosaiclynx/profile-backup test`: 合格。
+- `pnpm --filter @mosaiclynx/extension typecheck && pnpm --filter @mosaiclynx/extension test`: 合格。最終追加後は直接の `tsc` / `vitest` でも合格。
+- 対象変更ファイルの Prettier 確認: 合格。
+- `git diff --check`: 合格。
+- 未確認: ブラウザ実実行環境、サービスワーカー再起動 / 再読み込み E2E、外部ノード、ネイティブ / WASM バインディング実行環境、Relay Redis 統合。これらは今回の対象変更外または別工程で確認する。
 
-## Remaining Risks and Open Decisions
+## レビュー判定基準
 
-- Browser 実 runtime と lifecycle / E2E は未確認であり、公開前の release readiness で別途確認が必要。
-- Profile backup capability 自体は仕様上 future capability のため、現行 milestone の必須 release gate としては判定していない。
-- `deriveSharedAccount` の low-level shared material 契約は Chain Compatibility の既存 vector として残るが、Application の mixed Profile を許可するものではない。
+| 判定条件                 | 判定 | 根拠                                                                                                  |
+| ------------------------ | ---- | ----------------------------------------------------------------------------------------------------- |
+| 仕様適合性               | 合格 | プロファイル / アカウント / 許可の単一チェーン不変条件と旧混在した状態非互換を実装・テストで確認      |
+| セキュリティ             | 合格 | コア許可 writer と拡張機能ストア読み上げがプロファイルチェーン / ネットワークを安全側での終了に検証   |
+| 相互運用性               | 合格 | チェーンアダプター固定ベクター、選択済みの識別情報、チェーン / ネットワークの境界を維持               |
+| 異常系                   | 合格 | 不正な形式のストア、混在した許可、誤ったチェーン / ネットワーク、バックアップ不一致、重複の拒否を確認 |
+| テスト十分性             | 合格 | IR-001 の再発を含む targeted / ワークスペーステスト、typecheck、ビルドが成功                          |
+| 実装品質・実行環境安全性 | 合格 | strict TypeScript、ワークスペース依存関係、保存領域置き換え、公開投影の整合を確認                     |
 
-## Automatic Changes
+## 残存リスクと未決定事項
+
+- ブラウザ実実行環境とライフサイクル / E2E は未確認であり、公開前のリリース準備状態で別途確認が必要。
+- プロファイルバックアップ対応能力自体は仕様上将来対応能力のため、現行マイルストーンの必須リリース判定としては判定していない。
+- `deriveSharedAccount` の下位の共有の資料契約はチェーン互換性の既存ベクターとして残るが、アプリケーションの混在したプロファイルを許可するものではない。
+
+## 自動変更
 
 なし。再レビュー中はレビュー成果物以外を変更していない。
 
-## Final Decision
+## 最終判断
 
 `READY`

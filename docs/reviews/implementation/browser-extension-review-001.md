@@ -1,156 +1,156 @@
-# Browser Extension Implementation Review 001
+# ブラウザ拡張機能実装レビュー 001
 
-## 1. Review Target
+## 1. レビュー対象
 
-- 対象: 初回 Chrome Extension milestone の今回の実装差分
+- 対象: 初回 Chrome 拡張機能マイルストーンの今回の実装差分
 - 確認日: 2026-09-20
 - 成果物: `docs/reviews/implementation/browser-extension-review-001.md`
 - レビュー範囲:
-  - caller Origin の許可境界
-  - approval と tab / document lifecycle の binding
-  - permission / Profile 切替時の Provider event
-  - 最後の Account 削除防止
-  - Testnet-only backup import の network 境界
-  - 上記に対応するテスト、型、format、build evidence
+  - 呼び出し元オリジンの許可境界
+  - 承認とタブ / 文書ライフサイクルの結び付け
+  - 許可 / プロファイル切替時の Provider イベント
+  - 最後のアカウント削除防止
+  - Testnet 専用バックアップインポートのネットワーク境界
+  - 上記に対応するテスト、型、形式、ビルド根拠
 - 未確認範囲:
-  - 実 Chrome runtime 上の navigation、tab close、side panel、Provider event の E2E 動作
-  - Chrome Web Store 配布、release evidence の実運用
-  - 外部 wallet-core / Native / WASM Binding
-  - 今回変更していない既存の SDK、Relay、chain parser の全体適合性
+  - 実 Chrome 実行環境上のページ遷移、タブ終了、側パネル、Provider イベントの E2E 動作
+  - Chrome Web ストア配布、リリース証跡の実運用
+  - 外部 wallet-core / ネイティブ / WASM バインディング
+  - 今回変更していない既存の SDK、Relay、チェーンパーサーの全体適合性
 
-## 2. Execution Audit
+## 2. 実行記録
 
-サブエージェントは使用せず、Review Board Chair が次の4パスを独立に実施した。
+サブエージェントは使用せず、レビュー Board レビュー統括が次の4パスを独立に実施した。
 
-| Pass                                 | 確認結果                                                                                                                                                                                                                     |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Reviewer A: 仕様適合性               | Browser Extension の Origin、lifecycle、permission event、Account 最低数、Testnet backup 制約を仕様・設計と照合し、今回の変更は既存契約に沿っている。                                                                        |
-| Reviewer B: Security                 | Web caller、trusted approval UI、Profile / Permission revision、tab generation、Vault revision および Account 削除経路を追跡した。今回の差分に private key の新しい外部露出、署名対象の緩和、cross-network fallback はない。 |
-| Reviewer C: 相互運用性               | HTTPS / loopback HTTP の Origin canonicalization、Profile Network と Permission Scope、Testnet backup、Core Account model の境界を確認した。Symbol / NEM の byte 列や署名計算は今回の差分対象外である。                      |
-| Reviewer D: ソフトウェア品質・テスト | 追加テスト、型検査、format、diff whitespace を確認した。Chrome event listener の実 runtime 確認は未実行として残した。                                                                                                        |
+| 合格                                   | 確認結果                                                                                                                                                                                                             |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| レビュアー A: 仕様適合性               | ブラウザ拡張機能のオリジン、ライフサイクル、許可イベント、アカウント最低数、Testnet バックアップ制約を仕様・設計と照合し、今回の変更は既存契約に沿っている。                                                         |
+| レビュアー B: セキュリティ             | Web 呼び出し元、信頼された承認 UI、プロファイル / 許可リビジョン、タブ世代、Vault リビジョンおよびアカウント削除経路を追跡した。今回の差分に秘密鍵の新しい外部露出、署名対象の緩和、ネットワーク間の代替経路はない。 |
+| レビュアー C: 相互運用性               | HTTPS / ループバック HTTP のオリジン正規化、プロファイルネットワークと許可対象範囲、Testnet バックアップ、コアアカウントモデルの境界を確認した。Symbol / NEM のバイト列や署名計算は今回の差分対象外である。          |
+| レビュアー D: ソフトウェア品質・テスト | 追加テスト、型検査、形式、差分空白文字を確認した。Chrome イベントリスナーの実実行環境確認は未実行として残した。                                                                                                      |
 
-## 3. Evidence Used
+## 3. 参照した根拠
 
-| 資料 / 実装                                                                                                                     | 確認目的                                                                                                |
-| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `docs/specifications/browser-extension.md` §7.2、§8.3、§9.2、§18、§20                                                           | HTTPS / loopback Origin、navigation / document lifecycle、permission revoke / event、fail-closed の根拠 |
-| `docs/specifications/product-spec.md` §10、§11、§12、§17、§18                                                                   | Account 最低数、Profile / Network 分離、approval、Origin 制約、MVP 受け入れ条件                         |
-| `docs/design/browser-extension.md` §7、§8、§9、§17、§18、§20                                                                    | browser-observed caller、approval binding、permission event、lifecycle invalidation、security invariant |
-| `apps/extension/src/background/index.ts`                                                                                        | privileged host の Origin、approval、tab generation、permission event、Account projection               |
-| `apps/extension/src/background/page-origin.ts`                                                                                  | HTTPS / loopback HTTP の canonical Origin 判定                                                          |
-| `apps/extension/src/background/profile-eligibility.ts`、`apps/extension/src/popup/main.tsx`                                     | active Account と削除可能性の判定                                                                       |
-| `apps/extension/src/vault.ts`                                                                                                   | Testnet-only backup import 境界                                                                         |
-| `packages/core/src/use-cases.ts`                                                                                                | Core AccountService の最後の Account 削除防止                                                           |
-| `apps/extension/test/page-origin.test.ts`、`apps/extension/test/profile-eligibility.test.ts`、`packages/core/test/core.test.ts` | 追加した Origin、Account 最低数、imported Account の異常系検証                                          |
+| 資料 / 実装                                                                                                                     | 確認目的                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `docs/specifications/browser-extension.md` §7.2、§8.3、§9.2、§18、§20                                                           | HTTPS / ループバックオリジン、ページ遷移 / 文書ライフサイクル、許可失効 / イベント、安全側での終了の根拠     |
+| `docs/specifications/product-spec.md` §10、§11、§12、§17、§18                                                                   | アカウント最低数、プロファイル / ネットワーク分離、承認、オリジン制約、MVP 受け入れ条件                      |
+| `docs/design/browser-extension.md` §7、§8、§9、§17、§18、§20                                                                    | ブラウザで観測した呼び出し元、承認との結び付け、許可イベント、ライフサイクル無効化、セキュリティ上の不変条件 |
+| `apps/extension/src/background/index.ts`                                                                                        | 特権を持つホストのオリジン、承認、タブ世代、許可イベント、アカウント投影                                     |
+| `apps/extension/src/background/page-origin.ts`                                                                                  | HTTPS / ループバック HTTP の正規オリジン判定                                                                 |
+| `apps/extension/src/background/profile-eligibility.ts`、`apps/extension/src/popup/main.tsx`                                     | 有効なアカウントと削除可能性の判定                                                                           |
+| `apps/extension/src/vault.ts`                                                                                                   | Testnet 専用バックアップインポート境界                                                                       |
+| `packages/core/src/use-cases.ts`                                                                                                | コア AccountService の最後のアカウント削除防止                                                               |
+| `apps/extension/test/page-origin.test.ts`、`apps/extension/test/profile-eligibility.test.ts`、`packages/core/test/core.test.ts` | 追加したオリジン、アカウント最低数、インポート済みのアカウントの異常系検証                                   |
 
-## 4. Review Result
+## 4. レビュー結果
 
 `READY`
 
-## 5. Summary
+## 5. 要約
 
-今回の実装は、初回 Chrome milestone の明確な実装差分を解消している。任意の HTTP Origin を許可せず、HTTPS と loopback の HTTP だけを受け付ける。approval は tab generation と現在の tab Origin に binding され、navigation / reload / tab close 後に古い approval を継続しない。permission または active Profile の変更時には、現在の公開状態に応じて `accountsChanged` または `disconnect` を通知する。
+今回の実装は、初回 Chrome マイルストーンの明確な実装差分を解消している。任意の HTTP オリジンを許可せず、HTTPS とループバックの HTTP だけを受け付ける。承認はタブ世代と現在のタブオリジンに結び付けされ、ページ遷移 / 再読み込み / タブ終了後に古い承認を継続しない。許可または有効なプロファイルの変更時には、現在の公開状態に応じて `accountsChanged` または `disconnect` を通知する。
 
-Account 削除では imported Account だけが残る Profile でも最後の Account を削除できず、Core と Extension UI の判定が一致する。backup import では current build の Testnet-only 境界を再確認し、Mainnet / Testnet の混在を通さない。今回の差分に CRITICAL / HIGH の未解決 finding は確認しなかった。
+アカウント削除ではインポート済みのアカウントだけが残るプロファイルでも最後のアカウントを削除できず、コアと拡張機能 UI の判定が一致する。バックアップインポートでは現在のビルドの Testnet 専用境界を再確認し、Mainnet / Testnet の混在を通さない。今回の差分に重大 / HIGH の未解決指摘は確認しなかった。
 
-## 6. Finding Status
+## 6. 指摘の状態
 
-| ID   | Severity | Status | 初出レビュー / 今回の状態根拠                               |
-| ---- | -------- | ------ | ----------------------------------------------------------- |
-| なし | —        | —      | 今回のレビュー対象に New / Open / Reopened finding はない。 |
+| ID   | 重要度 | 状態 | 初出レビュー / 今回の状態根拠                      |
+| ---- | ------ | ---- | -------------------------------------------------- |
+| なし | —      | —    | 今回のレビュー対象に新規 / 未決 / 再発指摘はない。 |
 
-## 7. Required Changes
+## 7. 必須の修正
 
-なし。CRITICAL / HIGH の New / Open / Reopened finding は確認されなかった。
+なし。重大 / HIGH の新規 / 未決 / 再発指摘は確認されなかった。
 
-## 8. Optional Improvements
+## 8. 任意の改善
 
-なし。今回の対象範囲で MEDIUM / LOW の formal finding も作成していない。
+なし。今回の対象範囲で MEDIUM / LOW の正式な指摘も作成していない。
 
-## 9. Resolved Findings
+## 9. 解消済みの指摘
 
-今回の実装レビューで追跡する過去の Implementation finding はない。今回の変更は、既存仕様・設計レビューで確定済みの caller、lifecycle、permission、Account 境界を実装へ反映したものである。
+今回の実装レビューで追跡する過去の実装指摘はない。今回の変更は、既存仕様・設計レビューで確定済みの呼び出し元、ライフサイクル、許可、アカウント境界を実装へ反映したものである。
 
-## 10. Upstream Feedback
+## 10. 上流工程へのフィードバック
 
-なし。今回の対象を安全に評価するための Specification、Design、Requirements に不足・矛盾は確認されなかった。
+なし。今回の対象を安全に評価するための仕様、設計、要件に不足・矛盾は確認されなかった。
 
-## 11. Deferred Findings
+## 11. 後続工程へ委譲する指摘
 
-- 実 Chrome runtime での navigation、reload、tab close、side panel close および Provider event delivery は、ブラウザ E2E harness または手動 runtime 検証で再確認する。
-- Extension build は、現在のローカル依存環境で `@crxjs/vite-plugin` が `src/content/index.ts` の `fileName` を解決できず失敗した。実装の型検査・単体テストとは独立した既存の bundler / installed dependency compatibility の確認事項として残す。
-- Mainnet capability は release evidence gate の対象であり、今回の Testnet 実装変更から有効化しない。
+- 実 Chrome 実行環境でのページ遷移、再読み込み、タブ終了、側パネル終了および Provider イベント配送は、ブラウザ E2E harness または手動実行環境検証で再確認する。
+- 拡張機能ビルドは、現在のローカル依存環境で `@crxjs/vite-plugin` が `src/content/index.ts` の `fileName` を解決できず失敗した。実装の型検査・単体テストとは独立した既存のバンドラー / インストール済みの依存関係互換性の確認事項として残す。
+- Mainnet 対応能力はリリース証跡判定条件の対象であり、今回の Testnet 実装変更から有効化しない。
 
-## 12. Scope and Traceability
+## 12. 対象範囲と追跡可能性
 
-今回の差分は `apps/extension` と `packages/core` の内部実装・テストに限定され、Provider API の公開型、Relay wire format、chain-specific serialization、wallet-core contract は変更していない。
+今回の差分は `apps/extension` と `packages/core` の内部実装・テストに限定され、Provider API の公開型、Relay 通信上の形式、チェーン固有のシリアライズ、wallet-core 契約は変更していない。
 
-| 実装                                                   | 上流根拠                                                                    | 確認内容                                                                          |
-| ------------------------------------------------------ | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `pageOrigin` と `requirePageOrigin`                    | Browser Extension Specification §7.2、Product Specification §17.1           | browser-observed sender の scheme / host 境界を最終検証し、通常 HTTP を拒否する。 |
-| `tabGenerations`、tab event、approval context 再検証   | Browser Extension Specification §7.2、§8.3、§18、§20                        | navigation、reload、tab close 後の stale approval を fail-closed にする。         |
-| permission storage change と event projection          | Browser Extension Specification §8.3、§9.2                                  | permission / active Profile の変更を現在の public Account projection に反映する。 |
-| `hasRemainingActiveAccount` と `AccountService.remove` | Product Specification §10.1                                                 | source kind に依存せず Profile の最後の active Account を保護する。               |
-| Testnet backup import guard                            | Profile backup package の Testnet-only contract、Product Specification §9.1 | 現行 build が Mainnet backup を処理するように見えないよう再検証する。             |
+| 実装                                                   | 上流根拠                                                                   | 確認内容                                                                        |
+| ------------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `pageOrigin` と `requirePageOrigin`                    | ブラウザ拡張機能仕様 §7.2、プロダクト仕様 §17.1                            | ブラウザで観測した送信者の方式 / ホスト境界を最終検証し、通常 HTTP を拒否する。 |
+| `tabGenerations`、タブイベント、承認文脈再検証         | ブラウザ拡張機能仕様 §7.2、§8.3、§18、§20                                  | ページ遷移、再読み込み、タブ終了後の古くなった承認を安全側に終了する。          |
+| 許可保存領域変更とイベント投影                         | ブラウザ拡張機能仕様 §8.3、§9.2                                            | 許可 / 有効なプロファイルの変更を現在の公開アカウント投影に反映する。           |
+| `hasRemainingActiveAccount` と `AccountService.remove` | プロダクト仕様 §10.1                                                       | 送信元種別に依存せずプロファイルの最後の有効なアカウントを保護する。            |
+| Testnet バックアップインポート guard                   | プロファイルバックアップパッケージの Testnet 専用契約、プロダクト仕様 §9.1 | 現行ビルドが Mainnet バックアップを処理するように見えないよう再検証する。       |
 
-## 13. Domain Checks
+## 13. ドメイン別の確認
 
-### Specification Conformance
+### 仕様適合性
 
-Pass。任意 HTTP の拒否、top-level caller の current Origin binding、lifecycle invalidation、permission event、最後の Account 保護および Testnet-only backup 境界が、確認した仕様・設計と整合する。
+合格。任意 HTTP の拒否、最上位の呼び出し元の現在のオリジンとの結び付け、ライフサイクル無効化、許可イベント、最後のアカウント保護および Testnet 専用バックアップ境界が、確認した仕様・設計と整合する。
 
-### Security
+### セキュリティ
 
-Pass。適用した観点は browser privileged boundary、caller / Origin binding、approval lifecycle、permission revision、Profile / Account authorization、network separation、failure fail-closed である。今回の差分は暗号 primitive、KDF、AEAD、private key derivation、raw signing を変更していないため、custom cryptographic arithmetic、Native / WASM ownership、nonce / tag 計算は適用外である。秘密情報をログ、error、Provider event に追加していない。
+合格。適用した観点はブラウザ特権を持つ境界、呼び出し元 / オリジンとの結び付け、承認ライフサイクル、許可リビジョン、プロファイル / アカウントの利用認可、ネットワーク分離、失敗安全側に終了してある。今回の差分は暗号基本機構、KDF、AEAD、秘密鍵導出、生の署名を変更していないため、独自の暗号学的な arithmetic、ネイティブ / WASM 所有責任、ノンス / タグ計算は適用外である。秘密情報をログ、エラー、Provider イベントに追加していない。
 
 ### 相互運用性
 
-Pass。Origin の canonical output、Permission の Profile Network、backup の Testnet 制約を混同していない。Symbol / NEM transaction byte 列および署名計算は変更していない。
+合格。オリジンの正規出力、許可のプロファイルネットワーク、バックアップの Testnet 制約を混同していない。Symbol / NEM トランザクションバイト列および署名計算は変更していない。
 
 ### 異常系
 
-Pass。非 loopback HTTP、`file:`、`data:`、不正 URL、最後の imported Account の削除を追加テストで拒否する。tab が消失または current Origin が不一致になった場合は approval を継続しない。
+合格。非ループバック HTTP、`file:`、`data:`、不正 URL、最後のインポート済みのアカウントの削除を追加テストで拒否する。タブが消失または現在のオリジンが不一致になった場合は承認を継続しない。
 
 ### テスト評価
 
-Pass。Extension の 11 test files / 31 tests、Core の 1 test file / 5 tests、対象型検査、対象 format check、`git diff --check` が成功した。Browser API event の実 runtime 検証は Deferred として明示した。
+合格。拡張機能の 11 テストファイル / 31 テスト、コアの 1 テストファイル / 5 テスト、対象型検査、対象形式確認、`git diff --check` が成功した。ブラウザ API イベントの実実行環境検証は後続工程へ委譲として明示した。
 
 ### 型・依存・公開互換性
 
-Pass。変更は internal Extension helper と Core use-case の範囲に留まり、Provider API の型、SDK の公開契約、workspace dependency は変更していない。
+合格。変更は内部拡張機能補助処理とコア use-case の範囲に留まり、Provider API の型、SDK の公開契約、ワークスペース依存関係は変更していない。
 
-## 14. Validation Results
+## 14. 検証結果
 
-| 検証                                              | 結果                                                                                                                                                                                                                                                                 |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm --filter @mosaiclynx/extension test`        | PASS: 11 files / 31 tests                                                                                                                                                                                                                                            |
-| `pnpm --filter @mosaiclynx/extension typecheck`   | PASS                                                                                                                                                                                                                                                                 |
-| `pnpm --filter @mosaiclynx/core test`             | PASS: 1 file / 5 tests                                                                                                                                                                                                                                               |
-| `pnpm --filter @mosaiclynx/core typecheck`        | PASS                                                                                                                                                                                                                                                                 |
-| `./node_modules/.bin/prettier --check <変更対象>` | PASS                                                                                                                                                                                                                                                                 |
-| `git diff --check`                                | PASS                                                                                                                                                                                                                                                                 |
-| `pnpm lint`                                       | Not validated: installed `typescript@7.0.2` を `typescript-eslint@8.68.0` が未対応として終了した。                                                                                                                                                                   |
-| `pnpm build:extension`                            | Not validated: pnpm 経由では無出力のまま停止したため中断。依存 build を分解して `release-evidence` の `tsc` と `embed.mjs` は実行できたが、local `vite build` は `@crxjs/vite-plugin` の `Content script fileName is undefined: "src/content/index.ts"` で失敗した。 |
+| 検証                                              | 結果                                                                                                                                                                                                                                                            |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter @mosaiclynx/extension test`        | 合格: 11 ファイル / 31 テスト                                                                                                                                                                                                                                   |
+| `pnpm --filter @mosaiclynx/extension typecheck`   | 合格                                                                                                                                                                                                                                                            |
+| `pnpm --filter @mosaiclynx/core test`             | 合格: 1 ファイル / 5 テスト                                                                                                                                                                                                                                     |
+| `pnpm --filter @mosaiclynx/core typecheck`        | 合格                                                                                                                                                                                                                                                            |
+| `./node_modules/.bin/prettier --check <変更対象>` | 合格                                                                                                                                                                                                                                                            |
+| `git diff --check`                                | 合格                                                                                                                                                                                                                                                            |
+| `pnpm lint`                                       | 未検証: インストール済みの `typescript@7.0.2` を `typescript-eslint@8.68.0` が未対応として終了した。                                                                                                                                                            |
+| `pnpm build:extension`                            | 未検証: pnpm 経由では無出力のまま停止したため中断。依存ビルドを分解して `release-evidence` の `tsc` と `embed.mjs` は実行できたが、ローカル `vite build` は `@crxjs/vite-plugin` の `Content script fileName is undefined: "src/content/index.ts"` で失敗した。 |
 
-## 15. Review Gates
+## 15. レビュー判定基準
 
-| Gate                        | 判定 | 根拠                                                                                                                                             |
-| --------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1. 仕様適合性               | Pass | Origin、lifecycle、permission event、Account 最低数、Testnet backup の既存契約に追跡できる。                                                     |
-| 2. セキュリティ             | Pass | stale approval、wrong current Origin、wrong network、最後の Account 削除を fail-closed にした。秘密情報・署名 primitive の境界を拡張していない。 |
-| 3. 相互運用性               | Pass | Chain / Network と Origin の境界を保持し、chain-specific bytes を変更していない。                                                                |
-| 4. 異常系                   | Pass | malformed / unsupported Origin、tab lifecycle loss、最後の Account、Testnet-only 境界を処理する。                                                |
-| 5. テスト十分性             | Pass | 追加した境界テストと対象 package の既存テスト・typecheck が成功した。Browser runtime は未確認として切り分けた。                                  |
-| 6. 実装品質・runtime safety | Pass | tab generation、current tab 再確認、型付き internal helper、Core と UI の削除判定一致を確認した。                                                |
+| 判定条件                    | 判定 | 根拠                                                                                                                                                 |
+| --------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. 仕様適合性               | 合格 | オリジン、ライフサイクル、許可イベント、アカウント最低数、Testnet バックアップの既存契約に追跡できる。                                               |
+| 2. セキュリティ             | 合格 | 古くなった承認、誤った現在のオリジン、誤ったネットワーク、最後のアカウント削除を安全側での終了にした。秘密情報・署名基本機構の境界を拡張していない。 |
+| 3. 相互運用性               | 合格 | チェーン / ネットワークとオリジンの境界を保持し、チェーン固有のバイト列を変更していない。                                                            |
+| 4. 異常系                   | 合格 | 不正な形式の / 未対応のオリジン、タブライフサイクル消失、最後のアカウント、Testnet 専用境界を処理する。                                              |
+| 5. テスト十分性             | 合格 | 追加した境界テストと対象パッケージの既存テスト・typecheck が成功した。ブラウザ実行環境は未確認として切り分けた。                                     |
+| 6. 実装品質・実行環境安全性 | 合格 | タブ世代、現在のタブ再確認、型付き内部補助処理、コアと UI の削除判定一致を確認した。                                                                 |
 
-## 16. Remaining Risks and Open Decisions
+## 16. 残存リスクと未決定事項
 
-実 Chrome runtime の event delivery と CRX build toolchain の互換性は残存確認事項である。Mainnet release evidence、Mobile、Relay、wallet-core Binding および今回変更していない chain parser の全体検証は本レビューの対象外である。
+実 Chrome 実行環境のイベント配送と CRX ビルドツールチェーンの互換性は残存確認事項である。Mainnet リリース証跡、モバイル、Relay、wallet-core バインディングおよび今回変更していないチェーンパーサーの全体検証は本レビューの対象外である。
 
-## 17. Automatic Changes
+## 17. 自動変更
 
 実装レビュー中に変更したのは、この新規レビュー成果物のみである。レビュー対象の実装、仕様、要件、設計、既存テストはレビュー判定のために変更していない。
 
-## 18. Final Decision
+## 18. 最終判断
 
 **`READY` — `BROWSER EXTENSION IMPLEMENTATION READY`**

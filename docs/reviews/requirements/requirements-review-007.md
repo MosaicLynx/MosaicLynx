@@ -1,157 +1,157 @@
-# MosaicLynx 共通 Requirements Profile / Chain 境界変更レビュー
+# MosaicLynx 共通要件プロファイル / チェーン境界変更レビュー
 
-## 1. Review Target
+## 1. レビュー対象
 
 - 対象: [MosaicLynx 共通要件定義書](../../requirements/requirements.md)
 - 確認日: 2026-09-20
 - 対象時点: `a822596` (`docs(requirements): Profile の Chain 境界を単一化`)
 - 前回レビュー: [requirements-review-006](./requirements-review-006.md)
-- 上位 Concept: [MosaicLynx Concept Sheet](../../concept/concept-sheet.md)
-- 最新 Concept review: [concept-sheet-review-003](../concept/concept-sheet-review-003.md)
-- 使用 Skill: [requirements-review Skill](../../../.agents/skills/requirements-review/SKILL.md)、[review-common playbook](../../../.agents/skills/review-common/review-playbook.md)、reviewers、security-checklist、review-gates、output-format
-- 今回の位置付け: ユーザー決定に基づく `CR-017` と `CR-AC-020` の追加後レビュー。既存 Requirements の品質を独立に再確認し、単一 Chain Profile の要件が仕様設計へ引き渡せる状態かを判定した。
-- レビュー範囲: 目的、利用者、責任境界、Symbol / NEM と Mainnet / Testnet の分離、`CR-017`、`CR-AC-020`、下流引継ぎ、既存要求との内部整合性および Security 要件。
-- 未確認範囲: Profile / Account の具体 schema、API、保存形式、状態遷移、エラー、UI、backup format、実装・テストの適合性。既存の下流仕様は矛盾と引継ぎ先の確認に限って補助的に参照し、下流詳細の不足を Requirements の欠陥とは判定していない。
+- 上位コンセプト: [MosaicLynx コンセプトシート](../../concept/concept-sheet.md)
+- 最新コンセプトレビュー: [concept-sheet-review-003](../concept/concept-sheet-review-003.md)
+- 使用スキル: [requirements-review スキル](../../../.agents/skills/requirements-review/SKILL.md)、[review-common 作業手順](../../../.agents/skills/review-common/review-playbook.md)、レビュアー、security-checklist、review-gates、output-format
+- 今回の位置付け: ユーザー決定に基づく `CR-017` と `CR-AC-020` の追加後レビュー。既存要件の品質を独立に再確認し、単一チェーンプロファイルの要件が仕様設計へ引き渡せる状態かを判定した。
+- レビュー範囲: 目的、利用者、責任境界、Symbol / NEM と Mainnet / Testnet の分離、`CR-017`、`CR-AC-020`、下流引継ぎ、既存要求との内部整合性およびセキュリティ要件。
+- 未確認範囲: プロファイル / アカウントの具体スキーマ、API、保存形式、状態遷移、エラー、UI、バックアップ形式、実装・テストの適合性。既存の下流仕様は矛盾と引継ぎ先の確認に限って補助的に参照し、下流詳細の不足を要件の欠陥とは判定していない。
 
-## 2. Execution Audit
+## 2. 実行記録
 
-- Phase 0: 対象 `docs/requirements/requirements.md`、対象コミット、前回レビュー、Concept、Concept review、既存レビュー成果物の最大番号を確認した。既存最大番号は 006 であり、007 を新規成果物とした。
-- Phase 1 Reviewer A 相当（明確性・完全性）: `CR-017`、`CR-AC-020`、Profile / Account / Chain / Network 用語、MUST、拒否条件、受入条件、要求 ID と下流引継ぎを確認した。
-- Phase 1 Reviewer B 相当（利用価値・スコープ）: 一般ユーザーの安全な署名判断、Symbol / NEM の対応範囲、Chain ごとの別 Profile、v1 / milestone、既存 backup / migration 非対象および Concept との整合を確認した。
-- Phase 1 Reviewer C 相当（Security Reviewer）: protected asset、秘密情報分離、Account / signing authority、Profile / Chain 境界、権限・承認の分離、wrong Chain の fail-closed、wallet-core / Application / Signer の責任境界を確認した。
-- Phase 2: ユーザー決定を Requirements の根拠として確認し、既存要求との重複・矛盾、下流資料に残る旧契約を分離した。下流資料の旧契約は Requirements の formal finding ではなく、次工程への Deferred Finding とした。
-- Phase 3: Requirements Review の8つの Review Gate を適用した。サブエージェントは使用していない。レビュー対象以外の要件、仕様、設計、実装コードは変更していない。
+- 工程 0: 対象 `docs/requirements/requirements.md`、対象コミット、前回レビュー、コンセプト、コンセプトレビュー、既存レビュー成果物の最大番号を確認した。既存最大番号は 006 であり、007 を新規成果物とした。
+- 工程 1 レビュアー A 相当（明確性・完全性）: `CR-017`、`CR-AC-020`、プロファイル / アカウント / チェーン / ネットワーク用語、MUST、拒否条件、受入条件、要求 ID と下流引継ぎを確認した。
+- 工程 1 レビュアー B 相当（利用価値・スコープ）: 一般ユーザーの安全な署名判断、Symbol / NEM の対応範囲、チェーンごとの別プロファイル、v1 / マイルストーン、既存バックアップ / 移行非対象およびコンセプトとの整合を確認した。
+- 工程 1 レビュアー C 相当（セキュリティレビュアー）: 保護された資産、秘密情報分離、アカウント / 署名判断権限、プロファイル / チェーン境界、権限・承認の分離、誤ったチェーンの安全側での終了、wallet-core / アプリケーション / 署名主体の責任境界を確認した。
+- 工程 2: ユーザー決定を要件の根拠として確認し、既存要求との重複・矛盾、下流資料に残る旧契約を分離した。下流資料の旧契約は要件の正式な指摘ではなく、次工程への後続工程へ委譲指摘とした。
+- 工程 3: 要件レビューの8つのレビュー判定条件を適用した。サブエージェントは使用していない。レビュー対象以外の要件、仕様、設計、実装コードは変更していない。
 
-## 3. Evidence Used
+## 3. 参照した根拠
 
-- [共通 Requirements](../../requirements/requirements.md): 現行の Scope、Profile / Account 共通要求、`CR-005`、`CR-NFR-005`、`CR-017`、`CR-AC-003`、`CR-AC-020`、未決事項および下流引継ぎの確認。
+- [共通要件](../../requirements/requirements.md): 現行の対象範囲、プロファイル / アカウント共通要求、`CR-005`、`CR-NFR-005`、`CR-017`、`CR-AC-003`、`CR-AC-020`、未決事項および下流引継ぎの確認。
 - 対象コミット `a822596`: `CR-017`、`CR-AC-020`、下流引継ぎおよび `MEMORY.md` の変更範囲の確認。
-- [前回 Requirements review](./requirements-review-006.md): `RR-001`〜`RR-004` の状態、既存の Deferred Findings、前回の Gate 判定の追跡。
-- [Concept Sheet](../../concept/concept-sheet.md): 一般ユーザー中心の価値、Symbol / NEM の区別、認証・Account 認可、秘密情報、Signer / SDK / Relay の責任境界。
-- [Concept review-003](../concept/concept-sheet-review-003.md): Concept が `READY` であり、未解決 Critical がないことの確認。単一 Chain Profile の具体的な根拠を Concept から逆生成していない。
-- [Browser Extension 要件](../../requirements/browser-extension.md)、[Mobile App 要件](../../requirements/mobile-app.md)、[SDK 要件](../../requirements/sdk.md): 共通要求を下流へ渡す責任境界と Profile / Account / Chain / Network の利用文脈を確認。
-- [Profile / Account Specification](../../specifications/profile-account-spec.md)、[Product Specification](../../specifications/product-spec.md)、[Architecture](../../design/architecture.md): 既存の下流契約と今回の単一 Chain 方針の整合・差分を確認する補助資料。これらを新しい Requirements の根拠にはしていない。
-- Requirements Review Skill、review-common playbook、reviewers、security-checklist、review-gates、output-format: レビュー手順、重大度、Gate、成果物形式および Security 観点の確認。
+- [前回要件レビュー](./requirements-review-006.md): `RR-001`〜`RR-004` の状態、既存の後続工程へ委譲する指摘、前回の判定条件判定の追跡。
+- [コンセプトシート](../../concept/concept-sheet.md): 一般ユーザー中心の価値、Symbol / NEM の区別、認証・アカウント認可、秘密情報、署名主体 / SDK / Relay の責任境界。
+- [コンセプト review-003](../concept/concept-sheet-review-003.md): コンセプトが `READY` であり、未解決重大がないことの確認。単一チェーンプロファイルの具体的な根拠をコンセプトから逆生成していない。
+- [ブラウザ拡張機能要件](../../requirements/browser-extension.md)、[モバイルアプリ要件](../../requirements/mobile-app.md)、[SDK 要件](../../requirements/sdk.md): 共通要求を下流へ渡す責任境界とプロファイル / アカウント / チェーン / ネットワークの利用文脈を確認。
+- [プロファイル / アカウント仕様](../../specifications/profile-account-spec.md)、[プロダクト仕様](../../specifications/product-spec.md)、[アーキテクチャ](../../design/architecture.md): 既存の下流契約と今回の単一チェーン方針の整合・差分を確認する補助資料。これらを新しい要件の根拠にはしていない。
+- 要件レビュースキル、review-common 作業手順、レビュアー、security-checklist、review-gates、output-format: レビュー手順、重大度、判定条件、成果物形式およびセキュリティ観点の確認。
 
-## 4. Review Result
+## 4. レビュー結果
 
 **READY**
 
-## 5. Summary
+## 5. 要約
 
-`CR-017` と `CR-AC-020` は、ユーザー決定「Symbol と NEM の両方を利用できる Profile 構成の廃止」を、Requirements フェーズで必要な外部要求・責任境界・受入条件へ整理できている。
+`CR-017` と `CR-AC-020` は、ユーザー決定「Symbol と NEM の両方を利用できるプロファイル構成の廃止」を、要件フェーズで必要な外部要求・責任境界・受入条件へ整理できている。
 
-- 一つの Profile が属する Chain を一つに限定している。
-- Symbol と NEM の両方を利用する場合は Chain ごとに別 Profile として扱うことを定めている。
-- Account / Key Identity、接続許可、署名権限、署名要求、承認および署名結果の Chain 境界を分離している。
-- 別 Chain への暗黙の切り替え、共有、fallback、移送を禁止し、受入条件で no-sign / no-success を確認できる。
-- 開発中のため、既存の複数 Chain Profile / backup との互換性・移行・既存状態の引継ぎを要件に含めないことを明記している。
+- 一つのプロファイルが属するチェーンを一つに限定している。
+- Symbol と NEM の両方を利用する場合はチェーンごとに別プロファイルとして扱うことを定めている。
+- アカウント / 鍵識別情報、接続許可、署名権限、署名要求、承認および署名結果のチェーン境界を分離している。
+- 別チェーンへの暗黙の切り替え、共有、代替経路、移送を禁止し、受入条件で署名しない / 成功を確定しないを確認できる。
+- 開発中のため、既存の複数チェーンプロファイル / バックアップとの互換性・移行・既存状態の引継ぎを要件に含めないことを明記している。
 
-Requirements 本文に Critical / Major / Minor の新規指摘はない。前回の `RR-001`〜`RR-004` は今回の変更による回帰を確認しなかったため、Resolved の状態を維持する。
+要件本文に重大 / 主要 / 軽微の新規指摘はない。前回の `RR-001`〜`RR-004` は今回の変更による回帰を確認しなかったため、解消済みの状態を維持する。
 
-既存の Profile / Account Specification と Product Specification には、なお `enabledChains` および同一 Profile で Symbol / NEM を扱う旧契約が残っている。この差分は今回の Requirements の品質を不成立にするものではなく、`REQ7-001` として次の Specification 整合化へ引き継ぐ。
+既存のプロファイル / アカウント仕様とプロダクト仕様には、なお `enabledChains` および同一プロファイルで Symbol / NEM を扱う旧契約が残っている。この差分は今回の要件の品質を不成立にするものではなく、`REQ7-001` として次の仕様整合化へ引き継ぐ。
 
-## 6. Finding Status
+## 6. 指摘の状態
 
-| ID       | Severity | Status   | 初出レビュー              | 今回の状態根拠                                                                                           |
-| -------- | -------- | -------- | ------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `RR-001` | Critical | Resolved | `requirements-review-005` | SDK の責任境界、Trust Boundary、秘密情報・署名・最終承認の非担当が現行本文に維持されている。             |
-| `RR-002` | Critical | Resolved | `requirements-review-005` | 認証、unlock、Account authorization、Explicit approval の4条件と no-sign / no-success が維持されている。 |
-| `RR-003` | Critical | Resolved | `requirements-review-005` | Security guarantee boundary と管理境界外の完全 compromise の非保証が維持されている。                     |
-| `RR-004` | Minor    | Resolved | `requirements-review-005` | `OPEN-004` は履歴上の欠番として扱われ、現在の未決事項へ戻っていない。                                    |
-| —        | —        | —        | —                         | 今回の New / Open / Reopened formal finding はない。                                                     |
+| ID       | 重要度 | 状態     | 初出レビュー              | 今回の状態根拠                                                                                               |
+| -------- | ------ | -------- | ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `RR-001` | 重大   | 解消済み | `requirements-review-005` | SDK の責任境界、信頼境界、秘密情報・署名・最終承認の非担当が現行本文に維持されている。                       |
+| `RR-002` | 重大   | 解消済み | `requirements-review-005` | 認証、ロック解除、アカウントの利用認可、明示的な承認の4条件と署名しない / 成功を確定しないが維持されている。 |
+| `RR-003` | 重大   | 解消済み | `requirements-review-005` | セキュリティ保証境界と管理境界外の完全侵害の非保証が維持されている。                                         |
+| `RR-004` | 軽微   | 解消済み | `requirements-review-005` | `OPEN-004` は履歴上の欠番として扱われ、現在の未決事項へ戻っていない。                                        |
+| —        | —      | —        | —                         | 今回の新規 / 未決 / 再発正式な指摘はない。                                                                   |
 
-## 7. Required Changes
+## 7. 必須の修正
 
-なし。Critical / Major の New、Open、Reopened はない。
+なし。重大 / 主要の新規、未決、再発はない。
 
-## 8. Optional Improvements
+## 8. 任意の改善
 
-なし。Minor の New、Open、Reopened はない。
+なし。軽微の新規、未決、再発はない。
 
-## 9. Resolved Findings
+## 9. 解消済みの指摘
 
 今回、前回レビュー指摘に対する追加の修正確認は対象変更の回帰確認に限定した。`RR-001`〜`RR-004` は現行本文で解消状態を維持しており、再オープン条件は確認されなかった。
 
-## 10. Upstream Feedback
+## 10. 上流工程へのフィードバック
 
-なし。Concept は Symbol / NEM の対応、Chain / Network の分離、Signer の責任境界および Security 原則を定めており、今回のユーザー決定と矛盾する明示的な Profile 構成を定めていない。単一 Chain Profile の決定はユーザーから直接与えられた Requirements の変更根拠として扱った。
+なし。コンセプトは Symbol / NEM の対応、チェーン / ネットワークの分離、署名主体の責任境界およびセキュリティ原則を定めており、今回のユーザー決定と矛盾する明示的なプロファイル構成を定めていない。単一チェーンプロファイルの決定はユーザーから直接与えられた要件の変更根拠として扱った。
 
-## 11. Deferred Findings
+## 11. 後続工程へ委譲する指摘
 
-既存の `REQ4-001`〜`REQ4-003` は前回レビューから継続する。今回の変更に伴う新規の下流整合事項を `REQ7-001` として追加する。いずれも Requirements の Review Gate を不合格にする formal finding ではない。
+既存の `REQ4-001`〜`REQ4-003` は前回レビューから継続する。今回の変更に伴う新規の下流整合事項を `REQ7-001` として追加する。いずれも要件のレビュー判定条件を不合格にする正式な指摘ではない。
 
-- `REQ4-001`（Open / non-blocking）: `symbol-nem-wallet-core` の採用承認、参照 commit / version、同一 checkout からの外部契約再現性の確認。
-- `REQ4-002`（Deferred to specification alignment）: transaction signing と message signing の v1 共通能力と、既存 Web Transaction Handoff Specification の対象範囲・`signData` 記載の整合。
-- `REQ4-003`（Open / lower-phase handoff）: `CR-002`、`CR-007-MSG`、`CR-AC-001`、`CR-AC-006` の確認可能な影響、message の Chain / Network / Account、format / encoding / canonicalization、UI 詳細。
-- `REQ7-001`（Deferred to specification alignment）: [Profile / Account Specification](../../specifications/profile-account-spec.md) §3、§4、§11、§26 および [Product Specification](../../specifications/product-spec.md) §4、§7.4、§10 が、`enabledChains`、Symbol / NEM 両方の Account、Profile 作成後のチェーン追加・変更を前提としている。`CR-017` と `CR-AC-020` を正本として、次の Specification Author が単一 Chain Profile の作成、Account、権限、表示、backup の適用範囲を整合させる。既存データ移行・後方互換性の追加は今回のユーザー決定に反するため、下流で新規要件化しない。
+- `REQ4-001`（未決 / 判定を妨げない）: `symbol-nem-wallet-core` の採用承認、参照コミット / バージョン、同一チェックアウトからの外部契約再現性の確認。
+- `REQ4-002`（後続工程へ委譲 to 仕様整合）: トランザクション署名とメッセージ署名の v1 共通能力と、既存 Web トランザクション受け渡し仕様の対象範囲・`signData` 記載の整合。
+- `REQ4-003`（未決 / lower-phase 受け渡し）: `CR-002`、`CR-007-MSG`、`CR-AC-001`、`CR-AC-006` の確認可能な影響、メッセージのチェーン / ネットワーク / アカウント、形式 / エンコーディング / 正規化、UI 詳細。
+- `REQ7-001`（後続工程へ委譲 to 仕様整合）: [プロファイル / アカウント仕様](../../specifications/profile-account-spec.md) §3、§4、§11、§26 および [プロダクト仕様](../../specifications/product-spec.md) §4、§7.4、§10 が、`enabledChains`、Symbol / NEM 両方のアカウント、プロファイル作成後のチェーン追加・変更を前提としている。`CR-017` と `CR-AC-020` を正本として、次の仕様作成者が単一チェーンプロファイルの作成、アカウント、権限、表示、バックアップの適用範囲を整合させる。既存データ移行・後方互換性の追加は今回のユーザー決定に反するため、下流で新規要件化しない。
 
-## 12. Scope and Traceability
+## 12. 対象範囲と追跡可能性
 
-| 根拠・変更                                                                 | Common Requirements                                          | 下流への引継ぎ                                                                                          | 判定 |
-| -------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- | ---- |
-| ユーザー決定: 同一 Profile で Symbol / NEM の両方を利用する構成を廃止      | §4.2、`CR-017`、`CR-AC-020`                                  | Profile / Account Specification、Product Specification、各 Signer の Profile / Account 詳細             | 適切 |
-| Symbol / NEM と Mainnet / Testnet を区別する                               | `CR-005`、`CR-NFR-005`、`CR-AC-003`                          | Chain Compatibility、各 platform の要求・仕様                                                           | 適切 |
-| Account、権限、承認および署名結果を対象 Chain と一致させる                 | §4.2、`CR-010`、`CR-016`、`CR-017`、`CR-AC-017`、`CR-AC-020` | Browser / Mobile / SDK の Profile-local context、permission、Account authorization、pre-sign validation | 適切 |
-| 既存の複数 Chain Profile / backup 互換性・移行・既存状態の引継ぎを対象外化 | `CR-017`                                                     | 下流仕様は開発中の直接変更として扱い、移行機能を追加しない                                              | 適切 |
-| 既存の全体責任境界・Security 原則                                          | `CR-008`、`CR-011`、`CR-013`、`CR-NFR-001`〜`CR-NFR-013`     | wallet-core、Signer、SDK、Relay、release security の既存責任境界                                        | 適切 |
+| 根拠・変更                                                                            | 共通の要件                                                   | 下流への引継ぎ                                                                           | 判定 |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------- | ---- |
+| ユーザー決定: 同一プロファイルで Symbol / NEM の両方を利用する構成を廃止              | §4.2、`CR-017`、`CR-AC-020`                                  | プロファイル / アカウント仕様、プロダクト仕様、各署名主体のプロファイル / アカウント詳細 | 適切 |
+| Symbol / NEM と Mainnet / Testnet を区別する                                          | `CR-005`、`CR-NFR-005`、`CR-AC-003`                          | チェーン互換性、各プラットフォームの要求・仕様                                           | 適切 |
+| アカウント、権限、承認および署名結果を対象チェーンと一致させる                        | §4.2、`CR-010`、`CR-016`、`CR-017`、`CR-AC-017`、`CR-AC-020` | ブラウザ / モバイル / SDK のプロファイル内の文脈、許可、アカウントの利用認可、署名前検証 | 適切 |
+| 既存の複数チェーンプロファイル / バックアップ互換性・移行・既存状態の引継ぎを対象外化 | `CR-017`                                                     | 下流仕様は開発中の直接変更として扱い、移行機能を追加しない                               | 適切 |
+| 既存の全体責任境界・セキュリティ原則                                                  | `CR-008`、`CR-011`、`CR-013`、`CR-NFR-001`〜`CR-NFR-013`     | wallet-core、署名主体、SDK、Relay、リリースセキュリティの既存責任境界                    | 適切 |
 
-要求の方向は `ユーザー決定 / Concept → Common Requirements → Browser / Mobile / Relay / SDK Requirements → Design → Specification` と追跡できる。今回の変更は Symbol / NEM の対応を削除せず、Profile の同時利用境界だけを狭めている。具体的な schema、API、error、状態遷移および保存方式は下流へ委譲されている。
+要求の方向は `ユーザー決定 / Concept → Common Requirements → Browser / Mobile / Relay / SDK Requirements → Design → Specification` と追跡できる。今回の変更は Symbol / NEM の対応を削除せず、プロファイルの同時利用境界だけを狭めている。具体的なスキーマ、API、エラー、状態遷移および保存方式は下流へ委譲されている。
 
-## 13. Domain Checks
+## 13. ドメイン別の確認
 
-| 観点             | 判定 | 根拠                                                                                                                                        |
-| ---------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| 要求の完全性     | PASS | 単一 Chain Profile、別 Profile の利用、異なる Chain の権限・承認・要求の共有禁止が共通要求と受入条件に存在する。                            |
-| 責任・範囲       | PASS | Application / Signer が Profile / Account 境界を担い、SDK / Relay / dApp / wallet-core の既存責任境界を変更していない。                     |
-| MUST / SHOULD    | PASS | `CR-017` は必要な外部不変条件を MUST とし、具体 API、型、保存方式、UI、エラー方式は下流へ委譲している。                                     |
-| 受け入れ条件     | PASS | `CR-AC-020` が単一 Chain の確認、別 Profile の利用、異なる Chain の状態・権限・要求の拒否を外部から判定可能にしている。                     |
-| セキュリティ     | PASS | Account / Key Identity、signing authority、permission、approval を Chain 境界に結び付け、wrong Chain の共有・fallback・移送を禁止している。 |
-| Failure behavior | PASS | 複数 Chain の関連付け、別 Chain の暗黙切替、共有、fallback、移送を成立させず、署名結果を成功として返さない。                                |
-| 相互運用性       | PASS | Symbol / NEM の対応自体は維持し、chain-specific な識別・Account・署名境界を保つ。Mainnet / Testnet の既存分離にも回帰がない。               |
-| Phase boundary   | PASS | API、schema、error code、暗号、backup format、状態遷移、UI、実装方式を新しい Requirements として固定していない。                            |
-| 回帰             | PASS | SDK 境界、4条件署名認可、Security guarantee boundary、Mainnet gate、backup の v1 共通非包含、OPEN / FUTURE の意味に回帰がない。             |
+| 観点          | 判定 | 根拠                                                                                                                                |
+| ------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 要求の完全性  | 合格 | 単一チェーンプロファイル、別プロファイルの利用、異なるチェーンの権限・承認・要求の共有禁止が共通要求と受入条件に存在する。          |
+| 責任・範囲    | 合格 | アプリケーション / 署名主体がプロファイル / アカウント境界を担い、SDK / Relay / dApp / wallet-core の既存責任境界を変更していない。 |
+| MUST / SHOULD | 合格 | `CR-017` は必要な外部不変条件を MUST とし、具体 API、型、保存方式、UI、エラー方式は下流へ委譲している。                             |
+| 受け入れ条件  | 合格 | `CR-AC-020` が単一チェーンの確認、別プロファイルの利用、異なるチェーンの状態・権限・要求の拒否を外部から判定可能にしている。        |
+| セキュリティ  | 合格 | アカウント / 鍵識別情報、署名判断権限、許可、承認をチェーン境界に結び付け、誤ったチェーンの共有・代替経路・移送を禁止している。     |
+| 失敗動作      | 合格 | 複数チェーンの関連付け、別チェーンの暗黙切替、共有、代替経路、移送を成立させず、署名結果を成功として返さない。                      |
+| 相互運用性    | 合格 | Symbol / NEM の対応自体は維持し、チェーン固有のな識別・アカウント・署名境界を保つ。Mainnet / Testnet の既存分離にも回帰がない。     |
+| 工程境界      | 合格 | API、スキーマ、エラーコード、暗号、バックアップ形式、状態遷移、UI、実装方式を新しい要件として固定していない。                       |
+| 回帰          | 合格 | SDK 境界、4条件署名認可、セキュリティ保証境界、Mainnet 判定条件、バックアップの v1 共通非包含、未決 / 将来の意味に回帰がない。      |
 
-Security checklist では、protected assets、confidentiality、integrity、authentication / authorization、secret lifecycle、failure safety、trust / responsibility boundary、chain / network separation を適用した。`CR-008`、`CR-009`、`CR-010`、`CR-013`、`CR-016`、`CR-NFR-001`、`CR-NFR-002`、`CR-NFR-004`、`CR-NFR-005`、`CR-NFR-008`、`CR-NFR-009`、`CR-NFR-013` および今回の `CR-017` / `CR-AC-020` で確認できる。暗号方式、KDF、AEAD、nonce、salt、zeroize、API field、wire format、実装方式は適用対象外とした。
+セキュリティ確認項目では、保護された資産、機密性、完全性、認証 / 認可、秘密情報ライフサイクル、失敗安全性、信頼 / 責務境界、チェーン / ネットワーク分離を適用した。`CR-008`、`CR-009`、`CR-010`、`CR-013`、`CR-016`、`CR-NFR-001`、`CR-NFR-002`、`CR-NFR-004`、`CR-NFR-005`、`CR-NFR-008`、`CR-NFR-009`、`CR-NFR-013` および今回の `CR-017` / `CR-AC-020` で確認できる。暗号方式、KDF、AEAD、ノンス、ソルト、ゼロ化、API フィールド、通信上の形式、実装方式は適用対象外とした。
 
-## 14. Validation Results
+## 14. 検証結果
 
 - 対象本文の行番号、要求 ID、受入条件 ID、下流参照および既存レビュー番号を確認した。
 - `git diff --check`: レビュー成果物作成前の作業ツリーについて実行し、問題がないことを確認した。
-- Markdown formatter: レビュー成果物作成後に対象ファイルだけを確認する。repository-wide formatter は実行対象外とした。
-- Repository-wide lint / typecheck / test / build: 要件レビュー成果物のみの変更であり、実装検証は対象外とした。
-- Source 非変更: レビュー中は `docs/requirements/requirements.md`、Concept、下流 Requirements、Design、Specification、ADR、release 資料および実装コードを変更していない。
+- Markdown フォーマッター: レビュー成果物作成後に対象ファイルだけを確認する。リポジトリ全体のフォーマッターは実行対象外とした。
+- リポジトリ全体の lint / typecheck / テスト / ビルド: 要件レビュー成果物のみの変更であり、実装検証は対象外とした。
+- 送信元非変更: レビュー中は `docs/requirements/requirements.md`、コンセプト、下流要件、設計、仕様、ADR、リリース資料および実装コードを変更していない。
 
-## 15. Review Gates
+## 15. レビュー判定基準
 
-| Gate              | 判定 | 根拠                                                                                                                                   | 対応 ID |
-| ----------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| 1. 目的と課題     | PASS | 単一 Chain 化は安全な署名判断と Chain / Account 境界を明確にする変更であり、Symbol / NEM の製品価値を削除していない。                  | なし    |
-| 2. 利用者と責任   | PASS | 利用者は Chain ごとに別 Profile を扱い、Application / Signer、SDK、Relay、dApp、wallet-core の既存責任が維持される。                   | なし    |
-| 3. 対象範囲       | PASS | Symbol / NEM の両対応は維持し、Profile の同時 Chain 利用だけを対象外とした。Mainnet / Testnet、backup 共通非包含も維持される。         | なし    |
-| 4. 要件と制約     | PASS | 単一 Chain 境界、異なる Chain の権限・承認・要求の共有禁止、開発中のため既存移行非対象が明示されている。                               | なし    |
-| 5. 受け入れ条件   | PASS | `CR-AC-020` により、単一 Chain、別 Profile、拒否・no-sign / no-success を外部から確認できる。                                          | なし    |
-| 6. 内部整合性     | PASS | 新設要件は既存の Chain / Network 分離、Account authorization、fail-closed、Security boundary と矛盾しない。                            | なし    |
-| 7. 不可欠な前提   | PASS | 既存の wallet-core、Signer、SDK、Relay の責任境界と下流委譲を維持し、具体方式を要求へ逆流させていない。                                | なし    |
-| 8. Concept 整合性 | PASS | Concept の Symbol / NEM 対応、Chain / Network 分離、安全な署名判断と矛盾せず、ユーザー決定を Requirements の追加制約として追跡できる。 | なし    |
+| 判定条件            | 判定 | 根拠                                                                                                                                     | 対応 ID |
+| ------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| 1. 目的と課題       | 合格 | 単一チェーン化は安全な署名判断とチェーン / アカウント境界を明確にする変更であり、Symbol / NEM の製品価値を削除していない。               | なし    |
+| 2. 利用者と責任     | 合格 | 利用者はチェーンごとに別プロファイルを扱い、アプリケーション / 署名主体、SDK、Relay、dApp、wallet-core の既存責任が維持される。          | なし    |
+| 3. 対象範囲         | 合格 | Symbol / NEM の両対応は維持し、プロファイルの同時チェーン利用だけを対象外とした。Mainnet / Testnet、バックアップ共通非包含も維持される。 | なし    |
+| 4. 要件と制約       | 合格 | 単一チェーン境界、異なるチェーンの権限・承認・要求の共有禁止、開発中のため既存移行非対象が明示されている。                               | なし    |
+| 5. 受け入れ条件     | 合格 | `CR-AC-020` により、単一チェーン、別プロファイル、拒否・署名しない / 成功を確定しないを外部から確認できる。                              | なし    |
+| 6. 内部整合性       | 合格 | 新設要件は既存のチェーン / ネットワーク分離、アカウントの利用認可、安全側での終了、セキュリティ境界と矛盾しない。                        | なし    |
+| 7. 不可欠な前提     | 合格 | 既存の wallet-core、署名主体、SDK、Relay の責任境界と下流委譲を維持し、具体方式を要求へ逆流させていない。                                | なし    |
+| 8. コンセプト整合性 | 合格 | コンセプトの Symbol / NEM 対応、チェーン / ネットワーク分離、安全な署名判断と矛盾せず、ユーザー決定を要件の追加制約として追跡できる。    | なし    |
 
-すべての Review Gate が PASS であり、現在の不合格 Gate はない。`REQ7-001` は既存下流契約との整合化に関する Deferred Finding であり、Requirements の Gate failure には対応付けない。
+すべてのレビュー判定条件が合格であり、現在の不合格判定条件はない。`REQ7-001` は既存下流契約との整合化に関する後続工程へ委譲指摘であり、要件の判定条件失敗には対応付けない。
 
-## 16. Remaining Risks and Open Decisions
+## 16. 残存リスクと未決定事項
 
-- `REQ7-001`: 下流 Profile / Account Specification と Product Specification に旧来の複数 Chain Profile 契約が残る。次工程では `CR-017` を正本として整合化する必要がある。
+- `REQ7-001`: 下流プロファイル / アカウント仕様とプロダクト仕様に旧来の複数チェーンプロファイル契約が残る。次工程では `CR-017` を正本として整合化する必要がある。
 - `OPEN-001`、`OPEN-002`、`OPEN-003`、`OPEN-005` および `CR-OPEN-001`、`CR-OPEN-002` は既存の未決事項として維持される。
-- 単一 Chain Profile の具体的な作成、Account の関連付け、permission、表示、backup の適用範囲、エラーおよび状態遷移は未決定であり、Specification / Design で定める。
-- 既存状態の互換性・移行を考慮しない方針により、開発中の既存データは再作成を前提とする。ただし、具体的なデータ削除や保存処理は今回の Requirements では決めていない。
+- 単一チェーンプロファイルの具体的な作成、アカウントの関連付け、許可、表示、バックアップの適用範囲、エラーおよび状態遷移は未決定であり、仕様 / 設計で定める。
+- 既存状態の互換性・移行を考慮しない方針により、開発中の既存データは再作成を前提とする。ただし、具体的なデータ削除や保存処理は今回の要件では決めていない。
 
-## 17. Automatic Changes
+## 17. 自動変更
 
-レビュー中に変更したのは、このレビュー成果物 `docs/reviews/requirements/requirements-review-007.md` の新規作成だけである。Requirements、Concept、下流 Requirements、Design、Specification、ADR、release 資料、Skill および実装コードは変更していない。
+レビュー中に変更したのは、このレビュー成果物 `docs/reviews/requirements/requirements-review-007.md` の新規作成だけである。要件、コンセプト、下流要件、設計、仕様、ADR、リリース資料、スキルおよび実装コードは変更していない。
 
-## 18. Final Decision
+## 18. 最終判断
 
 **READY**
 
-`CR-017` と `CR-AC-020` はユーザー決定、既存の Chain / Network 分離、Account / signing authority の Security 境界へ追跡でき、Critical / Major / Minor の新規 formal finding はない。8つの Review Gate はすべて PASS である。`REQ7-001` は次の Specification 整合化へ Deferred とし、Requirements を仕様設計へ進められる状態と判定する。
+`CR-017` と `CR-AC-020` はユーザー決定、既存のチェーン / ネットワーク分離、アカウント / 署名判断権限のセキュリティ境界へ追跡でき、重大 / 主要 / 軽微の新規正式な指摘はない。8つのレビュー判定条件はすべて合格である。`REQ7-001` は次の仕様整合化へ後続工程へ委譲とし、要件を仕様設計へ進められる状態と判定する。
 
-REQUIREMENTS PHASE READY
+要件工程 READY

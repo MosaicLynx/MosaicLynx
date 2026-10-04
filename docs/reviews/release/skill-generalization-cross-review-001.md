@@ -1,212 +1,212 @@
-# エージェント Skill 汎用化 最終横断レビュー
+# エージェントスキル汎用化最終横断レビュー
 
-## 1. Review Target / Review scope
+## 1. レビュー対象 / レビュー範囲
 
-- Review type: 第1〜4段階の Skill 汎用化に対する最終横断レビュー
-- Review date: 2026-08-29
-- Review artifact: `docs/reviews/release/skill-generalization-cross-review-001.md`
-- Review scope: `AGENTS.md`、`.agents/project-context.md`、`author-common`、`review-common`、6組の author / reviewer Skill、`release-readiness-review` と各補助資料
-- 未確認範囲: product docs、ADR、実装、テストの内容そのもの。今回の判定では、Skill がそれらを正本として参照する契約を確認するために必要な範囲だけを確認した。
-- 変更範囲: このレビュー成果物のみ。Skill、AGENTS.md、product docs、ADR、実装は変更していない。
+- レビュー型: 第1〜4段階のスキル汎用化に対する最終横断レビュー
+- レビュー日: 2026-08-29
+- レビュー成果物: `docs/reviews/release/skill-generalization-cross-review-001.md`
+- レビュー対象範囲: `AGENTS.md`、`.agents/project-context.md`、`author-common`、`review-common`、6組の作成者 / レビュアースキル、`release-readiness-review` と各補助資料
+- 未確認範囲: プロダクト docs、ADR、実装、テストの内容そのもの。今回の判定では、スキルがそれらを正本として参照する契約を確認するために必要な範囲だけを確認した。
+- 変更範囲: このレビュー成果物のみ。スキル、AGENTS.md、プロダクト docs、ADR、実装は変更していない。
 
-出力先は、repository instructions が定める release review artifact の配置に従った。Skill 自身がこの物理パスに依存することを意味しない。
+出力先は、リポジトリ作業規則が定めるリリースレビュー成果物の配置に従った。スキル自身がこの物理パスに依存することを意味しない。
 
-## 2. Execution Audit
+## 2. 実行記録
 
 サブエージェントは使用せず、次の独立した確認パスを実施した。
 
-1. repository context、project-context stub、common playbook の責務を確認した。
-2. 全13 Skill の frontmatter、対象取得、Source of Truth、fallback、変更境界を確認した。
-3. author / reviewer の phase boundary、成果物、品質観点、terminology の対応を比較した。
-4. security、trust boundary、secret handling、異常系、interoperability、determinism、supply-chain の保持を確認した。
-5. generic gate、repository-specific gate、severity、finding output の層分離を比較した。
-6. relative reference、固定 path、固定語、project-context 直接依存、Markdown / YAML の検証を実施した。
-7. Rust CLI library、Python Web API、cryptographic library の仮想 repository を用いて適用可能性を確認した。
+1. リポジトリ文脈、project-context スタブ、共通の作業手順の責務を確認した。
+2. 全13 スキルのフロントマター、対象取得、正本、代替経路、変更境界を確認した。
+3. 作成者 / レビュアーの工程境界、成果物、品質観点、用語の対応を比較した。
+4. セキュリティ、信頼境界、秘密情報処理、異常系、相互運用性、determinism、サプライチェーンの保持を確認した。
+5. 一般的な判定条件、リポジトリ固有の判定条件、重要度、指摘出力の層分離を比較した。
+6. 相対参照、固定パス、固定語、project-context 直接依存、Markdown / YAML の検証を実施した。
+7. Rust CLI ライブラリ、Python Web API、暗号学的なライブラリの仮想リポジトリを用いて適用可能性を確認した。
 
-## 3. Evidence Used
+## 3. 参照した根拠
 
-| Evidence                                     | 用途                                                                                                                                          |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AGENTS.md`                                  | repository map、artifact 配置、Source of Truth、local policy、validation、review reporting の正本と、product specification との責務分離を確認 |
-| `.agents/project-context.md`                 | repository context の第二の正本になっていない互換 stub であることを確認                                                                       |
-| `.agents/skills/author-common/**`            | author 共通の Source of Truth、scope、traceability、validation、未知情報の扱いを確認                                                          |
-| `.agents/skills/review-common/**`            | review workflow、finding、severity、evidence、gate、regression の共通契約を確認                                                               |
-| 6組の author / reviewer Skill と専用補助資料 | phase boundary、author / reviewer symmetry、品質観点、fallback、trigger を比較                                                                |
-| `.agents/skills/release-readiness-review/**` | release review の独立性、generic release capability、policy unknown、supply-chain 観点を確認                                                  |
-| `quick_validate.py`                          | 13 Skill の frontmatter / 構造検証                                                                                                            |
-| repository 内の参照・語句・format 検証結果   | broken reference、固定 path、固有語、project-context 依存、Markdown / YAML の確認                                                             |
+| 根拠                                         | 用途                                                                                                               |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `AGENTS.md`                                  | リポジトリ対応表、成果物配置、正本、ローカルポリシー、検証、レビュー報告の正本と、プロダクト仕様との責務分離を確認 |
+| `.agents/project-context.md`                 | リポジトリ文脈の第二の正本になっていない互換スタブであることを確認                                                 |
+| `.agents/skills/author-common/**`            | 作成者共通の正本、対象範囲、追跡可能性、検証、未知情報の扱いを確認                                                 |
+| `.agents/skills/review-common/**`            | レビュー workflow、指摘、重要度、根拠、判定条件、回帰の共通契約を確認                                              |
+| 6組の作成者 / レビュアースキルと専用補助資料 | 工程境界、作成者 / レビュアー対称性、品質観点、代替経路、適用条件を比較                                            |
+| `.agents/skills/release-readiness-review/**` | リリースレビューの独立性、一般的なリリース対応能力、ポリシー不明、サプライチェーン観点を確認                       |
+| `quick_validate.py`                          | 13 スキルのフロントマター / 構造検証                                                                               |
+| リポジトリ内の参照・語句・形式検証結果       | broken 参照、固定パス、固有語、project-context 依存、Markdown / YAML の確認                                        |
 
-## 4. Review Result / Overall assessment / Final gate
+## 4. レビュー結果 / 総合評価 / 最終判定
 
-全体として、Skill 群は repository-independent な汎用 Skill として利用可能な状態に到達している。特定の repository layout、language、package manager、protocol、network、component architecture、registry、release branch を active Skill の既定値として使用していない。
+全体として、スキル群は repository-independent な汎用スキルとして利用可能な状態に到達している。特定のリポジトリ配置、language、パッケージ manager、プロトコル、ネットワーク、コンポーネントアーキテクチャ、登録簿、リリース分岐を有効なスキルの既定値として使用していない。
 
-一方、以下の Minor finding が未解消である。
+一方、以下の軽微指摘が未解消である。
 
-- requirements-author が扱う operational / compliance 等の条件付き要求に対する requirements-review の明示的な確認観点が弱い。
-- generic gate の「1つ以上不合格」と、Skill 本文の「Critical は blocking、Major / Minor は defer 可能」という判定文に表現上のずれがある。
-- phase ごとの severity model に共通の影響ベースの対応関係が明記されていない。
+- requirements-author が扱う運用上の / 適合性等の条件付き要求に対する requirements-review の明示的な確認観点が弱い。
+- 一般的な判定条件の「1つ以上不合格」と、スキル本文の「重大は判定を妨げる、主要 / 軽微は委譲可能」という判定文に表現上のずれがある。
+- 工程ごとの重要度モデルに共通の影響ベースの対応関係が明記されていない。
 
-**Final gate: `READY WITH CONDITIONS`**
+**最終判定: `READY WITH CONDITIONS`**
 
-Critical / Major の未解消 finding はなく、他 repository での利用を直ちに阻害する欠陥は確認されなかった。ただし、上記3点を将来の共通基盤保守で明文化し、phase 間の判定 drift を防止することを条件とする。
+重大 / 主要の未解消指摘はなく、他リポジトリでの利用を直ちに阻害する欠陥は確認されなかった。ただし、上記3点を将来の共通基盤保守で明文化し、工程間の判定乖離を防止することを条件とする。
 
-## 5. Summary / Findings overview
+## 5. 要約 / 指摘の概要
 
-| ID              | Severity | Status | Area                                     | Gate impact                                                                |
-| --------------- | -------- | ------ | ---------------------------------------- | -------------------------------------------------------------------------- |
-| `SKILL-GEN-001` | Minor    | New    | requirements author / reviewer symmetry  | 条件付き。operational / compliance 等の明示的な review coverage を整理する |
-| `SKILL-GEN-002` | Minor    | New    | generic gate と blocking severity の対応 | 条件付き。gate failure の意味を phase 間で統一する                         |
-| `SKILL-GEN-003` | Minor    | New    | phase 間 severity mapping                | 条件付き。集約時の影響比較方法を明文化する                                 |
+| ID              | 重要度 | 状態 | 領域                                       | 判定条件影響                                                    |
+| --------------- | ------ | ---- | ------------------------------------------ | --------------------------------------------------------------- |
+| `SKILL-GEN-001` | 軽微   | 新規 | 要件作成者 / レビュアー対称性              | 条件付き。運用上の / 適合性等の明示的なレビュー網羅性を整理する |
+| `SKILL-GEN-002` | 軽微   | 新規 | 一般的な判定条件と判定を妨げる重要度の対応 | 条件付き。判定条件失敗の意味を工程間で統一する                  |
+| `SKILL-GEN-003` | 軽微   | 新規 | 工程間重要度対応付け                       | 条件付き。集約時の影響比較方法を明文化する                      |
 
-## 6. Finding Status / Findings
+## 6. 指摘の状態 / 指摘
 
-### `SKILL-GEN-001` — Minor — New
+### `SKILL-GEN-001` — 軽微 — 新規
 
-- Location: `.agents/skills/requirements-author/SKILL.md:40`、`.agents/skills/requirements-author/scope-boundary.md:5-17`、`.agents/skills/requirements-review/reviewers.md:13-15`、`.agents/skills/requirements-review/review-gates.md:8`
-- Evidence: requirements-author は、承認済み資料に根拠がある場合の `performance`、`capacity`、`lifecycle`、`operational`、`compliance` を要求候補として扱う。scope-boundary も operational behavior を requirements 候補に含める。一方 requirements-review は quality、security、privacy、interoperability、failure、constraints を確認するが、operational / compliance の条件付き review coverage を明示していない。
-- Problem: 「constraints」や「quality」に含めて解釈することはできるが、author が合法的に作成できる条件付き要求の一部が reviewer の確認表へ明示的に対応していない。author / reviewer の意味上の契約に軽微な非対称が残る。
-- Impact: operational または compliance が重要な repository で、requirements-review がその要求の欠落・矛盾・検証可能性を一貫して確認しない可能性がある。これは新しい product requirement の追加要求ではなく、既存の approved requirement をレビューする観点の不足である。
-- Required change: requirements-review に該当時の operational / compliance / capacity 等を明示するか、既存の quality / constraints gate がそれらを条件付きで包含することを明文化し、requirements-author と対応させる。
-- Completion check: author の要求候補と reviewer の観点・gate を比較し、条件付き概念の omission がないことを再確認する。
+- 対象箇所: `.agents/skills/requirements-author/SKILL.md:40`、`.agents/skills/requirements-author/scope-boundary.md:5-17`、`.agents/skills/requirements-review/reviewers.md:13-15`、`.agents/skills/requirements-review/review-gates.md:8`
+- 根拠: requirements-author は、承認済み資料に根拠がある場合の `performance`、`capacity`、`lifecycle`、`operational`、`compliance` を要求候補として扱う。scope-boundary も運用上の動作を要件候補に含める。一方 requirements-review は品質、セキュリティ、プライバシー、相互運用性、失敗、制約を確認するが、運用上の / 適合性の条件付きレビュー網羅性を明示していない。
+- 問題: 「制約」や「品質」に含めて解釈することはできるが、作成者が合法的に作成できる条件付き要求の一部がレビュアーの確認表へ明示的に対応していない。作成者 / レビュアーの意味上の契約に軽微な非対称が残る。
+- 影響: 運用上のまたは適合性が重要なリポジトリで、requirements-review がその要求の欠落・矛盾・検証可能性を一貫して確認しない可能性がある。これは新しいプロダクト要求の追加要求ではなく、既存の承認済み要求をレビューする観点の不足である。
+- 必須変更: requirements-review に該当時の運用上の / 適合性 / 容量等を明示するか、既存の品質 / 制約判定条件がそれらを条件付きで包含することを明文化し、requirements-author と対応させる。
+- 完了確認: 作成者の要求候補とレビュアーの観点・判定条件を比較し、条件付き概念の omission がないことを再確認する。
 
-### `SKILL-GEN-002` — Minor — New
+### `SKILL-GEN-002` — 軽微 — 新規
 
-- Location: `.agents/skills/concept-review/review-gates.md:13`、`.agents/skills/requirements-review/review-gates.md:14`、`.agents/skills/design-review/review-gates.md:14`、`.agents/skills/spec-review/review-gates.md:13`、`.agents/skills/implement-review/review-gates.md:12`。対照箇所は各 `SKILL.md` の generic gate 判定節。
-- Evidence: phase の `review-gates.md` は概ね「すべての generic gate が合格なら READY、1つ以上不合格なら REVISE」と記述している。requirements / design / specification / implementation の `SKILL.md` は、Critical の unresolved issue 等があれば REVISE とし、Major / Minor または実装レビューの HIGH 以下は安全に引き継げる場合に Deferred / Optional として READY にできると記述している。review-common は Critical を blocking、Major を修正推奨、Minor を軽微な欠陥と定義する。
-- Problem: 「任意の gate failure が即 REVISE」なのか、「blocking に相当する gate failure だけが REVISE」なのかが補助資料と Skill 本文で一意に読めない。gate の不合格を Critical finding に対応付ける記述がある phase と、Major / Minor の defer を明記する Skill 本文の間にも、運用上の解釈差が生じる。
-- Impact: 同じ evidence を phase によって異なる final gate へ分類する可能性があり、レビュー結果の再現性が低下する。repository-specific gate を適用する前の generic 判定にも影響する。
-- Required change: generic gate の不合格条件を blocking severity と明示する、または gate failure を常に blocking とするなど、review-gates と各 Skill の判定文を共通 severity model に合わせる。
-- Completion check: 全 phase で、Critical / Major / Minor / phase-specific severity と READY / REVISE の対応が同じ表現で確認できること。
+- 対象箇所: `.agents/skills/concept-review/review-gates.md:13`、`.agents/skills/requirements-review/review-gates.md:14`、`.agents/skills/design-review/review-gates.md:14`、`.agents/skills/spec-review/review-gates.md:13`、`.agents/skills/implement-review/review-gates.md:12`。対照箇所は各 `SKILL.md` の一般的な判定条件判定節。
+- 根拠: 工程の `review-gates.md` は概ね「すべての一般的な判定条件が合格なら READY、1つ以上不合格なら REVISE」と記述している。要件 / 設計 / 仕様 / 実装の `SKILL.md` は、重大の未解消課題等があれば REVISE とし、主要 / 軽微または実装レビューの HIGH 以下は安全に引き継げる場合に後続工程へ委譲 / 任意として READY にできると記述している。review-common は重大を判定を妨げる、主要を修正推奨、軽微を軽微な欠陥と定義する。
+- 問題: 「任意の判定条件失敗が即 REVISE」なのか、「判定を妨げるに相当する判定条件失敗だけが REVISE」なのかが補助資料とスキル本文で一意に読めない。判定条件の不合格を重大指摘に対応付ける記述がある工程と、主要 / 軽微の委譲を明記するスキル本文の間にも、運用上の解釈差が生じる。
+- 影響: 同じ根拠を工程によって異なる最終判定へ分類する可能性があり、レビュー結果の再現性が低下する。リポジトリ固有の判定条件を適用する前の一般的な判定にも影響する。
+- 必須変更: 一般的な判定条件の不合格条件を判定を妨げる重要度と明示する、または判定条件失敗を常に判定を妨げるとするなど、review-gates と各スキルの判定文を共通重要度モデルに合わせる。
+- 完了確認: 全工程で、重大 / 主要 / 軽微 / 工程固有の重要度と READY / REVISE の対応が同じ表現で確認できること。
 
-### `SKILL-GEN-003` — Minor — New
+### `SKILL-GEN-003` — 軽微 — 新規
 
-- Location: `.agents/skills/review-common/review-playbook.md:126-132`、`.agents/skills/readme-review/output-format.md:8-11`、`.agents/skills/implement-review/output-format.md:8-11`、`.agents/skills/release-readiness-review/output-format.md:8-12`
-- Evidence: review-common は文書レビューの原則的な severity として Critical / Major / Minor を示す。readme-review は ERROR / WARN / NIT、implement-review は CRITICAL / HIGH / MEDIUM / LOW、release-readiness-review は Critical / Major / Minor / Nit を採用している。各 phase 内では gate と整合するが、phase 間の影響ベースの明示的な mapping はない。
-- Problem: phase-specific model を許容する設計自体は妥当だが、複数 phase の findings を統合する Chair や後続工程が、severity 名から blocking impact を一意に比較する契約を持たない。
-- Impact: cross-phase report、再 review、release readiness への引き継ぎで、ERROR / CRITICAL / Major などの扱いを個別解釈する余地が残り、将来の drift を招く。
-- Required change: 共通の影響ベース severity への mapping を review-common に定義するか、phase-specific model を維持する理由と Critical / Major / Minor / Nit 相当の対応を各 output-format に明記する。
-- Completion check: phase-specific severity から最終 gate への blocking / non-blocking の変換が、reviewer の推測なしに確認できること。
+- 対象箇所: `.agents/skills/review-common/review-playbook.md:126-132`、`.agents/skills/readme-review/output-format.md:8-11`、`.agents/skills/implement-review/output-format.md:8-11`、`.agents/skills/release-readiness-review/output-format.md:8-12`
+- 根拠: review-common は文書レビューの原則的な重要度として重大 / 主要 / 軽微を示す。readme-review はエラー / WARN / 細部、implement-review は重大 / HIGH / MEDIUM / LOW、release-readiness-review は重大 / 主要 / 軽微 / 細部を採用している。各工程内では判定条件と整合するが、工程間の影響ベースの明示的な対応付けはない。
+- 問題: 工程固有のモデルを許容する設計自体は妥当だが、複数工程の指摘を統合するレビュー統括や後続工程が、重要度名から判定を妨げる影響を一意に比較する契約を持たない。
+- 影響: cross-phase 報告書、再レビュー、リリース準備状態への引き継ぎで、エラー / 重大 / 主要などの扱いを個別解釈する余地が残り、将来の乖離を招く。
+- 必須変更: 共通の影響ベース重要度への対応付けを review-common に定義するか、工程固有のモデルを維持する理由と重大 / 主要 / 軽微 / 細部相当の対応を各 output-format に明記する。
+- 完了確認: 工程固有の重要度から最終判定条件への判定を妨げる / 判定を妨げないの変換が、レビュアーの推測なしに確認できること。
 
-## 7. Required Changes
+## 7. 必須の修正
 
-共通 playbook の定義に基づく Critical / Major の finding はない。したがって、今回の artifact に対する blocking な Required Changes は「なし」とする。上記 Minor finding は、次回の共通基盤保守で対応すべき条件付き改善として Optional Improvements に記録する。
+共通作業手順の定義に基づく重大 / 主要の指摘はない。したがって、今回の成果物に対する判定を妨げるな必須の修正は「なし」とする。上記軽微指摘は、次回の共通基盤保守で対応すべき条件付き改善として任意の改善に記録する。
 
-## 8. Optional Improvements
+## 8. 任意の改善
 
-- `SKILL-GEN-001`: requirements の条件付き operational / compliance / capacity 観点を author / reviewer 間で対応付ける。
-- `SKILL-GEN-002`: generic gate failure と severity / final gate の対応を全 phase で統一する。
-- `SKILL-GEN-003`: phase-specific severity を横断集約する mapping を定義する。
+- `SKILL-GEN-001`: 要件の条件付き運用上の / 適合性 / 容量観点を作成者 / レビュアー間で対応付ける。
+- `SKILL-GEN-002`: 一般的な判定条件失敗と重要度 / 最終判定の対応を全工程で統一する。
+- `SKILL-GEN-003`: 工程固有の重要度を横断集約する対応付けを定義する。
 
-いずれも、新しい product requirement、security control、release policy を発明する変更ではなく、既存の汎用 review 契約の明確化である。
+いずれも、新しいプロダクト要求、セキュリティ制御、リリースポリシーを発明する変更ではなく、既存の汎用レビュー契約の明確化である。
 
-## 9. Resolved Findings
+## 9. 解消済みの指摘
 
-なし。今回の横断レビューでは過去 finding の対応確認を目的とした変更を行っていない。
+なし。今回の横断レビューでは過去指摘の対応確認を目的とした変更を行っていない。
 
-## 10. Deferred Findings
+## 10. 後続工程へ委譲する指摘
 
-なし。`SKILL-GEN-001`〜`003` は後続の共通 Skill 保守へ引き継ぐが、別の review artifact へ状態を移したものではない。
+なし。`SKILL-GEN-001`〜`003` は後続の共通スキル保守へ引き継ぐが、別のレビュー成果物へ状態を移したものではない。
 
-## 11. Scope and Traceability / Author-reviewer symmetry
+## 11. 対象範囲と追跡可能性 / 作成者・レビュアー対称性
 
-| Phase             | Author が作るもの                                                                                                                                 | Reviewer が確認するもの                                                                                                       | 評価                           |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| Concept           | problem、value、user / stakeholder、scope / non-goal、responsibility、assumption、success criteria、unresolved issue                              | 同じ概念の根拠、粒度、scope、前提、成功条件、未解決事項。API / design / implementation の要求はしない                         | 整合                           |
-| Requirements      | what、actor / responsibility、functional / quality / security / operational requirement、constraint、acceptance、failure、traceability            | clarity、scope、actor、responsibility、acceptance、security、failure、traceability、曖昧さ、矛盾。新しい要求は発明しない      | `SKILL-GEN-001` の条件付き差分 |
-| Design            | responsibility allocation、component boundary、dependency、trust / secret boundary、ownership、lifecycle、failure、concurrency、運用責任          | 上記の境界、依存方向、security invariant、traceability、下位仕様への委譲                                                      | 整合                           |
-| Specification     | external contract、input / output、validation、serialization、canonicalization、error、state、compatibility、interoperability、暗号契約（該当時） | 同じ契約の完全性、deterministic representation、異常系、compatibility、fixture / vector、implementation independence          | 整合                           |
-| Implementation    | approved source に基づく最小変更、code / test、error、security、lifecycle、compatibility、validation                                              | specification conformance、secret handling、malformed / unsupported input、fail-closed、test、regression、validation coverage | 整合                           |
-| README            | implementation と public contract に整合する installation、usage、API、support、configuration、security、limitations、examples                    | README と manifest / public API / implementation / specification / test の事実整合と overclaim                                | 整合                           |
-| Release readiness | version、metadata、package / artifact、public release compatibility、dependency、documentation、evidence、supply-chain                            | release scope、packaging、publication readiness、artifact inspection、policy evidence                                         | implement-review と分離        |
+| 工程             | 作成者が作るもの                                                                                                    | レビュアーが確認するもの                                                                                     | 評価                           |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------ |
+| コンセプト       | 問題、値、利用者 / stakeholder、対象範囲 / non-goal、責務、前提、成功条件、未解消課題                               | 同じ概念の根拠、粒度、対象範囲、前提、成功条件、未解決事項。API / 設計 / 実装の要求はしない                  | 整合                           |
+| 要件             | what、主体 / 責務、functional / 品質 / セキュリティ / 運用上の要求、制約、受け入れ、失敗、追跡可能性                | 明確さ、対象範囲、主体、責務、受け入れ、セキュリティ、失敗、追跡可能性、曖昧さ、矛盾。新しい要求は発明しない | `SKILL-GEN-001` の条件付き差分 |
+| 設計             | 責務割り当て、コンポーネント境界、依存関係、信頼 / 秘密情報境界、所有責任、ライフサイクル、失敗、並行処理、運用責任 | 上記の境界、依存方向、セキュリティ上の不変条件、追跡可能性、下位仕様への委譲                                 | 整合                           |
+| 仕様             | 外部契約、入力 / 出力、検証、シリアライズ、正規化、エラー、状態、互換性、相互運用性、暗号契約（該当時）             | 同じ契約の完全性、決定的な表現、異常系、互換性、フィクスチャ / ベクター、実装独立性                          | 整合                           |
+| 実装             | 承認済み資料に基づく最小変更、コード / テスト、エラー、セキュリティ、ライフサイクル、互換性、検証                   | 仕様適合性、秘密情報処理、不正な形式の / 未対応の入力、安全側での終了、テスト、回帰、検証網羅性              | 整合                           |
+| README           | 実装と公開契約に整合する installation、usage、API、サポート、構成、セキュリティ、limitations、examples              | README とマニフェスト / 公開 API / 実装 / 仕様 / テストの事実整合と overclaim                                | 整合                           |
+| リリース準備状態 | バージョン、メタデータ、パッケージ / 成果物、公開リリース互換性、依存関係、文書、根拠、サプライチェーン             | リリース対象範囲、packaging、publication 準備状態、成果物内容検査、ポリシー根拠                              | implement-review と分離        |
 
-Source of Truth の流れは、user instruction → applicable repository instructions → approved artifact / ADR / specification → code / test / build evidence となっている。Skill は product specification を生成せず、code の現在挙動だけで requirement や public promise を正当化しない。
+正本の流れは、利用者 instruction → 適用可能なリポジトリ作業規則 → 承認済み成果物 / ADR / 仕様 → コード / テスト / ビルド根拠となっている。スキルはプロダクト仕様を生成せず、コードの現在挙動だけで要求や公開保証を正当化しない。
 
-## 12. Domain Checks
+## 12. ドメイン別の確認
 
-### Repository independence
+### リポジトリ独立性
 
-PASS。active Skill 全体から、固定の repository layout、`docs/...`、`apps/...`、`packages/...`、language、runtime、package manager、protocol、network、database、client architecture、registry、CI、release branch を既定値としている記述は確認されなかった。条件付きの `npm` と `SemVer` は対象 ecosystem / version policy が該当する場合だけ適用される。`mnemonic` は実装 Skill の秘密情報種別の一般例であり、repository 固有語ではない。
+合格。有効なスキル全体から、固定のリポジトリ配置、`docs/...`、`apps/...`、`packages/...`、language、実行環境、パッケージ manager、プロトコル、ネットワーク、データベース、クライアントアーキテクチャ、登録簿、CI、リリース分岐を既定値としている記述は確認されなかった。条件付きの `npm` と `SemVer` は対象エコシステム / バージョンポリシーが該当する場合だけ適用される。`mnemonic` は実装スキルの秘密情報種別の一般例であり、リポジトリ固有語ではない。
 
-### AGENTS.md dependency model
+### AGENTS.md 依存関係モデル
 
-PASS。Skill は特定の `## Artifact Layout`、`## Source of Truth`、`## Repository Map` などの見出しを要求せず、applicable repository instructions から意味として artifact location、Source of Truth、boundary、validation、local policy を取得する。`.agents/project-context.md` への active Skill からの直接参照もない。stub は既存参照の互換性だけを担い、repository context の正本ではない。
+合格。スキルは特定の `## Artifact Layout`、`## Source of Truth`、`## Repository Map` などの見出しを要求せず、適用可能なリポジトリ作業規則から意味として成果物対象箇所、正本、境界、検証、ローカルポリシーを取得する。`.agents/project-context.md` への有効なスキルからの直接参照もない。スタブは既存参照の互換性だけを担い、リポジトリ文脈の正本ではない。
 
-### Source of Truth
+### 正本
 
-PASS。author は approved source と implementation evidence を区別し、reviewer は finding を approved source、対象事実、影響へ追跡する。一般的 best practice、reviewer preference、現在 code の挙動だけから product requirement、security promise、release policy を発明しない。unknown / undecided、insufficient evidence、policy unknown を成功扱いにしない。
+合格。作成者は承認済み資料と実装根拠を区別し、レビュアーは指摘を承認済み資料、対象事実、影響へ追跡する。一般的ベストプラクティス、レビュアー好み、現在コードの挙動だけからプロダクト要求、セキュリティ保証、リリースポリシーを発明しない。不明 / 未決定、不十分な根拠、ポリシー不明を成功扱いにしない。
 
-### Phase boundary consistency
+### 工程境界整合性
 
-PASS。Concept は problem / value / scope に留まり、Requirements は what / constraint / acceptance、Design は responsibility / component / boundary / lifecycle、Specification は external contract / representation / error、Implementation は approved specification への適合として分離されている。各 reviewer も下流 phase の詳細を要求しない。README は documentation fact review、release は distribution readiness に限定されている。
+合格。コンセプトは問題 / 値 / 対象範囲に留まり、要件は what / 制約 / 受け入れ、設計は責務 / コンポーネント / 境界 / ライフサイクル、仕様は外部契約 / 表現 / エラー、実装は承認済み仕様への適合として分離されている。各レビュアーも下流工程の詳細を要求しない。README は文書事実レビュー、リリースは配布準備状態に限定されている。
 
-### Author / reviewer symmetry
+### 作成者 / レビュアー対称性
 
-CONDITIONAL。Concept、Design、Specification、Implementation、README は概ね対応する。Requirements の operational / compliance 等の条件付き観点だけ `SKILL-GEN-001` を記録した。
+条件付き。コンセプト、設計、仕様、実装、README は概ね対応する。要件の運用上の / 適合性等の条件付き観点だけ `SKILL-GEN-001` を記録した。
 
-### Terminology consistency
+### 用語整合性
 
-PASS。`repository-defined component` は repository から取得する構成単位、`secret-bearing` / `signing-capable` は扱う capability、`trusted` / `privileged` は authority / permission、`remote` / `external` / `opaque` は境界または解釈可能性、`protocol` / `network` / `external system` は適用対象の外部領域として使われている。`public contract` は利用者に公開される契約、`external contract` は境界を越えて合意される契約として phase に応じて区別され、判断差につながる表現揺れは確認されなかった。
+合格。`repository-defined component` はリポジトリから取得する構成単位、`secret-bearing` / `signing-capable` は扱う対応能力、`trusted` / `privileged` は判断権限 / 許可、`remote` / `external` / `opaque` は境界または解釈可能性、`protocol` / `network` / `external system` は適用対象の外部領域として使われている。`public contract` は利用者に公開される契約、`external contract` は境界を越えて合意される契約として工程に応じて区別され、判断差につながる表現揺れは確認されなかった。
 
-### Security capability preservation
+### セキュリティ対応能力維持
 
-PASS。Design / review は trust boundary、secret boundary、data ownership、責任、lifecycle を保持する。Specification / review は暗号が対象に存在する場合の algorithm、parameter、encoding、failure、interoperability、test vector を曖昧にしない。Implementation / review は secret handling、authentication / authorization（該当時）、malformed / unsupported input、fail-closed、replay / expiry（該当時）、determinism、test、regression を確認する。Release は secret exposure、unexpected executable、dependency integrity、provenance、SBOM / signing / attestation（policy が要求する場合）を確認する。
+合格。設計 / レビューは信頼境界、秘密情報境界、データ所有責任、責任、ライフサイクルを保持する。仕様 / レビューは暗号が対象に存在する場合のアルゴリズム、パラメーター、エンコーディング、失敗、相互運用性、テストベクターを曖昧にしない。実装 / レビューは秘密情報処理、認証 / 認可（該当時）、不正な形式の / 未対応の入力、安全側での終了、リプレイ / 期限切れ（該当時）、determinism、テスト、回帰を確認する。リリースは秘密情報露出、予期しない実行ファイル、依存関係完全性、来歴情報、SBOM / 署名 / 証明（ポリシーが要求する場合）を確認する。
 
-### Fallback behavior
+### 代替経路動作
 
-PASS。各 Skill は user instruction、applicable repository instructions、既存構成・manifest・artifact、approved docs / ADR の順に確定可能な情報を利用する。artifact path、component boundary、toolchain、protocol、validation command、review prefix、release policy が確定できない場合は推測せず、insufficient evidence / unresolved / confirmation required として扱う。特定 repository の慣例への fallback はない。
+合格。各スキルは利用者 instruction、適用可能なリポジトリ作業規則、既存構成・マニフェスト・成果物、承認済み docs / ADR の順に確定可能な情報を利用する。成果物パス、コンポーネント境界、ツールチェーン、プロトコル、検証コマンド、レビュー接頭辞、リリースポリシーが確定できない場合は推測せず、不十分な根拠 / 未解消 / 確認必須として扱う。特定リポジトリの慣例への代替経路はない。
 
-### Gate / output consistency
+### 判定条件 / 出力整合性
 
-CONDITIONAL。generic gate と repository-specific gate の二層構造、finding の evidence / impact / required change / status、review artifact の共通構成は維持されている。一方、gate failure の blocking 解釈と phase-specific severity の横断 mapping に `SKILL-GEN-002`、`SKILL-GEN-003` を記録した。
+条件付き。一般的な判定条件とリポジトリ固有の判定条件の二層構造、指摘の根拠 / 影響 / 必須変更 / 状態、レビュー成果物の共通構成は維持されている。一方、判定条件失敗の判定を妨げる解釈と工程固有の重要度の横断対応付けに `SKILL-GEN-002`、`SKILL-GEN-003` を記録した。
 
-### Release review separation
+### リリースレビュー分離
 
-PASS。`implement-review` は code-level correctness、specification compliance、security、test、regression を中心に扱う。`release-readiness-review` は version、metadata、packaging、public release compatibility、dependencies、documentation、evidence、supply-chain、publication readiness を扱い、publish / tag / registry / approval を実行しない。release blocking な実装不具合を evidence として参照する場合も、実装レビューそのものへ戻らない。
+合格。`implement-review` はコードレベルの正確性、仕様適合性、セキュリティ、テスト、回帰を中心に扱う。`release-readiness-review` はバージョン、メタデータ、packaging、公開リリース互換性、依存関係、文書、根拠、サプライチェーン、publication 準備状態を扱い、publish / タグ / 登録簿 / 承認を実行しない。リリース判定を妨げるな実装不具合を根拠として参照する場合も、実装レビューそのものへ戻らない。
 
-### Trigger / frontmatter
+### 適用条件 / フロントマター
 
-PASS。全13 Skill の description は phase-specific で、Concept、Requirements、Design、Specification、Implementation、README、package / distributable artifact release を区別している。author と reviewer、implementation review と release readiness review の誤競合を生む広すぎる trigger は確認されなかった。release の `openai.yaml` も software package / distributable artifact の release readiness に限定されている。
+合格。全13 スキルの説明は工程固有ので、コンセプト、要件、設計、仕様、実装、README、パッケージ / distributable 成果物リリースを区別している。作成者とレビュアー、実装レビューとリリース準備状態レビューの誤競合を生む広すぎる適用条件は確認されなかった。リリースの `openai.yaml` もソフトウェアパッケージ / distributable 成果物のリリース準備状態に限定されている。
 
-## 13. Validation Results
+## 13. 検証結果
 
-| Validation                                                                                          | Result                                                                                                                                      |
-| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| 全13 Skill の `quick_validate.py`                                                                   | PASS。13件すべて `Skill is valid!`                                                                                                          |
-| expected relative reference files                                                                   | PASS。author-common、review-common、各専用 reviewers / gates / output、release の `openai.yaml` を確認                                      |
-| active Skill の `.agents/project-context.md` 直接参照                                               | PASS。該当なし                                                                                                                              |
-| active Skill の固定 absolute path、repository 固有語、固定 `docs/...` / `apps/...` / `packages/...` | PASS。禁止対象の active dependency は該当なし                                                                                               |
-| common playbook dependency                                                                          | PASS。author / reviewer / release が対応する common playbook を参照し、参照先が存在する                                                     |
-| broken relative reference                                                                           | PASS。確認対象の参照先は存在する                                                                                                            |
-| Markdown / YAML format                                                                              | PASS。local formatter で対象 Markdown と全対象 Skill Markdown、`release-readiness-review/agents/openai.yaml` を確認し、YAML parser でも確認 |
-| `pnpm exec prettier --check`                                                                        | Not validated。環境が pnpm の database file を開けず終了したため、local formatter で代替確認                                                |
-| `git diff --check`                                                                                  | PASS。staged diff に対して実行                                                                                                              |
-| lint / typecheck / test / build                                                                     | Not validated。コード、test、implementation を変更していないため今回の対象外                                                                |
+| 検証                                                                                              | 結果                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 全13 スキルの `quick_validate.py`                                                                 | 合格。13件すべて `Skill is valid!`                                                                                                                 |
+| 期待される相対参照ファイル                                                                        | 合格。author-common、review-common、各専用レビュアー / 判定条件 / 出力、リリースの `openai.yaml` を確認                                            |
+| 有効なスキルの `.agents/project-context.md` 直接参照                                              | 合格。該当なし                                                                                                                                     |
+| 有効なスキルの固定 absolute パス、リポジトリ固有語、固定 `docs/...` / `apps/...` / `packages/...` | 合格。禁止対象の有効な依存関係は該当なし                                                                                                           |
+| 共通の作業手順依存関係                                                                            | 合格。作成者 / レビュアー / リリースが対応する共通の作業手順を参照し、参照先が存在する                                                             |
+| broken 相対参照                                                                                   | 合格。確認対象の参照先は存在する                                                                                                                   |
+| Markdown / YAML 形式                                                                              | 合格。ローカルフォーマッターで対象 Markdown と全対象スキル Markdown、`release-readiness-review/agents/openai.yaml` を確認し、YAML パーサーでも確認 |
+| `pnpm exec prettier --check`                                                                      | 未検証。環境が pnpm のデータベースファイルを開けず終了したため、ローカルフォーマッターで代替確認                                                   |
+| `git diff --check`                                                                                | 合格。ステージ済み差分に対して実行                                                                                                                 |
+| lint / typecheck / テスト / ビルド                                                                | 未検証。コード、テスト、実装を変更していないため今回の対象外                                                                                       |
 
-`AGENTS.md` には repository-specific な product、component、toolchain、artifact layout の記述が残るが、これは今回確立した責務分離どおりの local context であり、active Skill の portability を損なわない。過去レビュー成果物や compatibility stub に現れる固有語は、active Skill dependency と区別した。
+`AGENTS.md` にはリポジトリ固有のなプロダクト、コンポーネント、ツールチェーン、成果物配置の記述が残るが、これは今回確立した責務分離どおりのローカル文脈であり、有効なスキルの portability を損なわない。過去レビュー成果物や互換性スタブに現れる固有語は、有効なスキル依存関係と区別した。
 
-## 14. Remaining repository-specific dependencies
+## 14. 残存するリポジトリ固有の依存関係
 
-- `AGENTS.md`: repository map、artifact location、Source of Truth、boundary、validation、review reporting、local prohibition の正本。特定 repository の作業時だけ適用する。
-- `.agents/project-context.md`: repository context の正本ではない互換 stub。新しいルールや product specification は置かない。
-- approved docs / ADR / specification / manifest / CI configuration / code / test: product contract、具体的 protocol、crypto parameters、API、release policy、実装状態を確定する正本または evidence。Skill はそれらを推測で補完しない。
-- `npm`、SemVer、`mnemonic` の残存: 前二者は対象 ecosystem / version policy に対する条件付き一般概念、後者は秘密情報の一般例であり、特定 repository への依存ではない。
+- `AGENTS.md`: リポジトリ対応表、成果物対象箇所、正本、境界、検証、レビュー報告、ローカル禁止の正本。特定リポジトリの作業時だけ適用する。
+- `.agents/project-context.md`: リポジトリ文脈の正本ではない互換スタブ。新しいルールやプロダクト仕様は置かない。
+- 承認済み docs / ADR / 仕様 / マニフェスト / CI 構成 / コード / テスト: プロダクト契約、具体的プロトコル、暗号処理パラメーター、API、リリースポリシー、実装状態を確定する正本または根拠。スキルはそれらを推測で補完しない。
+- `npm`、SemVer、`mnemonic` の残存: 前二者は対象エコシステム / バージョンポリシーに対する条件付き一般概念、後者は秘密情報の一般例であり、特定リポジトリへの依存ではない。
 
-active Skill に、repository-specific な MosaicLynx、Symbol / NEM、Relay、wallet-core、Chrome、TypeScript、pnpm、Redis、Mainnet / Testnet、固定 package scope、固定 evidence path の依存は残っていない。これらを含む具体的な local rule は `AGENTS.md` または approved docs / ADR 側に委譲されている。
+有効なスキルに、リポジトリ固有のな MosaicLynx、Symbol / NEM、Relay、wallet-core、Chrome、TypeScript、pnpm、Redis、Mainnet / Testnet、固定パッケージ対象範囲、固定根拠パスの依存は残っていない。これらを含む具体的なローカル規則は `AGENTS.md` または承認済み docs / ADR 側に委譲されている。
 
-## 15. Remaining Risks and Open Decisions
+## 15. 残存リスクと未決定事項
 
-- `SKILL-GEN-001`〜`003` は portability を直ちに壊さないが、複数 phase の review board や自動集約を運用する場合に drift を招き得る。
-- repository instructions が存在しない repository では、generic capability は利用できるが、artifact location、mandatory gate、validation、release policy の判定は confirmation required / policy unknown となる。これは fail-safe な挙動であり、既定値の補完ではない。
-- generic Skill の品質を維持するため、将来 repository-specific policy を Skill 本体へ戻さず、AGENTS.md または approved docs / ADR の参照として追加する必要がある。
+- `SKILL-GEN-001`〜`003` は portability を直ちに壊さないが、複数工程のレビュー board や自動集約を運用する場合に乖離を招き得る。
+- リポジトリ作業規則が存在しないリポジトリでは、一般的な対応能力は利用できるが、成果物対象箇所、必須判定条件、検証、リリースポリシーの判定は確認必須 / ポリシー不明となる。これは fail-safe な挙動であり、既定値の補完ではない。
+- 一般的なスキルの品質を維持するため、将来リポジトリ固有のポリシーをスキル本体へ戻さず、AGENTS.md または承認済み docs / ADR の参照として追加する必要がある。
 
-## 16. Automatic Changes
+## 16. 自動変更
 
-なし。レビュー成果物のみを作成し、finding に対する Skill の自動修正は行っていない。
+なし。レビュー成果物のみを作成し、指摘に対するスキルの自動修正は行っていない。
 
-## 17. Final Decision / Recommended next action
+## 17. 最終判断 / 推奨する次の対応
 
-推奨する次のアクションは、`SKILL-GEN-001`〜`003` を共通基盤の保守課題として扱い、requirements の条件付き観点、gate の blocking semantics、severity mapping を明文化した後に、この横断レビューを再実行することである。release-readiness-review の追加汎用化を直ちに始める必要はなく、今回の第4段階までの Skill 群は条件付きで利用可能である。
+推奨する次のアクションは、`SKILL-GEN-001`〜`003` を共通基盤の保守課題として扱い、要件の条件付き観点、判定条件の判定を妨げる意味、重要度対応付けを明文化した後に、この横断レビューを再実行することである。release-readiness-review の追加汎用化を直ちに始める必要はなく、今回の第4段階までのスキル群は条件付きで利用可能である。
 
-**Final gate: `READY WITH CONDITIONS`**
+**最終判定: `READY WITH CONDITIONS`**
 
-**GENERIC SKILL SET READY**
+**一般的なスキル集合 READY**

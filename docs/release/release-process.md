@@ -1,9 +1,9 @@
-# Release process
+# リリース手順
 
-1. Start from `v<version>` at a clean, reviewed commit.
-2. Run the unit, integration and browser E2E suites, then collect evidence and build the Extension.
-3. Generate the manifest, inspect every digest and test report, add the release approval, and sign it on an offline machine.
-4. Add the signer public key and key ID to the policy before running `evidence:verify` and `build:extension`.
-5. Retain the signed manifest, detached signature, reports and artifacts in the release evidence directory. Do not retain signing keys, user payloads, credentials, or environment dumps.
+1. 未コミットの変更がない、レビュー済みのコミットに付けた `v<version>` タグから開始する。
+2. 単体・統合・ブラウザ E2E テストを実行し、証跡を収集して拡張機能をビルドする。
+3. マニフェストを生成し、すべてのダイジェストとテスト報告書を確認する。リリース承認を追加し、オフラインの端末で署名する。
+4. `evidence:verify` と `build:extension` を実行する前に、署名者の公開鍵と鍵 ID をポリシーに追加する。
+5. 署名付きマニフェスト、分離署名、報告書、成果物をリリース証跡ディレクトリに保存する。署名用秘密鍵、利用者のペイロード、認証情報、環境情報のダンプは保存しない。
 
-At 30 days, or after a source, dependency, parser, fixture, build, or policy change, repeat the procedure. An expired manifest cannot be refreshed by changing timestamps: regenerate and sign the affected evidence.
+30日が経過した場合、またはソース、依存関係、パーサー、フィクスチャ、ビルド、ポリシーを変更した場合は、手順を再実行する。期限切れのマニフェストは、タイムスタンプの変更だけでは更新できない。影響を受ける証跡を再生成し、署名し直す。

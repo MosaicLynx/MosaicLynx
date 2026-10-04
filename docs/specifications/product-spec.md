@@ -4,52 +4,52 @@
 
 本書は、MosaicLynx の最初の提供形態である Chrome 拡張機能のプロダクト仕様を定義する。
 
-実装方式と責務分担は [Architecture](../design/architecture.md) に定義する。
-Web ページから Extension または Mobile App へ署名要求を渡す MosaicLynx SDK と Relay の仕様は [Web Transaction Handoff Specification](./web-transaction-handoff-spec.md) に定義する。
-鍵導出、対応 transaction schema、network constant、署名 byte 列の固定契約は [Chain Compatibility Specification](./chain-compatibility-spec.md) に定義する。
+実装方式と責務分担は [アーキテクチャ](../design/architecture.md) に定義する。
+Web ページから拡張機能またはモバイルアプリへ署名要求を渡す MosaicLynx SDK と Relay の仕様は [Web トランザクション受け渡し仕様](./web-transaction-handoff-spec.md) に定義する。
+鍵導出、対応トランザクションスキーマ、ネットワーク定数、署名バイト列の固定契約は [チェーン互換性仕様](./chain-compatibility-spec.md) に定義する。
 
-本書は product behavior と scope を定め、SDK、common contract または Browser Provider の別の public API schema を定義しない。外部へ公開する Account identity、request / response、signing operation、result、error および delivery semantics は [interfaces.md](./interfaces.md)、[signing-protocol.md](./signing-protocol.md)、[web-transaction-handoff-spec.md](./web-transaction-handoff-spec.md)、[sdk.md](./sdk.md) および [browser-extension.md](./browser-extension.md) の既存契約を使用する。
+本書はプロダクト動作と対象範囲を定め、SDK、共通の契約またはブラウザ Provider の別の公開 API スキーマを定義しない。外部へ公開するアカウントの識別情報、要求 / 応答、署名操作、結果、エラーおよび配送意味は [interfaces.md](./interfaces.md)、[signing-protocol.md](./signing-protocol.md)、[web-transaction-handoff-spec.md](./web-transaction-handoff-spec.md)、[sdk.md](./sdk.md) および [browser-extension.md](./browser-extension.md) の既存契約を使用する。
 
 本書内の「MVP」は、最初に一般利用可能な状態として提供する範囲を指す。「将来対応」は設計上考慮するが、MVP の受け入れ条件には含めない。
 
 ## 2. プロダクト概要
 
-MosaicLynx は、Symbol / NEM の dApp 接続と署名に特化した Signer（署名機）である。
+MosaicLynx は、Symbol / NEM の dApp 接続と署名に特化した署名主体（署名機）である。
 
 wallet-core が秘密鍵を安全に保持し、MosaicLynx は秘密鍵を取得せず、ユーザーが内容を確認・承認した場合に限り、dApp から要求されたメッセージまたはトランザクションへ署名する。送金や資産運用を主体とするウォレットではない。
 
-最初に Chrome Extension（Manifest V3）を提供し、将来は同じ Core を利用したスマートフォンアプリへの展開を想定する。
+最初に Chrome 拡張機能（マニフェスト V3）を提供し、将来は同じコアを利用したスマートフォンアプリへの展開を想定する。
 
-Web dApp は MosaicLynx SDK の共通 `signTransaction()` / `signData()` を利用する。Extension MVP では対応 Provider と直接通信する。Provider がない対応スマートフォンで E2E 暗号化 Relay を介して Mobile App と通信する経路は Mobile マイルストーンで提供し、Extension MVP の受け入れ条件へ含めない。Mobile 提供後も dApp は transport の違いを意識しない。
+Web dApp は MosaicLynx SDK の共通 `signTransaction()` / `signData()` を利用する。拡張機能 MVP では対応 Provider と直接通信する。Provider がない対応スマートフォンで E2E 暗号化 Relay を介してモバイルアプリと通信する経路はモバイルマイルストーンで提供し、拡張機能 MVP の受け入れ条件へ含めない。モバイル提供後も dApp は通信経路の違いを意識しない。
 
 ## 3. 設計原則
 
 - 秘密情報を dApp や Web ページへ公開しない。
 - 署名は要求ごとにユーザーの明示的な承認を必要とする。
 - 署名による全状態変更と資産移動を解析・表示できない要求は拒否し、警告付きのブラインド署名を許可しない。
-- 通常のメッセージ署名は Origin、チェーン、ネットワーク、用途、nonce、有効期限を署名対象に含む構造化形式とする。
+- 通常のメッセージ署名はオリジン、チェーン、ネットワーク、用途、ノンス、有効期限を署名対象に含む構造化形式とする。
 - Mainnet と Testnet を視覚的・論理的に分離し、誤署名を防ぐ。
-- dApp に公開するアカウント情報は、Origin、プロファイル、接続スコープ、ユーザーが選択したアカウントの接続許可に限定する。
+- dApp に公開するアカウント情報は、オリジン、プロファイル、接続スコープ、ユーザーが選択したアカウントの接続許可に限定する。
 - UI は接続、プロファイル、アカウント、署名確認に集中させる。
-- Chrome 固有処理を Core から分離し、将来のモバイル展開を妨げない。
+- Chrome 固有処理をコアから分離し、将来のモバイル展開を妨げない。
 
 ## 4. 用語
 
-| 用語                 | 意味                                                                                                                                                                    |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| チェーン             | `Symbol` または `NEM`                                                                                                                                                   |
-| ネットワーク         | `Mainnet` または `Testnet`                                                                                                                                              |
-| 接続スコープ         | チェーンとネットワークの組み合わせ。例: `Symbol Testnet`                                                                                                                |
-| プロファイル         | Mainnet または Testnet と、Symbol または NEM の一方に属するアカウント・権限のまとまり                                                                                   |
-| アカウント           | Product / Profile 内部で一つの Chain / Network に明示的に関連付いた Key Identity、秘密鍵、表示名、アドレスおよび公開鍵。外部公開時は Public Account Identity へ射影する |
-| アクティブアカウント | trusted host 内部で現在の署名候補として選択されている Account。外部へ返すときは validated な Public Account Identity へ射影する                                         |
-| Origin               | dApp の接続許可を識別する `scheme://host[:port]`                                                                                                                        |
-| Profile Vault        | 一つのプロファイルの暗号化した秘密情報と、そのロック状態を管理する領域                                                                                                  |
-| ロック               | 秘密情報を復号・利用できず、署名できない状態                                                                                                                            |
-| 構造化メッセージ署名 | Origin、チェーン、ネットワーク、用途、nonce、有効期限とpayloadをcanonical encodingして署名する方式                                                                      |
-| オフライン署名       | Signerがノードや外部metadata serviceへ通信せず、ローカルで解析・署名を完結すること。コールドウォレットまたはair-gapを意味しない                                         |
+| 用語                 | 意味                                                                                                                                                                             |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| チェーン             | `Symbol` または `NEM`                                                                                                                                                            |
+| ネットワーク         | `Mainnet` または `Testnet`                                                                                                                                                       |
+| 接続スコープ         | チェーンとネットワークの組み合わせ。例: `Symbol Testnet`                                                                                                                         |
+| プロファイル         | Mainnet または Testnet と、Symbol または NEM の一方に属するアカウント・権限のまとまり                                                                                            |
+| アカウント           | プロダクト / プロファイル内部で一つのチェーン / ネットワークに明示的に関連付いた鍵識別情報、秘密鍵、表示名、アドレスおよび公開鍵。外部公開時はアカウントの公開識別情報へ射影する |
+| アクティブアカウント | 信頼されたホスト内部で現在の署名候補として選択されているアカウント。外部へ返すときは validated なアカウントの公開識別情報へ射影する                                              |
+| オリジン             | dApp の接続許可を識別する `scheme://host[:port]`                                                                                                                                 |
+| プロファイル Vault   | 一つのプロファイルの暗号化した秘密情報と、そのロック状態を管理する領域                                                                                                           |
+| ロック               | 秘密情報を復号・利用できず、署名できない状態                                                                                                                                     |
+| 構造化メッセージ署名 | オリジン、チェーン、ネットワーク、用途、ノンス、有効期限とペイロードを正規エンコーディングして署名する方式                                                                       |
+| オフライン署名       | 署名主体がノードや外部メタデータサービスへ通信せず、ローカルで解析・署名を完結すること。コールドウォレットまたはair-gapを意味しない                                              |
 
-プロファイルはネットワークとチェーンの組み合わせごとに分離する。一つのプロファイルは一つの Network と一つの Chain に属し、作成後にどちらも変更できない。Symbol と NEM の両方を利用する場合はチェーンごとに別のプロファイルを作成する。異なる Network または Chain のアカウント、秘密情報、デフォルト設定、権限を同じプロファイルへ保存してはならない。
+プロファイルはネットワークとチェーンの組み合わせごとに分離する。一つのプロファイルは一つのネットワークと一つのチェーンに属し、作成後にどちらも変更できない。Symbol と NEM の両方を利用する場合はチェーンごとに別のプロファイルを作成する。異なるネットワークまたはチェーンのアカウント、秘密情報、デフォルト設定、権限を同じプロファイルへ保存してはならない。
 
 ## 5. 対応範囲
 
@@ -61,7 +61,7 @@ Web dApp は MosaicLynx SDK の共通 `signTransaction()` / `signData()` を利�
 - アカウントの作成、インポート、選択、名称変更、削除
 - パスワードによるロック / アンロック
 - `window.mosaicLynx` Provider の公開
-- Origin ごとの dApp 接続許可、切断、許可一覧の確認・削除
+- オリジンごとの dApp 接続許可、切断、許可一覧の確認・削除
 - 構造化メッセージ署名
 - トランザクション署名
 - 署名要求ごとの確認画面
@@ -70,12 +70,12 @@ Web dApp は MosaicLynx SDK の共通 `signTransaction()` / `signData()` を利�
 
 ### 5.2 将来対応
 
-- React Native / Expo によるスマートフォンアプリ
+- React ネイティブ / Expo によるスマートフォンアプリ
 - MosaicLynx SDK と E2E 暗号化 Relay による同一スマートフォン上のトランザクション受け渡し
 - 生体認証、パスキーによるアンロック
 - 対応言語の追加
-- Profile backup export / import など、将来提供する backup capability。具体契約は [Profile / Account Specification の `OPEN-PROFILE-001`](./profile-account-spec.md#open-profile-001-future-profile-backup-contract) に従う
-- 詳細監査記録、組織 policy、外部 WORM / audit anchor
+- プロファイルバックアップエクスポート / インポートなど、将来提供するバックアップ対応能力。具体契約は [プロファイル / アカウント仕様の `OPEN-PROFILE-001`](./profile-account-spec.md#open-profile-001-将来プロファイルバックアップ契約) に従う
+- 詳細監査記録、組織ポリシー、外部 WORM / 監査アンカー
 
 ### 5.3 対象外
 
@@ -92,37 +92,37 @@ Web dApp は MosaicLynx SDK の共通 `signTransaction()` / `signData()` を利�
 
 トランザクションの検証、解析、署名は固定版symbol-sdkとローカルデータだけで完結させ、ノードへ接続しない。
 
-本書では、`@nemnesia/symbol-sdk`を**symbol-sdk**、Web dApp向け`@mosaiclynx/sdk`を**MosaicLynx SDK**と表記する。単独の「SDK」という表記は使用しない。Mobile Relayはtransactionを解析せず、E2E暗号文だけを5分以内の短時間保管する。
+本書では、`@nemnesia/symbol-sdk`を**symbol-sdk**、Web dApp向け`@mosaiclynx/sdk`を**MosaicLynx SDK**と表記する。単独の「SDK」という表記は使用しない。モバイル Relayはトランザクションを解析せず、E2E暗号文だけを5分以内の短時間保管する。
 
-既存の aggregate / multisig transaction の内容確認と cosignature は、対応 type / version として完全解析できる場合に限り署名対象にできる。multisig 構成変更 transaction は高リスク操作として、対応表へ明示的に追加されるまで拒否する。「マルチシグ構成の管理」が対象外であることを、任意の multisig payload を署名できる意味に解釈してはならない。
+既存のアグリゲート / マルチシグトランザクションの内容確認と連署署名は、対応型 / バージョンとして完全解析できる場合に限り署名対象にできる。マルチシグ構成変更トランザクションは高リスク操作として、対応表へ明示的に追加されるまで拒否する。「マルチシグ構成の管理」が対象外であることを、任意のマルチシグペイロードを署名できる意味に解釈してはならない。
 
 ## 6. 初回起動とアンロック
 
 ### 6.1 初回起動
 
-現行 Signing milestone は事前 provision 済み opaque Wallet Store を前提とする。Store がない場合は Account unavailable を表示し署名を無効にする。Mnemonic 新規生成・入力・表示、raw private-key import / export の UI は提供しない。wallet-core 0.2.0 に秘密を返さない onboarding API があると仮定しない。
+現行署名マイルストーンは事前準備済みの内容を解釈しないウォレットストアを前提とする。ストアがない場合はアカウント利用不能を表示し署名を無効にする。ニーモニック新規生成・入力・表示、生の秘密鍵インポート / エクスポートの UI は提供しない。wallet-core 0.2.0 に秘密を返さない初期設定 API があると仮定しない。
 
 ### 6.2 通常起動
 
-保存済み Store と内部 Profile / Account 対応を読み、起動時は locked とする。ユーザーが選択した Profile の password を現在の操作について入力し、正式 `get_public_account` により公開 identity を認証する。別 Profile の認証を共有しない。password は保存・cache せず操作終了時に破棄する。unlock は Signer-local gate であり wallet-core session ではない。署名ごとの明示承認と password 認証を省略しない。詳細は [Wallet-core Integration](./wallet-core-integration.md) を正本とする。
+保存済みストアと内部プロファイル / アカウント対応を読み、起動時はロック済みとする。ユーザーが選択したプロファイルのパスワードを現在の操作について入力し、正式 `get_public_account` により公開識別情報を認証する。別プロファイルの認証を共有しない。パスワードは保存・キャッシュせず操作終了時に破棄する。ロック解除は署名主体内の判定条件であり wallet-core セッションではない。署名ごとの明示承認とパスワード認証を省略しない。詳細は [Wallet-core 統合](./wallet-core-integration.md) を正本とする。
 
 ## 7. プロファイル作成
 
 ### 7.1 作成方式の選択
 
-Mnemonic を受け取る従来の新規作成・復元フローは現行 supported operation から除外する。secret-free な正式統合契約を別途確定するまで実装しない。
+ニーモニックを受け取る従来の新規作成・復元フローは現行対応済みの操作から除外する。秘密情報を含まないな正式統合契約を別途確定するまで実装しない。
 
 ### 7.2 共通設定
 
-事前 provision 済み Store に対する Application Profile の登録は [Wallet-core Integration §3](./wallet-core-integration.md#3-profile--account-と-authenticated-identity) に従う。名前・Chain・Network と内部 core Profile UUID を関連付け、認証済み公開 Account のみを採用する。Mainnet / Testnet は色と文言で識別する。password は trusted host 内の一操作限りとする。
+事前準備済みのストアに対するアプリケーションプロファイルの登録は [Wallet-core 統合 §3](./wallet-core-integration.md#3-プロファイル--アカウントと認証済み識別情報) に従う。名前・チェーン・ネットワークと内部コアプロファイル UUID を関連付け、認証済み公開アカウントのみを採用する。Mainnet / Testnet は色と文言で識別する。パスワードは信頼されたホスト内の一操作限りとする。
 
 ### 7.3 新規作成フロー
 
-現行 UI では非対応。`prepare_generated_profile` は Mnemonic を返すため呼ばない。
+現行 UI では非対応。`prepare_generated_profile` はニーモニックを返すため呼ばない。
 
 ### 7.4 ニーモニックからのインポート
 
-現行 UI では非対応。`restore_profile` に渡すために MosaicLynx が Mnemonic を受け取ることを禁止する。
+現行 UI では非対応。`restore_profile` に渡すために MosaicLynx がニーモニックを受け取ることを禁止する。
 
 ## 8. ホーム画面
 
@@ -151,58 +151,58 @@ XYM / XEM の残高は表示しない。
 - 新しいプロファイルを追加できる。
 - 現在使用中ではないプロファイルを削除できる。
 - 使用中のプロファイルは削除できない。
-- 削除前に、対象名、ネットワーク、Chain、失われるアカウント数を表示して再確認する。
+- 削除前に、対象名、ネットワーク、チェーン、失われるアカウント数を表示して再確認する。
 - 削除した秘密情報と接続許可は復元できないことを明示する。
 
-### 9.1 将来の Profile backup と復旧
+### 9.1 将来のプロファイルバックアップと復旧
 
-本節の Profile backup export / import は、将来の個別 platform / release で提供する場合の product capability として扱い、Browser Extension の初回 milestone / release の必須機能・完了条件には含めない。backup の technical / lifecycle contract の canonical owner は [Profile / Account Specification](./profile-account-spec.md) であり、未決事項は同仕様の [`OPEN-PROFILE-001`](./profile-account-spec.md#open-profile-001-future-profile-backup-contract) で追跡する。
+本節のプロファイルバックアップエクスポート / インポートは、将来の個別プラットフォーム / リリースで提供する場合のプロダクト対応能力として扱い、ブラウザ拡張機能の初回マイルストーン / リリースの必須機能・完了条件には含めない。バックアップの technical / ライフサイクル契約の正本の管理主体は [プロファイル / アカウント仕様](./profile-account-spec.md) であり、未決事項は同仕様の [`OPEN-PROFILE-001`](./profile-account-spec.md#open-profile-001-将来プロファイルバックアップ契約) で追跡する。
 
-- Product は、将来 backup capability を提供する場合の availability、export / import を開始できる UI、利用者への safety messaging および Profile deletion に関する product-level policy を定める。Profile の backup / restore state は Profile / Account Specification が定義する state を参照する。
-- backup capability を提供する場合も、backup file に plaintext のニーモニックまたは private key を出力せず、秘密情報を保護する形式で扱う。この安全下限を除き、backup format、envelope schema、暗号 algorithm、KDF、AEAD、salt / nonce、AAD、verification algorithm および metadata field は本書で定義しない。
-- backup 作成だけを restore verification の成功とみなさない。Product は Profile owner が定義した verification state を UI に表示し、warning または将来の product policy の入力として使用できるが、独自の verification semantics、state 名または algorithm を追加しない。
-- Mainnet Profile の削除に backup verification をどう関係付けるか、未確認時に削除を拒否するか許可するか、および Mainnet-specific policy は [`OPEN-PROFILE-001`](./profile-account-spec.md#open-profile-001-future-profile-backup-contract) に委譲する。現時点で「必ず削除拒否」または「必ず削除可能」のいずれも確定しない。
-- Profile password / backup credential の関係は Profile / Account Specification に従い、Product は別の backup password contract を新設しない。password 忘失時の迂回復号、秘密の再発行または管理者 reset により安全境界を迂回しない。
+- プロダクトは、将来バックアップ対応能力を提供する場合の利用可能性、エクスポート / インポートを開始できる UI、利用者への安全性メッセージ通信およびプロファイル削除に関するプロダクトレベルのポリシーを定める。プロファイルのバックアップ / 復元状態はプロファイル / アカウント仕様が定義する状態を参照する。
+- バックアップ対応能力を提供する場合も、バックアップファイルに平文のニーモニックまたは秘密鍵を出力せず、秘密情報を保護する形式で扱う。この安全下限を除き、バックアップ形式、エンベロープスキーマ、暗号アルゴリズム、KDF、AEAD、ソルト / ノンス、AAD、検証アルゴリズムおよびメタデータフィールドは本書で定義しない。
+- バックアップ作成だけを復元検証の成功とみなさない。プロダクトはプロファイル責任主体が定義した検証状態を UI に表示し、警告または将来のプロダクトポリシーの入力として使用できるが、独自の検証意味、状態名またはアルゴリズムを追加しない。
+- Mainnet プロファイルの削除にバックアップ検証をどう関係付けるか、未確認時に削除を拒否するか許可するか、および Mainnet-specific ポリシーは [`OPEN-PROFILE-001`](./profile-account-spec.md#open-profile-001-将来プロファイルバックアップ契約) に委譲する。現時点で「必ず削除拒否」または「必ず削除可能」のいずれも確定しない。
+- プロファイルパスワード / バックアップ認証情報の関係はプロファイル / アカウント仕様に従い、プロダクトは別のバックアップパスワード契約を新設しない。パスワード忘失時の迂回復号、秘密の再発行または管理者 reset により安全境界を迂回しない。
 
 ## 10. アカウント管理
 
 ### 10.1 一覧と操作
 
-- プロファイルに属する Profile.chain の Account / Key Identity を一覧表示する。
-- プロファイルのニーモニックから Profile.chain を明示し、その Chain の導出契約で次の未使用 account index の Account を追加できる。
-- raw private-key import は非対応。既存 core Profile の Account 追加は正式 `derive_software_key` に委譲する。
+- プロファイルに属する Profile.chain のアカウント / 鍵識別情報を一覧表示する。
+- プロファイルのニーモニックから Profile.chain を明示し、そのチェーンの導出契約で次の未使用アカウント索引のアカウントを追加できる。
+- 生の秘密鍵インポートは非対応。既存コアプロファイルのアカウント追加は正式 `derive_software_key` に委譲する。
 - アカウント名を変更できる。
-- Profile ごとにデフォルト Account を一つ選択できる。
+- プロファイルごとにデフォルトアカウントを一つ選択できる。
 - アカウントを削除できる。
-- プロファイルには Profile.chain の Account を最低1つ必要とし、最後の Account は削除できない。
+- プロファイルには Profile.chain のアカウントを最低1つ必要とし、最後のアカウントは削除できない。
 
 ### 10.2 鍵の由来
 
-一つの Account / Key Identity は一つの Chain、Profile の Network および一つの秘密鍵に明示的に関連付く。Symbol と NEM は別々の Account / Key Identity として管理し、同じ mnemonic を基にする場合でも、対象 Chain ごとの導出契約を指定して別々に導出する。アカウントには、復元方式を判断できるように鍵の由来を保持する。
+一つのアカウント / 鍵識別情報は一つのチェーン、プロファイルのネットワークおよび一つの秘密鍵に明示的に関連付く。Symbol と NEM は別々のアカウント / 鍵識別情報として管理し、同じニーモニックを基にする場合でも、対象チェーンごとの導出契約を指定して別々に導出する。アカウントには、復元方式を判断できるように鍵の由来を保持する。
 
-- `mnemonicDerived`: プロファイルのニーモニック、対象 Chain、account index、Chain-specific 導出契約から復元したアカウント
+- `mnemonicDerived`: プロファイルのニーモニック、対象チェーン、アカウント索引、チェーン固有の導出契約から復元したアカウント
 - `importedPrivateKey`: プロファイルとは独立した秘密鍵をインポートしたアカウント
 
-Profile は `nextAccountIndex` を保持する。ニーモニック由来 Account の追加では現在値を使用して保存成功後にだけ単調増加させ、削除済み index を再利用しない。`accountIndex` は `0..2^31-1` とし、上限到達、重複 path、copy-on-write commit の失敗時は追加しない。
+プロファイルは `nextAccountIndex` を保持する。ニーモニック由来アカウントの追加では現在値を使用して保存成功後にだけ単調増加させ、削除済み索引を再利用しない。`accountIndex` は `0..2^31-1` とし、上限到達、重複パス、copy-on-write コミットの失敗時は追加しない。
 
-imported private key由来のアカウントは、ニーモニックだけでは復元できないことを追加時と安全性確認時に明示する。署名へ使用する前に、復元に必要な秘密情報を別媒体に保管済みであることを再確認する。
+インポート済みの秘密鍵由来のアカウントは、ニーモニックだけでは復元できないことを追加時と安全性確認時に明示する。署名へ使用する前に、復元に必要な秘密情報を別媒体に保管済みであることを再確認する。
 
-Mnemonic、秘密鍵、導出演算は wallet-core の責任とする。MosaicLynx は Bip32、SDK PrivateKey / KeyPair / secret-bearing Account を生成しない。公開 identity は正式 `get_public_account` で認証する。core Profile / key ID と Application ID の対応は Wallet-core Integration §3 に従う。raw private-key import / export は現行 UI で非対応とする。
+ニーモニック、秘密鍵、導出演算は wallet-core の責任とする。MosaicLynx は Bip32、SDK PrivateKey / KeyPair / 秘密情報を含むアカウントを生成しない。公開識別情報は正式 `get_public_account` で認証する。コアプロファイル / 鍵 ID とアプリケーション ID の対応は Wallet-core 統合 §3 に従う。生の秘密鍵インポート / エクスポートは現行 UI で非対応とする。
 
 ## 11. dApp 接続と権限
 
 ### 11.1 接続要求
 
-- 接続許可は Origin、プロファイル、接続スコープ、ユーザーが選択したアカウントの組み合わせで管理する。
-- 未許可の Origin から `connect()` が呼ばれた場合、接続確認画面を表示する。
-- 確認画面には未検証のサイト名、canonical Origin、ASCII / Punycode Origin、要求されたチェーン、ネットワーク、公開候補アカウントを表示する。
-- ユーザーは trusted UI で接続許可の対象となる Account collection を明示的に選択する。既定ですべてを選択しない。この collection と、dApp へ返す active Account は別の概念である。
-- ユーザーが承認した場合、外部へ返す Account は既存の `PublicAccountIdentity`（`Scope`、`address`、`publicKey`）へ限定する。表示名は trusted UI の補助表示に限り、signing identity、authorization または ownership の根拠にしない。
-- 接続または Account disclosure の拒否は、既存の Handoff / Browser の error mapping に従う。
-- 同じ Origin、プロファイル、接続スコープへの接続は、同じアカウント許可が残っている間は再確認しない。公開アカウントを増やす場合は再承認を必要とする。
-- Provider-specific な Account collection と、SDK / Handoff の `connect(scope)` が返す singular active public Account の mapping は [browser-extension.md §5.2.2](./browser-extension.md) に従う。Product は collection を SDK の response cardinality へ暗黙変換しない。
-- ロック中の新規接続と許可変更は行わず、アンロックと承認を必要とする。Provider-specific な `getAccounts()` は許可済みの公開情報だけを collection として扱い、SDK / Handoff の singular active response への射影は [browser-extension.md §5.2.2](./browser-extension.md) に従う。
-- MVP はトップレベル frame からの要求だけを受け付け、iframe からの接続要求は拒否する。
+- 接続許可はオリジン、プロファイル、接続スコープ、ユーザーが選択したアカウントの組み合わせで管理する。
+- 未許可のオリジンから `connect()` が呼ばれた場合、接続確認画面を表示する。
+- 確認画面には未検証のサイト名、正規オリジン、ASCII / Punycode オリジン、要求されたチェーン、ネットワーク、公開候補アカウントを表示する。
+- ユーザーは信頼された UI で接続許可の対象となるアカウント収集を明示的に選択する。既定ですべてを選択しない。この収集と、dApp へ返す有効なアカウントは別の概念である。
+- ユーザーが承認した場合、外部へ返すアカウントは既存の `PublicAccountIdentity`（`Scope`、`address`、`publicKey`）へ限定する。表示名は信頼された UI の補助表示に限り、署名識別情報、認可または所有責任の根拠にしない。
+- 接続またはアカウント情報公開の拒否は、既存の受け渡し / ブラウザのエラー対応付けに従う。
+- 同じオリジン、プロファイル、接続スコープへの接続は、同じアカウント許可が残っている間は再確認しない。公開アカウントを増やす場合は再承認を必要とする。
+- Provider 固有のなアカウント収集と、SDK / 受け渡しの `connect(scope)` が返す単数有効な公開アカウントの対応付けは [browser-extension.md §5.2.2](./browser-extension.md) に従う。プロダクトは収集を SDK の応答要素数へ暗黙変換しない。
+- ロック中の新規接続と許可変更は行わず、アンロックと承認を必要とする。Provider 固有のな `getAccounts()` は許可済みの公開情報だけを収集として扱い、SDK / 受け渡しの単数有効な応答への射影は [browser-extension.md §5.2.2](./browser-extension.md) に従う。
+- MVP はトップレベルフレームからの要求だけを受け付け、iframe からの接続要求は拒否する。
 
 ### 11.2 許可の管理
 
@@ -210,7 +210,7 @@ Mnemonic、秘密鍵、導出演算は wallet-core の責任とする。MosaicLy
 - ユーザーまたは dApp は接続を解除できる。
 - プロファイルを削除した場合、そのプロファイルに対する接続許可を削除する。
 - アカウントを追加しても既存接続許可へ自動追加しない。削除した場合は各許可の対象から除去し、対象が空になれば接続を解除して `disconnect`、一部だけ変われば `accountsChanged` を通知する。
-- Origin は scheme、host、port を含む canonical 形式と ASCII / Punycode 形式を表示し、パス、favicon、ページタイトル、サイト指定の表示名だけで判断させない。
+- オリジンは方式、ホスト、ポートを含む正規形式と ASCII / Punycode 形式を表示し、パス、ファビコン、ページタイトル、サイト指定の表示名だけで判断させない。
 - 権限の有無にかかわらず、秘密鍵とニーモニックは公開しない。
 
 ### 11.3 チェーンとネットワーク
@@ -218,82 +218,82 @@ Mnemonic、秘密鍵、導出演算は wallet-core の責任とする。MosaicLy
 dApp は接続時および署名要求時に対象チェーンとネットワークを指定する。MosaicLynx は dApp の要求によってアクティブプロファイル、チェーン、ネットワークを切り替えない。
 
 - 指定ネットワークと接続済みプロファイルのネットワークが異なる場合はエラーにする。
-- トランザクション payload から判定したチェーンまたはネットワークが要求値と異なる場合はエラーにする。
+- トランザクションペイロードから判定したチェーンまたはネットワークが要求値と異なる場合はエラーにする。
 - 対象チェーンに属さないアカウントでは署名しない。
-- dApp supplied の `accountId`、`accountIds`、`activeAccountId`、display name、array order または内部 key slot を署名 Account の選択 authority としない。これらの内部参照は trusted host 内部の routing に限る。
-- 署名 Account は、current Profile、current permission、current active Account、validated `Scope`、payload signer および必要な signer role を trusted Signer が照合して解決する。
-- `expectedSignerPublicKey` は公開された signer expectation であり、internal Account selector ではない。指定時は実際の signer public key と完全一致させ、不一致時は既存 concrete error mapping に従って署名しない。
-- active Account または permission が stale、変更、revoke または Scope 不一致の場合、古い Account を success、署名 authority または新しい Account の代替として使用しない。projection と refresh の詳細は [browser-extension.md §5.2.2](./browser-extension.md)、SDK の response / error semantics は [sdk.md](./sdk.md) と [web-transaction-handoff-spec.md](./web-transaction-handoff-spec.md) に従う。
+- dApp 提供されたの `accountId`、`accountIds`、`activeAccountId`、表示名前、配列順序または内部鍵枠を署名アカウントの選択判断権限としない。これらの内部参照は信頼されたホスト内部の経路選択に限る。
+- 署名アカウントは、現在のプロファイル、現在の許可、現在の有効なアカウント、validated `Scope`、ペイロード署名主体および必要な署名主体役割を信頼された署名主体が照合して解決する。
+- `expectedSignerPublicKey` は公開された署名主体期待値であり、内部アカウント選択子ではない。指定時は実際の署名主体公開鍵と完全一致させ、不一致時は既存具体的なエラー対応付けに従って署名しない。
+- 有効なアカウントまたは許可が古くなった、変更、失効または対象範囲不一致の場合、古いアカウントを成功、署名判断権限または新しいアカウントの代替として使用しない。投影と refresh の詳細は [browser-extension.md §5.2.2](./browser-extension.md)、SDK の応答 / エラー意味は [sdk.md](./sdk.md) と [web-transaction-handoff-spec.md](./web-transaction-handoff-spec.md) に従う。
 
 ## 12. 署名
 
 ### 12.1 共通要件
 
-- 署名要求は接続済み Origin からのみ受け付ける。
+- 署名要求は接続済みオリジンからのみ受け付ける。
 - 対象プロファイルがロック中の場合は署名せず、拡張機能のアンロック画面を表示する。Web ページへパスワードを入力させない。
 - 署名ごとに独立した確認画面を表示する。
 - ユーザーが承認するまで署名しない。
 - 拒否、画面を閉じる、要求の期限切れはいずれも署名せずエラーを返す。
-- 承認要求の有効期限は作成から5分を上限とする。構造化メッセージは自身の `expiresAt` と承認期限の早い方を使用し、延長には新しい requestId、digest、nonce と再承認を必要とする。
-- 承認待ちの間に Origin、tab、top-level document、プロファイル、アカウント、接続スコープ、payload が変化した場合は要求を無効にする。navigation と tab close も無効化条件とする。
-- Profile、Account、Permission、Vault の revision を要求作成時、承認時、署名直前に照合し、一つでも変化した場合は要求を無効にする。
-- 同一 Profile の署名、lock、Account / Permission 更新は直列化する。Service Worker 再起動後に承認済み要求から署名を自動再開しない。
+- 承認要求の有効期限は作成から5分を上限とする。構造化メッセージは自身の `expiresAt` と承認期限の早い方を使用し、延長には新しい requestId、ダイジェスト、ノンスと再承認を必要とする。
+- 承認待ちの間にオリジン、タブ、最上位の文書、プロファイル、アカウント、接続スコープ、ペイロードが変化した場合は要求を無効にする。ページ遷移とタブ終了も無効化条件とする。
+- プロファイル、アカウント、許可、Vault のリビジョンを要求作成時、承認時、署名直前に照合し、一つでも変化した場合は要求を無効にする。
+- 同一プロファイルの署名、ロック、アカウント / 許可更新は直列化する。サービスワーカー再起動後に承認済み要求から署名を自動再開しない。
 - 署名後のブロードキャストは dApp の責務とし、MosaicLynx は署名結果のみ返す。
 
 ### 12.2 構造化メッセージ署名確認
 
 通常 Provider は、次のフィールドを含む構造化メッセージだけを受け付ける。
 
-- 固定 domain: `mosaiclynx.message.v1`
-- Background が確定した Origin
+- 固定ドメイン: `mosaiclynx.message.v1`
+- バックグラウンドが確定したオリジン
 - チェーンとネットワーク
 - 署名用途を表す `purpose`
-- Origin + Account 単位で一意な `nonce`
+- オリジン + アカウント単位で一意な `nonce`
 - `issuedAt` と `expiresAt`
-- `utf8` または `hex` を明示した payload
+- `utf8` または `hex` を明示したペイロード
 
-signing bytes は ASCII prefix `MOSAICLYNX\0MESSAGE\0V1\0` と、構造化 object を RFC 8785 JCS で canonicalize した UTF-8 byte 列の連結とする。`purpose` は `[a-z0-9][a-z0-9._:-]{0,63}`、nonce は CSPRNG で生成した16〜32 byteのpaddingなしbase64url、日時はUTCのRFC 3339・秒精度・fractionなしとする。`issuedAt` は現在時刻の前後5分以内、`expiresAt` は `issuedAt` より後かつ10分以内とする。UTF-8 payload は NFC 済みの有効な Unicode とし、NFC でない入力は変換せず拒否する。hex payload は偶数長lowercaseとし、decoded payload は16 KiB以下とする。
+署名バイト列は ASCII 接頭辞 `MOSAICLYNX\0MESSAGE\0V1\0` と、構造化オブジェクトを RFC 8785 JCS で正規化した UTF-8 バイト列の連結とする。`purpose` は `[a-z0-9][a-z0-9._:-]{0,63}`、ノンスは CSPRNG で生成した16〜32 バイトのパディングなしbase64url、日時はUTCのRFC 3339・秒精度・fractionなしとする。`issuedAt` は現在時刻の前後5分以内、`expiresAt` は `issuedAt` より後かつ10分以内とする。UTF-8 ペイロードは NFC 済みの有効な Unicode とし、NFC でない入力は変換せず拒否する。hex ペイロードは偶数長小文字とし、デコード済みペイロードは16 KiB以下とする。
 
-dApp が申告した Origin と Background が確定した Origin が異なる場合は拒否する。期限切れ、不正な日時、再利用 nonce、空または規則外の `purpose` は拒否する。署名 Account が一意な request は受付時に、複数候補から選択する request はユーザーが Account を確定した時点に、nonce hashを原子的に`reserved`とし、署名開始時に`used`へ遷移させる。選択確定後は同じ承認要求内で Account を変更できない。同じ Origin + Account + nonce の並行要求を拒否し、予約後の拒否・失敗・画面終了でもexpiresAtまでは再利用させない。replay cacheにはpayloadを含まないhash、Origin、Profile、Account、state、expiresAtだけを短寿命で永続化し、Service Worker再起動後も期限内の再利用を拒否する。signing bytesとSHA-256 digestを承認前と署名直前に再生成して一致を確認し、chainごとの既知ベクトルで固定する。
+dApp が申告したオリジンとバックグラウンドが確定したオリジンが異なる場合は拒否する。期限切れ、不正な日時、再利用ノンス、空または規則外の `purpose` は拒否する。署名アカウントが一意な要求は受付時に、複数候補から選択する要求はユーザーがアカウントを確定した時点に、ノンスハッシュを原子的に`reserved`とし、署名開始時に`used`へ遷移させる。選択確定後は同じ承認要求内でアカウントを変更できない。同じオリジン + アカウント + ノンスの並行要求を拒否し、予約後の拒否・失敗・画面終了でもexpiresAtまでは再利用させない。リプレイキャッシュにはペイロードを含まないハッシュ、オリジン、プロファイル、アカウント、状態、expiresAtだけを短寿命で永続化し、サービスワーカー再起動後も期限内の再利用を拒否する。署名バイト列とSHA-256 ダイジェストを承認前と署名直前に再生成して一致を確認し、チェーンごとの既知ベクトルで固定する。
 
 最低限、次を表示する。
 
-- 要求元 Origin
+- 要求元オリジン
 - チェーンとネットワーク
 - 署名アカウント名とアドレス
-- purpose、nonce、有効期限
-- payload 本文、encoding、および安全に表示可能な表現
-- 実際の signing bytes の digest
+- 目的、ノンス、有効期限
+- ペイロード本文、エンコーディング、および安全に表示可能な表現
+- 実際の署名バイト列のダイジェスト
 - 暗号化メッセージの場合は受信者公開鍵
 - 人間が読めないデータへの署名である場合の警告
 
-制御文字、双方向文字、ゼロ幅文字を可視化し、UTF-8 表示と hex 表示を切り替えられるようにする。表示できない、またはサイズ上限を超える payload は署名しない。
+制御文字、双方向文字、ゼロ幅文字を可視化し、UTF-8 表示と hex 表示を切り替えられるようにする。表示できない、またはサイズ上限を超えるペイロードは署名しない。
 
 ### 12.3 トランザクション署名確認
 
-payload をチェーン別 Adapter で完全に解析する。対応 transaction type / version の全フィールド、aggregate / multisig に含まれる全 inner transaction、signer、chain 固有署名コンテキストを検証し、canonical に再シリアライズした byte 列が元 payload と完全一致する場合だけ確認画面へ進む。
+ペイロードをチェーン別アダプターで完全に解析する。対応トランザクション型 / バージョンの全フィールド、アグリゲート / マルチシグに含まれる全内部トランザクション、署名主体、チェーン固有署名コンテキストを検証し、正規に再シリアライズしたバイト列が元ペイロードと完全一致する場合だけ確認画面へ進む。
 
-Chain Adapter は固定版 symbol-sdk を deserialize、serialize、公開 hash、署名検証、`extractSigningPayload` に限って利用する。秘密鍵を取得し `createAccount`、Account の signing、KeyPair signing を実行することを禁止する。transaction / cosignature / structured message の承認済み exact bytes は正式 wallet-core `sign(store, request, password_utf8)` へ渡す。raw signature から公開結果を組み立て、独立検証する正本は [Chain Compatibility §6](./chain-compatibility-spec.md#6-署名-bytes正式-core-委譲公開-hash) と [Wallet-core Integration](./wallet-core-integration.md) とする。
+チェーンアダプターは固定版 symbol-sdk をデシリアライズ、シリアライズ、公開ハッシュ、署名検証、`extractSigningPayload` に限って利用する。秘密鍵を取得し `createAccount`、アカウントの署名、KeyPair 署名を実行することを禁止する。トランザクション / 連署署名 / 構造化されたメッセージの承認済み厳密なバイト列は正式 wallet-core `sign(store, request, password_utf8)` へ渡す。生の署名から公開結果を組み立て、独立検証する正本は [チェーン互換性 §6](./chain-compatibility-spec.md#6-署名バイト列正式コア委譲公開ハッシュ) と [Wallet-core 統合](./wallet-core-integration.md) とする。
 
-独自 catbuffer parser、serializer、鍵導出、署名 primitive は持たない。追加する処理は allowlist、意味検証、上限、canonical 比較、要約、Permission / revision 検証に限定する。
+独自 catbuffer パーサー、serializer、鍵導出、署名基本機構は持たない。追加する処理は許可リスト、意味検証、上限、正規比較、要約、許可 / リビジョン検証に限定する。
 
-MVPの署名allowlistは次に限定する。symbol-sdk更新で新しいtype / versionが追加されても自動的に許可しない。
+MVPの署名許可リストは次に限定する。symbol-sdk更新で新しい型 / バージョンが追加されても自動的に許可しない。
 
-| チェーン | outer transaction              | version                              | 許可する inner / 追加条件                                                       |
-| -------- | ------------------------------ | ------------------------------------ | ------------------------------------------------------------------------------- |
-| Symbol   | TransferTransaction            | 1                                    | innerなし                                                                       |
-| Symbol   | AggregateCompleteTransaction   | 2                                    | EmbeddedTransferTransaction version 1のみ、最大100件                            |
-| Symbol   | AggregateBondedTransaction     | 2                                    | EmbeddedTransferTransaction version 1のみ、最大100件                            |
-| Symbol   | Aggregate cosignature          | 固定版symbol-sdkのcosignature schema | 完全な親Aggregate payloadを同時に受け取り、上記条件で再解析できる場合のみ       |
-| NEM      | TransferTransaction            | 1 / 2                                | innerなし                                                                       |
-| NEM      | MultisigTransaction            | 1                                    | innerはTransferTransaction version 1 / 2を1件だけ許可し、multisigの入れ子を禁止 |
-| NEM      | MultisigCosignatureTransaction | 1                                    | 完全な参照先MultisigTransactionを同時に受け取り、上記条件で再解析できる場合のみ |
+| チェーン | 外側トランザクション           | バージョン                         | 許可する内部 / 追加条件                                                             |
+| -------- | ------------------------------ | ---------------------------------- | ----------------------------------------------------------------------------------- |
+| Symbol   | TransferTransaction            | 1                                  | 内部なし                                                                            |
+| Symbol   | AggregateCompleteTransaction   | 2                                  | EmbeddedTransferTransaction バージョン 1のみ、最大100件                             |
+| Symbol   | AggregateBondedTransaction     | 2                                  | EmbeddedTransferTransaction バージョン 1のみ、最大100件                             |
+| Symbol   | アグリゲート連署署名           | 固定版symbol-sdkの連署署名スキーマ | 完全な親アグリゲートペイロードを同時に受け取り、上記条件で再解析できる場合のみ      |
+| NEM      | TransferTransaction            | 1 / 2                              | 内部なし                                                                            |
+| NEM      | MultisigTransaction            | 1                                  | 内部はTransferTransaction バージョン 1 / 2を1件だけ許可し、マルチシグの入れ子を禁止 |
+| NEM      | MultisigCosignatureTransaction | 1                                  | 完全な参照先MultisigTransactionを同時に受け取り、上記条件で再解析できる場合のみ     |
 
-transaction payload は256 KiB以下、aggregateのネスト深度はouterとembeddedの2階層までとする。cosignatureはhashやpartial dataだけでは署名せず、署名対象となる親transaction全体、署名者の役割、全資産増減を確認できなければ拒否する。固定版symbol-sdkのschema名、numeric type、version、署名対象byte範囲、network / generation hash等のchain固有contextは Chain Compatibility Specification と固定vectorに従う。
+トランザクションペイロードは256 KiB以下、アグリゲートのネスト深度は外側と埋め込みの2階層までとする。連署署名はハッシュや部分トランザクションデータだけでは署名せず、署名対象となる親トランザクション全体、署名者の役割、全資産増減を確認できなければ拒否する。固定版symbol-sdkのスキーマ名、数値の型、バージョン、署名対象バイト範囲、ネットワーク / 世代ハッシュ等のチェーン固有文脈はチェーン互換性仕様と固定ベクターに従う。
 
-上表にない key link / unlink、account restriction、mosaic definition / supply、namespace registration、address / mosaic alias、secret lock / proof、account metadata、multisig構成変更その他のtransactionはMVPでは拒否する。将来追加する場合は、type / version、全フィールド表示、正味効果、専用警告、canonical test、fuzz testを揃えた仕様変更とProvider互換表更新を必要とする。
+上表にない鍵リンク / unlink、アカウント制限、mosaic definition / 供給、名前空間登録、アドレス / mosaic 別名、秘密情報ロック / 証明、アカウントメタデータ、マルチシグ構成変更その他のトランザクションはMVPでは拒否する。将来追加する場合は、型 / バージョン、全フィールド表示、正味効果、専用警告、正規テスト、ファズテストを揃えた仕様変更とProvider互換表更新を必要とする。
 
-- 要求元 Origin
+- 要求元オリジン
 - チェーンとネットワーク
 - トランザクション種別
 - 署名アカウント名とアドレス
@@ -303,24 +303,24 @@ transaction payload は256 KiB以下、aggregateのネスト深度はouterとemb
 - メッセージ
 - 期限
 - 連署、アグリゲート等の重要な属性
-- 全 inner transaction を集約した資産増減、全宛先、権限変更
-- 署名者が initiator / cosigner / multisig participant のいずれであるか
-- raw field、payload digest、外部未検証の metadata
+- 全内部トランザクションを集約した資産増減、全宛先、権限変更
+- 署名者が開始主体 / 連署者 / マルチシグ参加者のいずれであるか
+- 生のフィールド、ペイロードダイジェスト、外部未検証のメタデータ
 
-未知 transaction type / version、未解析フィールド、余剰 byte、非 canonical encoding、整数 overflow、過剰なネストまたは要素数、signer 不一致がある場合は署名を拒否する。警告付きで続行する操作は設けない。将来 key link / unlink、account restriction、mosaic supply、namespace、multisig 構成変更等を追加する場合は高リスク種別として専用の効果説明を必須とし、対応表と専用表示がない種別は拒否する。
+未知トランザクション型 / バージョン、未解析フィールド、余剰バイト、非正規エンコーディング、整数オーバーフロー、過剰なネストまたは要素数、署名主体不一致がある場合は署名を拒否する。警告付きで続行する操作は設けない。将来鍵リンク / unlink、アカウント制限、mosaic 供給、名前空間、マルチシグ構成変更等を追加する場合は高リスク種別として専用の効果説明を必須とし、対応表と専用表示がない種別は拒否する。
 
-Symbol の unresolved address または unresolved mosaic ID が namespace alias を表す場合、MVP は実際の解決先をローカルで確定できないため署名を拒否する。通常の raw mosaic IDについて、mosaic name / divisibility をローカルで確定できない場合は、推測した名称や換算額を表示せず raw ID と atomic amount を「名称・桁数は外部未検証」として表示してよい。残高、account / mosaic restriction、alias の現在状態、期限内に承認されること、重複 announce、既存 cosignature 等のオンチェーン状態は検証保証に含めず、画面へ「チェーン状態は未照合」と固定表示する。これは transaction byte 列の未解析を許容するものではない。解析結果だけを信用せず、署名直前に元 payload、canonical encoding、要求チェーン、Profile network、Account、Permission、signerを再検証する。
+Symbol の未解消アドレスまたは未解消 mosaic ID が名前空間別名を表す場合、MVP は実際の解決先をローカルで確定できないため署名を拒否する。通常の生の mosaic IDについて、mosaic 名前 / 小数桁数をローカルで確定できない場合は、推測した名称や換算額を表示せず生の ID と最小単位の数量を「名称・桁数は外部未検証」として表示してよい。残高、アカウント / mosaic 制限、別名の現在状態、期限内に承認されること、重複アナウンス、既存連署署名等のオンチェーン状態は検証保証に含めず、画面へ「チェーン状態は未照合」と固定表示する。これはトランザクションバイト列の未解析を許容するものではない。解析結果だけを信用せず、署名直前に元ペイロード、正規エンコーディング、要求チェーン、プロファイルネットワーク、アカウント、許可、署名主体を再検証する。
 
 ## 13. ロック
 
 - 起動直後は全プロファイルをロック状態とする。
 - ユーザーは現在のプロファイルを任意の時点で手動ロックできる。
-- MosaicLynx は復号鍵と秘密鍵 handle を取得・保持しない。アンロック session は、ユーザーが視認できる trusted extension document（ホームまたは承認 window）のメモリだけに属する。
-- trusted extension document が存在し続ける場合に限り、初期設定では最後のユーザー操作から15分で自動ロックする。全 trusted document の close / crash、ブラウザ終了、端末のsleep復帰、extension reload / updateで直ちにロックする。
-- Service Worker の通常の停止・再起動だけでは、既存 trusted document 内の session を自動移送または再生成しない。Worker復帰後は document と一回限りのchallenge-responseで同一extension instance、Profile、Vault revisionを再照合する。trusted documentが存在しない場合は必ずlockedとして扱う。
-- 署名要求で locked の場合は専用承認 window 内で password を入力させ、その window 内で解析、再検証、署名を完了する。復号鍵またはraw secretをService Workerへ返さない。承認 window が閉じた場合は sign invocation 前なら拒否し、後なら確定性に応じ RESULT_UNKNOWN または既知結果を維持する。password と gate を破棄する。
+- MosaicLynx は復号鍵と秘密鍵ハンドルを取得・保持しない。アンロックセッションは、ユーザーが視認できる信頼された拡張機能文書（ホームまたは承認 window）のメモリだけに属する。
+- 信頼された拡張機能文書が存在し続ける場合に限り、初期設定では最後のユーザー操作から15分で自動ロックする。全信頼された文書の終了 / 異常終了、ブラウザ終了、端末のsleep復帰、拡張機能再読み込み / 更新で直ちにロックする。
+- サービスワーカーの通常の停止・再起動だけでは、既存信頼された文書内のセッションを自動移送または再生成しない。ワーカー復帰後は文書と一回限りのchallenge-responseで同一拡張機能インスタンス、プロファイル、Vault リビジョンを再照合する。信頼された文書が存在しない場合は必ずロック済みとして扱う。
+- 署名要求でロック済みの場合は専用承認 window 内でパスワードを入力させ、その window 内で解析、再検証、署名を完了する。復号鍵または生の秘密情報をサービスワーカーへ返さない。承認 window が閉じた場合は署名呼び出し前なら拒否し、後なら確定性に応じ RESULT_UNKNOWN または既知結果を維持する。パスワードと判定条件を破棄する。
 - ロック中も公開情報と接続許可は保存できるが、対象プロファイルの秘密情報の復号と署名は行えない。
-- ロックしても Origin の接続許可は削除しない。
+- ロックしてもオリジンの接続許可は削除しない。
 - アンロックの成功・失敗を Web ページへ過剰に通知しない。
 
 ## 14. 設定
@@ -341,7 +341,7 @@ Symbol の unresolved address または unresolved mosaic ID が namespace alias
 
 ## 15. 保存データの論理モデル
 
-具体的な暗号化形式と Storage の分割はアーキテクチャ設計で定義する。以下は trusted Extension / Profile 内部の logical model であり、page、Provider、SDK または Relay の public contract ではない。`id`、`profileId`、`accountId`、`accountIds` および `activeAccountId` は外部 requester が直接指定・取得する selector ではない。
+具体的な暗号化形式と保存領域の分割はアーキテクチャ設計で定義する。以下は信頼された拡張機能 / プロファイル内部の論理的なモデルであり、ページ、Provider、SDK または Relay の公開契約ではない。`id`、`profileId`、`accountId`、`accountIds` および `activeAccountId` は外部要求元が直接指定・取得する選択子ではない。
 
 ```text
 Profiles[]
@@ -378,7 +378,7 @@ UsedMessageNonces[]
 └── state: reserved | used, expiresAt
 ```
 
-Future backup の state および metadata は [Profile / Account Specification](./profile-account-spec.md) が所有し、本 Product の内部 logical model は backup の field 名や verification state を定義しない。
+将来バックアップの状態およびメタデータは [プロファイル / アカウント仕様](./profile-account-spec.md) が所有し、本プロダクトの内部論理的なモデルはバックアップのフィールド名や検証状態を定義しない。
 
 要件は次のとおりとする。
 
@@ -386,52 +386,52 @@ Future backup の state および metadata は [Profile / Account Specification]
 - 秘密鍵とニーモニックを暗号化せず保存しない。
 - 鍵の由来と、ニーモニック由来の場合は派生パスを保持する。
 - 公開設定、接続許可、プロファイルごとの暗号化 Vault を論理的に分離する。
-- ログ、エラー、クラッシュレポートへ秘密情報や署名 payload を出力しない。
-- `chrome.storage.local` と `chrome.storage.session` は trusted extension context だけからアクセス可能にし、Content Script へ直接公開しない。
-- Wallet Store の KDF / AEAD / format は固定 wallet-core の正式契約を唯一の実装とし、MosaicLynx に独自暗号形式を定義しない。opaque bytes の原子的永続化のみを行う。
-- password rotation と schema / crypto migration は copy-on-write で実行し、完全性検証後に切り替える。失敗、中断、容量不足時は旧 Vault を保持し、暗号形式の downgrade を拒否する。
+- ログ、エラー、クラッシュレポートへ秘密情報や署名ペイロードを出力しない。
+- `chrome.storage.local` と `chrome.storage.session` は信頼された拡張機能文脈だけからアクセス可能にし、コンテンツスクリプトへ直接公開しない。
+- ウォレットストアの KDF / AEAD / 形式は固定 wallet-core の正式契約を唯一の実装とし、MosaicLynx に独自暗号形式を定義しない。内容を解釈しないバイト列の原子的永続化のみを行う。
+- パスワードローテーションとスキーマ / 暗号処理移行は copy-on-write で実行し、完全性検証後に切り替える。失敗、中断、容量不足時は旧 Vault を保持し、暗号形式の格下げを拒否する。
 
 ## 16. Provider
 
-### 16.1 Product の責任範囲
+### 16.1 プロダクトの責任範囲
 
-本節は Browser Provider を製品が提供する境界として参照するが、Product 独自の Provider API schema を定義しない。`window.mosaicLynx`、Provider method、event、input、result および error の page-facing contract は [browser-extension.md §5](./browser-extension.md) が定め、SDK が dApp へ公開する concrete API と result mapping は [sdk.md §5](./sdk.md) および [web-transaction-handoff-spec.md §5](./web-transaction-handoff-spec.md) が定める。
+本節はブラウザ Provider を製品が提供する境界として参照するが、プロダクト独自の Provider API スキーマを定義しない。`window.mosaicLynx`、Provider メソッド、イベント、入力、結果およびエラーのページに公開する契約は [browser-extension.md §5](./browser-extension.md) が定め、SDK が dApp へ公開する具体的な API と結果対応付けは [sdk.md §5](./sdk.md) および [web-transaction-handoff-spec.md §5](./web-transaction-handoff-spec.md) が定める。
 
-Product の現行 signing behavior は、共通 logical operation `MESSAGE_SIGN`、SDK / Handoff operation `signData`、Browser Provider-specific adapter method `signMessage` の対応を使用する。Browser 固有 method の mapping、structured message、result、error および delivery semantics は [browser-extension.md §5.2.3](./browser-extension.md) を参照し、Product は別の bare result、raw signing、transaction signing fallback または selector contract を追加しない。
+プロダクトの現行署名動作は、共通論理的な操作 `MESSAGE_SIGN`、SDK / 受け渡し操作 `signData`、ブラウザ Provider 固有のアダプターメソッド `signMessage` の対応を使用する。ブラウザ固有メソッドの対応付け、構造化されたメッセージ、結果、エラーおよび配送意味は [browser-extension.md §5.2.3](./browser-extension.md) を参照し、プロダクトは別の修飾のない結果、生の署名、トランザクション署名代替経路または選択子契約を追加しない。
 
-旧 Product page-facing shape（`Account[]`、`accountId`、`accountIds`、`activeAccountId`、`recipientPublicKey`、`SignedMessage` / `SignedTransaction` の bare return および旧 `signMessage` / `signTransaction` schema）は historical / non-normative / out-of-scope とする。本書の現行 contract として読んではならず、現行 shape との compatibility alias としても許可しない。
+旧プロダクトページに公開する構造（`Account[]`、`accountId`、`accountIds`、`activeAccountId`、`recipientPublicKey`、`SignedMessage` / `SignedTransaction` の修飾のない返却および旧 `signMessage` / `signTransaction` スキーマ）は historical / 非規範的な / 対象外とする。本書の現行契約として読んではならず、現行構造との互換性別名としても許可しない。
 
-Product から Web page / dApp へ公開する Account は `PublicAccountIdentity` に限る。Provider collection、active Account、SDK singular response、signing result および error の外部可視 mapping は、上記の既存 authority に従う。
+プロダクトから Web ページ / dApp へ公開するアカウントは `PublicAccountIdentity` に限る。Provider 収集、有効なアカウント、SDK 単数応答、署名結果およびエラーの外部可視対応付けは、上記の既存判断権限に従う。
 
 ## 17. 非機能要件
 
 ### 17.1 セキュリティ
 
-- Content Security Policy により外部スクリプト、JavaScript の `eval`、動的 module を禁止する。Argon2id の固定済み bundled WebAssembly に必要な `wasm-unsafe-eval` だけを extension page の最小範囲で許可できるが、remote WASM と任意 bytecode の入力経路は設けない。
-- Web ページ、Content Script、Service Worker、承認画面の境界で全メッセージを検証する。
-- Service Worker は `sender.url` から Origin を算出し、ページから申告された Origin を信用しない。
-- MVP は top-level frame だけを許可し、iframe、opaque Origin、`file:`、`data:`、`chrome:` からの要求を拒否する。
-- Origin は canonicalize し、承認画面で scheme、port、Unicode表記、ASCII / Punycode 表記を確認できるようにする。favicon、ページタイトル、サイト名は認証情報として扱わない。
+- 内容セキュリティポリシーにより外部スクリプト、JavaScript の `eval`、動的モジュールを禁止する。Argon2id の固定済み bundled WebAssembly に必要な `wasm-unsafe-eval` だけを拡張機能ページの最小範囲で許可できるが、リモート WASM と任意 bytecode の入力経路は設けない。
+- Web ページ、コンテンツスクリプト、サービスワーカー、承認画面の境界で全メッセージを検証する。
+- サービスワーカーは `sender.url` からオリジンを算出し、ページから申告されたオリジンを信用しない。
+- MVP は最上位のフレームだけを許可し、iframe、内容を解釈しないオリジン、`file:`、`data:`、`chrome:` からの要求を拒否する。
+- オリジンは正規化し、承認画面で方式、ポート、Unicode表記、ASCII / Punycode 表記を確認できるようにする。ファビコン、ページタイトル、サイト名は認証情報として扱わない。
 - 承認要求には一意 ID、有効期限、一度限りの解決を設ける。
 - 同一要求への二重承認、承認画面の再利用、リプレイを防止する。
 - 暗号方式と KDF パラメータを保存形式に含め、将来更新可能にする。
-- パスワード、秘密鍵、ニーモニックを DOM 属性、Clipboard、ログへ残さない。
-- 対応表にない transaction type / version、未解析フィールド、非 canonical payload は Mainnet / Testnet とも署名しない。
-- Profile、Account、Permission、Vault の revision と request digest を承認時と署名直前に再検証する。
-- Chrome Extension 版は Secure Enclave / Secure Element へ秘密鍵を隔離しないソフトウェア署名機である。アンロック中の OS、ブラウザ、extension process、配布 artifact の侵害までは防げず、コールドウォレット、ハードウェアウォレット、企業カストディ相当と表示しない。
-- Mnemonic / private key / raw signing secret を MosaicLynx は取得せず core 内だけで扱う。password は現在の操作に必要な owned byte buffer だけで扱い、UI state、DOM 属性、例外、telemetry に保存しない。JavaScript の GC により完全なメモリ消去を保証できない限界を脅威モデルに記載する。
+- パスワード、秘密鍵、ニーモニックを DOM 属性、クリップボード、ログへ残さない。
+- 対応表にないトランザクション型 / バージョン、未解析フィールド、非正規ペイロードは Mainnet / Testnet とも署名しない。
+- プロファイル、アカウント、許可、Vault のリビジョンと要求ダイジェストを承認時と署名直前に再検証する。
+- Chrome 拡張機能版は安全な Enclave / 安全な Element へ秘密鍵を隔離しないソフトウェア署名機である。アンロック中の OS、ブラウザ、拡張機能プロセス、配布成果物の侵害までは防げず、コールドウォレット、ハードウェアウォレット、企業カストディ相当と表示しない。
+- ニーモニック / 秘密鍵 / 生の署名秘密情報を MosaicLynx は取得せずコア内だけで扱う。パスワードは現在の操作に必要な所有するバイトバッファーだけで扱い、UI 状態、DOM 属性、例外、遠隔計測データに保存しない。JavaScript の GC により完全なメモリ消去を保証できない限界を脅威モデルに記載する。
 
 #### 17.1.1 保証レベルと脅威モデル
 
-| 脅威                            | Software Vault MVP                                                     | 検知・表示                           | 対象外 / 上位 Signer                                               |
-| ------------------------------- | ---------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------ |
-| Web page / dApp の悪意          | Origin binding、Permission、完全解析、明示承認で防御                   | 未検証 metadata とchain状態を表示    | Web page自身が作成前payloadを偽ることは、最終payload確認でのみ軽減 |
-| Content Script / Provider改ざん | Backgroundとtrusted signing documentでschema・digest・revisionを再検証 | context changeとして拒否             | Chrome本体またはextension process侵害                              |
-| 保存領域窃取                    | Argon2id + AES-GCMで防御                                               | AEAD失敗、downgradeを拒否            | 弱いpasswordのoffline推測                                          |
-| アンロック中のmemory侵害        | secret lifetime最小化、Service Workerへraw secretを渡さない            | Software Vault表示                   | OS malware、debugger、browser exploitは防御しない                  |
-| 配布artifact / Store侵害        | lockfile、provenance、複数人release承認                                | version、parser version表示          | 正規署名済み悪性updateはincident response対象                      |
-| Relay侵害                       | E2E AEAD、capability分離                                               | AEAD / digest不一致を拒否            | Mobile端末または正規App侵害                                        |
-| Mobile Origin phishing          | Mainnetは登録dApp鍵のOrigin proofを必須化                              | Testnetでproofなしは未検証と固定表示 | 登録鍵はサイト運営主体の正当性や安全性までは保証しない             |
+| 脅威                                  | ソフトウェア Vault MVP                                                           | 検知・表示                           | 対象外 / 上位署名主体                                                      |
+| ------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------- |
+| Web ページ / dApp の悪意              | オリジンとの結び付け、許可、完全解析、明示承認で防御                             | 未検証メタデータとチェーン状態を表示 | Web ページ自身が作成前ペイロードを偽ることは、最終ペイロード確認でのみ軽減 |
+| コンテンツスクリプト / Provider改ざん | バックグラウンドと信頼された署名文書でスキーマ・ダイジェスト・リビジョンを再検証 | 文脈変更として拒否                   | Chrome本体または拡張機能プロセス侵害                                       |
+| 保存領域窃取                          | Argon2id + AES-GCMで防御                                                         | AEAD失敗、格下げを拒否               | 弱いパスワードのオフライン推測                                             |
+| アンロック中のメモリ侵害              | 秘密情報有効期間最小化、サービスワーカーへ生の秘密情報を渡さない                 | ソフトウェア Vault表示               | OS malware、debugger、ブラウザ exploitは防御しない                         |
+| 配布成果物 / ストア侵害               | ロックファイル、来歴情報、複数人リリース承認                                     | バージョン、パーサーバージョン表示   | 正規署名済み悪性更新は事故応答対象                                         |
+| Relay侵害                             | E2E AEAD、対応能力分離                                                           | AEAD / ダイジェスト不一致を拒否      | モバイル端末または正規アプリ侵害                                           |
+| モバイルオリジン phishing             | Mainnetは登録dApp鍵のオリジン証明を必須化                                        | Testnetで証明なしは未検証と固定表示  | 登録鍵はサイト運営主体の正当性や安全性までは保証しない                     |
 
 MVP の保証名は `Software Vault` とする。`OS-backed`、`Hardware`、`MPC` を実装するまで同等表示を行わない。保証レベルの説明は設定画面に集約し、署名確認画面では重複表示しない。
 
@@ -441,65 +441,65 @@ MVP の保証名は `Software Vault` とする。`OS-backed`、`Hardware`、`MPC
 - フォーカス位置を視認できる。
 - 状態を色だけで表現しない。
 - 署名承認と拒否を誤操作しにくい配置にする。
-- 長いアドレスと Origin は省略表示だけでなく全文確認できる。
-- 承認を初期 focus または Enter key の既定動作にしない。
-- aggregate / multisig は全 inner transaction の正味効果を先に表示し、個別明細と raw digest を後から確認できるようにする。
+- 長いアドレスとオリジンは省略表示だけでなく全文確認できる。
+- 承認を初期フォーカスまたは Enter キーの既定動作にしない。
+- アグリゲート / マルチシグは全内部トランザクションの正味効果を先に表示し、個別明細と生のダイジェストを後から確認できるようにする。
 - 制御文字、双方向文字、ゼロ幅文字を可視化し、UTF-8 / hex 表示を切り替えられるようにする。
-- 高リスク transaction type は一般的な「署名する」だけでなく、実際の権限変更や鍵操作を承認ボタン付近へ明記する。
+- 高リスクトランザクション型は一般的な「署名する」だけでなく、実際の権限変更や鍵操作を承認ボタン付近へ明記する。
 
-#### 17.2.1 署名確認 interaction
+#### 17.2.1 署名確認操作
 
 確認画面は次の三層を順番固定で表示する。
 
-1. **判断要約:** 検証済みOrigin、chain / network、Account、署名者の役割、assetごとの正味増減、全宛先、最大手数料、deadline、chain状態未照合表示
-2. **全明細:** transaction順を維持した全inner transaction。100件までvirtualizeしてよいが、省略、paginationによる未読扱い、dApp指定の並べ替えを行わない。宛先・asset別の集約、重複宛先、自己送金、0 amountを強調する。
-3. **技術詳細:** 全raw field、payload byte length、payload digest、canonical digest、parser / symbol-sdk version、UTF-8 / hex。通常は折り畳めるがDOMから除去しない。
+1. **判断要約:** 検証済みオリジン、チェーン / ネットワーク、アカウント、署名者の役割、資産ごとの正味増減、全宛先、最大手数料、期限、チェーン状態未照合表示
+2. **全明細:** トランザクション順を維持した全内部トランザクション。100件まで仮想化してよいが、省略、ページ分割による未読扱い、dApp指定の並べ替えを行わない。宛先・資産別の集約、重複宛先、自己送金、0 数量を強調する。
+3. **技術詳細:** 全生のフィールド、ペイロードバイト長さ、ペイロードダイジェスト、正規ダイジェスト、パーサー / symbol-sdk バージョン、UTF-8 / hex。通常は折り畳めるがDOMから除去しない。
 
-- 承認ボタンは常に最終層の後へ通常フローで置き、本文と重なる固定表示にしない。初期focus、Enter、Spaceの既定action、画面open直後の座標に配置しない。拒否は常時操作可能にする。
-- Mainnetでは画面表示から800ms以上経過し、要約の描画完了と全検証完了を確認するまで承認をdisabledにする。aggregate / multisigは要約を一度表示領域へ入れるまで有効化しない。時間経過だけで承認しない。
-- Origin、address、public key、raw IDは先頭末尾だけで判断させず、全文表示、copyではない文字単位選択、同一画面内比較を提供する。Clipboardへ送る操作は別確認を必要とする。
-- unresolved aliasを含む要求は警告付き続行ではなく拒否画面にする。名称・divisibilityだけが未検証のraw mosaic IDはatomic amountを主表示し、換算値を表示しない。
-- 制御文字、Bidi、zero-widthを置換記号とcode pointで可視化する。安全な表示表現を生成できないmessageは拒否する。
-- Mobileの未検証Originには「このサイトはMosaicLynxが確認していません。サイト名ではなく送信内容を確認してください」を承認ボタン直上にも表示する。
-- WCAG 2.2 AA、400% zoom、keyboard-only、screen reader、forced-colors、reduced-motion、日本語 / 英語で同一情報をE2E受け入れ条件とする。
+- 承認ボタンは常に最終層の後へ通常フローで置き、本文と重なる固定表示にしない。初期フォーカス、Enter、Spaceの既定対応、画面を開いた直後の座標に配置しない。拒否は常時操作可能にする。
+- Mainnetでは画面表示から800ms以上経過し、要約の描画完了と全検証完了を確認するまで承認を無効にする。アグリゲート / マルチシグは要約を一度表示領域へ入れるまで有効化しない。時間経過だけで承認しない。
+- オリジン、アドレス、公開鍵、生の IDは先頭末尾だけで判断させず、全文表示、コピーではない文字単位選択、同一画面内比較を提供する。クリップボードへ送る操作は別確認を必要とする。
+- 未解消別名を含む要求は警告付き続行ではなく拒否画面にする。名称・小数桁数だけが未検証の生の mosaic IDは最小単位の数量を主表示し、換算値を表示しない。
+- 制御文字、Bidi、ゼロ幅文字を置換記号とコードポイントで可視化する。安全な表示表現を生成できないメッセージは拒否する。
+- モバイルの未検証オリジンには「このサイトはMosaicLynxが確認していません。サイト名ではなく送信内容を確認してください」を承認ボタン直上にも表示する。
+- WCAG 2.2 AA、400% 拡大、キーボードのみの操作、画面読み上げ、強制配色、動きを抑える設定、日本語 / 英語で同一情報をE2E受け入れ条件とする。
 
 #### 17.2.2 規範ワイヤーフレームと確定文言
 
-署名画面は次の情報順序を変更しない。visual designは変更できるが、括弧内のfixture binding、見出し、警告、button label、承認disabled条件を省略しない。
+署名画面は次の情報順序を変更しない。視覚表現設計は変更できるが、括弧内のフィクスチャ結び付け、見出し、警告、ボタンラベル、承認無効条件を省略しない。
 
 ```text
-┌ MosaicLynx  SYMBOL MAINNET                        [拒否 / Reject]
-│ app.example (app.example)  登録Origin / Registered origin
-│ Account A  N...全文...  initiator / asset sender
-├ 判断要約 / Decision summary
-│ 送付 / Send:  -1,000,000 atomic [0x85BB...C1]
-│ 宛先 / To:    N...全文...
-│ 最大手数料 / Maximum fee: -50,000 atomic XYM
-│ 期限 / Deadline: ISO時刻 + raw
-│ ! チェーン状態は未照合 / Chain state not checked
-├ 全明細 / All details                         [1 / 1]
-│ Transfer V1: signer, recipient, mosaic ID, amount, message
-├ 技術詳細 / Technical details [折り畳み]
-│ 全raw field、payload/canonical digest、parser/fixture contract version
-└ [署名を拒否 / Reject]              [内容を確認して署名 / Confirm and sign]
+┌ MosaicLynx  SYMBOL MAINNET                        [拒否]
+│ app.example (app.example)  登録オリジン
+│ アカウント A  N...全文...  開始主体 / 資産送信者
+├ 判断要約
+│ 送付:        -1,000,000 最小単位 [0x85BB...C1]
+│ 宛先:        N...全文...
+│ 最大手数料:  -50,000（XYM の最小単位）
+│ 期限:        ISO 時刻 + 生の値
+│ ! チェーン状態は未照合
+├ 全明細                                          [1 / 1]
+│ Transfer V1: 署名者、宛先、モザイク ID、数量、メッセージ
+├ 技術詳細 [折り畳み]
+│ 全生フィールド、ペイロード / 正規ダイジェスト、パーサー / フィクスチャの契約バージョン
+└ [署名を拒否]                         [内容を確認して署名]
 ```
 
 ```text
 ┌ MosaicLynx  SYMBOL MAINNET
-│ Aggregate Complete V2 — cosigner候補 / cosigner candidate
-├ 正味効果 / Net effects          100 inner transactions
-│ Account A: -asset X, +asset Y   最大手数料はinitiator負担
-│ 12宛先、3自己送金、2 zero amount、raw ID 4件
-├ 全明細 / All details [virtual list、wire順固定]
+│ Aggregate Complete V2 — 連署者候補
+├ 正味効果                         内部トランザクション100件
+│ アカウント A: -資産 X、+資産 Y    最大手数料は開始主体負担
+│ 宛先12件、自己送金3件、数量0が2件、生の ID 4件
+├ 全明細 [仮想一覧、通信上の順序を固定]
 │ 001 … 050 … 100  （未表示件数を「確認済み」にしない）
-├ 成立時の親Transaction効果 / Parent effects if completed
-│ ! cosigner権限・既存署名・chain状態は未照合
-└ [署名を拒否]              [全100件を表示後: 連署する / Cosign]
+├ 成立時の親トランザクション効果
+│ ! 連署者権限・既存署名・チェーン状態は未照合
+└ [署名を拒否]                [全100件を表示後: 連署する]
 ```
 
-確定security copyは次とする。翻訳keyの値はsecurity reviewなしに変更しない。
+確定セキュリティコピーは次とする。翻訳キーの値はセキュリティレビューなしに変更しない。
 
-| key                 | 日本語                                                                                 | English                                                                                                     |
+| キー                | 日本語                                                                                 | 英語                                                                                                        |
 | ------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `approval.reject`   | 署名を拒否                                                                             | Reject                                                                                                      |
 | `approval.confirm`  | 内容を確認して署名                                                                     | Confirm and sign                                                                                            |
@@ -508,81 +508,81 @@ MVP の保証名は `Software Vault` とする。`OS-backed`、`Hardware`、`MPC
 | `state.unverified`  | チェーン状態は未照合です。残高、権限、既存署名、期限到達は確認していません。           | Chain state is not checked. Balances, permissions, existing signatures, and deadline status are unverified. |
 | `origin.registered` | 登録Originで検証済み                                                                   | Verified by the registered origin key                                                                       |
 | `origin.unverified` | このサイトはMosaicLynxが確認していません。サイト名ではなく送信内容を確認してください。 | MosaicLynx has not verified this site. Verify the transaction details, not the site name.                   |
-| `raw_asset.warning` | 名称・桁数は外部未検証です。raw IDとatomic amountで確認してください。                  | Name and divisibility are externally unverified. Verify the raw ID and atomic amount.                       |
+| `raw_asset.warning` | 名称・桁数は外部未検証です。raw IDとatomic amountで確認してください。                  | Name and 小数桁数 are externally unverified. Verify the raw ID and atomic amount.                           |
 | `alias.rejected`    | 解決先をローカルで確認できないaliasを含むため署名できません。                          | Cannot sign because an alias cannot be resolved locally.                                                    |
 
 #### 17.2.3 ユーザビリティ検証
 
-formative test後、release candidateと規範fixtureでsummative testを行う。参加者は日本語・英語、desktop Extension・Mobileの4 cohortに各60名以上、うち半数以上を暗号資産署名経験が月1回以下の利用者とする。同一人物を複数cohortへ重複計上しない。シナリオ順はLatin squareで均衡化し、正解を示す誘導文を使わない。
+formative テスト後、リリース候補と規範フィクスチャでsummative テストを行う。参加者は日本語・英語、desktop 拡張機能・モバイルの4 cohortに各60名以上、うち半数以上を暗号資産署名経験が月1回以下の利用者とする。同一人物を複数cohortへ重複計上しない。シナリオ順はLatin squareで均衡化し、正解を示す誘導文を使わない。
 
-| scenario / fixture                                                | 必須task                                                                   | critical misapproval                            |
-| ----------------------------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------- |
-| 100件Aggregate `SYM-AGG-COMPLETE-V2-TESTNET-100`と改ざん版`…-950` | 正味増減、fee payer、特定宛先、自己送金、zero amountを答え、改ざん版を拒否 | transactionsHash不一致または隠れた101件目を承認 |
-| IDN `UX-IDN-HOMOGRAPH-001`                                        | UnicodeとPunycode Originを比較し、homographを拒否                          | canonical ASCII Origin不一致を承認              |
-| raw ID `UX-RAW-MOSAIC-001`                                        | raw mosaic IDとatomic amountを正しく照合し、架空名称を信用しない           | raw ID/amount不一致またはalias rejectを承認     |
+| scenario / フィクスチャ                                              | 必須タスク                                                                  | 重大 misapproval                                |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------- |
+| 100件アグリゲート `SYM-AGG-COMPLETE-V2-TESTNET-100`と改ざん版`…-950` | 正味増減、手数料支払者、特定宛先、自己送金、zero 数量を答え、改ざん版を拒否 | transactionsHash不一致または隠れた101件目を承認 |
+| IDN `UX-IDN-HOMOGRAPH-001`                                           | UnicodeとPunycode オリジンを比較し、homographを拒否                         | 正規 ASCII オリジン不一致を承認                 |
+| 生の ID `UX-RAW-MOSAIC-001`                                          | 生の mosaic IDと最小単位の数量を正しく照合し、架空名称を信用しない          | 生の ID/amount不一致または別名拒否を承認        |
 
-`critical misapproval rate = critical decoyを承認した人数 / critical decoy提示人数`、`task completion rate = 制限時間内に署名/拒否の正しい最終判断と必須確認質問80%以上を達成した人数 / task開始人数`とする。離脱は未完了に含める。各cohort・各scenarioでcritical misapproval 0件、片側95% Clopper–Pearson上限5%以下（従って最低60件で0件）、task completion 95%以上、誤拒否5%以下を全て満たす。100件Aggregateは180秒、他は90秒を制限時間とし、中央値に加えてp90を報告する。基準未達は文言やlayoutを変更して独立参加者で再試験し、平均値によるcohort間相殺を禁止する。
+`critical misapproval rate = critical decoyを承認した人数 / critical decoy提示人数`、`task completion rate = 制限時間内に署名/拒否の正しい最終判断と必須確認質問80%以上を達成した人数 / task開始人数`とする。離脱は未完了に含める。各cohort・各scenarioで重大 misapproval 0件、片側95% Clopper–Pearson上限5%以下（従って最低60件で0件）、タスク完了 95%以上、誤拒否5%以下を全て満たす。100件アグリゲートは180秒、他は90秒を制限時間とし、中央値に加えてp90を報告する。基準未達は文言や配置を変更して独立参加者で再試験し、平均値によるcohort間相殺を禁止する。
 
-成果物は`docs/evidence/ux/<release>/`へ匿名化protocol、consent、participant criteria、fixture ID、画面録画のredacted参照、raw event CSV、集計script、結果、issueと改善差分として保存する。秘密、実Account、production payloadを使用しない。
+成果物は`docs/evidence/ux/<release>/`へ匿名化プロトコル、consent、参加者条件、フィクスチャ ID、画面録画のredacted参照、生のイベント CSV、集計スクリプト、結果、課題と改善差分として保存する。秘密、実アカウント、本番環境ペイロードを使用しない。
 
 ### 17.3 対応環境
 
 - MVP は Chrome の現行安定版を対象とする。
-- Manifest V3 を使用する。
+- マニフェスト V3 を使用する。
 - 他の Chromium 系ブラウザへの対応可否は別途検証する。
 
 ### 17.4 供給網とアップデート
 
-- dependency lockfile と package integrity を固定し、リリースごとに SBOM、既知脆弱性 scan、artifact digest、build provenance を保存する。
-- 暗号、symbol-sdk、serialization、Chain Adapter の依存更新時は固定 vector、差分 test、fuzz test、全対応 transaction type の回帰 test を必須とする。
-- 本番 build は remote code、`eval`、動的 script、未固定 CDN asset を含めない。
-- Chrome Web Store の公開権限は phishing-resistant MFA と複数人承認で保護する。脆弱 version の公開停止、ユーザー告知、秘密情報移行を含む incident response plan を用意する。
-- schema / Vault migration の中断、容量不足、破損、旧 version 起動を試験し、復旧不能な自動更新を行わない。
+- 依存関係ロックファイルとパッケージ完全性を固定し、リリースごとに SBOM、既知脆弱性 scan、成果物ダイジェスト、ビルド来歴情報を保存する。
+- 暗号、symbol-sdk、シリアライズ、チェーンアダプターの依存更新時は固定ベクター、差分テスト、ファズテスト、全対応トランザクション型の回帰テストを必須とする。
+- 本番ビルドはリモートコード、`eval`、動的スクリプト、未固定 CDN 資産を含めない。
+- Chrome Web ストアの公開権限は phishing-resistant MFA と複数人承認で保護する。脆弱バージョンの公開停止、ユーザー告知、秘密情報移行を含む事故応答 plan を用意する。
+- スキーマ / Vault 移行の中断、容量不足、破損、旧バージョン起動を試験し、復旧不能な自動更新を行わない。
 
 ### 17.5 監査・カストディ
 
-MVP は単独ユーザーによるローカル承認型であり、それだけで企業カストディの職務分離を満たすと表示しない。将来の組織利用に備え、Policy / Signer 境界から次へ拡張可能にする。
+MVP は単独ユーザーによるローカル承認型であり、それだけで企業カストディの職務分離を満たすと表示しない。将来の組織利用に備え、ポリシー / 署名主体境界から次へ拡張可能にする。
 
-- 宛先 allowlist、金額上限、transaction type 禁止、時間帯、二者承認、緊急停止
-- Hardware Signer、Secure Element、MPC の非同期署名と cancel / timeout
-- request digest、解析結果 digest、Origin、公開 Account ID、判断、時刻、app / parser version、policy result の監査記録
+- 宛先許可リスト、金額上限、トランザクション型禁止、時間帯、二者承認、緊急停止
+- ハードウェア署名主体、安全な Element、MPC の非同期署名とキャンセル / タイムアウト
+- 要求ダイジェスト、解析結果ダイジェスト、オリジン、公開アカウント ID、判断、時刻、アプリ / パーサーバージョン、ポリシー結果の監査記録
 
-詳細監査記録はOrganizationマイルストーンで実装し、Extension MVPは永続audit trailを提供しない。Organization版の記録には秘密鍵、ニーモニック、password、full message、full transaction payloadを含めず、管理鍵による署名、連番、前record hash、trusted timeを持たせ、外部WORMまたは独立audit serviceへ定期anchorする。保存期間、legal hold、削除承認、暗号化export、閲覧権限をpolicyで定義する。
+詳細監査記録はOrganizationマイルストーンで実装し、拡張機能 MVPは永続監査 trailを提供しない。Organization版の記録には秘密鍵、ニーモニック、パスワード、全体メッセージ、全体トランザクションペイロードを含めず、管理鍵による署名、連番、前レコードハッシュ、信頼された時刻を持たせ、外部WORMまたは独立監査サービスへ定期アンカーする。保存期間、legal hold、削除承認、暗号化エクスポート、閲覧権限をポリシーで定義する。
 
 ## 18. MVP 受け入れ条件
 
-- Mainnet / Testnet と Symbol / NEM の組み合わせごとにプロファイルを作成でき、選択した Profile.chain の Account / Key Identity から対応するアドレスと公開鍵を取得できる。
-- 一つのプロファイルに Symbol と NEM の Account / Key Identity を混在させず、両方を利用する場合はチェーンごとに別プロファイルを選択できる。
+- Mainnet / Testnet と Symbol / NEM の組み合わせごとにプロファイルを作成でき、選択した Profile.chain のアカウント / 鍵識別情報から対応するアドレスと公開鍵を取得できる。
+- 一つのプロファイルに Symbol と NEM のアカウント / 鍵識別情報を混在させず、両方を利用する場合はチェーンごとに別プロファイルを選択できる。
 - 拡張機能を再起動しても暗号化データと設定を復元できる。
 - 正しい認証なしに秘密情報を復号・署名できない。
-- 未接続 Origin からアカウント情報を取得・署名できない。
-- 接続確認で公開 Account を選択でき、新規 Account が既存 Origin へ自動公開されない。
-- 接続確認と各署名確認で canonical / Punycode Origin、チェーン、ネットワーク、対象アカウントを確認できる。
+- 未接続オリジンからアカウント情報を取得・署名できない。
+- 接続確認で公開アカウントを選択でき、新規アカウントが既存オリジンへ自動公開されない。
+- 接続確認と各署名確認で正規 / Punycode オリジン、チェーン、ネットワーク、対象アカウントを確認できる。
 - 拒否または承認画面を閉じた場合、署名されない。
 - Mainnet / Testnet 間でプロファイル、アカウント、権限が混在しない。
 - ロック時に署名できず、アンロック後のみ署名できる。
 - 日本語と英語で主要フローを完了できる。
 - Provider の公開 API、イベント、エラーを自動テストで確認できる。
-- 構造化メッセージの domain、検証済み Origin、chain、network、purpose、nonce、有効期限が実際の signing bytes に含まれ、再利用 nonce と期限切れ要求を拒否できる。
-- 対応 transaction type / version の全フィールドと全 inner transaction を解析し、canonical 再シリアライズが元 payload と一致する場合だけ署名できる。
-- 未知 type / version、未解析フィールド、余剰 byte、非 canonical payload、過剰ネスト、signer 不一致を署名前に拒否できる。
-- aggregate / multisig の資産増減、全宛先、最大手数料、権限変更、署名者の役割を確認画面で確認できる。
-- Vault の AEAD 改ざん、AAD 差し替え、nonce 再利用、弱い KDF parameter、migration 中断、downgrade を拒否または安全に復旧できる。
-- iframe と偽装 Origin からの要求を拒否し、Storage が untrusted context から参照できない。
-- `SymbolFacade.bip32Path(accountIndex)` と固定BIP39 vectorからMainnet / Testnetの既知Accountを再現し、削除済みaccount indexを再利用しない。
-- 全 signing 経路が正式 core API に委譲され、Mnemonic / private-key import / export / SDK secret signing が呼ばれないことを確認できる。
-- Symbol unresolved address / mosaic aliasをTransferまたはAggregate内で検出し、Mainnet / Testnetとも署名前に拒否する。
-- Service Workerを承認待ち、unlock後、署名直前に停止・再起動してもraw secretをWorkerへ保存せず、trusted signing documentが失われた場合は署名しない。
-- 署名確認の三層、承認disabled条件、chain状態未照合、Software Vault保証レベル、WCAG 2.2 AAをUI/E2E testで確認できる。
-- Profile 20件、Profile + Origin 5件、document 3件、全体50件のpending上限、FIFO、Profileあたり1 window、cancel / disconnect / navigation / lockの無効化範囲をrace testで確認できる。
-- `ApprovalRequestEnvelopeV1`のAEAD、TTL、tombstone、Worker / window crash状態遷移と、Background / trusted documentの独立digest再検証をfault injection testで確認できる。
-- 17.2.3の全cohort・全scenarioが誤承認率とtask completionの合格基準を満たす。
+- 構造化メッセージのドメイン、検証済みオリジン、チェーン、ネットワーク、目的、ノンス、有効期限が実際の署名バイト列に含まれ、再利用ノンスと期限切れ要求を拒否できる。
+- 対応トランザクション型 / バージョンの全フィールドと全内部トランザクションを解析し、正規再シリアライズが元ペイロードと一致する場合だけ署名できる。
+- 未知型 / バージョン、未解析フィールド、余剰バイト、非正規ペイロード、過剰ネスト、署名主体不一致を署名前に拒否できる。
+- アグリゲート / マルチシグの資産増減、全宛先、最大手数料、権限変更、署名者の役割を確認画面で確認できる。
+- Vault の AEAD 改ざん、AAD 差し替え、ノンス再利用、弱い KDF パラメーター、移行中断、格下げを拒否または安全に復旧できる。
+- iframe と偽装オリジンからの要求を拒否し、保存領域が信頼されていない文脈から参照できない。
+- `SymbolFacade.bip32Path(accountIndex)` と固定BIP39 ベクターからMainnet / Testnetの既知アカウントを再現し、削除済みアカウント索引を再利用しない。
+- 全署名経路が正式コア API に委譲され、ニーモニック / 秘密鍵インポート / エクスポート / SDK 秘密情報署名が呼ばれないことを確認できる。
+- Symbol 未解消アドレス / mosaic 別名をTransferまたはアグリゲート内で検出し、Mainnet / Testnetとも署名前に拒否する。
+- サービスワーカーを承認待ち、ロック解除後、署名直前に停止・再起動しても生の秘密情報をワーカーへ保存せず、信頼された署名文書が失われた場合は署名しない。
+- 署名確認の三層、承認無効条件、チェーン状態未照合、ソフトウェア Vault保証レベル、WCAG 2.2 AAをUI/E2E テストで確認できる。
+- プロファイル 20件、プロファイル + オリジン 5件、文書 3件、全体50件の保留中の上限、FIFO、プロファイルあたり1 window、キャンセル / 接続解除 / ページ遷移 / ロックの無効化範囲を競合テストで確認できる。
+- `ApprovalRequestEnvelopeV1`のAEAD、TTL、削除記録、ワーカー / window 異常終了状態遷移と、バックグラウンド / 信頼された文書の独立ダイジェスト再検証を障害注入テストで確認できる。
+- 17.2.3の全cohort・全scenarioが誤承認率とタスク完了の合格基準を満たす。
 
-## 19. Mainnet release evidence
+## 19. Mainnet リリース証跡
 
-> 初期の個人開発リリースでは、[ADR 0001](../adr/0001-mainnet-evidence-lite.md) と `docs/evidence/evidence-policy.json` を正本とするLite policyを適用する。以下の二名承認、再現build、監査、fuzz、key ceremonyの詳細要件はstrict policyへ移行する際の必須条件であり、Liteではmanifest上で `not-required` と明示する。Mainnetを無条件に有効化してよいことを意味しない。
+> 初期の個人開発リリースでは、[ADR 0001](../adr/0001-mainnet-evidence-lite.md) と `docs/evidence/evidence-policy.json` を正本とするLite ポリシーを適用する。以下の二名承認、再現ビルド、監査、ファズ、鍵 ceremonyの詳細要件はstrict ポリシーへ移行する際の必須条件であり、Liteではマニフェスト上で `not-required` と明示する。Mainnetを無条件に有効化してよいことを意味しない。
 
-Mainnet署名機能はExtensionとMobileで個別にgateし、次の証跡が一つでも欠落、期限切れ、hash不一致、未承認の場合はbuild時にMainnet capabilityを無効化する。Testnet合格、Store審査通過、開発者の自己申告を代替証跡にしない。release managerは次の正本をread-only artifact storeへ保存し、署名済み`evidence-manifest.json`から全fileのSHA-256を参照する。
+Mainnet署名機能は拡張機能とモバイルで個別に判定条件し、次の証跡が一つでも欠落、期限切れ、ハッシュ不一致、未承認の場合はビルド時にMainnet 対応能力を無効化する。Testnet合格、ストア審査通過、開発者の自己申告を代替証跡にしない。リリース managerは次の正本を読み取り専用成果物ストアへ保存し、署名済み`evidence-manifest.json`から全ファイルのSHA-256を参照する。
 
 ```text
 docs/evidence/mainnet/<version>/
@@ -597,52 +597,52 @@ docs/evidence/mainnet/<version>/
 └── release-keys/{inventory,ceremony,rotation,revocation-drill}/
 ```
 
-`evidence-manifest.json`はrelease version、git commit、dirty=false、source archive digest、artifact digest、SBOM digest、lockfile digest、symbol-sdk version/integrity、chain compatibility version、fixture contract version、parser version、対象OS/browser、各証跡path/digest、生成時刻および現行policyが要求する承認情報をJCSで保持し、offline release keyで署名する。現行Lite policyではrelease approvalを1件、security approvalを必須とせず（required=0）、同一承認者の複数roleを許可する。strict policyへ移行した場合だけ、policyが要求する複数role・承認者条件および追加証跡を適用する。証跡内にproduction秘密、mnemonic、private key、full user payload、個人情報を含めない。
+`evidence-manifest.json`はリリースバージョン、git コミット、dirty=false、送信元 archive ダイジェスト、成果物ダイジェスト、SBOM ダイジェスト、ロックファイルダイジェスト、symbol-sdk version/integrity、チェーン互換性バージョン、フィクスチャ契約バージョン、パーサーバージョン、対象OS/browser、各証跡path/digest、生成時刻および現行ポリシーが要求する承認情報をJCSで保持し、オフラインリリース鍵で署名する。現行Lite ポリシーではリリース承認を1件、セキュリティ承認を必須とせず（必須=0）、同一承認者の複数役割を許可する。strict ポリシーへ移行した場合だけ、ポリシーが要求する複数役割・承認者条件および追加証跡を適用する。証跡内に本番環境秘密、ニーモニック、秘密鍵、全体利用者ペイロード、個人情報を含めない。
 
-### 19.1 規範fixtureとdifferential / fuzz
+### 19.1 規範フィクスチャと差分 / ファズ
 
-- Chain Compatibility Specification 4章と7章の全正常・境界・reject fixtureを実体としてcommitし、各fixtureへ安定ID、期待rawFields、role、gross/net asset effect、fee effect、UI日英snapshot、期待errorを含める。Symbol/NEM × Mainnet/Testnet × 全allowlist schemaに欠番を許さない。
-- fixed symbol-sdk経路と、test専用の独立field oracle / signing-byte oracleを全fixtureと10万件以上のseeded生成caseでdifferential比較する。decode結果、re-encode byte、signing byte、signature verify、hash、Inspectionの差異0件を合格とし、seed、generator version、全case hashを保存する。
-- parser、canonicalizer、Inspection aggregator、Approval envelope decoder、Relay decoderをcoverage-guided fuzz対象とする。初回Mainnetはchain parserごとに単一campaign連続24時間以上かつ合計100 CPU-hour以上、その後のpatch releaseは保存corpus回帰と各30分smokeを必須とする。crash、hang、OOM、sanitizer finding、unbounded allocation、differential mismatchは0件とし、coverage、exec数、最大RSS、corpus digest、全findingと修正commitを保存する。
-- 過去corpus、公開catbuffer corpus、truncation全offset、256 KiB、100/101件、u64 arithmetic、Bidi/IDNを毎release再実行する。flaky testのrerun合格だけを証跡にせず、原因と隔離期限を記録する。
+- チェーン互換性仕様 4章と7章の全正常・境界・拒否フィクスチャを実体としてコミットし、各フィクスチャへ安定ID、期待rawFields、役割、gross/net 資産影響、手数料影響、UI日英スナップショット、期待エラーを含める。Symbol/NEM × Mainnet/Testnet × 全許可リストスキーマに欠番を許さない。
+- 固定 symbol-sdk経路と、テスト専用の独立フィールド oracle / signing-byte oracleを全フィクスチャと10万件以上のseeded生成事例で差分比較する。デコード結果、re-encode バイト、署名バイト、署名検証、ハッシュ、内容検査の差異0件を合格とし、シード、generator バージョン、全事例ハッシュを保存する。
+- パーサー、canonicalizer、内容検査 aggregator、承認エンベロープ decoder、Relay decoderをcoverage-guided ファズ対象とする。初回Mainnetはチェーンパーサーごとに単一campaign連続24時間以上かつ合計100 CPU-hour以上、その後のpatch リリースは保存corpus回帰と各30分smokeを必須とする。異常終了、hang、OOM、sanitizer 指摘、unbounded 割り当て、差分不一致は0件とし、網羅性、exec数、最大RSS、corpus ダイジェスト、全指摘と修正コミットを保存する。
+- 過去corpus、公開catbuffer corpus、truncation全offset、256 KiB、100/101件、u64 arithmetic、Bidi/IDNを毎リリース再実行する。flaky テストのrerun合格だけを証跡にせず、原因と隔離期限を記録する。
 
-### 19.2 Reproducible build
+### 19.2 再現可能なビルド
 
-- tag/commitからnetworkを遮断したclean container / VM 2環境を別担当者がbuildし、toolchain image digest、OS、locale、timezone、CPU architecture、Node/pnpm version、lockfile、build command、`SOURCE_DATE_EPOCH`を保存する。
-- timestamp、archive order、permission、source map path、署名領域を正規化し、未署名Extension archive / Mobile bundleのbyte digest一致を必須とする。Store署名など再現不能な外部envelopeは分離し、内部payload digest一致と差分理由を機械可読reportにする。
-- SLSA provenance相当の署名済みprovenance、CycloneDXまたはSPDX SBOM、license report、malware/secret scan、critical/high既知脆弱性0件を保存する。例外は影響、期限、owner、二者承認を持つ公開可能なrisk acceptanceが必要で、signing boundaryの例外は認めない。
+- tag/commitからネットワークを遮断した未コミットの変更がない container / VM 2環境を別担当者がビルドし、ツールチェーン image ダイジェスト、OS、locale、timezone、CPU アーキテクチャ、Node/pnpm バージョン、ロックファイル、ビルドコマンド、`SOURCE_DATE_EPOCH`を保存する。
+- タイムスタンプ、archive 順序、許可、送信元対応表パス、署名領域を正規化し、未署名拡張機能 archive / モバイル bundleのバイトダイジェスト一致を必須とする。ストア署名など再現不能な外部エンベロープは分離し、内部ペイロードダイジェスト一致と差分理由を機械可読報告書にする。
+- SLSA 来歴情報相当の署名済み来歴情報、CycloneDXまたはSPDX SBOM、license 報告書、malware/secret scan、critical/high既知脆弱性0件を保存する。例外は影響、期限、責任主体、二者承認を持つ公開可能なリスク受け入れが必要で、署名境界の例外は認めない。
 
-### 19.3 外部security audit
+### 19.3 外部セキュリティ監査
 
-初回Mainnet、signing/Vault/Approval/chain parser/Relayのmajor変更、前回auditから12か月経過の早い時点で独立第三者auditを完了する。scopeはExtension trust boundary、Mobile wrapping、import/restore（対象releaseに含める場合）、cryptography、Symbol/NEM signing byte、全allowlist Inspection、Origin proof、Relay、supply chain、update/rollbackを含む。監査者へsource、設計、fixture、fuzz corpus、再現build手順を提供する。
+初回Mainnet、signing/Vault/Approval/chain parser/Relayの主要変更、前回監査から12か月経過の早い時点で独立第三者監査を完了する。対象範囲は拡張機能信頼境界、モバイルラップ、import/restore（対象リリースに含める場合）、暗号処理、Symbol/NEM 署名バイト、全許可リスト内容検査、オリジン証明、Relay、供給チェーン、update/rollbackを含む。監査者へ送信元、設計、フィクスチャ、ファズ corpus、再現ビルド手順を提供する。
 
-Critical / Highは0件、Mediumは修正とretest完了、Lowはownerと期限を持つことをrelease条件とする。summary、scope、方法、除外、finding severity、修正commit、retest attestationを公開可能な形で保存する。NDAを理由にscopeと未解決riskまで非公開にしない。監査後にsecurity-sensitive codeが変わった場合、差分を監査者または独立security reviewerが再確認する。
+重大 / Highは0件、Mediumは修正とretest完了、Lowは責任主体と期限を持つことをリリース条件とする。要約、対象範囲、方法、除外、指摘重要度、修正コミット、retest 証明を公開可能な形で保存する。NDAを理由に対象範囲と未解決リスクまで非公開にしない。監査後にsecurity-sensitive コードが変わった場合、差分を監査者または独立セキュリティレビュアーが再確認する。
 
-### 19.4 Incident responseとrelease key rotation
+### 19.4 事故応答とリリース鍵ローテーション
 
-incident planは少なくとも鍵漏えい、悪性/破損update、parser bypass、署名byte不一致、Vault復号、Relay metadata/token漏えい、Origin proof鍵侵害、依存compromiseを扱う。24時間365日の一次連絡先と代行、severity、証拠保全、公開停止、Mainnet kill/build disable、最低安全version更新、Store/ユーザー/dApp/監査者への通知、資産移行、postmortemを定義する。Criticalは認知15分、incident commander任命30分、公開停止判断1時間、利用者への初報4時間以内を目標とし、法令・Store要件が短い場合はそちらを優先する。半年ごとにtabletop、年1回はStore公開停止と鍵失効を含む実地drillを行う。
+事故 planは少なくとも鍵漏えい、悪性/破損更新、パーサー迂回、署名バイト不一致、Vault復号、Relay metadata/token漏えい、オリジン証明鍵侵害、依存侵害を扱う。24時間365日の一次連絡先と代行、重要度、証拠保全、公開停止、Mainnet kill/build disable、最低安全バージョン更新、Store/ユーザー/dApp/監査者への通知、資産移行、postmortemを定義する。重大は認知15分、事故 commander任命30分、公開停止判断1時間、利用者への初報4時間以内を目標とし、法令・ストア要件が短い場合はそちらを優先する。半年ごとにtabletop、年1回はストア公開停止と鍵失効を含む実地drillを行う。
 
-release keyは日常開発端末に置かず、hardware-backed/offline環境で2-of-3以上の管理者承認を必要とする。inventoryにはkey ID、用途（manifest / Store / App / Origin）、algorithm、custodian、作成日、有効期限、backup、revocation方法を記録する。定期rotationは12か月以内、custodian離任、algorithm/policy変更、紛失・侵害疑い時は即時とする。
+リリース鍵は日常開発端末に置かず、hardware-backed/offline環境で2-of-3以上の管理者承認を必要とする。一覧には鍵 ID、用途（マニフェスト / ストア / アプリ / オリジン）、アルゴリズム、custodian、作成日、有効期限、バックアップ、失効方法を記録する。定期ローテーションは12か月以内、custodian離任、algorithm/policy変更、紛失・侵害疑い時は即時とする。
 
-rotation手順は、(1) incident/change ticket、(2)新鍵ceremonyとattestation、(3)旧鍵で署名した新旧key binding、(4)二重署名移行release、(5)Store/OS/manifest trust更新、(6)clean環境で検証、(7)旧鍵revocation、(8)offline backup更新、(9)利用者告知、(10)recovery drillと証跡manifest更新の順とする。旧鍵を失ってcross-signできない場合は既定のStore/OS account recoveryと独立公開channelでfingerprintを告知し、Web pageだけの鍵置換を信用しない。release signer、Store publisher、最終approverを同一人物にしない。
+ローテーション手順は、(1) incident/change ticket、(2)新鍵ceremonyと証明、(3)旧鍵で署名した新旧鍵結び付け、(4)二重署名移行リリース、(5)Store/OS/manifest 信頼更新、(6)未コミットの変更がない環境で検証、(7)旧鍵失効、(8)オフラインバックアップ更新、(9)利用者告知、(10)復旧 drillと証跡マニフェスト更新の順とする。旧鍵を失ってcross-signできない場合は既定のStore/OS アカウント復旧と独立公開チャネルでfingerprintを告知し、Web ページだけの鍵置換を信用しない。リリース署名主体、ストア publisher、最終承認者を同一人物にしない。
 
-## 20. Traceability
+## 20. 追跡可能性
 
-本表は本書の product-level contract が、承認済み Requirements、Design、下位 Specification および canonical owner / OPEN へ追跡できることを示す。共通 envelope、Chain-specific byte 規則、Profile backup format および release policy の詳細を本書が再定義するものではない。
+本表は本書のプロダクトレベルの契約が、承認済み要件、設計、下位仕様および正本の管理主体 / 未決へ追跡できることを示す。共通エンベロープ、チェーン固有のバイト規則、プロファイルバックアップ形式およびリリースポリシーの詳細を本書が再定義するものではない。
 
-| Requirement / acceptance                                                                                    | Design                                                                              | 本仕様                    | Canonical owner / OPEN                                                                                                                                                     |
-| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CR-017`、`CR-AC-020`                                                                                       | Architecture の Profile / Account 境界、Security Design の Profile isolation        | §4、§7、§9、§10、§15、§18 | 一つの Profile は一つの Network と一つの Chain に固定する。Symbol と NEM の併用は別 Profile とし、既存 mixed Profile / backup の移行・互換は現行開発範囲に含めない         |
-| `CR-001`、`CR-002`、`CR-003`、`CR-004`、`CR-005`、`CR-007`、`CR-016`、`CR-AC-001`〜`CR-AC-006`、`CR-AC-017` | Architecture §6.1〜§6.4、Signing Flow §4〜§9、§16、Browser Extension Design §7〜§10 | §11〜§13、§17、§18        | product-level user-visible behavior は本書、四条件と共通署名 lifecycle は Signing Protocol / Interfaces                                                                    |
-| `CR-008`、`CR-013`、`CR-AC-007`、`CR-AC-010`                                                                | Architecture §6.6〜§6.8、Security Design §6、§13、Browser Extension Design §16      | §6、§9、§12、§15、§17     | Wallet Store・raw signing は wallet-core、Profile metadata は Profile / Account Specification                                                                              |
-| `CR-011`、`CR-015`、`CR-AC-009`、`CR-AC-018`                                                                | Architecture §6.1〜§6.5、Security Design §3〜§5、Relay Design §3〜§5                | §2、§3、§11、§16、§17     | SDK は Handoff / SDK Specification、Relay は Relay Specification、Signer authority は Browser / Mobile Specification                                                       |
-| `CR-006`、`CR-012`、`CR-NFR-009`〜`CR-NFR-012`、`CR-AC-004`、`CR-AC-011`〜`CR-AC-015`                       | Interfaces Design §6〜§9、Signing Flow §7、§19〜§23、Security Design §10            | §11〜§13、§18             | common request / response・result / delivery は Interfaces、Web transport は Handoff。`OPEN-001`〜`OPEN-005` は各 canonical owner で追跡                                   |
-| `CR-007-TX`、`CR-007-MSG`、`CR-NFR-005`、`CR-AC-003`、`CR-AC-005`、`CR-AC-006`                              | Architecture §6.7、Signing Flow §8〜§15、Security Design §11                        | §12、§17、§18             | Symbol / NEM の schema・serialization・signing bytes は Chain Compatibility Specification                                                                                  |
-| `CR-NFR-006`、`CR-AC-008`                                                                                   | Architecture §3、§16、Security Design §16                                           | §19                       | current approval count・policy parameter・evidence evaluation は ADR 0001、`evidence-policy.json`、Mainnet release evidence。Lite と strict の差分は current policy に従う |
-| `CR-014`                                                                                                    | Architecture §6.6、Security Design §6、Mobile Design §11、§19                       | §9、§15、§19              | Profile backup contract は Profile / Account Specification `OPEN-PROFILE-001`。Browser Extension 初回 milestone の必須完了条件ではない                                     |
+| 要求 / 受け入れ                                                                                             | 設計                                                                              | 本仕様                    | 正本の管理主体 / 未決                                                                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CR-017`、`CR-AC-020`                                                                                       | アーキテクチャのプロファイル / アカウント境界、セキュリティ設計のプロファイル分離 | §4、§7、§9、§10、§15、§18 | 一つのプロファイルは一つのネットワークと一つのチェーンに固定する。Symbol と NEM の併用は別プロファイルとし、既存混在したプロファイル / バックアップの移行・互換は現行開発範囲に含めない |
+| `CR-001`、`CR-002`、`CR-003`、`CR-004`、`CR-005`、`CR-007`、`CR-016`、`CR-AC-001`〜`CR-AC-006`、`CR-AC-017` | アーキテクチャ §6.1〜§6.4、署名フロー §4〜§9、§16、ブラウザ拡張機能設計 §7〜§10   | §11〜§13、§17、§18        | プロダクトレベルの user-visible 動作は本書、四条件と共通署名ライフサイクルは署名プロトコル / インターフェース                                                                           |
+| `CR-008`、`CR-013`、`CR-AC-007`、`CR-AC-010`                                                                | アーキテクチャ §6.6〜§6.8、セキュリティ設計 §6、§13、ブラウザ拡張機能設計 §16     | §6、§9、§12、§15、§17     | ウォレットストア・生の署名は wallet-core、プロファイルメタデータはプロファイル / アカウント仕様                                                                                         |
+| `CR-011`、`CR-015`、`CR-AC-009`、`CR-AC-018`                                                                | アーキテクチャ §6.1〜§6.5、セキュリティ設計 §3〜§5、Relay 設計 §3〜§5             | §2、§3、§11、§16、§17     | SDK は受け渡し / SDK 仕様、Relay は Relay 仕様、署名主体判断権限はブラウザ / モバイル仕様                                                                                               |
+| `CR-006`、`CR-012`、`CR-NFR-009`〜`CR-NFR-012`、`CR-AC-004`、`CR-AC-011`〜`CR-AC-015`                       | インターフェース設計 §6〜§9、署名フロー §7、§19〜§23、セキュリティ設計 §10        | §11〜§13、§18             | 共通の要求 / 応答・結果 / 配送はインターフェース、Web 通信経路は受け渡し。`OPEN-001`〜`OPEN-005` は各正本の管理主体で追跡                                                               |
+| `CR-007-TX`、`CR-007-MSG`、`CR-NFR-005`、`CR-AC-003`、`CR-AC-005`、`CR-AC-006`                              | アーキテクチャ §6.7、署名フロー §8〜§15、セキュリティ設計 §11                     | §12、§17、§18             | Symbol / NEM のスキーマ・シリアライズ・署名バイト列はチェーン互換性仕様                                                                                                                 |
+| `CR-NFR-006`、`CR-AC-008`                                                                                   | アーキテクチャ §3、§16、セキュリティ設計 §16                                      | §19                       | 現在の承認回数・ポリシーパラメーター・根拠 evaluation は ADR 0001、`evidence-policy.json`、Mainnet リリース証跡。Lite と strict の差分は現在のポリシーに従う                            |
+| `CR-014`                                                                                                    | アーキテクチャ §6.6、セキュリティ設計 §6、モバイル設計 §11、§19                   | §9、§15、§19              | プロファイルバックアップ契約はプロファイル / アカウント仕様 `OPEN-PROFILE-001`。ブラウザ拡張機能初回マイルストーンの必須完了条件ではない                                                |
 
-## 20.1 OPEN と mirror
+## 20.1 未決と鏡像
 
-- `OPEN-001`〜`OPEN-005` は本書が新しい field、version、capability または permission expiry を決めず、Interfaces / Handoff / SDK / Mobile / Relay の canonical owner として記載された下位仕様へ委譲する。
-- `OPEN-PROFILE-001` は Profile / Account Specification が所有し、本書の backup capability 記述はその決定を参照する。
-- Mainnet release の approval 数、strict migration および evidence の required / not-required は本書の独自判断ではなく、current `evidence-policy.json` と ADR 0001 を参照する。
+- `OPEN-001`〜`OPEN-005` は本書が新しいフィールド、バージョン、対応能力または許可期限切れを決めず、インターフェース / 受け渡し / SDK / モバイル / Relay の正本の管理主体として記載された下位仕様へ委譲する。
+- `OPEN-PROFILE-001` はプロファイル / アカウント仕様が所有し、本書のバックアップ対応能力記述はその決定を参照する。
+- Mainnet リリースの承認数、strict 移行および根拠の必須 / not-required は本書の独自判断ではなく、現在の `evidence-policy.json` と ADR 0001 を参照する。

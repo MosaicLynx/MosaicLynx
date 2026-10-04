@@ -1,20 +1,20 @@
-# MosaicLynx Relay Specification
+# MosaicLynx Relay 仕様
 
 ## 1. 目的
 
-本書は、MosaicLynx Relay の server-side transport contract を実装可能な粒度で定義する。
+本書は、MosaicLynx Relay のサーバー側の通信経路契約を実装可能な粒度で定義する。
 
-Relay は SDK / Browser Extension 側と Mobile App 側の間で、既存 Handoff contract の request / response を短期間中継する opaque / untrusted transport である。Relay は transaction、message、Account、approval または署名結果の意味を扱わない。
+Relay は SDK / ブラウザ拡張機能側とモバイルアプリ側の間で、既存受け渡し契約の要求 / 応答を短期間中継する内容を解釈しない / 信頼されていない通信経路である。Relay はトランザクション、メッセージ、アカウント、承認または署名結果の意味を扱わない。
 
 本書の規範語は次の意味を持つ。
 
 - **MUST**: 対象範囲で必須である。
 - **MUST NOT**: 対象範囲で禁止する。
 - **SHOULD**: 原則として満たす。満たせない場合は理由と影響を記録する。
-- **MAY**: 他の契約と Security Invariant に反しない範囲で許容する。
-- **OPEN**: 本書だけでは決定できない。実装で独自に確定してはならない。
+- **MAY**: 他の契約とセキュリティ上の不変条件に反しない範囲で許容する。
+- **未決**: 本書だけでは決定できない。実装で独自に確定してはならない。
 
-共通受信境界は [Interfaces §12.0](./interfaces.md) の bounded snapshot / plain-data normalization / immutable DTO を使用し、validation 後の外部 property 再 read を禁止する。正式 core integration は [wallet-core Integration](./wallet-core-integration.md)、message expiry / text format は Interfaces §9.4、cosignature の optional scope / result / unknown / delivery は Interfaces §9.6.1 を正本とする。Relay は core を呼ばず plaintext の normalization / semantics を担わない。Signer だけが core を呼ぶ。
+共通受信境界は [インターフェース §12.0](./interfaces.md) の上限のあるスナップショット / 通常のデータ正規化 / 不変 DTO を使用し、検証後の外部プロパティ再読み取りを禁止する。正式コア統合は [wallet-core 統合](./wallet-core-integration.md)、メッセージ期限切れ / テキスト形式はインターフェース §9.4、連署署名の任意対象範囲 / 結果 / 不明 / 配送はインターフェース §9.6.1 を正本とする。Relay はコアを呼ばず平文の正規化 / 意味を担わない。署名主体だけがコアを呼ぶ。
 
 ## 2. 適用範囲と上流資料
 
@@ -22,67 +22,67 @@ Relay は SDK / Browser Extension 側と Mobile App 側の間で、既存 Handof
 
 本書は次の Relay 固有契約を対象とする。
 
-- session / participant / generation の transport lifecycle
-- request / response の routing、短期 retention、retrieval、ACK および cancel
-- endpoint authorization credential の server-side 検証
-- opaque envelope の構造・サイズ・expiry・correlation 検証
-- duplicate、replay、stale generation、late delivery、state loss および restart
-- concurrency、atomic な logical transition、resource / abuse control
-- transport failure、transport status および observability の非機密境界
+- セッション / 参加者 / 世代の通信経路ライフサイクル
+- 要求 / 応答の経路選択、短期保持、取得、受領確認およびキャンセル
+- エンドポイント認可認証情報のサーバー側の検証
+- 内容を解釈しないエンベロープの構造・サイズ・期限切れ・対応付け検証
+- 重複、リプレイ、古くなった世代、遅延した配送、状態消失および再起動
+- 並行処理、不可分な論理的な遷移、リソース / 悪用制御
+- 通信経路失敗、通信経路状態および観測可能性の非機密境界
 
-### 2.2 上流資料と authority
+### 2.2 上流資料と判断権限
 
 次の資料を本書の上流契約として扱う。
 
-- [Relay Requirements](../requirements/relay.md)
-- [Relay Design](../design/relay.md)
-- [Interface / Data Model Specification](./interfaces.md)
-- [Signing Protocol Specification](./signing-protocol.md)
-- [SDK Specification](./sdk.md)
-- [Web Transaction Handoff Specification](./web-transaction-handoff-spec.md)
-- [共通 Security Design](../design/security-design.md)
-- [Signing Flow Design](../design/signing-flow.md)
-- [Interfaces Design](../design/interfaces.md)
+- [Relay 要件](../requirements/relay.md)
+- [Relay 設計](../design/relay.md)
+- [インターフェース / データモデル仕様](./interfaces.md)
+- [署名プロトコル仕様](./signing-protocol.md)
+- [SDK 仕様](./sdk.md)
+- [Web トランザクション受け渡し仕様](./web-transaction-handoff-spec.md)
+- [共通セキュリティ設計](../design/security-design.md)
+- [署名フロー設計](../design/signing-flow.md)
+- [インターフェース設計](../design/interfaces.md)
 
-authority は次のように分担する。
+判断権限は次のように分担する。
 
-| 対象                                                                                               | authority                                                                                |
-| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| 共通 identifier、Scope、Origin、request / response semantics、serialization、common error          | [interfaces.md](./interfaces.md)                                                         |
-| signing target、approval、Signer lifecycle、`RESULT_UNKNOWN`、`deliveryDisposition`                | [signing-protocol.md](./signing-protocol.md)                                             |
-| SDK 公開 API、route availability、transport selection、SDK から見える concrete error               | [sdk.md](./sdk.md)、[web-transaction-handoff-spec.md](./web-transaction-handoff-spec.md) |
-| Web / Mobile handoff の endpoint、field、credential、暗号 envelope、generation、TTL、HTTP status   | [web-transaction-handoff-spec.md](./web-transaction-handoff-spec.md)                     |
-| Relay の transport responsibility、server-side admission、routing、bounded state、resource control | 本書                                                                                     |
+| 対象                                                                                                 | 判断権限                                                                                 |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 共通識別子、対象範囲、オリジン、要求 / 応答意味、シリアライズ、共通のエラー                          | [interfaces.md](./interfaces.md)                                                         |
+| 署名対象、承認、署名主体ライフサイクル、`RESULT_UNKNOWN`、`deliveryDisposition`                      | [signing-protocol.md](./signing-protocol.md)                                             |
+| SDK 公開 API、経路利用可能性、通信経路選択、SDK から見える具体的なエラー                             | [sdk.md](./sdk.md)、[web-transaction-handoff-spec.md](./web-transaction-handoff-spec.md) |
+| Web / モバイル受け渡しのエンドポイント、フィールド、認証情報、暗号エンベロープ、世代、TTL、HTTP 状態 | [web-transaction-handoff-spec.md](./web-transaction-handoff-spec.md)                     |
+| Relay の通信経路責務、サーバー側の受け入れ判定、経路選択、上限のある状態、リソース制御               | 本書                                                                                     |
 
-本書は上記 authority の field、identifier、error、signing state、SDK semantics、Handoff wire contract または暗号形式を再定義しない。特に `deliveryDisposition` とその `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` の semantics、および `RESULT_UNKNOWN` は Signer-originated contract であり、Relay の transport status ではない。Handoff と本書に競合がある場合は、本書で都合よく解消せず OPEN として報告する。
+本書は上記判断権限のフィールド、識別子、エラー、署名状態、SDK 意味、受け渡し通信上の契約または暗号形式を再定義しない。特に `deliveryDisposition` とその `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` の意味、および `RESULT_UNKNOWN` は署名主体が生成した契約であり、Relay の通信経路状態ではない。受け渡しと本書に競合がある場合は、本書で都合よく解消せず未決として報告する。
 
 ### 2.3 対象外
 
 次は本書で定義しない。
 
-- SDK Public API、Provider discovery、transport selection および Mobile Relay availability
-- Browser Extension の Provider / Chrome API、Mobile App の UI / OS API
-- transaction / message の parse、semantic validation、summary、Account ownership、permission、approval、authentication または signing
-- wallet-core、private key、Mnemonic、Wallet Store および暗号 primitive
-- Relay 独自の暗号、key exchange、AAD、digest、nonce または envelope
-- storage engine の schema、queue、lock、CAS、broker、cluster topology、deployment、load balancer および systemd
-- 新しい WebSocket、push notification、long-term storage、federated Relay または multi-Relay fallback
+- SDK 公開 API、Provider 検出、通信経路選択およびモバイル Relay 利用可能性
+- ブラウザ拡張機能の Provider / Chrome API、モバイルアプリの UI / OS API
+- トランザクション / メッセージの解析、意味上の検証、要約、アカウント所有責任、許可、承認、認証または署名
+- wallet-core、秘密鍵、ニーモニック、ウォレットストアおよび暗号基本機構
+- Relay 独自の暗号、鍵交換、AAD、ダイジェスト、ノンスまたはエンベロープ
+- 保存領域エンジンのスキーマ、キュー、ロック、CAS、ブローカー、クラスター構成、配置、負荷 balancer および systemd
+- 新しい WebSocket、プッシュ通知、長期保存領域、federated Relay または multi-Relay 代替経路
 
 ## 3. 用語
 
-| 用語                 | 本書での意味                                                                                                           |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Relay session        | Web-side participant と Mobile-side participant が request / response を交換する短期 transport context                 |
-| participant          | session に参加する Web-side または Mobile-side の transport participant。本人性や Account ownership を表さない         |
-| generation           | Relay の state continuity を表す非秘密の opaque context。authorization secret ではない                                 |
-| request              | Web-side から Mobile-side へ配送する既存 Handoff の encrypted request envelope                                         |
-| response             | Mobile-side から Web-side へ配送する既存 Handoff の encrypted response envelope                                        |
-| transport credential | `appToken` または `webToken`。対象 endpoint を認証するための credential                                                |
-| session secret       | SDK と Mobile App が E2E request / response key を導出する secret。Relay は受信・復号・保持しない                      |
-| opaque payload       | Relay が plaintext として解釈しない encrypted envelope                                                                 |
-| request expiry       | Handoff request が有効である期限。Relay session lifetime と同一視しない                                                |
-| transport status     | Relay が request / response の受理、保持、取得、ACK、cancel、expiry または purge を観測した状態。署名 outcome ではない |
-| state loss           | Relay が active session state の継続性を保証できなくなった状態                                                         |
+| 用語                       | 本書での意味                                                                                                    |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Relay セッション           | Web 側の参加者とモバイル側の参加者が要求 / 応答を交換する短期通信経路文脈                                       |
+| 参加者                     | セッションに参加する Web 側のまたはモバイル側の通信経路参加者。本人性やアカウント所有責任を表さない             |
+| 世代                       | Relay の状態継続性を表す非秘密の内容を解釈しない文脈。認可秘密情報ではない                                      |
+| 要求                       | Web 側のからモバイル側のへ配送する既存受け渡しの暗号化された要求エンベロープ                                    |
+| 応答                       | モバイル側のから Web 側のへ配送する既存受け渡しの暗号化された応答エンベロープ                                   |
+| 通信経路認証情報           | `appToken` または `webToken`。対象エンドポイントを認証するための認証情報                                        |
+| セッション秘密情報         | SDK とモバイルアプリが E2E 要求 / 応答鍵を導出する秘密情報。Relay は受信・復号・保持しない                      |
+| 内容を解釈しないペイロード | Relay が平文として解釈しない暗号化されたエンベロープ                                                            |
+| 要求期限切れ               | 受け渡し要求が有効である期限。Relay セッション有効期間と同一視しない                                            |
+| 通信経路状態               | Relay が要求 / 応答の受理、保持、取得、受領確認、キャンセル、期限切れまたは削除を観測した状態。署名結果ではない |
+| 状態消失                   | Relay が有効なセッション状態の継続性を保証できなくなった状態                                                    |
 
 ## 4. Relay の責任境界
 
@@ -90,68 +90,68 @@ authority は次のように分担する。
 
 Relay は次を MUST とする。
 
-- Handoff contract に従った session 作成、participant admission および direction の分離。
-- request / response の session、participant、direction、request identity、generation および expiry に基づく routing。
-- encrypted envelope と routing metadata の bounded temporary retention。
-- endpoint authorization credential の形式・対象 session・endpoint scope の検証。
-- protocol、version、envelope 外形、サイズ、expiry、generation、lifecycle および correlation の structural validation。
-- duplicate / conflicting response、stale session、expired object、cancelled / consumed state の安全側処理。
-- ACK、cancel、expiry、state loss および purge による terminal state 管理。
-- concurrent submit / retrieve / response / ACK / cancel / expiry が cross-session や terminal-state reuse を起こさない logical transition。
-- Handoff に定められた resource / abuse control と、payload / credential を含まない最小限の observability。
+- 受け渡し契約に従ったセッション作成、参加者受け入れ判定および方向の分離。
+- 要求 / 応答のセッション、参加者、方向、要求識別情報、世代および期限切れに基づく経路選択。
+- 暗号化されたエンベロープと経路選択メタデータの上限のある一時的な保持。
+- エンドポイント認可認証情報の形式・対象セッション・エンドポイント対象範囲の検証。
+- プロトコル、バージョン、エンベロープ外形、サイズ、期限切れ、世代、ライフサイクルおよび対応付けの構造上の検証。
+- 重複 / 競合する応答、古くなったセッション、期限切れオブジェクト、キャンセル済み / 消費済み状態の安全側処理。
+- 受領確認、キャンセル、期限切れ、状態消失および削除による終端状態管理。
+- 並行する送信 / retrieve / 応答 / 受領確認 / キャンセル / 期限切れがセッション間のや terminal-state 再利用を起こさない論理的な遷移。
+- 受け渡しに定められたリソース / 悪用制御と、ペイロード / 認証情報を含まない最小限の観測可能性。
 
 ### 4.2 Relay が担わない責任
 
 Relay は次を MUST NOT とする。
 
-- transaction / message の復号、parse、意味解釈、summary 生成または表示。
-- signing target、signer、recipient、amount、fee、Account ownership、permission、risk または安全性の判定。
-- user approval、authentication、signing authorization、署名結果の生成、検証または変更。
-- private key、Mnemonic、Profile password、Wallet Store、session secret、derived encryption material または signing secret の受信、復号、導出、保持、hash 化または出力。
-- Relay の transport status、ACK または availability を Signer の validation、approval、authentication、signing success または transaction safety として表明すること。
-- Relay の failure から `USER_REJECTED`、`FAILED`、未署名または署名済みを推測すること。
+- トランザクション / メッセージの復号、解析、意味解釈、要約生成または表示。
+- 署名対象、署名主体、受信者、数量、手数料、アカウント所有責任、許可、リスクまたは安全性の判定。
+- 利用者承認、認証、署名認可、署名結果の生成、検証または変更。
+- 秘密鍵、ニーモニック、プロファイルパスワード、ウォレットストア、セッション秘密情報、導出された暗号化資料または署名秘密情報の受信、復号、導出、保持、ハッシュ化または出力。
+- Relay の通信経路状態、受領確認または利用可能性を署名主体の検証、承認、認証、署名成功またはトランザクション安全性として表明すること。
+- Relay の失敗から `USER_REJECTED`、`FAILED`、未署名または署名済みを推測すること。
 
-Relay の transport status は、Mobile App / Browser Extension / SDK が行う client-side validation と signing lifecycle を置き換えない。
+Relay の通信経路状態は、モバイルアプリ / ブラウザ拡張機能 / SDK が行うクライアント側の検証と署名ライフサイクルを置き換えない。
 
-Authentication、Signing-capable unlock、Account authorization および Explicit user approval は、同一の request / target / Profile-local context に対する trusted Signer の独立した必須 signing conditions である。Relay はこれらを evaluate、establish、semantic verify、cache、restore、infer または substitute してはならず、Relay の session existence、participant admission、token、generation、request / response existence、transport status、HTTP success、ACK、consumed state または availability は4条件の代替にならない。
+認証、署名可能な状態へのロック解除、アカウントの利用認可および利用者による明示的な承認は、同一の要求 / 対象 / プロファイル内の文脈に対する信頼された署名主体の独立した必須署名条件である。Relay はこれらを評価、establish、意味上の検証、キャッシュ、復元、推測または substitute してはならず、Relay のセッション存在、参加者受け入れ判定、トークン、世代、要求 / 応答存在、通信経路状態、HTTP 成功、受領確認、消費済み状態または利用可能性は4条件の代替にならない。
 
-Mainnet signing capability は、trusted Signer と current release / evidence gate の成立によってのみ有効化される。Relay はその gate の evaluator、verifier、promoter または bypass mechanism ではなく、Relay health、availability、session creation、response retrieval、ACK、consumed state または transport success から Mainnet capability を有効化・推測・昇格してはならない。gate が missing、invalid、expired、inconsistent、unverifiable または unknown の場合の Mainnet disabled / unavailable の判定は trusted Signer / release authority に属する。これは Testnet-only operation の安全な継続を妨げない。
+Mainnet 署名対応能力は、信頼された署名主体と現在のリリース / 根拠判定条件の成立によってのみ有効化される。Relay はその判定条件の評価器、検証者、promoter または迂回仕組みではなく、Relay 正常性、利用可能性、セッション作成、応答取得、受領確認、消費済み状態または通信経路成功から Mainnet 対応能力を有効化・推測・昇格してはならない。判定条件が欠落、無効な、期限切れ、不整合の、検証不能のまたは不明の場合の Mainnet 無効 / 利用不能の判定は信頼された署名主体 / リリース判断権限に属する。これは Testnet 専用操作の安全な継続を妨げない。
 
-## 5. Endpoint Contract
+## 5. エンドポイント契約
 
-### 5.1 共通 endpoint 条件
+### 5.1 共通エンドポイント条件
 
-Handoff の HTTP endpoint が有効な deployment では、次を使用する。
+受け渡しの HTTP エンドポイントが有効な配置では、次を使用する。
 
-- Origin: `https://relay.mosaiclynx.app`
-- API prefix: `/v1`
+- オリジン: `https://relay.mosaiclynx.app`
+- API 接頭辞: `/v1`
 - TLS: TLS 1.2 以上、HSTS 有効
-- Cookie、HTTP user authentication、Relay user account および transaction ID tracking: 使用しない
-- response header: `Cache-Control: no-store`、`Referrer-Policy: no-referrer`、`X-Content-Type-Options: nosniff`
-- Browser CORS: credential なし、必要な method / header のみ許可。cookie を許可しない
-- error body: request body、token、session existence、Account、Origin または payload の詳細を返さない
+- Cookie、HTTP 利用者認証、Relay 利用者アカウントおよびトランザクション ID 追跡: 使用しない
+- 応答ヘッダー: `Cache-Control: no-store`、`Referrer-Policy: no-referrer`、`X-Content-Type-Options: nosniff`
+- ブラウザ CORS: 認証情報なし、必要なメソッド / ヘッダーのみ許可。cookie を許可しない
+- エラー本文: 要求本文、トークン、セッション存在、アカウント、オリジンまたはペイロードの詳細を返さない
 
-endpoint、method、header、body、status および credential の正本は [Handoff §9](./web-transaction-handoff-spec.md) である。本書の endpoint 表は server-side responsibility と idempotency を説明するための参照であり、wire field を別定義しない。
+エンドポイント、メソッド、ヘッダー、本文、状態および認証情報の正本は [受け渡し §9](./web-transaction-handoff-spec.md) である。本書のエンドポイント表はサーバー側の責務と冪等性を説明するための参照であり、通信上のフィールドを別定義しない。
 
-### 5.2 Endpoint 一覧
+### 5.2 エンドポイント一覧
 
-| Endpoint                                        | participant          | Relay の処理                                                                                                               | 成功 / 失敗の authority |
-| ----------------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| `GET /v1/generation`                            | SDK / handoff client | current generation の非秘密 context を返す                                                                                 | Handoff §9.1            |
-| `POST /v1/handoffs`                             | Web-side             | generation、ID、expiry、hash、request envelope の構造と admission を検証して session を作成する                            | Handoff §9.2            |
-| `GET /v1/handoffs/{sessionId}/request`          | Mobile-side          | `appToken` と request direction を検証し、未完了 request を返す                                                            | Handoff §9.3            |
-| `PUT /v1/handoffs/{sessionId}/response`         | Mobile-side          | `appToken`、response direction、correlation、state を検証し、最初の response を保存する                                    | Handoff §9.4            |
-| `GET /v1/handoffs/{sessionId}/response?wait=25` | Web-side             | `webToken` と response direction を検証し、response を polling / retrieval する                                            | Handoff §9.5            |
-| `POST /v1/handoffs/{sessionId}/ack`             | Web-side             | Handoff §9.6 の外形検証後は常に `204 No Content` を返し、条件を満たす場合だけ response を consumed として purge する       | Handoff §9.6            |
-| `DELETE /v1/handoffs/{sessionId}`               | Web-side             | Handoff §9.6 の外形検証後は常に `204 No Content` を返し、条件を満たす場合だけ未完了 session を cancelled として purge する | Handoff §9.6            |
+| エンドポイント                                  | 参加者                     | Relay の処理                                                                                                                 | 成功 / 失敗の判断権限 |
+| ----------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `GET /v1/generation`                            | SDK / 受け渡しクライアント | 現在の世代の非秘密文脈を返す                                                                                                 | 受け渡し §9.1         |
+| `POST /v1/handoffs`                             | Web 側の                   | 世代、ID、期限切れ、ハッシュ、要求エンベロープの構造と受け入れ判定を検証してセッションを作成する                             | 受け渡し §9.2         |
+| `GET /v1/handoffs/{sessionId}/request`          | モバイル側の               | `appToken` と要求方向を検証し、未完了要求を返す                                                                              | 受け渡し §9.3         |
+| `PUT /v1/handoffs/{sessionId}/response`         | モバイル側の               | `appToken`、応答方向、対応付け、状態を検証し、最初の応答を保存する                                                           | 受け渡し §9.4         |
+| `GET /v1/handoffs/{sessionId}/response?wait=25` | Web 側の                   | `webToken` と応答方向を検証し、応答をポーリング / 取得する                                                                   | 受け渡し §9.5         |
+| `POST /v1/handoffs/{sessionId}/ack`             | Web 側の                   | 受け渡し §9.6 の外形検証後は常に `204 No Content` を返し、条件を満たす場合だけ応答を消費済みとして削除する                   | 受け渡し §9.6         |
+| `DELETE /v1/handoffs/{sessionId}`               | Web 側の                   | 受け渡し §9.6 の外形検証後は常に `204 No Content` を返し、条件を満たす場合だけ未完了セッションをキャンセル済みとして削除する | 受け渡し §9.6         |
 
-Relay は `sessionId` 単独を authorization として使用しない。各 endpoint は direction、participant role、対象 credential、session state、generation および該当 identity を併せて検証する。
+Relay は `sessionId` 単独を認可として使用しない。各エンドポイントは方向、参加者役割、対象認証情報、セッション状態、世代および該当識別情報を併せて検証する。
 
-## 6. Generation
+## 6. 世代
 
 ### 6.1 意味と取得
 
-`generationId` は current Relay generation を示す非秘密の opaque string である。exact format、長さおよび生成方式は Handoff が OPEN としているため、本書で固定しない。
+`generationId` は現在の Relay 世代を示す非秘密の内容を解釈しない文字列である。厳密な形式、長さおよび生成方式は受け渡しが未決としているため、本書で固定しない。
 
 Relay は `GET /v1/generation` で次の既存契約を返す。
 
@@ -162,51 +162,51 @@ interface RelayGenerationContext {
 }
 ```
 
-SDK / handoff client は handoff 作成直前に current value を取得し、その handoff の作成 metadata と envelope context に使用する。別の handoff や retry では、当該時点の current value を改めて取得する。Relay は generationId を session、request identity、request / response envelope および current state に binding する。
+SDK / 受け渡しクライアントは受け渡し作成直前に現在の値を取得し、その受け渡しの作成メタデータとエンベロープ文脈に使用する。別の受け渡しや再試行では、当該時点の現在の値を改めて取得する。Relay は generationId をセッション、要求識別情報、要求 / 応答エンベロープおよび現在の状態に結び付けする。
 
-`generationId` は credential、session secret、E2E key、permission または signing authorization ではない。generationId を知っているだけで endpoint access、session join、message retrieval または response submission が成立してはならない。
+`generationId` は認証情報、セッション秘密情報、E2E 鍵、許可または署名認可ではない。generationId を知っているだけでエンドポイントアクセス、セッション参加、メッセージ取得または応答送信が成立してはならない。
 
-### 6.2 Generation change
+### 6.2 世代変更
 
-Relay は次の場合に generation を切り替える。
+Relay は次の場合に世代を切り替える。
 
-- Relay restart により active state の継続性を保証できなくなった場合。
-- storage loss、state loss、persistence corruption または instance / cluster state の continuity loss が発生した場合。
-- 運用上の generation rotation / invalidation を行う場合。
+- Relay 再起動により有効な状態の継続性を保証できなくなった場合。
+- 保存領域消失、状態消失、永続化 corruption またはインスタンス / クラスター状態の継続性消失が発生した場合。
+- 運用上の世代ローテーション / 無効化を行う場合。
 
-generation change 後は、旧 generation の session、request identity、response identity および pending state を current generation の active state として復旧・再開しない。旧 generation の create request は session を作成せず拒否する。
+世代変更後は、旧世代のセッション、要求識別情報、応答識別情報および保留中の状態を現在の世代の有効な状態として復旧・再開しない。旧世代の作成要求はセッションを作成せず拒否する。
 
-Relay は過去の全 ciphertext の利用履歴を保持して replay 判定する責任を持たない。旧 ciphertext に current generation metadata が付された request が envelope 外形を満たす場合、Relay storage に一時保存される可能性はある。ただし、それを current generation の有効な handoff として成立させてはならず、Mobile App の generation-bound AEAD / AAD validation により承認・署名・success に到達してはならない。
+Relay は過去の全暗号文の利用履歴を保持してリプレイ判定する責任を持たない。旧暗号文に現在の世代メタデータが付された要求がエンベロープ外形を満たす場合、Relay 保存領域に一時保存される可能性はある。ただし、それを現在の世代の有効な受け渡しとして成立させてはならず、モバイルアプリの世代に結び付いた AEAD / AAD 検証により承認・署名・成功に到達してはならない。
 
-### 6.3 Generation と stale handling
+### 6.3 世代と古くなった処理
 
-- current generation と一致しない create metadata は structural rejection とする。
-- current generation と session state、request / response identity、envelope metadata の整合を確認できない場合は delivery / transition を進めない。
-- stale generation、old session、old credential、late object または state loss 前の response を新しい session へ付け替えない。
-- retry は current generation、新しい sessionId / requestId、fresh envelope、fresh transport authorization context および client-side の新しい validation / approval を使用する。
-- generation mismatch を signing rejection、user rejection または signing failure に変換しない。
+- 現在の世代と一致しない作成メタデータは構造上の拒否とする。
+- 現在の世代とセッション状態、要求 / 応答識別情報、エンベロープメタデータの整合を確認できない場合は配送 / 遷移を進めない。
+- 古くなった世代、旧セッション、旧認証情報、遅延したオブジェクトまたは状態消失前の応答を新しいセッションへ付け替えない。
+- 再試行は現在の世代、新しい sessionId / requestId、新鮮なエンベロープ、新鮮な通信経路認可文脈およびクライアント側の新しい検証 / 承認を使用する。
+- 世代不一致を署名拒否、利用者拒否または署名失敗に変換しない。
 
-## 7. Session Lifecycle
+## 7. セッションライフサイクル
 
-### 7.1 Session の構造
+### 7.1 セッションの構造
 
-一つの handoff session は Web-side participant と Mobile-side participant の request / response channel を束ねる。session は少なくとも次の routing context を保持する。
+一つの受け渡しセッションは Web 側の参加者とモバイル側の参加者の要求 / 応答チャネルを束ねる。セッションは少なくとも次の経路選択文脈を保持する。
 
 - `sessionId`
-- current `generationId`
-- protocol context
-- Web-side / Mobile-side participant role
-- request / response direction
-- `requestId` と request / response correlation context
-- session `expiresAt`
-- token verification representation
-- pending / response / terminal transport state
+- 現在の `generationId`
+- プロトコル文脈
+- Web 側の / モバイル側の参加者役割
+- 要求 / 応答方向
+- `requestId` と要求 / 応答対応付け文脈
+- セッション `expiresAt`
+- トークン検証表現
+- 保留中の / 応答 / 終端通信経路状態
 
-`sessionId`、`requestId`、generationId、token hash または routing metadata から Profile、Account owner、Origin の信頼性、approval、authentication または signing authorization を導出しない。
+`sessionId`、`requestId`、generationId、トークンハッシュまたは経路選択メタデータからプロファイル、アカウント責任主体、オリジンの信頼性、承認、認証または署名認可を導出しない。
 
-### 7.2 State machine
+### 7.2 状態遷移
 
-Handoff が定義する session state を正本とする。
+受け渡しが定義するセッション状態を正本とする。
 
 ```text
 pending → response_available → consumed
@@ -215,509 +215,509 @@ pending → response_available → consumed
 response_available ─────────→ expired
 ```
 
-| State                | Relay の意味                                                             | 許可される操作                                                                |
-| -------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| `pending`            | request が保持され、response を待っている                                | request retrieval、response upload、response polling、ACK / cancel の構造検証 |
-| `response_available` | response upload が一度受理され、Web-side が取得できる                    | response retrieval、同一 response の再取得、ACK                               |
-| `consumed`           | Web-side が検証済み response を ACK し、terminal purge が開始 / 完了した | 新しい handoff としての操作は不可                                             |
-| `cancelled`          | 未完了 session が Web-side cancel または同等の terminal 処理で終了した   | 新しい handoff としての操作は不可                                             |
-| `expired`            | session / request lifetime が到達した                                    | 新しい handoff としての操作は不可                                             |
+| 状態                 | Relay の意味                                                        | 許可される操作                                                              |
+| -------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `pending`            | 要求が保持され、応答を待っている                                    | 要求取得、応答アップロード、応答ポーリング、受領確認 / キャンセルの構造検証 |
+| `response_available` | 応答アップロードが一度受理され、Web 側のが取得できる                | 応答取得、同一応答の再取得、受領確認                                        |
+| `consumed`           | Web 側のが検証済み応答を受領確認し、終端削除が開始 / 完了した       | 新しい受け渡しとしての操作は不可                                            |
+| `cancelled`          | 未完了セッションが Web 側のキャンセルまたは同等の終端処理で終了した | 新しい受け渡しとしての操作は不可                                            |
+| `expired`            | セッション / 要求有効期間が到達した                                 | 新しい受け渡しとしての操作は不可                                            |
 
-`consumed`、`cancelled`、`expired` は terminal state である。terminal state から `pending` または `response_available` へ戻さず、terminal session を新しい request / response の container として再利用しない。
+`consumed`、`cancelled`、`expired` は終端状態である。終端状態から `pending` または `response_available` へ戻さず、終端セッションを新しい要求 / 応答の container として再利用しない。
 
-Relay の state は [signing-protocol.md](./signing-protocol.md) の `RECEIVED`、`VALIDATED`、`AWAITING_USER`、`AUTHORIZED`、`SIGNING`、`SUCCEEDED` または `RESULT_UNKNOWN` ではない。
+Relay の状態は [signing-protocol.md](./signing-protocol.md) の `RECEIVED`、`VALIDATED`、`AWAITING_USER`、`AUTHORIZED`、`SIGNING`、`SUCCEEDED` または `RESULT_UNKNOWN` ではない。
 
-ここでいう小文字の `pending`、`response_available`、`consumed` 等は Relay の transport lifecycle state であり、Signer-originated な大文字の `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` または `RESULT_UNKNOWN` ではない。
+ここでいう小文字の `pending`、`response_available`、`consumed` 等は Relay の通信経路ライフサイクル状態であり、署名主体が生成したな大文字の `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` または `RESULT_UNKNOWN` ではない。
 
-### 7.3 作成と admission
+### 7.3 作成と受け入れ判定
 
-`POST /v1/handoffs` は、次を全て確認した場合だけ session を作成する。
+`POST /v1/handoffs` は、次を全て確認した場合だけセッションを作成する。
 
-- `protocol`、`generationId`、`sessionId`、`requestId`、`expiresAt`、token hash および encrypted request の required field / type が正しい。
-- generationId が current generation と一致する。
-- sessionId / requestId の形式と一意性が既存 contract に従う。
-- `expiresAt` が Handoff の format / lifetime に従い、Relay が client 指定 expiry を延長しない。
-- encrypted envelope の外形、algorithm field および size が Handoff contract に従う。request direction と session binding は create endpoint と server-side session state に関連付け、暗号化された AAD の値自体は Relay が検証しない。
-- request / session の lifecycle、外側で表現された correlation、admission および resource limit が正しい。
+- `protocol`、`generationId`、`sessionId`、`requestId`、`expiresAt`、トークンハッシュおよび暗号化された要求の必須フィールド / 型が正しい。
+- generationId が現在の世代と一致する。
+- sessionId / requestId の形式と一意性が既存契約に従う。
+- `expiresAt` が受け渡しの形式 / 有効期間に従い、Relay がクライアント指定期限切れを延長しない。
+- 暗号化されたエンベロープの外形、アルゴリズムフィールドおよびサイズが受け渡し契約に従う。要求方向とセッション結び付けは作成エンドポイントとサーバー側のセッション状態に関連付け、暗号化された AAD の値自体は Relay が検証しない。
+- 要求 / セッションのライフサイクル、外側で表現された対応付け、受け入れ判定およびリソース上限が正しい。
 
-Relay は encrypted request を復号せず、transaction / message の semantic validity を確認しない。成功 response は Handoff の `{ protocol, sessionId, expiresAt }` のみとし、token、secret、request plaintext または payload を返さない。
+Relay は暗号化された要求を復号せず、トランザクション / メッセージの意味上の有効性を確認しない。成功応答は受け渡しの `{ protocol, sessionId, expiresAt }` のみとし、トークン、秘密情報、要求平文またはペイロードを返さない。
 
-### 7.4 Participant 再接続
+### 7.4 参加者再接続
 
-一時的な network disconnect では、participant は current session、role、credential、generation、expiry および message state を再検証して同じ session に再接続できる場合がある。再接続は旧 approval、authentication、signing state または result の復元を意味しない。
+一時的なネットワーク接続解除では、参加者は現在のセッション、役割、認証情報、世代、期限切れおよびメッセージ状態を再検証して同じセッションに再接続できる場合がある。再接続は旧承認、認証、署名状態または結果の復元を意味しない。
 
-session が expired、cancelled、consumed、generation 不一致または state loss の場合、resume ではなく fresh handoff とする。具体的な reconnect API、pairing contract、client retry timing は OPEN とする。
+セッションが期限切れ、キャンセル済み、消費済み、世代不一致または状態消失の場合、再開ではなく新鮮な受け渡しとする。具体的な再接続 API、ペアリング契約、クライアント再試行タイミングは未決とする。
 
-## 8. Credential / Endpoint Authorization
+## 8. 認証情報 / エンドポイント認可
 
-### 8.1 Credential の分類
+### 8.1 認証情報の分類
 
-| 値                        | 用途                                                                        | Relay の扱い                                                                                                               |
-| ------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `appToken`                | Mobile-side の request retrieval / response upload endpoint authorization   | raw 値は request / response の endpoint header として一時検証する。保存するのは Handoff が定める検証用 representation のみ |
-| `webToken`                | Web-side の response retrieval / ACK / cancel endpoint authorization        | raw 値は endpoint header として一時検証する。保存するのは Handoff が定める検証用 representation のみ                       |
-| `sessionSecret`           | SDK / Mobile App が request / response encryption key を導出する E2E secret | Relay は受信、復号、保存、hash 化、ログ出力または暗号鍵導出をしない                                                        |
-| `requestId` / `sessionId` | request / session identity と routing                                       | identifier 単独を credential として扱わない                                                                                |
-| `generationId`            | state continuity context                                                    | secret、credential または signing authority として扱わない                                                                 |
+| 値                        | 用途                                                             | Relay の扱い                                                                                              |
+| ------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `appToken`                | モバイル側の要求取得 / 応答アップロードエンドポイント認可        | 生の値は要求 / 応答のエンドポイントヘッダーとして一時検証する。保存するのは受け渡しが定める検証用表現のみ |
+| `webToken`                | Web 側の応答取得 / 受領確認 / キャンセルエンドポイント認可       | 生の値はエンドポイントヘッダーとして一時検証する。保存するのは受け渡しが定める検証用表現のみ              |
+| `sessionSecret`           | SDK / モバイルアプリが要求 / 応答暗号化鍵を導出する E2E 秘密情報 | Relay は受信、復号、保存、ハッシュ化、ログ出力または暗号鍵導出をしない                                    |
+| `requestId` / `sessionId` | 要求 / セッション識別情報と経路選択                              | 識別子単独を認証情報として扱わない                                                                        |
+| `generationId`            | 状態継続性文脈                                                   | 秘密情報、認証情報または署名判断権限として扱わない                                                        |
 
-`appToken` と `webToken` は session secret、request key、response key、derived encryption material または signing credential ではない。App Link fragment における credential の受け渡しは [Handoff §7.3](./web-transaction-handoff-spec.md) の verified client-side handoff に従い、Relay が fragment を受信しない。
+`appToken` と `webToken` はセッション秘密情報、要求鍵、応答鍵、導出された暗号化資料または署名認証情報ではない。App Link フラグメントにおける認証情報の受け渡しは [受け渡し §7.3](./web-transaction-handoff-spec.md) の検証済みクライアント側の受け渡しに従い、Relay がフラグメントを受信しない。
 
-### 8.2 Authorization rules
+### 8.2 認可規則
 
-- credential が要求される endpoint は `Authorization: Bearer {token}` を使用する。
-- token は Handoff の CSPRNG と検証用 representation の契約に従う。Relay は raw token を長期保存しない。
-- appToken は App-side endpoint に、webToken は Web-side endpoint に限定する。相互利用、session 間利用、role の越境を許可しない。
-- credential の有効性は対象 session、endpoint、participant role、generation、expiry および lifecycle state と併せて、状態変更の条件として確認する。
-- expired、cancelled、consumed、state-lost または generation-invalid session の credential は状態変更に使用しない。
-- credential mismatch、session 不在、terminal state または期限切れを区別して session existence を漏えいさせない。Handoff の共通 `404 Not Found` / error body を使用する endpoint ではその contract に従う。
-- ただし ACK / cancel は Handoff §9.6 の endpoint-specific HTTP semantics が優先される。method、path、header、body、protocol およびその他の structural validation を満たす ACK / cancel request には、webToken の不一致、session 不在、terminal / purge 済み、期限切れまたは state loss にかかわらず常に `204 No Content` を返し、状態変更の条件を満たさない場合は no-op とする。外形が不正な request はこの例外に含めず、Handoff の structural error contract に従う。
-- credential の検証失敗を user rejection、permission denied、signing failure または approval として返さない。
+- 認証情報が要求されるエンドポイントは `Authorization: Bearer {token}` を使用する。
+- トークンは受け渡しの CSPRNG と検証用表現の契約に従う。Relay は生のトークンを長期保存しない。
+- appToken は App-side エンドポイントに、webToken は Web 側のエンドポイントに限定する。相互利用、セッション間利用、役割の越境を許可しない。
+- 認証情報の有効性は対象セッション、エンドポイント、参加者役割、世代、期限切れおよびライフサイクル状態と併せて、状態変更の条件として確認する。
+- 期限切れ、キャンセル済み、消費済み、state-lost または generation-invalid セッションの認証情報は状態変更に使用しない。
+- 認証情報不一致、セッション不在、終端状態または期限切れを区別してセッション存在を漏えいさせない。受け渡しの共通 `404 Not Found` / エラー本文を使用するエンドポイントではその契約に従う。
+- ただし受領確認 / キャンセルは受け渡し §9.6 のエンドポイント固有の HTTP 意味が優先される。メソッド、パス、ヘッダー、本文、プロトコルおよびその他の構造上の検証を満たす受領確認 / キャンセル要求には、webToken の不一致、セッション不在、終端 / 削除済み、期限切れまたは状態消失にかかわらず常に `204 No Content` を返し、状態変更の条件を満たさない場合は状態を変更しない操作とする。外形が不正な要求はこの例外に含めず、受け渡しの構造上のエラー契約に従う。
+- 認証情報の検証失敗を利用者拒否、許可拒否済み、署名失敗または承認として返さない。
 
-### 8.3 Non-exposure
+### 8.3 外部への非露出
 
-raw token、sessionSecret、derived key、Authorization header、App Link fragment、encrypted payload 全文および復号 plaintext は、API response、URL path / query、Referer、log、diagnostics、analytics、telemetry、error、APM / WAF capture、backup または admin view に出してはならない。
+生のトークン、sessionSecret、導出された鍵、認可ヘッダー、App Link フラグメント、暗号化されたペイロード全文および復号平文は、API 応答、URL パス / 照会、Referer、ログ、診断情報、利用状況分析、遠隔計測データ、エラー、APM / WAF 取得、バックアップまたは管理者表示に出してはならない。
 
-## 9. Opaque Envelope / Structural Validation
+## 9. 内容を解釈しないエンベロープ / 構造上の検証
 
-### 9.1 Opaque boundary
+### 9.1 内容を解釈しない境界
 
-Relay が扱う payload は、既存 Handoff の `EncryptedRelayEnvelope` として opaque に保持する。Relay は次をしてはならない。
+Relay が扱うペイロードは、既存受け渡しの `EncryptedRelayEnvelope` として内容を解釈せずに保持する。Relay は次をしてはならない。
 
-- request / response を復号する。
-- transaction type、message purpose、recipient、amount、fee、signer、Account または Chain / Network の意味を解釈する。
-- approval summary、risk score、display model、Account selection または signing result を生成する。
-- payload bytes、ciphertext、nonce、tag、AAD、digest または field order を変更する。
-- plaintext を routing key、resource policy、approval policy または error mapping の入力にする。
+- 要求 / 応答を復号する。
+- トランザクション型、メッセージ目的、受信者、数量、手数料、署名主体、アカウントまたはチェーン / ネットワークの意味を解釈する。
+- 承認要約、リスク score、表示モデル、アカウント選択または署名結果を生成する。
+- ペイロードバイト列、暗号文、ノンス、タグ、AAD、ダイジェストまたはフィールド順序を変更する。
+- 平文を経路選択鍵、リソースポリシー、承認ポリシーまたはエラー対応付けの入力にする。
 
-Relay は transport routing に必要な非秘密 metadata と、Handoff が外側で検証可能と定める構造だけを扱う。Handoff の E2E encryption、JCS、AAD、digest、key derivation、binary encoding は変更しない。
+Relay は通信経路経路選択に必要な非秘密メタデータと、受け渡しが外側で検証可能と定める構造だけを扱う。受け渡しの E2E 暗号化、JCS、AAD、ダイジェスト、鍵導出、バイナリエンコーディングは変更しない。
 
-### 9.2 Structural validation
+### 9.2 構造上の検証
 
 Relay は復号せずに次を検証する。
 
-- protocol version、message / envelope kind、required outer field、JSON type、duplicate key および malformed structure
-- endpoint / path で指定された sessionId、server-side metadata の requestId、generationId、direction、expiry および利用可能な correlation
-- endpoint credential、participant role、session lifecycle および current generation
-- body size、envelope size、allowed algorithm / encoding identifier および resource limit
-- request / response の direction と対象 endpoint の一致
-- response envelope が対象 session、generation、expiry および response direction に対応すること。暗号化された response 内の `requestId`、`requestDigest` その他の correlation は Relay が復号せず、Mobile App / SDK が検証する。
+- プロトコルバージョン、メッセージ / エンベロープ種別、必須外側フィールド、JSON 型、重複鍵および不正な形式の構造
+- エンドポイント / パスで指定された sessionId、サーバー側のメタデータの requestId、generationId、方向、期限切れおよび利用可能な対応付け
+- エンドポイント認証情報、参加者役割、セッションライフサイクルおよび現在の世代
+- 本文サイズ、エンベロープサイズ、allowed アルゴリズム / エンコーディング識別子およびリソース上限
+- 要求 / 応答の方向と対象エンドポイントの一致
+- 応答エンベロープが対象セッション、世代、期限切れおよび応答方向に対応すること。暗号化された応答内の `requestId`、`requestDigest` その他の対応付けは Relay が復号せず、モバイルアプリ / SDK が検証する。
 
-structural validation を通過しても、ciphertext の AEAD 認証、payload integrity、transaction / message semantic validation、Origin proof、Account、permission、approval、authentication または signing outcome が成立したことを意味しない。これらは client / Signer の責任である。
+構造上の検証を通過しても、暗号文の AEAD 認証、ペイロード完全性、トランザクション / メッセージ意味上の検証、オリジン証明、アカウント、許可、承認、認証または署名結果が成立したことを意味しない。これらはクライアント / 署名主体の責任である。
 
-### 9.3 Byte preservation
+### 9.3 バイト維持
 
-Relay は受理した encrypted envelope を routing / storage / retrieval の間で byte-preserving に扱う。transport serialization が必要な場合も、Handoff が定める JSON object と field encoding を使用し、ciphertext の内容を decode・normalize・再暗号化しない。
+Relay は受理した暗号化されたエンベロープを経路選択 / 保存領域 / 取得の間で byte-preserving に扱う。通信経路シリアライズが必要な場合も、受け渡しが定める JSON オブジェクトとフィールドエンコーディングを使用し、暗号文の内容をデコード・正規化・再暗号化しない。
 
-Relay が envelope の外側構造を確認できない場合は、成功として配送・ACK・署名結果化せず、Handoff の structural failure として安全側に終了する。暗号化された内側の integrity は Relay が確認せず、Mobile App / SDK が検証する。
+Relay がエンベロープの外側構造を確認できない場合は、成功として配送・受領確認・署名結果化せず、受け渡しの構造上の失敗として安全側に終了する。暗号化された内側の完全性は Relay が確認せず、モバイルアプリ / SDK が検証する。
 
-## 10. Request / Response Routing
+## 10. 要求 / 応答経路選択
 
-### 10.1 Routing binding
+### 10.1 経路選択結び付け
 
-request / response は次の logical tuple に binding して routing する。
+要求 / 応答は次の論理的な組に結び付けして経路選択する。
 
 ```text
-(generationId, sessionId, participant role, direction,
-requestId, requestDigest / response correlation,
- credential scope, expiry, lifecycle state)
+(generationId, sessionId, 参加者役割, 方向,
+requestId, requestDigest / 応答対応付け,
+ 認証情報対象範囲, 期限切れ, ライフサイクル状態)
 ```
 
-この tuple は end-to-end の binding を表す。Relay が routing に使用するのは、利用可能な outer metadata と server-side session state に表現された部分であり、暗号化された内側の `requestId`、`requestDigest` および response correlation は含まない。Relay は利用可能な各要素を照合し、欠落、malformed、不一致または検証不能な transport metadata があれば delivery / state transition を行わない。内側の correlation は Mobile App / SDK が検証する。
+この組はエンドツーエンドの結び付けを表す。Relay が経路選択に使用するのは、利用可能な外側メタデータとサーバー側のセッション状態に表現された部分であり、暗号化された内側の `requestId`、`requestDigest` および応答対応付けは含まない。Relay は利用可能な各要素を照合し、欠落、不正な形式の、不一致または検証不能な通信経路メタデータがあれば配送 / 状態遷移を行わない。内側の対応付けはモバイルアプリ / SDK が検証する。
 
-### 10.2 Request route
+### 10.2 要求経路
 
-- Web-side の create request は current generation、fresh sessionId / requestId、Web-side token hash、App-side token hash および encrypted request を一つの handoff session に関連付ける。
-- Mobile-side request retrieval は sessionId と appToken により対象 session を認証し、request direction と pending / response state を確認する。
-- 同じ appToken による期限内の request 再取得は同一 envelope を返す冪等な retrieval とする。取得だけで request を consumed にしない。
-- request が cancelled、consumed、expired または state-lost なら request を新しい handoff として返さない。`response_available` は request の別 handoff 化を意味せず、request retrieval の扱いは Handoff endpoint contract に従う。
+- Web 側の作成要求は現在の世代、新鮮な sessionId / requestId、Web 側のトークンハッシュ、App-side トークンハッシュおよび暗号化された要求を一つの受け渡しセッションに関連付ける。
+- モバイル側の要求取得は sessionId と appToken により対象セッションを認証し、要求方向と保留中の / 応答状態を確認する。
+- 同じ appToken による期限内の要求再取得は同一エンベロープを返す冪等な取得とする。取得だけで要求を消費済みにしない。
+- 要求がキャンセル済み、消費済み、期限切れまたは state-lost なら要求を新しい受け渡しとして返さない。`response_available` は要求の別受け渡し化を意味せず、要求取得の扱いは受け渡しエンドポイント契約に従う。
 
-### 10.3 Response route
+### 10.3 応答経路
 
-- Mobile-side response upload は対象 session、appToken、response direction、generation および `pending` state を確認する。暗号化された response 内の `requestId` / `requestDigest` は Relay の検証対象ではなく、Mobile App が元 request と対応付け、SDK が受信後に検証する。
-- `pending → response_available` は一つの logical atomic transition とする。
-- Web-side response retrieval は webToken、response direction、expiry および session state を確認する。
-- response retrieval は、ACK されるまで同一 response の再取得を許可できる。再取得は同一 response の duplicate delivery であり、signing outcome の再生成ではない。
-- ACK 後の response、cancel / expiry 後の response、別 session / request の response、generation が異なる response は配信しない。
+- モバイル側の応答アップロードは対象セッション、appToken、応答方向、世代および `pending` 状態を確認する。暗号化された応答内の `requestId` / `requestDigest` は Relay の検証対象ではなく、モバイルアプリが元要求と対応付け、SDK が受信後に検証する。
+- `pending → response_available` は一つの論理的な不可分な遷移とする。
+- Web 側の応答取得は webToken、応答方向、期限切れおよびセッション状態を確認する。
+- 応答取得は、受領確認されるまで同一応答の再取得を許可できる。再取得は同一応答の重複配送であり、署名結果の再生成ではない。
+- 受領確認後の応答、キャンセル / 期限切れ後の応答、別セッション / 要求の応答、世代が異なる応答は配信しない。
 
-### 10.4 Lookup key
+### 10.4 照会鍵
 
-論理 lookup key は sessionId、participant role / credential scope、direction、requestId、generation および lifecycle state の組である。sessionId だけの global lookup を authorization として使用しない。
+論理照会鍵は sessionId、参加者役割 / 認証情報対象範囲、方向、requestId、世代およびライフサイクル状態の組である。sessionId だけのグローバル照会を認可として使用しない。
 
-storage key の hash、prefix、table、Redis key、index または内部 object layout は本書で固定しない。ただし内部表現が異なっても cross-session、cross-recipient、cross-generation lookup が成立してはならない。
+保存領域鍵のハッシュ、接頭辞、表、Redis 鍵、索引または内部オブジェクト配置は本書で固定しない。ただし内部表現が異なってもセッション間の、受信者間の、cross-generation 照会が成立してはならない。
 
-## 11. Duplicate / Replay / Late Delivery
+## 11. 重複 / リプレイ / 遅延した配送
 
-### 11.1 Create duplicate
+### 11.1 作成重複
 
-- 既存 sessionId の create request は `409 Conflict` とし、既存 session を更新・上書き・延長しない。
-- 既存 requestId、sessionId または conflicting active state の再利用は新しい handoff として受理しない。current `generationId` は Relay の generation context であり、複数 handoff に同じ current 値が使われることを妨げない。
-- 同じ body の create retry も既存 session を再開せず、新しい identity を要求する。
+- 既存 sessionId の作成要求は `409 Conflict` とし、既存セッションを更新・上書き・延長しない。
+- 既存 requestId、sessionId または競合する有効な状態の再利用は新しい受け渡しとして受理しない。現在の `generationId` は Relay の世代文脈であり、複数受け渡しに同じ現在の値が使われることを妨げない。
+- 同じ本文の作成再試行も既存セッションを再開せず、新しい識別情報を要求する。
 
-### 11.2 Request retrieval duplicate
+### 11.2 要求取得重複
 
-期限内に正しい appToken で同じ request を繰り返し取得することは許可されるが、同じ envelope を返すだけとする。取得回数によって signing、approval または session state を変更しない。
+期限内に正しい appToken で同じ要求を繰り返し取得することは許可されるが、同じエンベロープを返すだけとする。取得回数によって署名、承認またはセッション状態を変更しない。
 
-### 11.3 Response duplicate
+### 11.3 応答重複
 
-- 同一 session / request に対して最初に受理した response を正本とする。
-- 同じ envelope の retry は `204 No Content` として冪等に扱う。
-- 異なる encrypted response は `409 Conflict` とし、先行 response を上書き・差し替えしない。
-- response upload の race では一つの response だけが `response_available` へ遷移させる。
+- 同一セッション / 要求に対して最初に受理した応答を正本とする。
+- 同じエンベロープの再試行は `204 No Content` として冪等に扱う。
+- 異なる暗号化された応答は `409 Conflict` とし、先行応答を上書き・差し替えしない。
+- 応答アップロードの競合では一つの応答だけが `response_available` へ遷移させる。
 
-### 11.4 Polling / consumed / expired
+### 11.4 ポーリング / 消費済み / 期限切れ
 
-- 同じ webToken による polling の繰り返しは state を巻き戻さない。
-- `response_available` の同じ response を複数回返しても、client 側の request / response identity 検証を置き換えない。
-- `consumed`、`cancelled`、`expired` の object は有効な handoff として取得・更新・再配送しない。
-- polling の late response、timeout 後の response、cancel race または expiry race は新しい request に適用しない。
+- 同じ webToken によるポーリングの繰り返しは状態を巻き戻さない。
+- `response_available` の同じ応答を複数回返しても、クライアント側の要求 / 応答識別情報検証を置き換えない。
+- `consumed`、`cancelled`、`expired` のオブジェクトは有効な受け渡しとして取得・更新・再配送しない。
+- ポーリングの遅延した応答、タイムアウト後の応答、キャンセル競合または期限切れ競合は新しい要求に適用しない。
 
-### 11.5 Old credential / generation
+### 11.5 旧認証情報 / 世代
 
-old token、別 session の token、old generation metadata、stale session、old requestId または old response は、ACK / cancel 以外では拒否・非公開とし、Relay はこれらを user rejection、permission denial、approval または signing success へ変換しない。ACK / cancel は Handoff §9.6 に従い、request の外形が妥当であれば `204 No Content` を返すが、状態変更は行わない。
+旧トークン、別セッションのトークン、旧世代メタデータ、古くなったセッション、旧 requestId または旧応答は、受領確認 / キャンセル以外では拒否・非公開とし、Relay はこれらを利用者拒否、許可拒否、承認または署名成功へ変換しない。受領確認 / キャンセルは受け渡し §9.6 に従い、要求の外形が妥当であれば `204 No Content` を返すが、状態変更は行わない。
 
-Relay は過去の全 ciphertext history を持たなくてもよい。old ciphertext が current metadata とともに一時保存され得る場合の client-side AEAD / AAD failure、署名前拒否および success 非到達は Handoff / Mobile App の責任分界に従う。
+Relay は過去の全暗号文履歴を持たなくてもよい。旧暗号文が現在のメタデータとともに一時保存され得る場合のクライアント側の AEAD / AAD 失敗、署名前拒否および成功非到達は受け渡し / モバイルアプリの責任分界に従う。
 
-## 12. Retention / TTL / Expiry
+## 12. 保持 / TTL / 期限切れ
 
 ### 12.1 期限の分離
 
 次の期限を同一視しない。
 
-| 期限                | 定義                                                                  | Relay の扱い                                                 |
-| ------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------ |
-| request expiry      | Handoff request が Signer へ渡せる有効期限                            | outer expiry として検証し、期限後に delivery しない          |
-| session lifetime    | session / participant / routing / credential scope が有効な期間       | Handoff の session expiry に従い、client 指定値を延長しない  |
-| message retention   | request / response envelope を temporary storage に保持する期間       | session / terminal state の bounded retention に限定する     |
-| response retention  | `response_available` response を Web-side が ACK するまで保持する期間 | response retrieval を許可し、ACK 後に purge する             |
-| credential lifetime | appToken / webToken が対象 endpoint に有効な期間                      | session、endpoint、role、generation、expiry と併せて検証する |
-| SDK wait timeout    | SDK が local wait を止める期限                                        | Relay は SDK timeout から signing outcome を推測しない       |
-| message expiry      | structured message 内の expiry                                        | Relay は plaintext を解釈せず、client / Signer が検証する    |
+| 期限                 | 定義                                                               | Relay の扱い                                                       |
+| -------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| 要求期限切れ         | 受け渡し要求が署名主体へ渡せる有効期限                             | 外側期限切れとして検証し、期限後に配送しない                       |
+| セッション有効期間   | セッション / 参加者 / 経路選択 / 認証情報対象範囲が有効な期間      | 受け渡しのセッション期限切れに従い、クライアント指定値を延長しない |
+| メッセージ保持       | 要求 / 応答エンベロープを一時的な保存領域に保持する期間            | セッション / 終端状態の上限のある保持に限定する                    |
+| 応答保持             | `response_available` 応答を Web 側のが受領確認するまで保持する期間 | 応答取得を許可し、受領確認後に削除する                             |
+| 認証情報有効期間     | appToken / webToken が対象エンドポイントに有効な期間               | セッション、エンドポイント、役割、世代、期限切れと併せて検証する   |
+| SDK 待機タイムアウト | SDK がローカル待機を止める期限                                     | Relay は SDK タイムアウトから署名結果を推測しない                  |
+| メッセージ期限切れ   | 構造化されたメッセージ内の期限切れ                                 | Relay は平文を解釈せず、クライアント / 署名主体が検証する          |
 
-### 12.2 Handoff の固定値
+### 12.2 受け渡しの固定値
 
-Handoff §9.7 に従い、session / handoff expiry は作成から 5 分を超えず、client request による延長を許可しない。Relay は SDK 指定の expiry を変更してはならない。
+受け渡し §9.7 に従い、セッション / 受け渡し期限切れは作成から 5 分を超えず、クライアント要求による延長を許可しない。Relay は SDK 指定の期限切れを変更してはならない。
 
-Relay は 5 分の request / session expiry と、内部 cleanup の実行時刻を別に扱う。cleanup が遅れても expired object を有効な handoff として配送せず、cleanup が早くても success、未署名または user rejection を推測しない。
+Relay は 5 分の要求 / セッション期限切れと、内部後処理の実行時刻を別に扱う。後処理が遅れても期限切れオブジェクトを有効な受け渡しとして配送せず、後処理が早くても成功、未署名または利用者拒否を推測しない。
 
-### 12.3 Terminal purge
+### 12.3 終端削除
 
-`consumed`、`cancelled` または `expired` への terminal transition 時に、active storage から request / response ciphertext、token hash、session metadata を削除する。ACK は SDK が response の復号と全検証に成功した後だけ送信する。
+`consumed`、`cancelled` または `expired` への終端遷移時に、有効な保存領域から要求 / 応答暗号文、トークンハッシュ、セッションメタデータを削除する。受領確認は SDK が応答の復号と全検証に成功した後だけ送信する。
 
-非同期 purge のために tombstone が必要な場合は、Handoff §9.7 に従い、session ID の keyed hash、terminal state および削除期限だけを最大 24 時間保持できる。token hash、ciphertext、Origin、requestId または plaintext を tombstone に含めない。
+非同期削除のために削除記録が必要な場合は、受け渡し §9.7 に従い、セッション ID の keyed ハッシュ、終端状態および削除期限だけを最大 24 時間保持できる。トークンハッシュ、暗号文、オリジン、requestId または平文を削除記録に含めない。
 
-long-term payload history、ciphertext history、backup、analytics、署名監査履歴または retry queue として Relay retention を利用してはならない。
+長期ペイロード履歴、暗号文履歴、バックアップ、利用状況分析、署名監査履歴または再試行キューとして Relay 保持を利用してはならない。
 
-## 13. ACK / Cancel / Transport Status
+## 13. 受領確認 / キャンセル / 通信経路状態
 
-### 13.1 ACK
+### 13.1 受領確認
 
-`POST /v1/handoffs/{sessionId}/ack` は、Handoff §9.6 が endpoint request として valid と扱う外形を検証した後、HTTP response と state mutation を分離して処理する。
+`POST /v1/handoffs/{sessionId}/ack` は、受け渡し §9.6 がエンドポイント要求として有効なと扱う外形を検証した後、HTTP 応答と状態変更を分離して処理する。
 
-- 外形が妥当な ACK request には、状態変更の成否にかかわらず常に `204 No Content` を返す。`204` は state mutation の成功、session の存在、webToken の正しさ、signing success、signing 未実行または application processing success を証明しない。
-- 状態変更は、正しい endpoint-scope の webToken、対応する session、`response_available` state および current generation / lifecycle の有効性を全て確認できた場合だけ行う。その場合に限り `response_available → consumed` へ一度だけ遷移し、適用可能な Relay state を purge する。
-- webToken 不一致、unknown session、already consumed、already purged、expired、cancelled、duplicate ACK、generation mismatch または state loss 後に対象 state を確認できない場合は、状態変更を行わず no-op とする。これらの差異を HTTP response から区別させない。
-- ACK は response の E2E 復号、schema、correlation、integrity および result validation が成功したことを前提とするが、Relay 自身はその validation を行わない。
-- ACK / `consumed` は Mobile App の approval、authentication、signing success または dApp の独立検証完了を意味しない。
-- purge 後の同一 ACK retry を含む ACK は idempotent / existence-hiding な transport operation であり、session existence や token validity を新たに漏えいさせない。
+- 外形が妥当な受領確認要求には、状態変更の成否にかかわらず常に `204 No Content` を返す。`204` は状態変更の成功、セッションの存在、webToken の正しさ、署名成功、署名未実行またはアプリケーション処理成功を証明しない。
+- 状態変更は、正しいエンドポイントの適用範囲の webToken、対応するセッション、`response_available` 状態および現在の世代 / ライフサイクルの有効性を全て確認できた場合だけ行う。その場合に限り `response_available → consumed` へ一度だけ遷移し、適用可能な Relay 状態を削除する。
+- webToken 不一致、不明セッション、既に消費済み、既に削除済み、期限切れ、キャンセル済み、重複受領確認、世代不一致または状態消失後に対象状態を確認できない場合は、状態変更を行わず状態を変更しない操作とする。これらの差異を HTTP 応答から区別させない。
+- 受領確認は応答の E2E 復号、スキーマ、対応付け、完全性および結果検証が成功したことを前提とするが、Relay 自身はその検証を行わない。
+- 受領確認 / `consumed` はモバイルアプリの承認、認証、署名成功または dApp の独立検証完了を意味しない。
+- 削除後の同一受領確認再試行を含む受領確認は idempotent / existence-hiding な通信経路操作であり、セッション存在やトークン有効性を新たに漏えいさせない。
 
-### 13.2 Cancel
+### 13.2 キャンセル
 
-`DELETE /v1/handoffs/{sessionId}` は、Handoff §9.6 が endpoint request として valid と扱う外形を検証した後、HTTP response と state mutation を分離して処理する。
+`DELETE /v1/handoffs/{sessionId}` は、受け渡し §9.6 がエンドポイント要求として有効なと扱う外形を検証した後、HTTP 応答と状態変更を分離して処理する。
 
-- 外形が妥当な cancel request には、状態変更の成否にかかわらず常に `204 No Content` を返す。`204` は state mutation の成功、session の存在、webToken の正しさ、signing cancellation の成功、signing 未実行または application processing success を証明しない。
-- 状態変更は、正しい endpoint-scope の webToken、対応する active session および current lifecycle で cancellation が適用可能であることを全て確認できた場合だけ行う。その場合に限り session を `cancelled` として扱い、適用可能な Relay state を purge する。
-- webToken 不一致、unknown session、already cancelled、already consumed、already expired、already purged、duplicate cancel、generation mismatch または state loss / restart 後に対象 state を確認できない場合は、状態変更を行わず no-op とする。これらの差異を HTTP response から区別させない。
-- cancel は Relay object の削除・無効化であり、Signer に対する signing cancellation の完了を意味しない。
-- cancel の送信、受理、`204 No Content` または purge は、署名が未実行である証明ではない。
-- purge 後の同一 cancel retry を含む cancel は idempotent / existence-hiding な transport operation であり、session existence や token validity を新たに漏えいさせない。
-- cancel と response upload / ACK / expiry が競合した場合、一つの terminal transition だけを適用し、terminal state を再活性化しない。
-- cancel 後の late response は response result として配送しない。
+- 外形が妥当なキャンセル要求には、状態変更の成否にかかわらず常に `204 No Content` を返す。`204` は状態変更の成功、セッションの存在、webToken の正しさ、署名キャンセルの成功、署名未実行またはアプリケーション処理成功を証明しない。
+- 状態変更は、正しいエンドポイントの適用範囲の webToken、対応する有効なセッションおよび現在のライフサイクルでキャンセルが適用可能であることを全て確認できた場合だけ行う。その場合に限りセッションを `cancelled` として扱い、適用可能な Relay 状態を削除する。
+- webToken 不一致、不明セッション、既にキャンセル済み、既に消費済み、既に期限切れ、既に削除済み、重複キャンセル、世代不一致または状態消失 / 再起動後に対象状態を確認できない場合は、状態変更を行わず状態を変更しない操作とする。これらの差異を HTTP 応答から区別させない。
+- キャンセルは Relay オブジェクトの削除・無効化であり、署名主体に対する署名キャンセルの完了を意味しない。
+- キャンセルの送信、受理、`204 No Content` または削除は、署名が未実行である証明ではない。
+- 削除後の同一キャンセル再試行を含むキャンセルは idempotent / existence-hiding な通信経路操作であり、セッション存在やトークン有効性を新たに漏えいさせない。
+- キャンセルと応答アップロード / 受領確認 / 期限切れが競合した場合、一つの終端遷移だけを適用し、終端状態を再活性化しない。
+- キャンセル後の遅延した応答は応答結果として配送しない。
 
-### 13.3 Transport status と Signer-originated `deliveryDisposition`
+### 13.3 通信経路状態と署名主体が生成した `deliveryDisposition`
 
-Relay-local に扱えるのは `transport status` だけである。例えば accepted、stored、available、retrieved、acknowledged、consumed、cancelled、expired、dropped、unavailable 等の transport lifecycle observation を記録・報告できる。ただし、これらは新しい public enum または wire field として本書で追加しない。
+Relay 内のに扱えるのは `transport status` だけである。例えば受け入れ済み、保存済み、利用可能、retrieved、acknowledged、消費済み、キャンセル済み、期限切れ、dropped、利用不能等の通信経路ライフサイクル観測を記録・報告できる。ただし、これらは新しい公開列挙型または通信上のフィールドとして本書で追加しない。
 
-`deliveryDisposition` は、known signed result に付随する Signer-originated field であり、値は `PENDING`、`DELIVERED` または `DELIVERY_UNKNOWN` に限る。`PENDING` を設定し、`DELIVERED` または `DELIVERY_UNKNOWN` へ遷移させる authority は trusted Signer にだけある。`SUCCEEDED + DELIVERY_UNKNOWN` の場合、Signer は known signed result を保持する。
+`deliveryDisposition` は、既知の署名済み結果に付随する署名主体が生成したフィールドであり、値は `PENDING`、`DELIVERED` または `DELIVERY_UNKNOWN` に限る。`PENDING` を設定し、`DELIVERED` または `DELIVERY_UNKNOWN` へ遷移させる判断権限は信頼された署名主体にだけある。`SUCCEEDED + DELIVERY_UNKNOWN` の場合、署名主体は既知の署名済み結果を保持する。
 
-Relay は `deliveryDisposition` またはその値を generate、infer、derive、promote、downgrade、rewrite、normalize、merge、replace または confirm してはならない。暗号化 response envelope 内に Signer-originated `deliveryDisposition` が含まれていても、Relay はその意味を認識・解釈せず、opaque bytes / envelope を意味保持して中継するだけである。Relay transport status の `retrieved`、ACK、`consumed`、HTTP 2xx、response purge または `unavailable` は、Signer-side `DELIVERED` を意味しない。
+Relay は `deliveryDisposition` またはその値を generate、推測、derive、昇格、格下げ、rewrite、正規化、統合、replace または confirm してはならない。暗号化応答エンベロープ内に署名主体が生成した `deliveryDisposition` が含まれていても、Relay はその意味を認識・解釈せず、内容を解釈しないバイト列 / エンベロープを意味保持して中継するだけである。Relay 通信経路状態の `retrieved`、受領確認、`consumed`、HTTP 2xx、応答削除または `unavailable` は、署名主体側の `DELIVERED` を意味しない。
 
-Relay transport status の `delivered` という観測を実装・運用上使用する場合も、それは Signer の `deliveryDisposition: 'DELIVERED'` とは別の Relay-local observation である。Relay は transport status から `RESULT_UNKNOWN`、`USER_REJECTED`、`FAILED`、署名済み、未署名または Signer-side `deliveryDisposition` を推測しない。
+Relay 通信経路状態の `delivered` という観測を実装・運用上使用する場合も、それは署名主体の `deliveryDisposition: 'DELIVERED'` とは別の Relay 内の観測である。Relay は通信経路状態から `RESULT_UNKNOWN`、`USER_REJECTED`、`FAILED`、署名済み、未署名または署名主体側の `deliveryDisposition` を推測しない。
 
-## 14. Failure Semantics
+## 14. 失敗意味
 
-### 14.1 Failure categories
+### 14.1 失敗分類
 
-| Relay condition                           | Relay の処理                                                                                                                                                                                       | Signing outcome への解釈                                                            |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| malformed / structural rejection          | request / transition を受け付けず、必要最小限の generic error を返す                                                                                                                               | signing validation / rejection を推測しない                                         |
-| authorization failure                     | 対象 object を変更せず、Handoff の endpoint error contract に従う。ACK / cancel の valid request は `204 No Content` の no-op とする                                                               | permission denial、user rejection または signing failure に変換しない               |
-| not found / terminal / expired            | 同じ外部応答に統一できる endpoint では同一化する。ACK / cancel の valid request は `204 No Content` の no-op とする                                                                                | 未署名、署名済みまたは user rejection を断定しない                                  |
-| stale generation                          | current state として受理・作成・配送しない                                                                                                                                                         | signing outcome ではない                                                            |
-| storage unavailable / consistency failure | state transition、delivery、ACK / cancel の状態変更を success とせず安全側に停止する。transport status は unavailable / unknown として扱い、valid request の HTTP semantics は Handoff §9.6 に従う | signing outcome または Signer-originated `deliveryDisposition` を推測しない         |
-| restart / state loss                      | old state を復元せず generation を切り替える                                                                                                                                                       | old approval / signing state を復元しない                                           |
-| network / transport timeout               | bounded wait / delivery を終える                                                                                                                                                                   | SDK timeout と signing request expiry を混同しない                                  |
-| response delivery failure                 | transport failure または transport status unavailable / unknown として扱う                                                                                                                         | `SUCCEEDED`、未署名、`RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を Relay が決めない |
-| duplicate / replay / conflict             | duplicate は既存 contract に従い冪等化し、conflict / stale は拒否する                                                                                                                              | approval / signing success に変換しない                                             |
+| Relay 条件                          | Relay の処理                                                                                                                                                       | 署名結果への解釈                                                                    |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| 不正な形式の / 構造上の拒否         | 要求 / 遷移を受け付けず、必要最小限の一般的なエラーを返す                                                                                                          | 署名検証 / 拒否を推測しない                                                         |
+| 認可失敗                            | 対象オブジェクトを変更せず、受け渡しのエンドポイントエラー契約に従う。受領確認 / キャンセルの有効な要求は `204 No Content` の状態を変更しない操作とする            | 許可拒否、利用者拒否または署名失敗に変換しない                                      |
+| not found / 終端 / 期限切れ         | 同じ外部応答に統一できるエンドポイントでは同一化する。受領確認 / キャンセルの有効な要求は `204 No Content` の状態を変更しない操作とする                            | 未署名、署名済みまたは利用者拒否を断定しない                                        |
+| 古くなった世代                      | 現在の状態として受理・作成・配送しない                                                                                                                             | 署名結果ではない                                                                    |
+| 保存領域利用不能 / 整合性失敗       | 状態遷移、配送、受領確認 / キャンセルの状態変更を成功とせず安全側に停止する。通信経路状態は利用不能 / 不明として扱い、有効な要求の HTTP 意味は受け渡し §9.6 に従う | 署名結果または署名主体が生成した `deliveryDisposition` を推測しない                 |
+| 再起動 / 状態消失                   | 旧状態を復元せず世代を切り替える                                                                                                                                   | 旧承認 / 署名状態を復元しない                                                       |
+| ネットワーク / 通信経路タイムアウト | 上限のある待機 / 配送を終える                                                                                                                                      | SDK タイムアウトと署名要求期限切れを混同しない                                      |
+| 応答配送失敗                        | 通信経路失敗または通信経路状態利用不能 / 不明として扱う                                                                                                            | `SUCCEEDED`、未署名、`RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を Relay が決めない |
+| 重複 / リプレイ / 競合              | 重複は既存契約に従い冪等化し、競合 / 古くなったは拒否する                                                                                                          | 承認 / 署名成功に変換しない                                                         |
 
-上表の一般的な authorization failure、not found、terminal、expired、stale state または consistency failure の response rule は、ACK / cancel の endpoint-specific semantics を上書きしない。Handoff §9.6 に従い、外形が妥当な ACK / cancel は常に `204 No Content` とし、token validity、session existence、terminal / purge 状態または state loss を response の差異で露出させない。状態変更の条件を満たさない場合は no-op とする。malformed request、protocol / method / structural validation failure はこの扱いではなく、既存の Handoff structural error contract に従う。
+上表の一般的な認可失敗、not found、終端、期限切れ、古くなった状態または整合性失敗の応答規則は、受領確認 / キャンセルのエンドポイント固有の意味を上書きしない。受け渡し §9.6 に従い、外形が妥当な受領確認 / キャンセルは常に `204 No Content` とし、トークン有効性、セッション存在、終端 / 削除状態または状態消失を応答の差異で露出させない。状態変更の条件を満たさない場合は状態を変更しない操作とする。不正な形式の要求、プロトコル / メソッド / 構造上の検証失敗はこの扱いではなく、既存の受け渡し構造上のエラー契約に従う。
 
-ここでいう transport status の `unknown` または transport failure は、Signer-side `DELIVERY_UNKNOWN` ではない。`transport_failure != RESULT_UNKNOWN != DELIVERY_UNKNOWN` であり、Relay が確定できるのは transport failure / transport lifecycle だけである。
+ここでいう通信経路状態の `unknown` または通信経路失敗は、署名主体側の `DELIVERY_UNKNOWN` ではない。`transport_failure != RESULT_UNKNOWN != DELIVERY_UNKNOWN` であり、Relay が確定できるのは通信経路失敗 / 通信経路ライフサイクルだけである。
 
-### 14.2 Error authority
+### 14.2 エラー定義の正本
 
-Relay は新しい public SDK error code または error taxonomy を定義しない。
+Relay は新しい公開 SDK エラーコードまたはエラー分類体系を定義しない。
 
-- common logical category は [interfaces.md §10](./interfaces.md)。
-- signing outcome、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN` および terminal semantics は [signing-protocol.md](./signing-protocol.md)。
-- SDK / Handoff の concrete code と mapping は [web-transaction-handoff-spec.md §10](./web-transaction-handoff-spec.md)。
-- Relay HTTP structural rejection body は Handoff の `RELAY_REQUEST_REJECTED` contract に従う。
+- 共通の論理的な分類は [interfaces.md §10](./interfaces.md)。
+- 署名結果、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN` および終端意味は [signing-protocol.md](./signing-protocol.md)。
+- SDK / 受け渡しの具体的なコードと対応付けは [web-transaction-handoff-spec.md §10](./web-transaction-handoff-spec.md)。
+- Relay HTTP 構造上の拒否本文は受け渡しの `RELAY_REQUEST_REJECTED` 契約に従う。
 
-Relay の error response は request body、token、session existence、ciphertext、plaintext、stack trace、storage schema、internal exception または secret を露出しない。Relay は HTTP status を SDK / Signer の logical signing outcome と同一視しない。
+Relay のエラー応答は要求本文、トークン、セッション存在、暗号文、平文、スタック追跡、保存領域スキーマ、内部例外または秘密情報を露出しない。Relay は HTTP 状態を SDK / 署名主体の論理的な署名結果と同一視しない。
 
-### 14.3 Result / Signer disposition authority
+### 14.3 結果 / 署名主体処理結果の区分判断権限
 
-Relay は transport failure、ACK、response delivery、session purge または state loss から signing outcome / Signer disposition を生成しない。SDK も transport observation から `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` を生成・推測・確定しない。SDK / Relay が扱えるのは、trusted Signer が独立して確定し response に含めた value を、correlation と構造検証の範囲で意味不変に通過させることだけである。
+Relay は通信経路失敗、受領確認、応答配送、セッション削除または状態消失から署名結果 / 署名主体処理結果の区分を生成しない。SDK も通信経路観測から `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` を生成・推測・確定しない。SDK / Relay が扱えるのは、信頼された署名主体が独立して確定し応答に含めた値を、対応付けと構造検証の範囲で意味不変に通過させることだけである。
 
-`RESULT_UNKNOWN` は trusted Signer が signing generation 自体の成否を安全に確定できない場合だけ成立する。`DELIVERY_UNKNOWN` は trusted Signer が known signed result を既に保持しているが、Signer-side `deliveryDisposition` を安全に確定できない場合だけ成立し、`SUCCEEDED + DELIVERY_UNKNOWN` として signed result を保持する。Relay は timeout、network failure、Relay restart、state loss、storage failure、response absence、HTTP failure、polling failure、ACK failure、consumed state の不明、recipient offline または delivery failure から、いずれも生成・推測してはならない。
+`RESULT_UNKNOWN` は信頼された署名主体が署名生成自体の成否を安全に確定できない場合だけ成立する。`DELIVERY_UNKNOWN` は信頼された署名主体が既知の署名済み結果を既に保持しているが、署名主体側の `deliveryDisposition` を安全に確定できない場合だけ成立し、`SUCCEEDED + DELIVERY_UNKNOWN` として署名済み結果を保持する。Relay はタイムアウト、ネットワーク失敗、Relay 再起動、状態消失、保存領域失敗、応答欠如、HTTP 失敗、ポーリング失敗、受領確認失敗、消費済み状態の不明、受信者オフラインまたは配送失敗から、いずれも生成・推測してはならない。
 
-`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` を含む response は、Relay にとって opaque response envelope である。Relay はその value を transport failure、signing failure、成功または別の disposition へ変換しない。
+`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` を含む応答は、Relay にとって内容を解釈しない応答エンベロープである。Relay はその値を通信経路失敗、署名失敗、成功または別の処理結果の区分へ変換しない。
 
-known signed result を Signer が保持している場合の recovery は、既存 result の resend、redelivery、retrieval または lookup に限る。これは new signing / re-sign ではなく、Relay failure を理由に新しい signature を要求・生成してはならない。新しい signing operation が明示的に開始される場合でも、Signer 側で新しい request、再検証、4条件および explicit approval を成立させる。local → remote、remote → local、Provider A → Provider B または Signer A → Signer B の automatic fallback も開始・要求しない。
+既知の署名済み結果を署名主体が保持している場合の復旧は、既存結果の再送、再配送、取得または照会に限る。これは新規署名 / 再署名ではなく、Relay 失敗を理由に新しい署名を要求・生成してはならない。新しい署名操作が明示的に開始される場合でも、署名主体側で新しい要求、再検証、4条件および明示的な承認を成立させる。ローカル → リモート、リモート → ローカル、Provider A → Provider B または署名主体 A → 署名主体 B の自動代替経路も開始・要求しない。
 
-同じ target の自動再署名、旧 request / envelope の再利用、別 transport への無断 fallback または user rejection への推測変換を Relay が開始・要求してはならない。
+同じ対象の自動再署名、旧要求 / エンベロープの再利用、別通信経路への無断代替経路または利用者拒否への推測変換を Relay が開始・要求してはならない。
 
-## 15. Concurrency / Atomicity
+## 15. 並行処理 / 原子性
 
-Relay は複数 session、participant、request、response、polling、ACK、cancel、expiry および instance を同時に扱う。
+Relay は複数セッション、参加者、要求、応答、ポーリング、受領確認、キャンセル、期限切れおよびインスタンスを同時に扱う。
 
-### 15.1 Invariants
+### 15.1 不変条件
 
-- session ごとに participant role、direction、generation、requestId、expiry および state を分離する。
-- 一つの session の response upload は `pending → response_available` を一度だけ成功させる。
-- 同一 envelope の response retry は同じ結果として冪等に扱い、異なる envelope は conflict とする。
-- `response_available → consumed`、`pending → cancelled`、expiry および purge は terminal state の再活性化なしに適用する。ACK / cancel の状態変更は、それぞれ §13.1 / §13.2 の条件を満たす場合だけ行う。
-- ACK vs ACK、cancel vs cancel、ACK vs expiry、cancel vs expiry、ACK vs purge、cancel vs response submission、ACK vs state loss または cancel vs restart が競合しても、適用可能な logical transition は一度だけとし、state rollback、double response、cross-session delivery、terminal reuse を許さない。
-- concurrent polling は同じ response を返し得るが、response を別 request に付け替えない。
-- shared state の整合性を確認できない場合は状態を推測・復元せず、state mutation / delivery を成功として進めない。外形が妥当な ACK / cancel の HTTP response はこの場合も `204 No Content` とし、状態変更は no-op とする。
+- セッションごとに参加者役割、方向、世代、requestId、期限切れおよび状態を分離する。
+- 一つのセッションの応答アップロードは `pending → response_available` を一度だけ成功させる。
+- 同一エンベロープの応答再試行は同じ結果として冪等に扱い、異なるエンベロープは競合とする。
+- `response_available → consumed`、`pending → cancelled`、期限切れおよび削除は終端状態の再活性化なしに適用する。受領確認 / キャンセルの状態変更は、それぞれ §13.1 / §13.2 の条件を満たす場合だけ行う。
+- 受領確認 vs 受領確認、キャンセル vs キャンセル、受領確認 vs 期限切れ、キャンセル vs 期限切れ、受領確認 vs 削除、キャンセル vs 応答送信、受領確認 vs 状態消失またはキャンセル vs 再起動が競合しても、適用可能な論理的な遷移は一度だけとし、状態ロールバック、double 応答、セッション間の配送、終端再利用を許さない。
+- 並行するポーリングは同じ応答を返し得るが、応答を別要求に付け替えない。
+- 共有の状態の整合性を確認できない場合は状態を推測・復元せず、状態変更 / 配送を成功として進めない。外形が妥当な受領確認 / キャンセルの HTTP 応答はこの場合も `204 No Content` とし、状態変更は状態を変更しない操作とする。
 
-### 15.2 Exactly-once の範囲
+### 15.2 厳密に一回のみの範囲
 
-Relay は exactly-once delivery または exactly-once application processing を保証しない。重複配送、polling retry、reconnect、instance failover は client-side idempotency と request / response correlation を前提とする。
+Relay は厳密に一回のみ配送または厳密に一回のみアプリケーション処理を保証しない。重複配送、ポーリング再試行、再接続、インスタンス障害時の切り替えはクライアント側の冪等性と要求 / 応答対応付けを前提とする。
 
-Relay の処理順を Mobile App の approval 順序、transaction nonce、signing order または user intent と解釈してはならない。queue、lock、CAS、leader、ownership および retry algorithm は実装へ委譲するが、上記 logical invariants を満たす必要がある。
+Relay の処理順をモバイルアプリの承認順序、トランザクションノンス、署名順序または利用者意図と解釈してはならない。キュー、ロック、CAS、leader、所有責任および再試行アルゴリズムは実装へ委譲するが、上記論理的な不変条件を満たす必要がある。
 
-## 16. Restart / State Loss / Reconnect
+## 16. 再起動 / 状態消失 / 再接続
 
-### 16.1 Restart / state loss
+### 16.1 再起動 / 状態消失
 
-Relay restart、storage loss、persistence corruption、cluster split-brain または state continuity loss の後は、次を MUST とする。
+Relay 再起動、保存領域消失、永続化 corruption、クラスター split-brain または状態継続性消失の後は、次を MUST とする。
 
-- current generation を切り替える。
-- 旧 active session、pending request、response、credential state、approval、authentication または signing authorization を復元しない。
-- old generationId、old sessionId、old requestId または old response を current session として再開しない。
-- shared state の整合性を確認できない期間は、旧 state を推測・復元せず、新規 handoff と delivery を必要に応じて停止する。ACK / cancel の対象 state を確認できない場合は状態変更を行わないが、外形が妥当な ACK / cancel には Handoff §9.6 に従い `204 No Content` を返す。malformed request 等の structural validation failure は既存 contract に従う。
-- client が retry する場合は fresh generation、fresh session / request identity、fresh envelope、credential の再検証および新しい client-side validation / approval を必要とする。
+- 現在の世代を切り替える。
+- 旧有効なセッション、保留中の要求、応答、認証情報状態、承認、認証または署名認可を復元しない。
+- 旧 generationId、旧 sessionId、旧 requestId または旧応答を現在のセッションとして再開しない。
+- 共有の状態の整合性を確認できない期間は、旧状態を推測・復元せず、新規受け渡しと配送を必要に応じて停止する。受領確認 / キャンセルの対象状態を確認できない場合は状態変更を行わないが、外形が妥当な受領確認 / キャンセルには受け渡し §9.6 に従い `204 No Content` を返す。不正な形式の要求等の構造上の検証失敗は既存契約に従う。
+- クライアントが再試行する場合は新鮮な世代、新鮮なセッション / 要求識別情報、新鮮なエンベロープ、認証情報の再検証および新しいクライアント側の検証 / 承認を必要とする。
 
-Relay は state loss から signing outcome を推測しない。旧 ciphertext が構造上受理され得る場合でも、Mobile App / SDK が generation-bound integrity / AAD validation に失敗した request を承認・署名・success へ進めない。
+Relay は状態消失から署名結果を推測しない。旧暗号文が構造上受理され得る場合でも、モバイルアプリ / SDK が世代に結び付いた完全性 / AAD 検証に失敗した要求を承認・署名・成功へ進めない。
 
-restart、state loss または generation change と ACK / cancel が競合した場合も、Relay は signing outcome、session existence または token validity を推測しない。current generation / lifecycle と対象 state を確認できる logical transition だけを一度適用し、確認できない場合は対象 state を復元・推測せず状態変更を行わない。外形が妥当な ACK / cancel にはいずれの場合も `204 No Content` を返す。
+再起動、状態消失または世代変更と受領確認 / キャンセルが競合した場合も、Relay は署名結果、セッション存在またはトークン有効性を推測しない。現在の世代 / ライフサイクルと対象状態を確認できる論理的な遷移だけを一度適用し、確認できない場合は対象状態を復元・推測せず状態変更を行わない。外形が妥当な受領確認 / キャンセルにはいずれの場合も `204 No Content` を返す。
 
-### 16.2 Temporary disconnect / reconnect
+### 16.2 一時的な接続解除 / 再接続
 
-一時 disconnect では、同じ session の current participant が current credential、role、generation、expiry および state を再検証して再取得できる範囲に限り reconnect を許可できる。reconnect は session identity 単独では成立しない。
+一時接続解除では、同じセッションの現在の参加者が現在の認証情報、役割、世代、期限切れおよび状態を再検証して再取得できる範囲に限り再接続を許可できる。再接続はセッション識別情報単独では成立しない。
 
-Relay は client の local wait timeout、Mobile App の process state、user approval、device authentication または signing controller を復元しない。具体的な reconnect / resume API と retry policy は OPEN とする。
+Relay はクライアントのローカル待機タイムアウト、モバイルアプリのプロセス状態、利用者承認、端末認証または署名 controller を復元しない。具体的な再接続 / 再開 API と再試行ポリシーは未決とする。
 
-## 17. Resource / Abuse Protection
+## 17. リソース / 悪用保護
 
-### 17.1 Handoff 固定値
+### 17.1 受け渡し固定値
 
-Relay と reverse proxy は encrypted HTTP body を raw byte で 512 KiB 以下に制限する。Relay は ciphertext を復号して transaction payload の 256 KiB 上限を検査しない。この transaction payload 上限は SDK / Signer 側の責任である。
+Relay と reverse proxy は暗号化された HTTP 本文を生バイトで 512 KiB 以下に制限する。Relay は暗号文を復号してトランザクションペイロードの 256 KiB 上限を検査しない。このトランザクションペイロード上限は SDK / 署名主体側の責任である。
 
-create request について、IP と 1 分の時間窓ごとに次を適用する。
+作成要求について、IP と 1 分の時間窓ごとに次を適用する。
 
 - 作成数: 10 件 / 分
-- 総 byte 数: 4 MiB / 分
-- invalid create request も count する
-- 値は運用設定で変更できるが、既存 session の request retrieval、response、ACK および cancel に create 用 limit を適用しない
+- 総バイト数: 4 MiB / 分
+- 無効な作成要求も回数する
+- 値は運用設定で変更できるが、既存セッションの要求取得、応答、受領確認およびキャンセルに作成用上限を適用しない
 
-上記は Handoff §9.1 の既存契約を再利用する。新しい rate-limit dimension、quota、priority または bypass を本書で追加しない。
+上記は受け渡し §9.1 の既存契約を再利用する。新しい rate-limit dimension、割当量、priority または迂回を本書で追加しない。
 
-### 17.2 その他の abuse
+### 17.2 その他の悪用
 
-Relay は payload semantics を解釈せず、次の resource exhaustion を bounded に拒否・抑制できる。
+Relay はペイロード意味を解釈せず、次のリソース枯渇を上限のあるに拒否・抑制できる。
 
-- connection / session / message flooding
-- reconnect storm、long-poll connection exhaustion
-- oversized / malformed envelope
-- storage / buffer exhaustion
-- identifier guessing、recipient enumeration、credential brute force
-- duplicate submit、response replacement、expired message flooding
+- 接続 / セッション / メッセージ大量送信
+- 再接続 storm、long-poll 接続枯渇
+- サイズ超過の / 不正な形式のエンベロープ
+- 保存領域 / バッファー枯渇
+- 識別子推測、受信者列挙、認証情報 brute force
+- 重複送信、応答置き換え、期限切れメッセージ大量送信
 
-body size、connection budget、buffer、admission backoff および identifier enumeration countermeasure の追加値は運用設計へ委譲する。負荷対策を理由に validation、expiry、E2E integrity、explicit approval または secret isolation を弱めてはならない。
+本文サイズ、接続 budget、バッファー、受け入れ判定 backoff および識別子列挙 countermeasure の追加値は運用設計へ委譲する。負荷対策を理由に検証、期限切れ、E2E 完全性、明示的な承認または秘密情報の分離を弱めてはならない。
 
-## 18. Observability / Privacy
+## 18. 観測可能性 / プライバシー
 
 Relay は運用に必要な最小限の非機密情報だけを観測する。
 
 許容される分類は次のとおりである。
 
-- instance health、availability、active connection / session の概数
-- transport status の accepted / rejected、stored、available、retrieved、acknowledged、consumed、expired、cancelled、dropped、unavailable
-- routing latency、buffer / storage pressure、reconnect、resource exhaustion、admission rejection
-- generation change、state loss、invalid protocol / version、credential failure、cross-session validation failure
+- インスタンス正常性、利用可能性、有効な接続 / セッションの概数
+- 通信経路状態の受け入れ済み / 拒否済み、保存済み、利用可能、retrieved、acknowledged、消費済み、期限切れ、キャンセル済み、dropped、利用不能
+- 経路選択遅延、バッファー / 保存領域負荷、再接続、リソース枯渇、受け入れ判定拒否
+- 世代変更、状態消失、無効なプロトコル / バージョン、認証情報失敗、セッション間の検証失敗
 
-次を API response、storage、backup、log、diagnostics、analytics、telemetry、APM / WAF capture または admin view に含めてはならない。
+次を API 応答、保存領域、バックアップ、ログ、診断情報、利用状況分析、遠隔計測データ、APM / WAF 取得または管理者表示に含めてはならない。
 
-- request / response plaintext
-- transaction / message contents、summary、signed payload
-- ciphertext 全文、sessionSecret、derived encryption material
-- raw appToken / webToken、Authorization header、App Link fragment
-- private key、Mnemonic、Profile password、Wallet Store、device authentication data
-- 不要な Account / Origin / session / request の組合せ
-- internal stack trace、storage key、operator credential または secret-bearing exception
+- 要求 / 応答平文
+- トランザクション / メッセージ内容、要約、署名済みペイロード
+- 暗号文全文、sessionSecret、導出された暗号化資料
+- 生の appToken / webToken、認可ヘッダー、App Link フラグメント
+- 秘密鍵、ニーモニック、プロファイルパスワード、ウォレットストア、端末認証データ
+- 不要なアカウント / オリジン / セッション / 要求の組合せ
+- 内部スタック追跡、保存領域鍵、運用者認証情報または秘密情報を含む例外
 
-具体的な metric 名、label、sampling、log retention、alert threshold、dashboard および privacy filter は運用仕様へ委譲する。Relay の diagnostics は signing outcome、approval、Account ownership または payload safety を表明しない。
+具体的な metric 名、ラベル、sampling、ログ保持、alert threshold、dashboard およびプライバシー filter は運用仕様へ委譲する。Relay の診断情報は署名結果、承認、アカウント所有責任またはペイロード安全性を表明しない。
 
-## 19. Compatibility / Serialization
+## 19. 互換性 / シリアライズ
 
-### 19.1 Protocol compatibility
+### 19.1 プロトコル互換性
 
-- Relay protocol は `mosaiclynx.relay.v1` を使用する。
-- Handoff が指定する protocol、envelope kind、required metadata、algorithm identifier および lifecycle と互換性がない request は拒否する。
-- unknown field、unknown enum、unknown algorithm、unsupported version、duplicate key、ambiguous structure または malformed JSON は、既存下位契約が明示的に許可しない限り拒否する。
-- version mismatch を古い insecure format、plaintext transport、旧 credential の無期限受理、別 operation または approval bypass へ downgrade しない。
-- optional / additive field の扱いは Handoff / Interfaces の compatibility rule に従う。Relay が意味を推測して field を無視・変換しない。
+- Relay プロトコルは `mosaiclynx.relay.v1` を使用する。
+- 受け渡しが指定するプロトコル、エンベロープ種別、必須メタデータ、アルゴリズム識別子およびライフサイクルと互換性がない要求は拒否する。
+- 不明フィールド、不明列挙型、不明アルゴリズム、未対応のバージョン、重複鍵、曖昧な構造または不正な形式の JSON は、既存下位契約が明示的に許可しない限り拒否する。
+- バージョン不一致を古い insecure 形式、平文通信経路、旧認証情報の無期限受理、別操作または承認迂回へ格下げしない。
+- 任意 / 追加的なフィールドの扱いは受け渡し / インターフェースの互換性規則に従う。Relay が意味を推測してフィールドを無視・変換しない。
 
-### 19.2 Serialization
+### 19.2 シリアライズ
 
-Relay は Handoff の JSON / camelCase / field encoding を使用し、同じ logical object を別の独自 wire format に変換しない。
+Relay は受け渡しの JSON / camelCase / フィールドエンコーディングを使用し、同じ論理的なオブジェクトを別の独自通信上の形式に変換しない。
 
-- `generationId`、`sessionId`、`requestId`、`requestDigest`、`expiresAt`、token hash、direction および envelope の既存 encoding を変更しない。
-- `null`、omitted field、wrong JSON type、duplicate key または extra field の扱いは Handoff / Interfaces に従う。
-- ciphertext、nonce、tag、secret および binary field を表示都合で case conversion、decode、re-encode または normalization しない。
-- Relay の storage serialization は wire serialization と別でよいが、retrieval 時に Handoff の byte-preserving envelope を壊してはならない。
+- `generationId`、`sessionId`、`requestId`、`requestDigest`、`expiresAt`、トークンハッシュ、方向およびエンベロープの既存エンコーディングを変更しない。
+- `null`、omitted フィールド、誤った JSON 型、重複鍵または extra フィールドの扱いは受け渡し / インターフェースに従う。
+- 暗号文、ノンス、タグ、秘密情報およびバイナリフィールドを表示都合で事例変換、デコード、re-encode または正規化しない。
+- Relay の保存領域シリアライズは通信上のシリアライズと別でよいが、取得時に受け渡しの byte-preserving エンベロープを壊してはならない。
 
-## 20. Security Invariants
+## 20. セキュリティ上の不変条件
 
 Relay は次を MUST とする。
 
-1. Relay は opaque / untrusted transport であり、signing authority、wallet、transaction validator、Account authority、permission authority、approval engine、release / evidence evaluator または trust anchor ではない。
-2. Relay は transaction / message の意味、signing target、Account、permission、approval、authentication、signing capability または signing result を解釈・検証・変更しない。Relay が扱うのは operation-independent な outer transport / structural validation だけである。
-3. endpoint authentication、session admission、message storage、transport status、ACK、consumed state または availability を approval、authentication、署名成功または transaction safety とみなさない。
-4. Relay は private key、Mnemonic、Profile password、decrypted Wallet Store、sessionSecret、derived key または signing secret を受信・復号・保持・導出・hash 化・出力しない。
-5. `appToken` / `webToken` は endpoint authorization credential、`sessionSecret` は E2E secret として分離する。sessionId、requestId、generationId を secret とみなさない。
-6. session、participant role、direction、generation、request / response identity、credential scope、expiry および lifecycle を routing に binding し、cross-session / cross-recipient delivery を許さない。
-7. malformed、unknown、unsupported、expired、cancelled、consumed、replayed、duplicate、stale、invalidated または old generation の object を有効な handoff として再利用しない。
-8. Relay は encrypted request / response envelope を opaque bytes として意味保持し、payload plaintext、transaction / message semantics、summary、Account ownership、approval または risk を解釈しない。
-9. Relay の structural validation と client / Signer の AEAD、semantic、Origin、Account、permission、approval および signing validation を混同しない。
-10. Relay restart、state loss、failover、reconnect または generation change 後に古い request、response、credential、approval、authentication、signing state または secret を危険な形で復元しない。
-11. Relay は exactly-once application processing を保証しないが、duplicate / conflict を既存 contract に従って扱い、同一 response の競合上書きと terminal state の再活性化を防ぐ。
-12. Relay の `transport status` / `transport_failure` は signing outcome と別であり、`transport_failure != RESULT_UNKNOWN != DELIVERY_UNKNOWN` を維持する。transport status から signing outcome または Signer-originated semantics を推測しない。
-13. `deliveryDisposition` とその `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` は trusted Signer が known signed result に付与する reserved semantics である。Relay はこれらを generate、infer、derive、promote、downgrade、rewrite、normalize、merge、replace または confirm しない。
-14. Relay は response retrieval、HTTP 2xx、ACK、consumed、purge または Relay-local の `delivered` observation を Signer-side `deliveryDisposition: 'DELIVERED'` に変換しない。
-15. `RESULT_UNKNOWN` は signing generation 自体の成否、`DELIVERY_UNKNOWN` は known signed result の Signer-side `deliveryDisposition` を trusted Signer が安全に確定できない場合だけ成立する。Relay および SDK は transport failure からいずれも生成しない。
-16. Authentication、Signing-capable unlock、Account authorization および Explicit user approval の4条件は trusted Signer の独立した必須 signing conditions であり、Relay は evaluate、establish、semantic verify、cache、restore、infer または substitute しない。
-17. session existence、participant admission、token、generation、request / response existence、stored / available state、retrieval、ACK、consumed state、transport success または Relay availability は4条件の代替ではない。Relay restart / state loss 後に4条件、approval、authentication または signing authorization を復元したと推測しない。
-18. Mainnet signing capability は trusted Signer と current release / evidence gate の成立時だけ有効である。Relay health、availability、HTTP success、session creation、response retrieval、ACK、consumed state、generation current、credential validity または transport success を gate の根拠にせず、Relay は gate を evaluate、verify、promote または bypass しない。
-19. Mainnet gate が missing、invalid、expired、inconsistent、unverifiable または unknown の場合、Relay は Mainnet signing capability を override、promote、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、transport failure、alternate route または re-sign へ変換しない。Testnet-only operation の安全な継続を transport availability と結び付けて妨げない。
-20. known signed result の recovery は resend、redelivery、retrieval または lookup に限り、new signing / re-sign ではない。`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、transport failure または state loss から automatic re-sign、local / remote route の切替、Provider / Signer fallback または approval bypass を行わない。
-21. resource / availability 対策で E2E confidentiality / integrity、expiry、request correlation、explicit approval または secret isolation を弱めない。
-22. security-critical validation、generation consistency、routing integrity または shared state consistency を確認できない場合は fail-closed とする。
-23. observability、error、admin plane、backup および retention は payload、credential、secret、不要な identity linkage を漏えいさせない。新しい `RESULT_UNKNOWN`、`DELIVERY_UNKNOWN` または transport unknown の public error code を追加しない。
+1. Relay は内容を解釈しない / 信頼されていない通信経路であり、署名判断権限、ウォレット、トランザクション検証器、アカウントに関する判断権限、許可判断権限、承認エンジン、リリース / 根拠評価器または信頼アンカーではない。
+2. Relay はトランザクション / メッセージの意味、署名対象、アカウント、許可、承認、認証、署名対応能力または署名結果を解釈・検証・変更しない。Relay が扱うのは操作に依存しないな外側通信経路 / 構造上の検証だけである。
+3. エンドポイント認証、セッション受け入れ判定、メッセージ保存領域、通信経路状態、受領確認、消費済み状態または利用可能性を承認、認証、署名成功またはトランザクション安全性とみなさない。
+4. Relay は秘密鍵、ニーモニック、プロファイルパスワード、復号されたウォレットストア、sessionSecret、導出された鍵または署名秘密情報を受信・復号・保持・導出・ハッシュ化・出力しない。
+5. `appToken` / `webToken` はエンドポイント認可認証情報、`sessionSecret` は E2E 秘密情報として分離する。sessionId、requestId、generationId を秘密情報とみなさない。
+6. セッション、参加者役割、方向、世代、要求 / 応答識別情報、認証情報対象範囲、期限切れおよびライフサイクルを経路選択に結び付けし、セッション間の / 受信者間の配送を許さない。
+7. 不正な形式の、不明、未対応の、期限切れ、キャンセル済み、消費済み、再送された、重複、古くなった、無効化済みまたは旧世代のオブジェクトを有効な受け渡しとして再利用しない。
+8. Relay は暗号化された要求 / 応答エンベロープを内容を解釈しないバイト列として意味保持し、ペイロード平文、トランザクション / メッセージ意味、要約、アカウント所有責任、承認またはリスクを解釈しない。
+9. Relay の構造上の検証とクライアント / 署名主体の AEAD、意味上の、オリジン、アカウント、許可、承認および署名検証を混同しない。
+10. Relay 再起動、状態消失、障害時の切り替え、再接続または世代変更後に古い要求、応答、認証情報、承認、認証、署名状態または秘密情報を危険な形で復元しない。
+11. Relay は厳密に一回のみアプリケーション処理を保証しないが、重複 / 競合を既存契約に従って扱い、同一応答の競合上書きと終端状態の再活性化を防ぐ。
+12. Relay の `transport status` / `transport_failure` は署名結果と別であり、`transport_failure != RESULT_UNKNOWN != DELIVERY_UNKNOWN` を維持する。通信経路状態から署名結果または署名主体が生成した意味を推測しない。
+13. `deliveryDisposition` とその `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` は信頼された署名主体が既知の署名済み結果に付与する予約済みの意味である。Relay はこれらを generate、推測、derive、昇格、格下げ、rewrite、正規化、統合、replace または confirm しない。
+14. Relay は応答取得、HTTP 2xx、受領確認、消費済み、削除または Relay 内の `delivered` 観測を署名主体側の `deliveryDisposition: 'DELIVERED'` に変換しない。
+15. `RESULT_UNKNOWN` は署名生成自体の成否、`DELIVERY_UNKNOWN` は既知の署名済み結果の署名主体側の `deliveryDisposition` を信頼された署名主体が安全に確定できない場合だけ成立する。Relay および SDK は通信経路失敗からいずれも生成しない。
+16. 認証、署名可能な状態へのロック解除、アカウントの利用認可および利用者による明示的な承認の4条件は信頼された署名主体の独立した必須署名条件であり、Relay は評価、establish、意味上の検証、キャッシュ、復元、推測または substitute しない。
+17. セッション存在、参加者受け入れ判定、トークン、世代、要求 / 応答存在、保存済み / 利用可能状態、取得、受領確認、消費済み状態、通信経路成功または Relay 利用可能性は4条件の代替ではない。Relay 再起動 / 状態消失後に4条件、承認、認証または署名認可を復元したと推測しない。
+18. Mainnet 署名対応能力は信頼された署名主体と現在のリリース / 根拠判定条件の成立時だけ有効である。Relay 正常性、利用可能性、HTTP 成功、セッション作成、応答取得、受領確認、消費済み状態、世代現在の、認証情報有効性または通信経路成功を判定条件の根拠にせず、Relay は判定条件を評価、検証、昇格または迂回しない。
+19. Mainnet 判定条件が欠落、無効な、期限切れ、不整合の、検証不能のまたは不明の場合、Relay は Mainnet 署名対応能力を上書き、昇格、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、通信経路失敗、代替の経路または再署名へ変換しない。Testnet 専用操作の安全な継続を通信経路利用可能性と結び付けて妨げない。
+20. 既知の署名済み結果の復旧は再送、再配送、取得または照会に限り、新規署名 / 再署名ではない。`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、通信経路失敗または状態消失から自動再署名、ローカル / リモート経路の切替、Provider / 署名主体代替経路または承認迂回を行わない。
+21. リソース / 利用可能性対策で E2E 機密性 / 完全性、期限切れ、要求対応付け、明示的な承認または秘密情報の分離を弱めない。
+22. セキュリティ上重大な検証、世代整合性、経路選択完全性または共有の状態整合性を確認できない場合は安全側での終了とする。
+23. 観測可能性、エラー、管理者層、バックアップおよび保持はペイロード、認証情報、秘密情報、不要な識別情報 linkage を漏えいさせない。新しい `RESULT_UNKNOWN`、`DELIVERY_UNKNOWN` または通信経路不明の公開エラーコードを追加しない。
 
-## 21. Component Responsibilities
+## 21. コンポーネントの責務
 
-| Component                     | Relay との契約                                                                                                                                                                                                             | Relay が代替しない責任                                                                                                                                              |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SDK / Browser Extension       | request creation、Origin / caller context、E2E protection、Relay endpoint 呼出し、response の最終検証、Signer-originated result / `deliveryDisposition` の意味不変な受け渡し                                               | Relay transport status を approval、signing success、Origin verified または Account authorization とみなさない。transport observation から disposition を生成しない |
-| Mobile App                    | request retrieval、generation / integrity / expiry / source validation、semantic inspection、trusted UI、Authentication、Signing-capable unlock、Account authorization、Explicit user approval、signing、response creation | Relay transport status を検証済み request、4条件、approval、safe transaction または Mainnet capability とみなさない                                                 |
-| Relay                         | session、routing、credential admission、opaque temporary storage、transport status、ACK / cancel、expiry、resource control、transport observability                                                                        | transaction / message parse、Account / permission、4条件、approval、authentication、signing、result validity、Signer `deliveryDisposition`、Mainnet gate            |
-| wallet-core                   | secret processing、Wallet Store、cryptographic operation、raw signing                                                                                                                                                      | Relay から直接利用できる API、secret または signing authority を提供しない                                                                                          |
-| Interfaces / Signing Protocol | 共通 request / response、identity、serialization、signing state、failure / result semantics、Signer-originated `deliveryDisposition` の authority                                                                          | Relay が別の common model、operation conversion または signing state を発明しない                                                                                   |
+| コンポーネント                    | Relay との契約                                                                                                                                                                       | Relay が代替しない責任                                                                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| SDK / ブラウザ拡張機能            | 要求作成、オリジン / 呼び出し元文脈、E2E 保護、Relay エンドポイント呼出し、応答の最終検証、署名主体が生成した結果 / `deliveryDisposition` の意味不変な受け渡し                       | Relay 通信経路状態を承認、署名成功、オリジン検証済みまたはアカウントの利用認可とみなさない。通信経路観測から処理結果の区分を生成しない      |
+| モバイルアプリ                    | 要求取得、世代 / 完全性 / 期限切れ / 送信元検証、意味上の内容検査、信頼された UI、認証、署名可能な状態へのロック解除、アカウントの利用認可、利用者による明示的な承認、署名、応答作成 | Relay 通信経路状態を検証済み要求、4条件、承認、安全なトランザクションまたは Mainnet 対応能力とみなさない                                    |
+| Relay                             | セッション、経路選択、認証情報受け入れ判定、内容を解釈しない一時的な保存領域、通信経路状態、受領確認 / キャンセル、期限切れ、リソース制御、通信経路観測可能性                        | トランザクション / メッセージ解析、アカウント / 許可、4条件、承認、認証、署名、結果有効性、署名主体 `deliveryDisposition`、Mainnet 判定条件 |
+| wallet-core                       | 秘密情報処理、ウォレットストア、暗号学的な操作、生の署名                                                                                                                             | Relay から直接利用できる API、秘密情報または署名判断権限を提供しない                                                                        |
+| インターフェース / 署名プロトコル | 共通要求 / 応答、識別情報、シリアライズ、署名状態、失敗 / 結果意味、署名主体が生成した `deliveryDisposition` の判断権限                                                              | Relay が別の共通のモデル、操作変換または署名状態を発明しない                                                                                |
 
-## 22. Acceptance / Conformance
+## 22. 受け入れ / 適合性
 
-Relay implementation は少なくとも次を満たす場合に本仕様へ適合する。
+Relay 実装は少なくとも次を満たす場合に本仕様へ適合する。
 
-1. current generation と session / request / response identity を binding し、stale generation を current state として受理しない。
-2. `appToken`、`webToken`、sessionSecret、sessionId および generationId の意味と endpoint scope を分離する。
-3. request / response encrypted envelope を復号・意味解釈・改変せず byte-preserving に routing する。
-4. Handoff §9 の endpoint、HTTP status、5 分の expiry、512 KiB body 制限、rate limit、polling、ACK および cancel semantics に適合する。
-5. `pending → response_available → consumed / cancelled / expired` の state transition を terminal reuse / rollback なしに処理する。
-6. duplicate request、same requestId / different content、duplicate response、repeated polling、consumed retrieval、expired session、old credential、late delivery および stale generation を cross-session contamination なしに扱う。
-7. response upload の競合、ACK / cancel / expiry / cleanup の race、restart / state loss の race で異なる response の上書きや terminal state の再活性化を起こさない。
-8. Relay structural rejection、authorization failure、not found、expired、stale generation、storage failure、timeout、network failure および transport status の uncertainty を signing approval、signing outcome または Signer `deliveryDisposition` と混同しない。
-9. Relay restart / state loss 後に old session、old request、old credential、approval または secret を復元せず、fresh generation / identity / envelope を要求する。
-10. Relay は `RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を生成せず、response に含まれる Signer-originated value がある場合だけ opaque bytes / meaning を保持して通過させる。Relay 独自の signing result や public error code を追加しない。
-11. private key、Mnemonic、Wallet Store、sessionSecret、raw credential、plaintext、ciphertext 全文および不要な sensitive metadata を log / diagnostics / admin view に出さない。
-12. concurrent session / request / response / polling / ACK / cancel / expiry が session isolation、direction isolation、credential scope および fail-closed を維持する。
+1. 現在の世代とセッション / 要求 / 応答識別情報を結び付けし、古くなった世代を現在の状態として受理しない。
+2. `appToken`、`webToken`、sessionSecret、sessionId および generationId の意味とエンドポイント対象範囲を分離する。
+3. 要求 / 応答暗号化されたエンベロープを復号・意味解釈・改変せず byte-preserving に経路選択する。
+4. 受け渡し §9 のエンドポイント、HTTP 状態、5 分の期限切れ、512 KiB 本文制限、頻度上限、ポーリング、受領確認およびキャンセル意味に適合する。
+5. `pending → response_available → consumed / cancelled / expired` の状態遷移を終端再利用 / ロールバックなしに処理する。
+6. 重複要求、同じ requestId / different 内容、重複応答、repeated ポーリング、消費済み取得、期限切れセッション、旧認証情報、遅延した配送および古くなった世代をセッション間の混入なしに扱う。
+7. 応答アップロードの競合、受領確認 / キャンセル / 期限切れ / 後処理の競合、再起動 / 状態消失の競合で異なる応答の上書きや終端状態の再活性化を起こさない。
+8. Relay 構造上の拒否、認可失敗、not found、期限切れ、古くなった世代、保存領域失敗、タイムアウト、ネットワーク失敗および通信経路状態の不確実性を署名承認、署名結果または署名主体 `deliveryDisposition` と混同しない。
+9. Relay 再起動 / 状態消失後に旧セッション、旧要求、旧認証情報、承認または秘密情報を復元せず、新鮮な世代 / 識別情報 / エンベロープを要求する。
+10. Relay は `RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を生成せず、応答に含まれる署名主体が生成した値がある場合だけ内容を解釈しないバイト列 / 意味を保持して通過させる。Relay 独自の署名結果や公開エラーコードを追加しない。
+11. 秘密鍵、ニーモニック、ウォレットストア、sessionSecret、生の認証情報、平文、暗号文全文および不要な機微なメタデータをログ / 診断情報 / 管理者表示に出さない。
+12. 並行するセッション / 要求 / 応答 / ポーリング / 受領確認 / キャンセル / 期限切れがセッション分離、方向分離、認証情報対象範囲および安全側での終了を維持する。
 
-13. Relay が Authentication、Signing-capable unlock、Account authorization および Explicit user approval の4条件を evaluate、establish、semantic verify、cache、restore、infer または substitute せず、transport state を4条件の代替にしない。
-14. Relay が Mainnet release / evidence gate を evaluate、verify、promote または bypass せず、gate failure / unknown を transport failure、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、alternate route または re-sign に変換しない。Testnet-only operation はこの gate failure により不必要に停止しない。
-15. known signed result の recovery が resend、redelivery、retrieval または lookup に限られ、new signing / re-sign、automatic alternate Signer / Provider fallback または既存 approval の再利用にならない。
-16. Relay の ACK、`consumed`、response retrieval、HTTP 2xx、purge または Relay-local `delivered` observation が、Signer `deliveryDisposition: 'DELIVERED'` に変換されない。
+13. Relay が認証、署名可能な状態へのロック解除、アカウントの利用認可および利用者による明示的な承認の4条件を評価、establish、意味上の検証、キャッシュ、復元、推測または substitute せず、通信経路状態を4条件の代替にしない。
+14. Relay が Mainnet リリース / 根拠判定条件を評価、検証、昇格または迂回せず、判定条件失敗 / 不明を通信経路失敗、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、代替の経路または再署名に変換しない。Testnet 専用操作はこの判定条件失敗により不必要に停止しない。
+15. 既知の署名済み結果の復旧が再送、再配送、取得または照会に限られ、新規署名 / 再署名、自動代替の署名主体 / Provider 代替経路または既存承認の再利用にならない。
+16. Relay の受領確認、`consumed`、応答取得、HTTP 2xx、削除または Relay 内の `delivered` 観測が、署名主体 `deliveryDisposition: 'DELIVERED'` に変換されない。
 
 次のケースを含め、上記の分離を検証できなければならない。
 
-- **Case A — response の保存:** Relay が response を正常に保存した場合、観測可能な値は transport status の `stored` / `available` である。`SUCCEEDED`、`DELIVERED`、`RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を推測しない。
-- **Case B — response retrieval と ACK:** SDK が response を取得して ACK した場合、Relay は `consumed` への遷移または purge を行ってよいが、Signer-originated `deliveryDisposition` を変更せず、`DELIVERED` にしない。
-- **Case C — retrieval 前の state loss:** Relay が response retrieval 前に state を失った場合、結果は transport failure / state loss であり、Relay は `RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を生成しない。
-- **Case D — `SUCCEEDED + DELIVERY_UNKNOWN`:** Signer response に known signed result と `DELIVERY_UNKNOWN` が含まれる場合、Relay は encrypted response を opaque に保持・中継し、値を書き換えない。受信 client は復号・検証後も known signed result を利用できる。
-- **Case E — `RESULT_UNKNOWN`:** Signer response に `RESULT_UNKNOWN` が含まれる場合、Relay はそれを transport failure、signing failure、成功または別の値として再解釈しない。
-- **Case F — Mainnet gate failure:** Signer 側で Mainnet gate が失敗・不明となった場合、Relay は Mainnet signing capability を override / promote しない。安全な Testnet-only transport operation は継続できる。
+- **事例 A — 応答の保存:** Relay が応答を正常に保存した場合、観測可能な値は通信経路状態の `stored` / `available` である。`SUCCEEDED`、`DELIVERED`、`RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を推測しない。
+- **事例 B — 応答取得と受領確認:** SDK が応答を取得して受領確認した場合、Relay は `consumed` への遷移または削除を行ってよいが、署名主体が生成した `deliveryDisposition` を変更せず、`DELIVERED` にしない。
+- **事例 C — 取得前の状態消失:** Relay が応答取得前に状態を失った場合、結果は通信経路失敗 / 状態消失であり、Relay は `RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を生成しない。
+- **事例 D — `SUCCEEDED + DELIVERY_UNKNOWN`:** 署名主体応答に既知の署名済み結果と `DELIVERY_UNKNOWN` が含まれる場合、Relay は暗号化された応答を内容を解釈せずに保持・中継し、値を書き換えない。受信クライアントは復号・検証後も既知の署名済み結果を利用できる。
+- **事例 E — `RESULT_UNKNOWN`:** 署名主体応答に `RESULT_UNKNOWN` が含まれる場合、Relay はそれを通信経路失敗、署名失敗、成功または別の値として再解釈しない。
+- **事例 F — Mainnet 判定条件失敗:** 署名主体側で Mainnet 判定条件が失敗・不明となった場合、Relay は Mainnet 署名対応能力を上書き / 昇格しない。安全な Testnet 専用通信経路操作は継続できる。
 
-## 23. Traceability
+## 23. 追跡可能性
 
-| Requirement                                    | Design                                                                                                            | Handoff / Common Specification                                                                                                                                                   | 本書での具体化                                                                                                |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `RR-001`〜`RR-003`、`RR-AC-007`〜`RR-AC-010`   | [Relay Design §3、§15〜§17](../design/relay.md)                                                                   | [Handoff §7〜§9](./web-transaction-handoff-spec.md)、[Signing Protocol](./signing-protocol.md)                                                                                   | §4、§5、§9、§10、§21 の opaque transport と request / response routing                                        |
-| `RR-004`、`RR-006`、`RR-NFR-002`、`RR-NFR-005` | [Relay Design §9〜§12、§25〜§26](../design/relay.md)                                                              | [Interfaces §5〜§6、§10.3](./interfaces.md)、[Signing Protocol §10、§18〜§20](./signing-protocol.md)                                                                             | §6、§7、§11、§13、§14、§16 の expiry、duplicate、generation、transport status と result / disposition の分離  |
-| `RR-005`、`RR-007`                             | [Relay Design §6、§17〜§19](../design/relay.md)                                                                   | [Interfaces §5〜§6](./interfaces.md)、[Handoff §7、§9](./web-transaction-handoff-spec.md)                                                                                        | §7、§10、§15、§20 の session / participant / direction / correlation isolation                                |
-| `RR-008`、`RR-NFR-003`、`RR-NFR-004`           | [Relay Design §12〜§13、§24](../design/relay.md)                                                                  | [Handoff §7.3、§8〜§9](./web-transaction-handoff-spec.md)、[Security Design](../design/security-design.md)                                                                       | §8、§9、§12、§18、§20 の credential、E2E、retention、non-logging                                              |
-| `RR-009`、`RR-AC-001`、`RR-AC-012`             | [Relay Design §7、§20、§25](../design/relay.md)                                                                   | [SDK §13〜§15](./sdk.md)、[Signing Protocol §10、§19](./signing-protocol.md)                                                                                                     | §14、§16、§21、§22 の failure、transport status、fresh retry と Signer boundary                               |
-| `RR-010`、`RR-011`                             | [Relay Design §18〜§21、§23](../design/relay.md)                                                                  | [Handoff §9.1](./web-transaction-handoff-spec.md)、[Architecture](../design/architecture.md)                                                                                     | §15、§17、§18、§20 の concurrency、resource control、admin / observability boundary                           |
-| result / delivery semantics                    | [Relay Design §10、§25、§28](../design/relay.md)                                                                  | [Interfaces §6.3、§10.3](./interfaces.md)、[Signing Protocol §19.3](./signing-protocol.md)、[SDK §5.4、§13.3](./sdk.md)、[Handoff §7.2、§9.6](./web-transaction-handoff-spec.md) | `deliveryDisposition` は Signer-originated。Relay は opaque pass-through のみで、生成・推測・rewrite をしない |
-| four signing conditions                        | [Signing Flow Design §16、§23](../design/signing-flow.md)、[Security Design §8〜§9](../design/security-design.md) | [Requirements `CR-016` / `CR-AC-017`](../requirements/requirements.md)、[Interfaces §9.7](./interfaces.md)、[Signing Protocol §8](./signing-protocol.md)                         | §4.2、§20〜§22 の trusted Signer-only authority。Relay transport state は代替にならない                       |
-| Mainnet release / evidence gate                | [Relay Design §20、§28〜§32](../design/relay.md)、[Architecture §3、§6.9、§16](../design/architecture.md)         | [Requirements `CR-NFR-006` / `CR-AC-008`](../requirements/requirements.md)、[Interfaces §7.4](./interfaces.md)、[Signing Protocol §21.1](./signing-protocol.md)                  | §4.2、§20〜§22 の Relay non-authority、fail-closed、Testnet-only continuation                                 |
+| 要求                                           | 設計                                                                                                          | 受け渡し / 共通の仕様                                                                                                                                                                 | 本書での具体化                                                                                                             |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `RR-001`〜`RR-003`、`RR-AC-007`〜`RR-AC-010`   | [Relay 設計 §3、§15〜§17](../design/relay.md)                                                                 | [受け渡し §7〜§9](./web-transaction-handoff-spec.md)、[署名プロトコル](./signing-protocol.md)                                                                                         | §4、§5、§9、§10、§21 の内容を解釈しない通信経路と要求 / 応答経路選択                                                       |
+| `RR-004`、`RR-006`、`RR-NFR-002`、`RR-NFR-005` | [Relay 設計 §9〜§12、§25〜§26](../design/relay.md)                                                            | [インターフェース §5〜§6、§10.3](./interfaces.md)、[署名プロトコル §10、§18〜§20](./signing-protocol.md)                                                                              | §6、§7、§11、§13、§14、§16 の期限切れ、重複、世代、通信経路状態と結果 / 処理結果の区分の分離                               |
+| `RR-005`、`RR-007`                             | [Relay 設計 §6、§17〜§19](../design/relay.md)                                                                 | [インターフェース §5〜§6](./interfaces.md)、[受け渡し §7、§9](./web-transaction-handoff-spec.md)                                                                                      | §7、§10、§15、§20 のセッション / 参加者 / 方向 / 対応付け分離                                                              |
+| `RR-008`、`RR-NFR-003`、`RR-NFR-004`           | [Relay 設計 §12〜§13、§24](../design/relay.md)                                                                | [受け渡し §7.3、§8〜§9](./web-transaction-handoff-spec.md)、[セキュリティ設計](../design/security-design.md)                                                                          | §8、§9、§12、§18、§20 の認証情報、E2E、保持、non-logging                                                                   |
+| `RR-009`、`RR-AC-001`、`RR-AC-012`             | [Relay 設計 §7、§20、§25](../design/relay.md)                                                                 | [SDK §13〜§15](./sdk.md)、[署名プロトコル §10、§19](./signing-protocol.md)                                                                                                            | §14、§16、§21、§22 の失敗、通信経路状態、新鮮な再試行と署名主体境界                                                        |
+| `RR-010`、`RR-011`                             | [Relay 設計 §18〜§21、§23](../design/relay.md)                                                                | [受け渡し §9.1](./web-transaction-handoff-spec.md)、[アーキテクチャ](../design/architecture.md)                                                                                       | §15、§17、§18、§20 の並行処理、リソース制御、管理者 / 観測可能性境界                                                       |
+| 結果 / 配送意味                                | [Relay 設計 §10、§25、§28](../design/relay.md)                                                                | [インターフェース §6.3、§10.3](./interfaces.md)、[署名プロトコル §19.3](./signing-protocol.md)、[SDK §5.4、§13.3](./sdk.md)、[受け渡し §7.2、§9.6](./web-transaction-handoff-spec.md) | `deliveryDisposition` は署名主体が生成した。Relay は内容を解釈しないそのまま通過させるのみで、生成・推測・rewrite をしない |
+| 四つの署名条件                                 | [署名フロー設計 §16、§23](../design/signing-flow.md)、[セキュリティ設計 §8〜§9](../design/security-design.md) | [要件 `CR-016` / `CR-AC-017`](../requirements/requirements.md)、[インターフェース §9.7](./interfaces.md)、[署名プロトコル §8](./signing-protocol.md)                                  | §4.2、§20〜§22 の信頼された署名主体のみの判断権限。Relay 通信経路状態は代替にならない                                      |
+| Mainnet リリース / 根拠判定条件                | [Relay 設計 §20、§28〜§32](../design/relay.md)、[アーキテクチャ §3、§6.9、§16](../design/architecture.md)     | [要件 `CR-NFR-006` / `CR-AC-008`](../requirements/requirements.md)、[インターフェース §7.4](./interfaces.md)、[署名プロトコル §21.1](./signing-protocol.md)                           | §4.2、§20〜§22 の Relay 判断権限を持たないこと、安全側での終了、Testnet 専用継続                                           |
 
-Handoff の `RelayRequestBase`、`EncryptedRelayEnvelope`、`appToken` / `webToken`、`sessionSecret`、`requestDigest`、`generationId`、endpoint、HTTP status、5 分 expiry、body size および rate limit は Handoff の既存契約を参照する。本書はそれらを Relay server の admission、routing、retention、lifecycle および failure 処理へ適用する。
+受け渡しの `RelayRequestBase`、`EncryptedRelayEnvelope`、`appToken` / `webToken`、`sessionSecret`、`requestDigest`、`generationId`、エンドポイント、HTTP 状態、5 分期限切れ、本文サイズおよび頻度上限は受け渡しの既存契約を参照する。本書はそれらを Relay サーバーの受け入れ判定、経路選択、保持、ライフサイクルおよび失敗処理へ適用する。
 
-## 24. OPEN Issues
+## 24. 未決課題
 
-### OPEN-RELAY-001: generation exact format
+### OPEN-RELAY-001: 世代厳密な形式
 
-- **問題:** `generationId` の exact format、length、generation creation algorithm および公開値の更新方法が未確定である。
-- **本書だけで決定できない理由:** Handoff は generation を非秘密 opaque context として定義するが、format と生成方式を OPEN としている。
-- **影響範囲:** `/v1/generation`、handoff creation、stale generation、state loss、client-side AAD binding。
-- **戻すべき上流文書:** [Handoff §7.1 / §9.1](./web-transaction-handoff-spec.md)、Relay Design §6、Relay Requirements `RR-006`。
+- **問題:** `generationId` の厳密な形式、長さ、世代作成アルゴリズムおよび公開値の更新方法が未確定である。
+- **本書だけで決定できない理由:** 受け渡しは世代を非秘密内容を解釈しない文脈として定義するが、形式と生成方式を未決としている。
+- **影響範囲:** `/v1/generation`、受け渡し作成、古くなった世代、状態消失、クライアント側の AAD 結び付け。
+- **戻すべき上流文書:** [受け渡し §7.1 / §9.1](./web-transaction-handoff-spec.md)、Relay 設計 §6、Relay 要件 `RR-006`。
 
-### OPEN-RELAY-002: storage backend / deployment topology
+### OPEN-RELAY-002: 保存領域バックエンド / 配置構成
 
-- **問題:** storage backend、shared state、multi-instance consistency、deployment topology、replication、failover および backup / disaster recovery の具体方式が未確定である。
-- **本書だけで決定できない理由:** Relay の論理 state と atomicity は確定できるが、DB / Redis schema、broker、cluster および運用方式は本書の authority ではない。
-- **影響範囲:** session state、concurrent transition、retention、restart、state loss、availability。
-- **戻すべき上流文書:** Relay Design §19、§26、§30〜§31、Architecture §16〜§17、運用設計。
+- **問題:** 保存領域バックエンド、共有の状態、複数インスタンス整合性、配置構成、replication、障害時の切り替えおよびバックアップ / disaster 復旧の具体方式が未確定である。
+- **本書だけで決定できない理由:** Relay の論理状態と原子性は確定できるが、DB / Redis スキーマ、ブローカー、クラスターおよび運用方式は本書の判断権限ではない。
+- **影響範囲:** セッション状態、並行する遷移、保持、再起動、状態消失、利用可能性。
+- **戻すべき上流文書:** Relay 設計 §19、§26、§30〜§31、アーキテクチャ §16〜§17、運用設計。
 
-### OPEN-RELAY-003: reconnect / resume policy
+### OPEN-RELAY-003: 再接続 / 再開ポリシー
 
-- **問題:** current session の一時 disconnect 後に許可する reconnect / resume API、participant replacement、再取得範囲および retry timing が未確定である。
-- **本書だけで決定できない理由:** 旧 state の復元禁止と fresh handoff の semantics は確定しているが、正常な一時再接続の具体 API は Handoff / platform contract に委譲されている。
-- **影響範囲:** long polling、Mobile App lifecycle、Browser page lifecycle、session expiry、duplicate delivery。
-- **戻すべき上流文書:** Handoff §9.5〜§9.7、SDK OPEN-SDK-003、Relay Requirements `RR-OPEN-002`、Mobile / SDK platform specification。
+- **問題:** 現在のセッションの一時接続解除後に許可する再接続 / 再開 API、参加者置き換え、再取得範囲および再試行タイミングが未確定である。
+- **本書だけで決定できない理由:** 旧状態の復元禁止と新鮮な受け渡しの意味は確定しているが、正常な一時再接続の具体 API は受け渡し / プラットフォーム契約に委譲されている。
+- **影響範囲:** long ポーリング、モバイルアプリライフサイクル、ブラウザページライフサイクル、セッション期限切れ、重複配送。
+- **戻すべき上流文書:** 受け渡し §9.5〜§9.7、SDK OPEN-SDK-003、Relay 要件 `RR-OPEN-002`、モバイル / SDK プラットフォーム仕様。
 
-### OPEN-RELAY-004: retry / transport failure mapping
+### OPEN-RELAY-004: 再試行 / 通信経路失敗対応付け
 
-- **問題:** Relay unavailable、storage failure、delivery timeout、response retrieval failure および result retrieval / resend の client-facing retry boundary が全経路で未確定である。
-- **本書だけで決定できない理由:** `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の意味は Signing Protocol が定めるが、具体的な retry、lookup、resend API と SDK / Mobile への mapping は下位契約へ委譲されている。
-- **影響範囲:** SDK Promise、Mobile handoff、response retention、再試行による二重署名防止。
-- **戻すべき上流文書:** Handoff §10、SDK §12〜§13、Signing Protocol OPEN-006、Relay Requirements `RR-OPEN-002`。
+- **問題:** Relay 利用不能、保存領域失敗、配送タイムアウト、応答取得失敗および結果取得 / 再送のクライアントに公開する再試行境界が全経路で未確定である。
+- **本書だけで決定できない理由:** `RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の意味は署名プロトコルが定めるが、具体的な再試行、照会、再送 API と SDK / モバイルへの対応付けは下位契約へ委譲されている。
+- **影響範囲:** SDK 保証、モバイル受け渡し、応答保持、再試行による二重署名防止。
+- **戻すべき上流文書:** 受け渡し §10、SDK §12〜§13、署名プロトコル OPEN-006、Relay 要件 `RR-OPEN-002`。
 
-### OPEN-RELAY-005: operational resource policy
+### OPEN-RELAY-005: 運用上のリソースポリシー
 
-- **問題:** Handoff が定める create rate / body size 以外の connection、buffer、storage、long-poll、quota、abuse response および metric retention の exact policy が未確定である。
-- **本書だけで決定できない理由:** resource boundary と Handoff の既定値は定義できるが、運用環境ごとの追加 budget、window、algorithm および alert は運用設計の責任である。
-- **影響範囲:** availability、DoS resistance、false rejection、observability、運用時の retention。
-- **戻すべき上流文書:** Relay Design §21、§24、Requirements `RR-010` / `RR-011`、運用 / security operation specification。
+- **問題:** 受け渡しが定める作成頻度 / 本文サイズ以外の接続、バッファー、保存領域、long-poll、割当量、悪用応答および metric 保持の厳密なポリシーが未確定である。
+- **本書だけで決定できない理由:** リソース境界と受け渡しの既定値は定義できるが、運用環境ごとの追加 budget、window、アルゴリズムおよび alert は運用設計の責任である。
+- **影響範囲:** 利用可能性、DoS resistance、false 拒否、観測可能性、運用時の保持。
+- **戻すべき上流文書:** Relay 設計 §21、§24、要件 `RR-010` / `RR-011`、運用 / セキュリティ操作仕様。
 
-上記 OPEN を理由に、Relay を trust anchor、signing authority、payload validator、approval engine、long-term storage または credential issuer に変更してはならない。新しい token taxonomy、signing error、operation、transport、fallback または public API も追加してはならない。
+上記未決を理由に、Relay を信頼アンカー、署名判断権限、ペイロード検証器、承認エンジン、長期保存領域または認証情報 issuer に変更してはならない。新しいトークン分類体系、署名エラー、操作、通信経路、代替経路または公開 API も追加してはならない。

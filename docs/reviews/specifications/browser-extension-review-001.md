@@ -1,249 +1,249 @@
-# MosaicLynx Browser Extension Specification Review
+# MosaicLynx ブラウザ拡張機能仕様レビュー
 
-## 1. Review Target
+## 1. レビュー対象
 
 - **対象:** [`docs/specifications/browser-extension.md`](../../specifications/browser-extension.md)
-- **対象 revision:** `8c5f3cd`（2026-08-27 時点）
+- **対象リビジョン:** `8c5f3cd`（2026-08-27 時点）
 - **確認日:** 2026-08-27
 - **成果物:** 本ファイル
-- **レビュー種別:** Specification Review
-- **使用 Skill:** `spec-review`
-- **確認範囲:** Browser Extension Requirements、共通 Requirements、SDK Requirements、Browser Extension / Architecture / Security / Interfaces / Signing Flow / SDK Design、Interfaces / Signing Protocol / SDK / Relay / Web Transaction Handoff / Profile-Account / Chain Compatibility / Product Specification、現行 `@mosaiclynx/provider-api` の公開型・実装・テスト、および解決済み指摘の状態。
-- **未確認範囲:** Chrome 実環境での caller observation、Extension 実装の runtime 挙動、Mainnet release evidence の実値、wallet-core の具体契約および未確定 OPEN の実装方式。本レビューではこれらを推測して補完していない。
-- **変更範囲:** 対象 Specification、Requirements、Design、他の Specification、ADR、実装および既存レビューは変更していない。対象外の変更を操作対象に含めず、レビュー成果物のみを追加した。
+- **レビュー種別:** 仕様レビュー
+- **使用スキル:** `spec-review`
+- **確認範囲:** ブラウザ拡張機能要件、共通要件、SDK 要件、ブラウザ拡張機能 / アーキテクチャ / セキュリティ / インターフェース / 署名フロー / SDK 設計、インターフェース / 署名プロトコル / SDK / Relay / Web トランザクション受け渡し / Profile-Account / チェーン互換性 / プロダクト仕様、現行 `@mosaiclynx/provider-api` の公開型・実装・テスト、および解決済み指摘の状態。
+- **未確認範囲:** Chrome 実環境での呼び出し元観測、拡張機能実装の実行環境挙動、Mainnet リリース証跡の実値、wallet-core の具体契約および未確定未決の実装方式。本レビューではこれらを推測して補完していない。
+- **変更範囲:** 対象仕様、要件、設計、他の仕様、ADR、実装および既存レビューは変更していない。対象外の変更を操作対象に含めず、レビュー成果物のみを追加した。
 
-## 2. Execution Audit
+## 2. 実行記録
 
-`spec-review` Skill の Phase 0–3 とレビュー共通手順を適用し、次の3視点を同一レビュー内で独立に走査した。サブエージェントは使用していない。
+`spec-review` スキルの工程 0–3 とレビュー共通手順を適用し、次の3視点を同一レビュー内で独立に走査した。サブエージェントは使用していない。
 
-| 視点                                  | 確認内容                                                                          | 結果                                                                              |
-| ------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Reviewer A: Contract clarity          | Provider、Account projection、selector、error、state、入力・出力の一意性          | **Pass ではない**。`SR-001`、`SR-002`、`SR-003` を検出                            |
-| Reviewer B: Requirements / operation  | Requirements / Design からの追跡、正常系・失敗系・lifecycle・timeout              | **Pass**。下記の上流契約差分を除き、実装可能な処理規則を確認                      |
-| Reviewer C: Safety / interoperability | trust boundary、Origin、approval、authentication、chain、result unknown、公開情報 | **Pass ではない**。Account / error の公開契約衝突が安全性・相互運用性ゲートに影響 |
-| Chair / final gate                    | 指摘の重複排除、severity、upstream return、最終判定                               | 完了。`REVISE SPECIFICATION`                                                      |
+| 視点                              | 確認内容                                                            | 結果                                                                                |
+| --------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| レビュアー A: 契約明確さ          | Provider、アカウント投影、選択子、エラー、状態、入力・出力の一意性  | **合格ではない**。`SR-001`、`SR-002`、`SR-003` を検出                               |
+| レビュアー B: 要件 / 操作         | 要件 / 設計からの追跡、正常系・失敗系・ライフサイクル・タイムアウト | **合格**。下記の上流契約差分を除き、実装可能な処理規則を確認                        |
+| レビュアー C: 安全性 / 相互運用性 | 信頼境界、オリジン、承認、認証、チェーン、結果不明、公開情報        | **合格ではない**。アカウント / エラーの公開契約衝突が安全性・相互運用性ゲートに影響 |
+| レビュー統括 / 最終判定           | 指摘の重複排除、重要度、上流返却、最終判定                          | 完了。`REVISE SPECIFICATION`                                                        |
 
 既存レビューは一次根拠としてではなく、`IS-001`、`SDK-001` 等の解消状態と、責任分界・委譲事項の継続を確認する補助資料として使用した。
 
-## 3. Evidence Used
+## 3. 参照した根拠
 
-### 3.1 Requirements / Design
+### 3.1 要件 / 設計
 
-- [`docs/requirements/browser-extension.md`](../../requirements/browser-extension.md): BR-001〜BR-013、特に Chrome 初回 milestone、trusted UI、browser-observed Origin、top-level / loopback の受付範囲、permission、毎回の明示承認、lifecycle loss、wallet-core、Mainnet gate。
-- [`docs/requirements/requirements.md`](../../requirements/requirements.md): 共通の inspection、blind signing 禁止、Profile / Account / Chain / Network、caller / permission、replay、fail-closed、wallet-core 境界。
-- [`docs/requirements/sdk.md`](../../requirements/sdk.md): SDK と Signer / Provider の責任分界、公開 Account、Origin authority、signData と transaction signing、cosignature、error の下流委譲。
-- [`docs/design/browser-extension.md`](../../design/browser-extension.md): Extension の privileged host、browser context、permission、Account、trusted UI、wallet-core の境界と lifecycle。
-- [`docs/design/architecture.md`](../../design/architecture.md): コンポーネント責務、依存方向、Extension / SDK / Relay / wallet-core の境界。
-- [`docs/design/security-design.md`](../../design/security-design.md): threat model、trust boundary、秘密情報、毎回認証、fail-closed。
-- [`docs/design/interfaces.md`](../../design/interfaces.md): Public Account Identity、Internal Account Reference、Origin / permission、共通 request / error の責務。
-- [`docs/design/signing-flow.md`](../../design/signing-flow.md): signing lifecycle、inspection、approval、pre-sign revalidation、unknown outcome。
-- [`docs/design/sdk.md`](../../design/sdk.md): SDK の Provider adapter、公開 identity、transport / error / lifecycle の境界。
+- [`docs/requirements/browser-extension.md`](../../requirements/browser-extension.md): BR-001〜BR-013、特に Chrome 初回マイルストーン、信頼された UI、ブラウザで観測したオリジン、最上位の / ループバックの受付範囲、許可、毎回の明示承認、ライフサイクル消失、wallet-core、Mainnet 判定条件。
+- [`docs/requirements/requirements.md`](../../requirements/requirements.md): 共通の内容検査、内容を確認しない署名禁止、プロファイル / アカウント / チェーン / ネットワーク、呼び出し元 / 許可、リプレイ、安全側での終了、wallet-core 境界。
+- [`docs/requirements/sdk.md`](../../requirements/sdk.md): SDK と署名主体 / Provider の責任分界、公開アカウント、オリジンの信頼性判断、signData とトランザクション署名、連署署名、エラーの下流委譲。
+- [`docs/design/browser-extension.md`](../../design/browser-extension.md): 拡張機能の特権を持つホスト、ブラウザ文脈、許可、アカウント、信頼された UI、wallet-core の境界とライフサイクル。
+- [`docs/design/architecture.md`](../../design/architecture.md): コンポーネント責務、依存方向、拡張機能 / SDK / Relay / wallet-core の境界。
+- [`docs/design/security-design.md`](../../design/security-design.md): 脅威モデル、信頼境界、秘密情報、毎回認証、安全側での終了。
+- [`docs/design/interfaces.md`](../../design/interfaces.md): アカウントの公開識別情報、アカウントの内部参照、オリジン / 許可、共通要求 / エラーの責務。
+- [`docs/design/signing-flow.md`](../../design/signing-flow.md): 署名ライフサイクル、内容検査、承認、署名前再検証、不明結果。
+- [`docs/design/sdk.md`](../../design/sdk.md): SDK の Provider アダプター、公開識別情報、通信経路 / エラー / ライフサイクルの境界。
 
-### 3.2 Specifications
+### 3.2 仕様書
 
-- [`docs/specifications/interfaces.md`](../../specifications/interfaces.md): §5.3 の Public Account Identity、§8 の PermissionGrant、§9 の signing request、§10 の error authority、共通 lifecycle。
-- [`docs/specifications/signing-protocol.md`](../../specifications/signing-protocol.md): `RECEIVED` から `SUCCEEDED` までの state、terminal outcome、approval、inspection、aggregate / cosignature、structured message、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`。
-- [`docs/specifications/sdk.md`](../../specifications/sdk.md): SDK public API、Provider adapter、公開 identity、Account selector を含めない公開引数、error authority、cosignature の OPEN。
-- [`docs/specifications/relay.md`](../../specifications/relay.md): Relay の opaque / transport boundary。Browser Extension の署名 authority へ拡張されていないことを確認。
-- [`docs/specifications/web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md): SDK / Extension handoff の public API、Provider adapter、`accountId` の公開禁止、concrete SDK error code、response semantics。
-- [`docs/specifications/profile-account-spec.md`](../../specifications/profile-account-spec.md): Profile / Account の境界、lock、署名ごとの `every-signature` authentication。
-- [`docs/specifications/chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md): Symbol / NEM の別個の chain-specific validation、transaction allowlist、full parent、署名 bytes、cosignature。
-- [`docs/specifications/product-spec.md`](../../specifications/product-spec.md): 接続 / permission、Account selector、署名、trusted UI、Provider の product-facing API。
+- [`docs/specifications/interfaces.md`](../../specifications/interfaces.md): §5.3 のアカウントの公開識別情報、§8 の PermissionGrant、§9 の署名要求、§10 のエラー定義の正本、共通ライフサイクル。
+- [`docs/specifications/signing-protocol.md`](../../specifications/signing-protocol.md): `RECEIVED` から `SUCCEEDED` までの状態、終端結果、承認、内容検査、アグリゲート / 連署署名、構造化されたメッセージ、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`。
+- [`docs/specifications/sdk.md`](../../specifications/sdk.md): SDK 公開 API、Provider アダプター、公開識別情報、アカウント選択子を含めない公開引数、エラー定義の正本、連署署名の未決。
+- [`docs/specifications/relay.md`](../../specifications/relay.md): Relay の内容を解釈しない / 通信経路境界。ブラウザ拡張機能の署名判断権限へ拡張されていないことを確認。
+- [`docs/specifications/web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md): SDK / 拡張機能受け渡しの公開 API、Provider アダプター、`accountId` の公開禁止、具体的な SDK エラーコード、応答意味。
+- [`docs/specifications/profile-account-spec.md`](../../specifications/profile-account-spec.md): プロファイル / アカウントの境界、ロック、署名ごとの `every-signature` 認証。
+- [`docs/specifications/chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md): Symbol / NEM の別個のチェーン固有の検証、トランザクション許可リスト、全体親、署名バイト列、連署署名。
+- [`docs/specifications/product-spec.md`](../../specifications/product-spec.md): 接続 / 許可、アカウント選択子、署名、信頼された UI、Provider の product-facing API。
 
-### 3.3 Provider / implementation evidence
+### 3.3 Provider / 実装根拠
 
-- [`packages/provider-api/src/index.ts`](../../packages/provider-api/src/index.ts): 現行 `MosaicAccount`、Provider method / event、RPC method、`ProviderErrorCode` の型と実装。
-- [`packages/provider-api/package.json`](../../packages/provider-api/package.json): `@mosaiclynx/provider-api` が `private: true` であること、および公開型の package 配置。
-- [`packages/provider-api/test/provider.test.ts`](../../packages/provider-api/test/provider.test.ts): Provider v2、scoped `getActiveAccount`、RPC method mapping。
-- [`packages/sdk/test/sdk.test.ts`](../../packages/sdk/test/sdk.test.ts): SDK が Provider Account の `id` / `profileId` を公開 identity から除外すること、および Provider へ `accountId` を渡す現行挙動。
-- [`packages/sdk/src/extension.ts`](../../packages/sdk/src/extension.ts): SDK の internal account selection と Provider `accountId` 呼び出し。
-- [`packages/sdk/src/errors.ts`](../../packages/sdk/src/errors.ts): 現行実装の SDK error code 集合。これは仕様 authority ではなく、仕様との差分を確認する実装証拠として使用した。
+- [`packages/provider-api/src/index.ts`](../../packages/provider-api/src/index.ts): 現行 `MosaicAccount`、Provider メソッド / イベント、RPC メソッド、`ProviderErrorCode` の型と実装。
+- [`packages/provider-api/package.json`](../../packages/provider-api/package.json): `@mosaiclynx/provider-api` が `private: true` であること、および公開型のパッケージ配置。
+- [`packages/provider-api/test/provider.test.ts`](../../packages/provider-api/test/provider.test.ts): Provider v2、範囲を限定した `getActiveAccount`、RPC メソッド対応付け。
+- [`packages/sdk/test/sdk.test.ts`](../../packages/sdk/test/sdk.test.ts): SDK が Provider アカウントの `id` / `profileId` を公開識別情報から除外すること、および Provider へ `accountId` を渡す現行挙動。
+- [`packages/sdk/src/extension.ts`](../../packages/sdk/src/extension.ts): SDK の内部アカウント選択と Provider `accountId` 呼び出し。
+- [`packages/sdk/src/errors.ts`](../../packages/sdk/src/errors.ts): 現行実装の SDK エラーコード集合。これは仕様判断権限ではなく、仕様との差分を確認する実装証拠として使用した。
 
-### 3.4 Previous review evidence
+### 3.4 前回レビュー根拠
 
-- [`interfaces-review-002.md`](./interfaces-review-002.md): `IS-001` が Interfaces 側で解消され、Handoff §10 が concrete SDK error authority になったことの確認。
-- [`sdk-review-002.md`](./sdk-review-002.md): `SDK-001` が解消され、Provider / Relay availability と SDK の責任分界が整合したことの確認。
-- [`signing-protocol-review-001.md`](./signing-protocol-review-001.md): Signing Protocol の lifecycle、error authority、unknown outcome の前段レビュー状態。
+- [`interfaces-review-002.md`](./interfaces-review-002.md): `IS-001` がインターフェース側で解消され、受け渡し §10 が具体的な SDK エラー定義の正本になったことの確認。
+- [`sdk-review-002.md`](./sdk-review-002.md): `SDK-001` が解消され、Provider / Relay 利用可能性と SDK の責任分界が整合したことの確認。
+- [`signing-protocol-review-001.md`](./signing-protocol-review-001.md): 署名プロトコルのライフサイクル、エラー定義の正本、不明結果の前段レビュー状態。
 
-## 4. Review Result
+## 4. レビュー結果
 
-**REVISE SPECIFICATION**
+**REVISE 仕様**
 
-`OPEN-BEX-001` と Provider error authority の衝突は、page-facing contract、selector、error mapping を一意に実装できず、上流の確定済み authority とも両立しない。さらに Product Specification の Provider method shape と現行 Provider / SDK / Handoff shape に差分がある。したがって、本 Specification を `BROWSER EXTENSION SPECIFICATION READY` として扱うことはできない。
+`OPEN-BEX-001` と Provider エラー定義の正本の衝突は、ページに公開する契約、選択子、エラー対応付けを一意に実装できず、上流の確定済み判断権限とも両立しない。さらにプロダクト仕様の Provider メソッド構造と現行 Provider / SDK / 受け渡し構造に差分がある。したがって、本仕様を `BROWSER EXTENSION SPECIFICATION READY` として扱うことはできない。
 
-一方、Origin / caller binding、trusted UI、connection / permission / approval / authentication の分離、trusted inspection、blind signing 禁止、wallet-core boundary、lifecycle invalidation、unknown outcome、Mainnet gate および scope boundary の安全条件には、追加の Critical 指摘は確認しなかった。
+一方、オリジン / 呼び出し元結び付け、信頼された UI、接続 / 許可 / 承認 / 認証の分離、信頼された内容検査、内容を確認しない署名禁止、wallet-core 境界、ライフサイクル無効化、不明結果、Mainnet 判定条件および対象範囲境界の安全条件には、追加の重大指摘は確認しなかった。
 
-## 5. Summary
+## 5. 要約
 
-| 領域                                                | 評価       | 根拠 / 指摘                                                                                                                                                |
-| --------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Requirements / Design 追跡                          | 適合       | BR-001〜BR-013 の Chrome、trusted UI、browser-observed context、permission、lifecycle、wallet-core、Mainnet gate を具体化している                          |
-| Trust boundary                                      | 適合       | page / SDK / injected bridge / Content Script を untrusted、privileged host を caller・permission・UI authority、wallet-core を crypto boundary としている |
-| Origin / caller                                     | 適合       | browser-observed top-level context を authority とし、page / SDK の Origin、iframe、unsupported scheme を authority にしていない                           |
-| Connection / permission / approval / authentication | 適合       | connection、public disclosure、permission、unlock、毎回認証、approval、signing result を別状態としている                                                   |
-| Account projection / selector                       | **不適合** | Provider package の page-facing型、Interfaces / Handoff の公開禁止、`accountId` の扱いが一意でない（`SR-001`）                                             |
-| Provider method / event                             | 要上流整合 | 現行 package と対象文書は一致するが、Product §16 の `getActiveAccount()` / cosignature 記載が異なる（`SR-003`）                                            |
-| Provider error                                      | **不適合** | `INVALID_MESSAGE` / `NONCE_REUSED` を含む現行集合と、Handoff / Interfaces の concrete authority が衝突（`SR-002`）                                         |
-| Signing admission / state                           | 適合       | host-side revalidation、共通 state、explicit approval、pre-sign check を維持している                                                                       |
-| Inspection / approval                               | 適合       | actual bytes / structured object、full parent、trusted UI、blind / hash-only / summary-only 禁止を定めている                                               |
-| Lifecycle / concurrency / unknown                   | 適合       | document / tab / frame / worker / update / lock / permission 変更の invalidation、独立 request、`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` を定めている        |
-| Chain / message                                     | 適合       | Symbol / NEM を分離し、structured message、aggregate、NEM multisig を共通化していない                                                                      |
-| Mainnet / scope                                     | 適合       | gate 未達・判定不能時の Mainnet signing disabled と、Chrome / UI / storage / wallet-core の委譲を維持している                                              |
+| 領域                             | 評価       | 根拠 / 指摘                                                                                                                                                     |
+| -------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 要件 / 設計追跡                  | 適合       | BR-001〜BR-013 の Chrome、信頼された UI、ブラウザで観測した文脈、許可、ライフサイクル、wallet-core、Mainnet 判定条件を具体化している                            |
+| 信頼境界                         | 適合       | ページ / SDK / 注入された橋渡し / コンテンツスクリプトを信頼されていない、特権を持つホストを呼び出し元・許可・UI 判断権限、wallet-core を暗号処理境界としている |
+| オリジン / 呼び出し元            | 適合       | ブラウザで観測した最上位の文脈を判断権限とし、ページ / SDK のオリジン、iframe、未対応の方式を判断権限にしていない                                               |
+| 接続 / 許可 / 承認 / 認証        | 適合       | 接続、公開情報公開、許可、ロック解除、毎回認証、承認、署名結果を別状態としている                                                                                |
+| アカウント投影 / 選択子          | **不適合** | Provider パッケージのページに公開する型、インターフェース / 受け渡しの公開禁止、`accountId` の扱いが一意でない（`SR-001`）                                      |
+| Provider メソッド / イベント     | 要上流整合 | 現行パッケージと対象文書は一致するが、プロダクト §16 の `getActiveAccount()` / 連署署名記載が異なる（`SR-003`）                                                 |
+| Provider エラー                  | **不適合** | `INVALID_MESSAGE` / `NONCE_REUSED` を含む現行集合と、受け渡し / インターフェースの具体的な判断権限が衝突（`SR-002`）                                            |
+| 署名受け入れ判定 / 状態          | 適合       | host-side 再検証、共通状態、明示的な承認、署名前確認を維持している                                                                                              |
+| 内容検査 / 承認                  | 適合       | actual バイト列 / 構造化されたオブジェクト、全体親、信頼された UI、内容を確認しない / ハッシュのみ / 要約のみ禁止を定めている                                   |
+| ライフサイクル / 並行処理 / 不明 | 適合       | 文書 / タブ / フレーム / ワーカー / 更新 / ロック / 許可変更の無効化、独立要求、`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` を定めている                             |
+| チェーン / メッセージ            | 適合       | Symbol / NEM を分離し、構造化されたメッセージ、アグリゲート、NEM マルチシグを共通化していない                                                                   |
+| Mainnet / 対象範囲               | 適合       | 判定条件未達・判定不能時の Mainnet 署名無効と、Chrome / UI / 保存領域 / wallet-core の委譲を維持している                                                        |
 
-## 6. Finding Status
+## 6. 指摘の状態
 
-| ID       | Severity     | Status  | 初出レビュー | 状態根拠                                                                                                                                              |
-| -------- | ------------ | ------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SR-001` | **Critical** | **New** | 本レビュー   | `OPEN-BEX-001` は上流で解消すべき契約衝突であり、Browser Extension 内だけで安全に閉じられない                                                         |
-| `SR-002` | **Critical** | **New** | 本レビュー   | Interfaces 側の `IS-001` は解消済みだが、Browser Extension Specification が Provider code 集合を再掲し、跨文書の error authority 衝突を再導入している |
-| `SR-003` | **Major**    | **New** | 本レビュー   | Product Specification の Provider shape と現行 package / SDK / Handoff shape の差分。対象文書自身の選択は明確だが、上流契約の整合が必要               |
+| ID       | 重要度   | 状態     | 初出レビュー | 状態根拠                                                                                                                                       |
+| -------- | -------- | -------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SR-001` | **重大** | **新規** | 本レビュー   | `OPEN-BEX-001` は上流で解消すべき契約衝突であり、ブラウザ拡張機能内だけで安全に閉じられない                                                    |
+| `SR-002` | **重大** | **新規** | 本レビュー   | インターフェース側の `IS-001` は解消済みだが、ブラウザ拡張機能仕様が Provider コード集合を再掲し、跨文書のエラー定義の正本衝突を再導入している |
+| `SR-003` | **主要** | **新規** | 本レビュー   | プロダクト仕様の Provider 構造と現行パッケージ / SDK / 受け渡し構造の差分。対象文書自身の選択は明確だが、上流契約の整合が必要                  |
 
-## 7. Required Changes
+## 7. 必須の修正
 
-### SR-001 — Provider Account projection と `accountId` selector の authority が一意でない
+### SR-001 — Provider アカウント投影と `accountId` 選択子の判断権限が一意でない
 
-- **対象箇所:** Browser Extension Specification §5.1–§5.2（Provider Account record と operation shape）、§10.1（Public Account identity と `id` / `profileId` 境界）、§32 `OPEN-BEX-001`。
-- **既存要求・制約との関係:** Browser Extension Requirements BR-004 / BR-006、SDK Requirements SDK-FR-003 / SDK-FR-005、Interfaces §5.3 / §8 / §9.2、SDK §5 / §7 / §9、Handoff §5.2 / §6.1 は、page-facing public identity に internal Profile / Account ID を含めず、公開引数に extension `accountId` を含めない境界を要求している。一方 Product §11 は permission 内部の `accountIds` と request の `accountId` を記載し、Handoff §6.1 は SDK 内部 adapter が Provider に `accountId` を渡す手順を記載している。
-- **問題:** 現行 `MosaicAccount` は `id`、`profileId`、`name`、`address`、`publicKey`、`scope` を持ち、`MosaicLynxProvider.connect()` / `getAccounts()` / `getActiveAccount()` はその型を返す。対象 Specification §5.2 は既存 Provider Account record を使うとしながら、§10.1 は `id` / `profileId` を page に公開してはならないとするため、宣言された Provider 型をそのまま返す実装と公開禁止の両方を満たせない。また、`accountId` が page-facing な selector なのか、SDK / privileged host 間だけの internal routing reference なのかが、Provider API、Interfaces、SDK、Handoff、Product の間で確定していない。
-- `@mosaiclynx/provider-api` は現時点で `private` package であり、現行実装の存在だけで上流仕様を上書きできる normative authority とは扱わない。ただし、対象 Specification がこの package を既存 page-facing contract として参照しているため、実装上の衝突を解消しない限り安全な下位仕様にはならない。
-- **影響:** `getAccounts()` / `getActiveAccount()` の返却型、`signMessage()` / `signTransaction()` / `cosignTransaction()` の selector、permission の Account binding、expected signer の解決、Profile 間の enumeration / correlation 境界を実装者が一意に決められない。誤って `id` / `profileId` を page に返すか、page が与えた selector を鍵選択・authorization の authority とする余地が残る。
-- **必要な修正:** Browser Extension Specification だけで opaque handle の shape を発明せず、Interfaces §5.3 / §8、SDK §5 / §6、Handoff §5 / §6、Product §11、および Provider API contract へ返却し、次を同一 authority として確定する。
-  1. page-facing Provider Account projection の exact field と、補助的な display label の扱い。
-  2. `accountId` を page-facing input として許可するか、privileged host / SDK adapter 内部だけに限定するか。
-  3. 公開 selector とする場合の opaque 性、scope、permission revision、Profile / Account binding、失効、誤指定時の公開結果。内部 reference とする場合の Provider adapter との境界。
-  4. Provider package、Interfaces、SDK、Handoff、Product、Browser Extension の型・例・テストの相互整合。
-- **完了条件:** Public Account Identity と Provider の page-facing result に `profileId` / internal `accountId` が含まれず、Provider method の入力にも internal ID を公開する曖昧さがない。Account 選択は current browser caller、permission、revision、Profile、Scope、expected signer と再検証され、selector の知識だけで signing authority にならない。SDK / Handoff の公開 API に extension `accountId` がなく、internal routing が必要な場合だけその境界が一意に定義される。
+- **対象箇所:** ブラウザ拡張機能仕様 §5.1–§5.2（Provider アカウントレコードと操作構造）、§10.1（アカウントの公開識別情報と `id` / `profileId` 境界）、§32 `OPEN-BEX-001`。
+- **既存要求・制約との関係:** ブラウザ拡張機能要件 BR-004 / BR-006、SDK 要件 SDK-FR-003 / SDK-FR-005、インターフェース §5.3 / §8 / §9.2、SDK §5 / §7 / §9、受け渡し §5.2 / §6.1 は、ページに公開する公開識別情報に内部プロファイル / アカウント ID を含めず、公開引数に拡張機能 `accountId` を含めない境界を要求している。一方プロダクト §11 は許可内部の `accountIds` と要求の `accountId` を記載し、受け渡し §6.1 は SDK 内部アダプターが Provider に `accountId` を渡す手順を記載している。
+- **問題:** 現行 `MosaicAccount` は `id`、`profileId`、`name`、`address`、`publicKey`、`scope` を持ち、`MosaicLynxProvider.connect()` / `getAccounts()` / `getActiveAccount()` はその型を返す。対象仕様 §5.2 は既存 Provider アカウントレコードを使うとしながら、§10.1 は `id` / `profileId` をページに公開してはならないとするため、宣言された Provider 型をそのまま返す実装と公開禁止の両方を満たせない。また、`accountId` がページに公開するな選択子なのか、SDK / 特権を持つホスト間だけの内部経路選択参照なのかが、Provider API、インターフェース、SDK、受け渡し、プロダクトの間で確定していない。
+- `@mosaiclynx/provider-api` は現時点で `private` パッケージであり、現行実装の存在だけで上流仕様を上書きできる規範の正本とは扱わない。ただし、対象仕様がこのパッケージを既存ページに公開する契約として参照しているため、実装上の衝突を解消しない限り安全な下位仕様にはならない。
+- **影響:** `getAccounts()` / `getActiveAccount()` の返却型、`signMessage()` / `signTransaction()` / `cosignTransaction()` の選択子、許可のアカウント結び付け、期待される署名主体の解決、プロファイル間の列挙 / 対応付け境界を実装者が一意に決められない。誤って `id` / `profileId` をページに返すか、ページが与えた選択子を鍵選択・認可の判断権限とする余地が残る。
+- **必要な修正:** ブラウザ拡張機能仕様だけで内容を解釈しないハンドルの構造を発明せず、インターフェース §5.3 / §8、SDK §5 / §6、受け渡し §5 / §6、プロダクト §11、および Provider API 契約へ返却し、次を同一判断権限として確定する。
+  1. ページに公開する Provider アカウント投影の厳密なフィールドと、補助的な表示ラベルの扱い。
+  2. `accountId` をページに公開する入力として許可するか、特権を持つホスト / SDK アダプター内部だけに限定するか。
+  3. 公開選択子とする場合の内容を解釈しない性、対象範囲、許可リビジョン、プロファイル / アカウント結び付け、失効、誤指定時の公開結果。内部参照とする場合の Provider アダプターとの境界。
+  4. Provider パッケージ、インターフェース、SDK、受け渡し、プロダクト、ブラウザ拡張機能の型・例・テストの相互整合。
+- **完了条件:** アカウントの公開識別情報と Provider のページに公開する結果に `profileId` / 内部 `accountId` が含まれず、Provider メソッドの入力にも内部 ID を公開する曖昧さがない。アカウント選択は現在のブラウザ呼び出し元、許可、リビジョン、プロファイル、対象範囲、期待される署名主体と再検証され、選択子の知識だけで署名判断権限にならない。SDK / 受け渡しの公開 API に拡張機能 `accountId` がなく、内部経路選択が必要な場合だけその境界が一意に定義される。
 
 #### `OPEN-BEX-001` の明示判定
 
-`OPEN-BEX-001` は、**READY のまま残せる OPEN ではない**。**Browser Extension Specification 内だけで修正可能な下位 OPEN でもない**。**Interfaces / SDK / Handoff / Product / Provider API contract へ返却して解消すべき、実装開始を止める Critical 相当の ERROR** である。現在の仕様の安全原則（internal ID を page に出さない、selector を authority にしない）は維持すべきだが、具体的な公開型・入力型・adapter 境界を上流が確定するまで、Provider 実装を開始してはならない。
+`OPEN-BEX-001` は、**READY のまま残せる未決ではない**。**ブラウザ拡張機能仕様内だけで修正可能な下位未決でもない**。**インターフェース / SDK / 受け渡し / プロダクト / Provider API 契約へ返却して解消すべき、実装開始を止める重大相当のエラー** である。現在の仕様の安全原則（内部 ID をページに出さない、選択子を判断権限にしない）は維持すべきだが、具体的な公開型・入力型・アダプター境界を上流が確定するまで、Provider 実装を開始してはならない。
 
-### SR-002 — Provider error code と Handoff / Interfaces error authority が衝突している
+### SR-002 — Provider エラーコードと受け渡し / インターフェースエラー定義の正本が衝突している
 
-- **対象箇所:** Browser Extension Specification §5.4、§27、および `packages/provider-api/src/index.ts` の `ProviderErrorCode`。
-- **既存要求・制約との関係:** Interfaces §10.2 と Handoff §10 が concrete SDK / Handoff error code の authority を定め、`INVALID_MESSAGE` と `NONCE_REUSED` を公開 code に含めないことを明記している。SDK Specification §13.1–§13.2 も Handoff にない concrete code、alias、独自 taxonomy を追加しないとしている。前段の `IS-001` はこの authority へ統一する修正で解消済みである。
-- **問題:** 対象 Specification §5.4 は「新しい code / taxonomy / alias を追加しない」としながら、現行 Provider package の `ProviderErrorCode` として `INVALID_MESSAGE`、`NONCE_REUSED`、`UNAUTHORIZED_ORIGIN`、`ACCOUNT_NOT_FOUND`、`UNSUPPORTED_CHAIN`、`RESOURCE_LIMIT` 等を列挙し、Handoff / SDK authority と併記している。Handoff §10 の集合にはこれらがなく、Provider code を page-facing concrete code として残すのか Handoff code へ変換するのか、変換の authority と unknown code の扱いが対象 Specification から決まらない。
-- **影響:** dApp / SDK が受け取る code 集合と mapping が契約ごとに変わり、`INVALID_MESSAGE` / `NONCE_REUSED` のように確定済み authority が非公開とした code を page または SDK へ漏らす可能性がある。利用者拒否、permission denial、invalid、unsupported、expiry、context change、unknown outcome の区別も、実装者の独自 mapping に依存する。
-- **必要な修正:** Provider API、Handoff §10、Interfaces §10、SDK §13 の上流で、Provider の concrete public error authority と Handoff への mapping を一つに確定する。現行 Provider code を page-facing に維持するのか、Provider 内部 code として分類して Handoff の code へ変換するのかを明示し、`INVALID_MESSAGE` / `NONCE_REUSED` の公開可否を Handoff / Interfaces と一致させる。Browser Extension Specification は新しい alias や都合のよい mapping を追加せず、確定した authority を参照する。
-- **完了条件:** Provider / SDK / Handoff / Interfaces の public code 集合、mapping、unknown code の fail-closed 規則が一致し、Handoff §10 にない `INVALID_MESSAGE` / `NONCE_REUSED` が SDK / Handoff public error として返らない。Browser Extension の page-facing error はその authority の一意の契約に従い、internal Provider / wallet-core detail、stack、path、secret、ID を含まない。
+- **対象箇所:** ブラウザ拡張機能仕様 §5.4、§27、および `packages/provider-api/src/index.ts` の `ProviderErrorCode`。
+- **既存要求・制約との関係:** インターフェース §10.2 と受け渡し §10 が具体的な SDK / 受け渡しエラーコードの判断権限を定め、`INVALID_MESSAGE` と `NONCE_REUSED` を公開コードに含めないことを明記している。SDK 仕様 §13.1–§13.2 も受け渡しにない具体的なコード、別名、独自分類体系を追加しないとしている。前段の `IS-001` はこの判断権限へ統一する修正で解消済みである。
+- **問題:** 対象仕様 §5.4 は「新しいコード / 分類体系 / 別名を追加しない」としながら、現行 Provider パッケージの `ProviderErrorCode` として `INVALID_MESSAGE`、`NONCE_REUSED`、`UNAUTHORIZED_ORIGIN`、`ACCOUNT_NOT_FOUND`、`UNSUPPORTED_CHAIN`、`RESOURCE_LIMIT` 等を列挙し、受け渡し / SDK 判断権限と併記している。受け渡し §10 の集合にはこれらがなく、Provider コードをページに公開する具体的なコードとして残すのか受け渡しコードへ変換するのか、変換の判断権限と不明コードの扱いが対象仕様から決まらない。
+- **影響:** dApp / SDK が受け取るコード集合と対応付けが契約ごとに変わり、`INVALID_MESSAGE` / `NONCE_REUSED` のように確定済み判断権限が非公開としたコードをページまたは SDK へ漏らす可能性がある。利用者拒否、許可拒否、無効な、未対応の、期限切れ、文脈変更、不明結果の区別も、実装者の独自対応付けに依存する。
+- **必要な修正:** Provider API、受け渡し §10、インターフェース §10、SDK §13 の上流で、Provider の具体的な公開エラー定義の正本と受け渡しへの対応付けを一つに確定する。現行 Provider コードをページに公開するに維持するのか、Provider 内部コードとして分類して受け渡しのコードへ変換するのかを明示し、`INVALID_MESSAGE` / `NONCE_REUSED` の公開可否を受け渡し / インターフェースと一致させる。ブラウザ拡張機能仕様は新しい別名や都合のよい対応付けを追加せず、確定した判断権限を参照する。
+- **完了条件:** Provider / SDK / 受け渡し / インターフェースの公開コード集合、対応付け、不明コードの安全側での終了規則が一致し、受け渡し §10 にない `INVALID_MESSAGE` / `NONCE_REUSED` が SDK / 受け渡し公開エラーとして返らない。ブラウザ拡張機能のページに公開するエラーはその判断権限の一意の契約に従い、内部 Provider / wallet-core 詳細、スタック、パス、秘密情報、ID を含まない。
 
-### SR-003 — Product Specification と現行 Provider / SDK / Handoff の method shape が一致しない
+### SR-003 — プロダクト仕様と現行 Provider / SDK / 受け渡しのメソッド構造が一致しない
 
-- **対象箇所:** Browser Extension Specification §5.1–§5.2、Product Specification §16.1、`packages/provider-api/src/index.ts`、Handoff §5.1 / §6.1、SDK §5.1 / §9.3。
-- **既存要求・制約との関係:** Browser Extension Specification は既存 Provider API に従い、新しい method / event を追加しないとしている。現行 package、SDK、Handoff は scoped `getActiveAccount(scope)` と existing / optional `cosignTransaction()` を持つ。一方 Product Specification §16.1 の公開 API 記載は `getActiveAccount()` に Scope 引数がなく、`cosignTransaction()` を列挙していない。
-- **問題:** Product-facing Provider contract が現行 package / SDK / Handoff と同じ method set・signature を意味するのかが明記されていない。対象 Specification の `getActiveAccount(scope)` / `cosignTransaction()` は現行 package には適合するが、Product Specification の Provider API block を厳密な全量契約と読むと、scope の有無と cosignature method の扱いが衝突する。
-- **影響:** Provider v2 の TypeScript interface、page adapter、capability 判定、cosignature の optional / required 範囲、Product acceptance を複数の解釈で実装できる。対象 Specification が Provider method を新規追加したのか、Product Specification の記載が省略なのかも判定できない。
-- **必要な修正:** Product Specification、Provider API contract、SDK / Handoff の責任分界を一度上流で照合し、`getActiveAccount` の Scope 引数、`cosignTransaction` の存在と optional / required、API v2 の全 method / event 集合を確定する。Browser Extension Specification はその確定契約を参照し、Product と異なる method shape を独自に選択しない。
-- **完了条件:** Provider v2 の method、argument、result、event、optional / required capability が Product、Provider package、SDK、Handoff、Browser Extension で同じ意味になり、Provider discovery / capability 判定と contract test がその集合を検証できる。なお、現行 package と対象 Specification の一致だけでは upstream discrepancy の解消とはみなさない。
+- **対象箇所:** ブラウザ拡張機能仕様 §5.1–§5.2、プロダクト仕様 §16.1、`packages/provider-api/src/index.ts`、受け渡し §5.1 / §6.1、SDK §5.1 / §9.3。
+- **既存要求・制約との関係:** ブラウザ拡張機能仕様は既存 Provider API に従い、新しいメソッド / イベントを追加しないとしている。現行パッケージ、SDK、受け渡しは範囲を限定した `getActiveAccount(scope)` と既存の / 任意 `cosignTransaction()` を持つ。一方プロダクト仕様 §16.1 の公開 API 記載は `getActiveAccount()` に対象範囲引数がなく、`cosignTransaction()` を列挙していない。
+- **問題:** Product-facing Provider 契約が現行パッケージ / SDK / 受け渡しと同じメソッド集合・署名を意味するのかが明記されていない。対象仕様の `getActiveAccount(scope)` / `cosignTransaction()` は現行パッケージには適合するが、プロダクト仕様の Provider API ブロックを厳密な全量契約と読むと、対象範囲の有無と連署署名メソッドの扱いが衝突する。
+- **影響:** Provider v2 の TypeScript インターフェース、ページアダプター、対応能力判定、連署署名の任意 / 必須範囲、プロダクト受け入れを複数の解釈で実装できる。対象仕様が Provider メソッドを新規追加したのか、プロダクト仕様の記載が省略なのかも判定できない。
+- **必要な修正:** プロダクト仕様、Provider API 契約、SDK / 受け渡しの責任分界を一度上流で照合し、`getActiveAccount` の対象範囲引数、`cosignTransaction` の存在と任意 / 必須、API v2 の全メソッド / イベント集合を確定する。ブラウザ拡張機能仕様はその確定契約を参照し、プロダクトと異なるメソッド構造を独自に選択しない。
+- **完了条件:** Provider v2 のメソッド、argument、結果、イベント、任意 / 必須対応能力がプロダクト、Provider パッケージ、SDK、受け渡し、ブラウザ拡張機能で同じ意味になり、Provider 検出 / 対応能力判定と契約テストがその集合を検証できる。なお、現行パッケージと対象仕様の一致だけでは上流 discrepancy の解消とはみなさない。
 
-## 8. Optional Improvements
+## 8. 任意の改善
 
-Minor の新規指摘はない。UI framework、Chrome API の exact method、Manifest、storage engine、state management、file layout、test framework、formatting などの選択肢は、対象 Specification の scope boundary に従い指摘対象外とした。
+軽微の新規指摘はない。UI 基盤、Chrome API の厳密なメソッド、マニフェスト、保存領域エンジン、状態管理、ファイル配置、テスト基盤、整形などの選択肢は、対象仕様の対象範囲境界に従い指摘対象外とした。
 
-## 9. Resolved Findings
+## 9. 解消済みの指摘
 
-- `IS-001`（Interfaces Specification の独自 error code と Handoff §10 の不一致）は、Interfaces §10.2 が Handoff §10 を authority とし、`INVALID_MESSAGE` / `NONCE_REUSED` を公開 code として扱わない形で解消済みである。本レビューの `SR-002` は、その解消済み authority を Browser Extension Specification が再び曖昧化した跨文書の新規指摘である。
-- `SDK-001`（SDK availability と Mobile Relay route の意味）は SDK / Handoff の route authority に統一されており、Browser Extension の local Provider route について回帰は確認しなかった。
-- Signing Protocol の common state、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、full inspection、approval、pre-sign revalidation および error authority の前段レビュー状態に対する回帰は確認しなかった。
+- `IS-001`（インターフェース仕様の独自エラーコードと受け渡し §10 の不一致）は、インターフェース §10.2 が受け渡し §10 を判断権限とし、`INVALID_MESSAGE` / `NONCE_REUSED` を公開コードとして扱わない形で解消済みである。本レビューの `SR-002` は、その解消済み判断権限をブラウザ拡張機能仕様が再び曖昧化した跨文書の新規指摘である。
+- `SDK-001`（SDK 利用可能性とモバイル Relay 経路の意味）は SDK / 受け渡しの経路判断権限に統一されており、ブラウザ拡張機能のローカル Provider 経路について回帰は確認しなかった。
+- 署名プロトコルの共通の状態、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、全体内容検査、承認、署名前再検証およびエラー定義の正本の前段レビュー状態に対する回帰は確認しなかった。
 
-## 10. Deferred Findings
+## 10. 後続工程へ委譲する指摘
 
-次の Browser Extension OPEN は、対象 Specification が上流未決事項を独自確定せず、安全側の不変条件を固定しているため、実装前または対応する上流仕様で継続してよい。ただし、これらは `SR-001` / `SR-002` の解消を代替しない。
+次のブラウザ拡張機能未決は、対象仕様が上流未決事項を独自確定せず、安全側の不変条件を固定しているため、実装前または対応する上流仕様で継続してよい。ただし、これらは `SR-001` / `SR-002` の解消を代替しない。
 
-| OPEN                                                          | 判定            | 継続できる理由                                                                                            | 必須の安全側条件                                                                                                |
-| ------------------------------------------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `OPEN-BEX-002` Provider discovery / multiple Provider         | 妥当な deferred | selection policy、capability identifier、compatibility matrix は SDK / Interfaces OPEN に委譲している     | API major 2、malformed / incompatible の fail-closed、自動 fallback 禁止                                        |
-| `OPEN-BEX-003` frame / caller proof / Origin canonicalization | 妥当な deferred | 初回は top-level とし、exact Browser observation method を独自固定していない                              | browser-observed caller、iframe 拒否、一意に binding できない場合の拒否                                         |
-| `OPEN-BEX-004` permission expiry / recovery                   | 妥当な deferred | expiry、persistence、recovery の方式を上流 OPEN に残している                                              | old approval / authentication / session の推測復元と automatic re-sign 禁止                                     |
-| `OPEN-BEX-005` authentication / UI / update compatibility     | 妥当な deferred | every-signature、trusted UI、fail-closed だけを固定し、OS API / UI framework / migration を固定していない | `UNLOCKED`、connection、過去の authentication を署名承認とみなさない                                            |
-| `OPEN-BEX-006` public aggregate / cosignature scope           | 妥当な deferred | Provider / SDK の required / optional scope と result field を上流へ委譲している                          | full parent、embedded / inner、role の inspection。Partial / hash-only / summary-only / chain conversion の禁止 |
+| 未決                                                      | 判定                 | 継続できる理由                                                                                      | 必須の安全側条件                                                                                             |
+| --------------------------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `OPEN-BEX-002` Provider 検出 / 複数の Provider            | 妥当な後続工程へ委譲 | 選択ポリシー、対応能力識別子、互換性対応表は SDK / インターフェース未決に委譲している               | API 主要 2、不正な形式の / 互換性のないの安全側での終了、自動代替経路禁止                                    |
+| `OPEN-BEX-003` フレーム / 呼び出し元証明 / オリジン正規化 | 妥当な後続工程へ委譲 | 初回は最上位のとし、厳密なブラウザ観測メソッドを独自固定していない                                  | ブラウザで観測した呼び出し元、iframe 拒否、一意に結び付けできない場合の拒否                                  |
+| `OPEN-BEX-004` 許可期限切れ / 復旧                        | 妥当な後続工程へ委譲 | 期限切れ、永続化、復旧の方式を上流未決に残している                                                  | 旧承認 / 認証 / セッションの推測復元と自動再署名禁止                                                         |
+| `OPEN-BEX-005` 認証 / UI / 更新互換性                     | 妥当な後続工程へ委譲 | every-signature、信頼された UI、安全側での終了だけを固定し、OS API / UI 基盤 / 移行を固定していない | `UNLOCKED`、接続、過去の認証を署名承認とみなさない                                                           |
+| `OPEN-BEX-006` 公開アグリゲート / 連署署名対象範囲        | 妥当な後続工程へ委譲 | Provider / SDK の必須 / 任意対象範囲と結果フィールドを上流へ委譲している                            | 全体親、埋め込み / 内部、役割の内容検査。部分トランザクション / ハッシュのみ / 要約のみ / チェーン変換の禁止 |
 
-`OPEN-BEX-001` はこの表には含めない。前節のとおり、同項目は deferred ではなく upstream blocking issue である。
+`OPEN-BEX-001` はこの表には含めない。前節のとおり、同項目は後続工程へ委譲ではなく上流判定を妨げる課題である。
 
-## 11. Review Gates
+## 11. レビュー判定基準
 
-| Gate                  | 判定     | 根拠                                                                                                                                       | 対応                                                            |
-| --------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
-| 1. 目的と範囲         | **Pass** | Chrome Extension の利用者、trusted host、対象外（SDK implementation、Relay、Mobile、wallet-core internals、Chrome exact API 等）が明確     | なし                                                            |
-| 2. 契約               | **Fail** | Provider Account projection / selector と concrete error authority が一意でない                                                            | `SR-001`、`SR-002`                                              |
-| 3. 処理と例外         | **Pass** | admission、inspection、approval、authentication、pre-sign revalidation、terminal state、timeout / cancel、unknown outcome が定義されている | なし                                                            |
-| 4. 内部整合性         | **Fail** | page-facing Provider 型と internal ID 禁止、Provider code と Handoff code の記載が同時成立しない                                           | `SR-001`、`SR-002`                                              |
-| 5. 検証可能性         | **Fail** | Account の返却型 / selector visibility、Provider error の期待 code を一つの contract test にできない                                       | `SR-001`、`SR-002`                                              |
-| 6. 安全性と相互運用性 | **Fail** | ID leakage 防止と error authority の実装判定が上流契約なしに確定しない                                                                     | `SR-001`、`SR-002`                                              |
-| 7. 上流整合性         | **Fail** | Interfaces / Handoff の確定 authority、および Product / Provider package / SDK / Handoff の method shape と未整合                          | `SR-001`、`SR-002`。`SR-003` は non-blocking upstream follow-up |
+| 判定条件              | 判定       | 根拠                                                                                                                         | 対応                                                      |
+| --------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| 1. 目的と範囲         | **合格**   | Chrome 拡張機能の利用者、信頼されたホスト、対象外（SDK 実装、Relay、モバイル、wallet-core 内部、Chrome 厳密な API 等）が明確 | なし                                                      |
+| 2. 契約               | **不合格** | Provider アカウント投影 / 選択子と具体的なエラー定義の正本が一意でない                                                       | `SR-001`、`SR-002`                                        |
+| 3. 処理と例外         | **合格**   | 受け入れ判定、内容検査、承認、認証、署名前再検証、終端状態、タイムアウト / キャンセル、不明結果が定義されている              | なし                                                      |
+| 4. 内部整合性         | **不合格** | ページに公開する Provider 型と内部 ID 禁止、Provider コードと受け渡しコードの記載が同時成立しない                            | `SR-001`、`SR-002`                                        |
+| 5. 検証可能性         | **不合格** | アカウントの返却型 / 選択子可視性、Provider エラーの期待コードを一つの契約テストにできない                                   | `SR-001`、`SR-002`                                        |
+| 6. 安全性と相互運用性 | **不合格** | ID 漏えい防止とエラー定義の正本の実装判定が上流契約なしに確定しない                                                          | `SR-001`、`SR-002`                                        |
+| 7. 上流整合性         | **不合格** | インターフェース / 受け渡しの確定判断権限、およびプロダクト / Provider パッケージ / SDK / 受け渡しのメソッド構造と未整合     | `SR-001`、`SR-002`。`SR-003` は判定を妨げない上流追加対応 |
 
-## 12. Conformance and Remaining Risks
+## 12. 適合性と残存するリスク
 
-### 12.1 要件・trust boundary・caller
+### 12.1 要件・信頼境界・呼び出し元
 
-- **Chrome 初回 milestone:** BR-001 と整合。対象 Specification は Chrome を初回とし、具体的な最低バージョン・Manifest を固定していない。
-- **Trusted Extension UI / anti-phishing:** BR-002 / BR-005、Security Design と整合。Origin、Account、Chain / Network、operation、target、signer role、impact を Extension 管理 UI で表示し、dApp title / favicon / label を authority にしていない。新しい branding requirement も導入していない。
-- **Browser-observed caller / Origin:** BR-003 / BR-004、Interfaces §5.5、SDK Requirements と整合。page supplied Origin、SDK の `window.location.origin`、page proof、callback を最終 authority にせず、top-level browser context、tab / frame / document / generation と canonical Origin を binding している。
-- **Origin allowlist:** HTTPS を基本とし、`localhost`、`127.0.0.1`、`[::1]` の loopback HTTP を開発用途として任意 port で許可し、通常 HTTP、`file:`、`data:`、opaque、browser internal、他の extension、iframe / child frame を拒否する。Requirements と整合し、Chrome API の exact method は固定していない。
-- **Trust boundary:** page / SDK / injected bridge / Content Script は untrusted。Content Script は signer ではなく、privileged host が permission、inspection、approval、authentication、lifecycle、response authority を持つ。wallet-core は cryptographic boundary だが caller / permission / UI authority ではない。
+- **Chrome 初回マイルストーン:** BR-001 と整合。対象仕様は Chrome を初回とし、具体的な最低バージョン・マニフェストを固定していない。
+- **信頼された拡張機能 UI / フィッシング対策:** BR-002 / BR-005、セキュリティ設計と整合。オリジン、アカウント、チェーン / ネットワーク、操作、対象、署名主体役割、影響を拡張機能管理 UI で表示し、dApp title / ファビコン / ラベルを判断権限にしていない。新しいブランド表示要求も導入していない。
+- **ブラウザで観測した呼び出し元 / オリジン:** BR-003 / BR-004、インターフェース §5.5、SDK 要件と整合。ページ提供されたオリジン、SDK の `window.location.origin`、ページ証明、コールバックを最終判断権限にせず、最上位のブラウザ文脈、タブ / フレーム / 文書 / 世代と正規オリジンを結び付けしている。
+- **オリジン許可リスト:** HTTPS を基本とし、`localhost`、`127.0.0.1`、`[::1]` のループバック HTTP を開発用途として任意ポートで許可し、通常 HTTP、`file:`、`data:`、内容を解釈しない、ブラウザ内部、他の拡張機能、iframe / 子フレームを拒否する。要件と整合し、Chrome API の厳密なメソッドは固定していない。
+- **信頼境界:** ページ / SDK / 注入された橋渡し / コンテンツスクリプトは信頼されていない。コンテンツスクリプトは署名主体ではなく、特権を持つホストが許可、内容検査、承認、認証、ライフサイクル、応答判断権限を持つ。wallet-core は暗号学的な境界だが呼び出し元 / 許可 / UI 判断権限ではない。
 
-### 12.2 Connection / permission / approval / authentication
+### 12.2 接続 / 許可 / 承認 / 認証
 
-- Provider availability、connection、public Account disclosure、permission、Profile `UNLOCKED`、request-specific authentication、approval、signing authorization、signing success を別状態としている。
-- 未許可だが検証可能な request は connection request としてだけ扱い、connection / permission / unlock / authentication を signing approval としていない。
-- Permission は Origin、Profile、Account set、Scope、Chain、Network、revision に binding され、revoke / revision / Profile / Account / Chain change 時に stale request / approval / authentication を無効化する。expiry / persistent recovery の exact policy を独自確定していない。
-- `every-signature` は Profile Specification §20 と整合。Browser-specific biometric / WebAuthn の exact implementation は `OPEN-BEX-005` に残している。
+- Provider 利用可能性、接続、公開アカウント情報公開、許可、プロファイル `UNLOCKED`、要求固有の認証、承認、署名認可、署名成功を別状態としている。
+- 未許可だが検証可能な要求は接続要求としてだけ扱い、接続 / 許可 / ロック解除 / 認証を署名承認としていない。
+- 許可はオリジン、プロファイル、アカウント集合、対象範囲、チェーン、ネットワーク、リビジョンに結び付けされ、失効 / リビジョン / プロファイル / アカウント / チェーン変更時に古くなった要求 / 承認 / 認証を無効化する。期限切れ / 永続的な復旧の厳密なポリシーを独自確定していない。
+- `every-signature` はプロファイル仕様 §20 と整合。ブラウザ固有の生体認証 / WebAuthn の厳密な実装は `OPEN-BEX-005` に残している。
 
-### 12.3 Signing admission / state / inspection / approval
+### 12.3 署名受け入れ判定 / 状態 / 内容検査 / 承認
 
-- Trusted host は requestId、operation、caller、Origin、document、Scope、Profile、Account、Chain / Network、permission revision、capability、expiry、payload、signer expectation、duplicate / replay、freshness を再検証する。SDK / dApp validation を authority にしていない。
-- Signing Protocol の `RECEIVED → VALIDATED → INSPECTED → AWAITING_USER → AUTHORIZED → SIGNING → SUCCEEDED` と terminal states を維持し、Browser operational state が common signing state を置換していない。
-- Transaction / message bytes、Symbol Aggregate の parent と embedded / inner、NEM multisig の wrapper / inner / parent context を signer 自身が parse / validate / inspect し、同じ authoritative object を trusted UI に表示する。page summary、Node / Relay lookup、hash-only、summary-only、raw / blind fallback はない。
-- Approval は caller / Origin、document、request、operation、Scope、Profile、Account、target / digest、signer role、expiry、permission revision、capability、inspection result へ bind され single-use。`AUTHORIZED → SIGNING` 直前にも caller、permission、Account、payload、approval、authentication、response recipient を再検証する。
+- 信頼されたホストは requestId、操作、呼び出し元、オリジン、文書、対象範囲、プロファイル、アカウント、チェーン / ネットワーク、許可リビジョン、対応能力、期限切れ、ペイロード、署名主体期待値、重複 / リプレイ、鮮度を再検証する。SDK / dApp 検証を判断権限にしていない。
+- 署名プロトコルの `RECEIVED → VALIDATED → INSPECTED → AWAITING_USER → AUTHORIZED → SIGNING → SUCCEEDED` と終端 states を維持し、ブラウザ運用上の状態が共通の署名状態を置換していない。
+- トランザクション / メッセージバイト列、Symbol アグリゲートの親と埋め込み / 内部、NEM マルチシグのラッパー / 内部 / 親文脈を署名主体自身が解析 / 検証 / 内容検査し、同じ正本となるオブジェクトを信頼された UI に表示する。ページ要約、ノード / Relay 照会、ハッシュのみ、要約のみ、生の / 内容を確認しない代替経路はない。
+- 承認は呼び出し元 / オリジン、文書、要求、操作、対象範囲、プロファイル、アカウント、対象 / ダイジェスト、署名主体役割、期限切れ、許可リビジョン、対応能力、内容検査結果へ bind され single-use。`AUTHORIZED → SIGNING` 直前にも呼び出し元、許可、アカウント、ペイロード、承認、認証、応答受信者を再検証する。
 
-### 12.4 Wallet-core / secret boundary
+### 12.4 Wallet-core / 秘密情報境界
 
-- wallet-core には raw page request を渡さず、trusted inspection、explicit approval、every-signature authentication、pre-sign revalidation 後の approved target と internal key reference だけを渡す責務境界になっている。
-- Extension は wallet-core の crypto、KDF、key format、Wallet Store internals を再定義していない。wallet-core に caller、permission、approval UI の authority を移していない。
-- private key、Mnemonic、password、Wallet Store plaintext、derived key、auth secret、wallet-core handle、credential、secret metadata は page / Provider / SDK / Content Script、URL、clipboard、logs、telemetry、error、diagnostics に出さない。stack trace、path、Profile ID、Account ID、raw approval、unnecessary full payload も page-facing error / diagnostics に出さない。
+- wallet-core には生のページ要求を渡さず、信頼された内容検査、明示的な承認、every-signature 認証、署名前再検証後の承認済み対象と内部鍵参照だけを渡す責務境界になっている。
+- 拡張機能は wallet-core の暗号処理、KDF、鍵形式、ウォレットストア内部を再定義していない。wallet-core に呼び出し元、許可、承認 UI の判断権限を移していない。
+- 秘密鍵、ニーモニック、パスワード、ウォレットストア平文、導出された鍵、認証秘密情報、wallet-core ハンドル、認証情報、秘密情報メタデータはページ / Provider / SDK / コンテンツスクリプト、URL、クリップボード、ログ、遠隔計測データ、エラー、診断情報に出さない。スタック追跡、パス、プロファイル ID、アカウント ID、生の承認、unnecessary 全体ペイロードもページに公開するエラー / 診断情報に出さない。
 
-### 12.5 Aggregate / cosignature / structured message
+### 12.5 アグリゲート / 連署署名 / 構造化されたメッセージ
 
-- Symbol Aggregate の initial signing と cosignature を分離し、parent 全体と embedded / inner を確認する。NEM Multisig / Cosignature は Symbol Aggregate と変換していない。
-- Partial を第三の common operation に追加せず、unsupported / incomplete parent を fail-closed にしている。`OPEN-BEX-006` の public scope は適切に deferred だが、scope 確定前に capability を enabled としてはならない。
-- Provider `signMessage` と SDK `signData` を混同せず、`mosaiclynx.message.v1`、browser-observed Origin、Account、Chain / Network、purpose、nonce、issuedAt、expiry、request freshness、payload bytes を同じ authoritative structured message に binding している。raw arbitrary message fallback はない。
+- Symbol アグリゲートの初期署名と連署署名を分離し、親全体と埋め込み / 内部を確認する。NEM マルチシグ / 連署署名は Symbol アグリゲートと変換していない。
+- 部分トランザクションを第三の共通の操作に追加せず、未対応の / incomplete 親を安全側での終了にしている。`OPEN-BEX-006` の公開対象範囲は適切に後続工程へ委譲だが、対象範囲確定前に対応能力を有効としてはならない。
+- Provider `signMessage` と SDK `signData` を混同せず、`mosaiclynx.message.v1`、ブラウザで観測したオリジン、アカウント、チェーン / ネットワーク、目的、ノンス、issuedAt、期限切れ、要求鮮度、ペイロードバイト列を同じ正本となる構造化されたメッセージに結び付けしている。生の任意のメッセージ代替経路はない。
 
-### 12.6 Lifecycle / navigation / worker / concurrency / response
+### 12.6 ライフサイクル / ページ遷移 / ワーカー / 並行処理 / 応答
 
-- same-Origin reload でも document generation を変化として扱い、cross-Origin navigation、tab close / replacement、frame replacement、Provider / Content Script replacement、Profile / Account / permission / lock / Chain change で old approval を移送しない。
-- Service Worker restart、Extension reload / update、browser restart 後に pending approval、authentication success、`SIGNING`、result、delivery correlation を推測復元しない。safe reconstruction 不能時は invalidation、signing outcome 不明時は `RESULT_UNKNOWN`、result 確定後 delivery 不明時は `SUCCEEDED + DELIVERY_UNKNOWN` としている。
-- request は Origin / tab / document / account / permission が異なっても独立し、global approval、ambiguous batch、duplicate response による二重 resolve / signing を導入していない。response は requestId だけでなく operation、caller / document、session / lifecycle、Scope、Account、signer、role、target / digest、expiry と相関する。
+- same-Origin 再読み込みでも文書世代を変化として扱い、オリジン間のページ遷移、タブ終了 / 置き換え、フレーム置き換え、Provider / コンテンツスクリプト置き換え、プロファイル / アカウント / 許可 / ロック / チェーン変更で旧承認を移送しない。
+- サービスワーカー再起動、拡張機能再読み込み / 更新、ブラウザ再起動後に保留中の承認、認証成功、`SIGNING`、結果、配送対応付けを推測復元しない。安全な reconstruction 不能時は無効化、署名結果不明時は `RESULT_UNKNOWN`、結果確定後配送不明時は `SUCCEEDED + DELIVERY_UNKNOWN` としている。
+- 要求はオリジン / タブ / 文書 / アカウント / 許可が異なっても独立し、グローバル承認、曖昧な一括処理、重複応答による二重解決 / 署名を導入していない。応答は requestId だけでなく操作、呼び出し元 / 文書、セッション / ライフサイクル、対象範囲、アカウント、署名主体、役割、対象 / ダイジェスト、期限切れと相関する。
 
-### 12.7 Timeout / cancellation / error / release
+### 12.7 タイムアウト / キャンセル / エラー / リリース
 
-- SDK timeout、Provider expiry、explicit rejection、UI close、cancellation、lifecycle loss、wallet-core crash、result unknown、delivery unknown を区別している。UI close / timeout を自動的に user rejection とせず、signing 中の不確実性を `RESULT_UNKNOWN` としている。
-- `RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` を Signing Protocol の意味どおり分離し、不確実な結果で automatic re-sign をしない。
-- Error authority 以外の領域は Interfaces（logical）、Signing Protocol（outcome）、Handoff（SDK / concrete）、Chain Compatibility（chain-specific）、wallet-core contract（internal）へ責務を返している。ただし Provider concrete code の衝突は `SR-002` でブロックしている。
-- Mainnet gate 未達成または判定不能の build が Mainnet signing capability を提供しないことを定め、release implementation / evidence の exact mechanism を独自確定していない。
+- SDK タイムアウト、Provider 期限切れ、明示的な拒否、UI 終了、キャンセル、ライフサイクル消失、wallet-core 異常終了、結果不明、配送不明を区別している。UI 終了 / タイムアウトを自動的に利用者拒否とせず、署名中の不確実性を `RESULT_UNKNOWN` としている。
+- `RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` を署名プロトコルの意味どおり分離し、不確実な結果で自動再署名をしない。
+- エラー定義の正本以外の領域はインターフェース（論理的な）、署名プロトコル（結果）、受け渡し（SDK / 具体的な）、チェーン互換性（チェーン固有の）、wallet-core 契約（内部）へ責務を返している。ただし Provider 具体的なコードの衝突は `SR-002` でブロックしている。
+- Mainnet 判定条件未達成または判定不能のビルドが Mainnet 署名対応能力を提供しないことを定め、リリース実装 / 根拠の厳密な仕組みを独自確定していない。
 
-### 12.8 Scope boundary / new specification contamination
+### 12.8 対象範囲境界 / 新規仕様混入
 
-対象 Specification は SDK implementation、Relay implementation、Mobile、wallet-core internals、Chrome API exact calls、Manifest exact JSON、storage engine、UI framework、bundler、state management、file layout、test frameworkを確定していない。新しい Provider method / event / field、error taxonomy、signing primitive、secret API、raw signing fallback も意図としては追加していない。
+対象仕様は SDK 実装、Relay 実装、モバイル、wallet-core 内部、Chrome API 厳密な calls、マニフェスト厳密な JSON、保存領域エンジン、UI 基盤、バンドラー、状態管理、ファイル配置、テスト基盤を確定していない。新しい Provider メソッド / イベント / フィールド、エラー分類体系、署名基本機構、秘密情報 API、生の署名代替経路も意図としては追加していない。
 
-ただし、現行 Provider code の集合を §5.4 で列挙したことが Handoff / Interfaces の concrete error authority と衝突し、Provider Account record を §5.2 で参照したことが page-facing ID 禁止と衝突している。これは「新規仕様を作らない」という宣言だけでは解消しない。
+ただし、現行 Provider コードの集合を §5.4 で列挙したことが受け渡し / インターフェースの具体的なエラー定義の正本と衝突し、Provider アカウントレコードを §5.2 で参照したことがページに公開する ID 禁止と衝突している。これは「新規仕様を作らない」という宣言だけでは解消しない。
 
-## 13. Final Decision
+## 13. 最終判断
 
 - **最終判定:** `REVISE SPECIFICATION`
-- **指摘件数:** Critical 2、Major 1、Minor 0
-- **主なブロッカー:** `SR-001`（`OPEN-BEX-001` の Account projection / selector authority）、`SR-002`（Provider error authority）
-- **`OPEN-BEX-001` 判定:** READY のまま残せない。Browser Extension Specification 内修正だけでは不十分で、Interfaces / SDK / Handoff / Product / Provider API contract への上流返却が必要な、実装開始を止める Critical 相当の ERROR。
-- **`SR-003` 判定:** 現行 package / SDK / Handoff と対象文書の選択は整合するが、Product Specification の method shape を上流で明示的に解消する Major follow-up。
-- **結論:** `BROWSER EXTENSION SPECIFICATION READY` としては扱えない。SR-001 / SR-002 の upstream contract 修正、SR-003 の Provider method shape 整合後に再レビューする。
+- **指摘件数:** 重大 2、主要 1、軽微 0
+- **主なブロッカー:** `SR-001`（`OPEN-BEX-001` のアカウント投影 / 選択子判断権限）、`SR-002`（Provider エラー定義の正本）
+- **`OPEN-BEX-001` 判定:** READY のまま残せない。ブラウザ拡張機能仕様内修正だけでは不十分で、インターフェース / SDK / 受け渡し / プロダクト / Provider API 契約への上流返却が必要な、実装開始を止める重大相当のエラー。
+- **`SR-003` 判定:** 現行パッケージ / SDK / 受け渡しと対象文書の選択は整合するが、プロダクト仕様のメソッド構造を上流で明示的に解消する主要追加対応。
+- **結論:** `BROWSER EXTENSION SPECIFICATION READY` としては扱えない。SR-001 / SR-002 の上流契約修正、SR-003 の Provider メソッド構造整合後に再レビューする。
 
-## 14. Validation
+## 14. 検証
 
-- 対象 revision、対象ファイル、関連 Requirements / Design / Specification、Provider package / source / test の存在と参照を確認した。
-- Reviewer A / B / C の独立視点走査と、Chair による finding 重複・severity・gate の再確認を実施した。
-- 既存レビュー（`IS-001`、`SDK-001`、Signing Protocol review）の解消状態と、対象 Specification の回帰を確認した。
-- 対象 Specification、上流資料、Provider package、実装および既存レビューはレビュー中に変更していない。
-- Markdown formatter: `pnpm exec prettier --write docs/reviews/specifications/browser-extension-review-001.md` 後に `pnpm exec prettier --check docs/reviews/specifications/browser-extension-review-001.md` を実施し、成功した。
-- repository formatter: `pnpm format:check` を試行したが、リポジトリ全体（既存の `_nem` / `_sns` / `_symbol` / `_snwc` を含む）の大量の既存 warning と HTML syntax error が出力され、30 秒の実行枠内に完了結果を取得できなかった。対象成果物の個別 formatter check は成功している。
-- whitespace check: `git diff --cached --check` を実施し、成果物由来の whitespace error はなかった。
-- repository 全体の lint / typecheck / test / build: レビュー成果物のみの変更であり、Specification Review の実装検証対象ではないため実施しない。
-- Chrome 実環境、Extension runtime、Mainnet release evidence、wallet-core integration の動作検証: **Not validated**。仕様の境界・委譲・fail-closed 規則のみを確認した。
+- 対象リビジョン、対象ファイル、関連要件 / 設計 / 仕様、Provider パッケージ / 送信元 / テストの存在と参照を確認した。
+- レビュアー A / B / C の独立視点走査と、レビュー統括による指摘重複・重要度・判定条件の再確認を実施した。
+- 既存レビュー（`IS-001`、`SDK-001`、署名プロトコルレビュー）の解消状態と、対象仕様の回帰を確認した。
+- 対象仕様、上流資料、Provider パッケージ、実装および既存レビューはレビュー中に変更していない。
+- Markdown フォーマッター: `pnpm exec prettier --write docs/reviews/specifications/browser-extension-review-001.md` 後に `pnpm exec prettier --check docs/reviews/specifications/browser-extension-review-001.md` を実施し、成功した。
+- リポジトリフォーマッター: `pnpm format:check` を試行したが、リポジトリ全体（既存の `_nem` / `_sns` / `_symbol` / `_snwc` を含む）の大量の既存警告と HTML 構文エラーが出力され、30 秒の実行枠内に完了結果を取得できなかった。対象成果物の個別フォーマッター確認は成功している。
+- 空白文字確認: `git diff --cached --check` を実施し、成果物由来の空白文字エラーはなかった。
+- リポジトリ全体の lint / typecheck / テスト / ビルド: レビュー成果物のみの変更であり、仕様レビューの実装検証対象ではないため実施しない。
+- Chrome 実環境、拡張機能実行環境、Mainnet リリース証跡、wallet-core 統合の動作検証: **未検証**。仕様の境界・委譲・安全側での終了規則のみを確認した。

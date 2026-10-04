@@ -1,11 +1,11 @@
-# MosaicLynx Testnet mobile privacy notice
+# MosaicLynx Testnet モバイルアプリのプライバシー通知
 
-MosaicLynx Testnet stores profiles, public account identities, settings, and password-encrypted Vault envelopes on the device. It does not collect balances, transaction history, contacts, advertising identifiers, or analytics.
+MosaicLynx Testnet は、プロファイル、アカウントの公開識別情報、設定、パスワードで暗号化された Vault エンベロープを端末内に保存する。残高、取引履歴、連絡先、広告識別子、利用状況の分析データは収集しない。
 
-When a user starts a signing request, the Web SDK and app exchange end-to-end encrypted request and response envelopes through `relay.mosaiclynx.app`. Relay credentials are held only in memory. The Relay cannot decrypt the transaction and deletes session data after acknowledgement, cancellation, or a maximum five-minute expiry.
+利用者が署名要求を開始すると、Web SDK とアプリは `relay.mosaiclynx.app` を通じて、エンドツーエンドで暗号化された要求・応答エンベロープを交換する。Relay の認証情報はメモリ内にのみ保持する。Relay はトランザクションを復号できず、受領確認、キャンセル、または最長5分の有効期限切れの後にセッションデータを削除する。
 
-The app does not broadcast signed transactions. The requesting dApp decides whether to submit the returned payload. Testnet request origins are displayed as unverified.
+アプリは署名済みトランザクションをブロードキャストしない。返されたペイロードを送信するかどうかは、要求元の dApp が判断する。Testnet の要求元オリジンは未検証として表示する。
 
-Encrypted profile backups are created only on explicit request, use a fresh salt and nonce, and are handed to the operating-system share sheet. MosaicLynx does not upload backup files.
+暗号化されたプロファイルのバックアップは、利用者の明示的な要求がある場合にのみ作成する。新しいソルトとノンスを使用し、OS の共有シートへ渡す。MosaicLynx はバックアップファイルをアップロードしない。
 
-Security reports should be sent through the independently published contact listed at the official `mosaiclynx.app` support page. Do not include mnemonics, private keys, passwords, Relay links, or full transaction payloads in a report.
+セキュリティ報告は、公式 `mosaiclynx.app` のサポートページに記載された、別途公開されている連絡先へ送る。ニーモニック、秘密鍵、パスワード、Relay のリンク、トランザクションの完全なペイロードを報告に含めてはならない。

@@ -6,211 +6,211 @@
 - 確認日: 2026-08-26
 - レビュー種別: Relay 基本設計レビュー
 - 判定: `READY`
-- 主判定基準: Concept、Requirements、Architecture、Security Design、Signing Flow、Interfaces、Browser Extension 基本設計および Mobile App 基本設計との整合性、ならびに Relay 固有の責務・境界・状態・delivery semantics・安全条件の十分性。
+- 主判定基準: コンセプト、要件、アーキテクチャ、セキュリティ設計、署名フロー、インターフェース、ブラウザ拡張機能基本設計およびモバイルアプリ基本設計との整合性、ならびに Relay 固有の責務・境界・状態・配送意味・安全条件の十分性。
 - 変更範囲: 本レビュー成果物のみを新規作成。レビュー対象本文、上位資料、ADR、実装および既存レビューは変更していない。
 
 ## 2. 総評
 
 `docs/design/relay.md` は、Relay の基本設計として実装または下位仕様策定へ進められる品質に達している。
 
-本書は、Relay を Internet-facing な opaque / untrusted transport と位置付け、Connection / Session Gateway、Auth / Admission、Session Registry、Message Router、Temporary Message Store、Delivery Coordinator、Expiration / Cleanup、Abuse / Resource Control、Observability、Cluster / Instance および Administrative Plane の責務を分離している。Relay は session、routing、bounded buffering、delivery、expiration、transport validation、abuse control および observability を担う一方、secret management、transaction semantics、Account authority、user approval、signing authorization、wallet-core および client-side の最終 integrity / replay validation を担わないことが明確である。
+本書は、Relay をインターネットに公開するな内容を解釈しない / 信頼されていない通信経路と位置付け、接続 / セッションゲートウェイ、認証 / 受け入れ判定、セッション登録簿、メッセージ経路選択、一時的なメッセージストア、配送調整役、有効期限 / 後処理、悪用 / リソース制御、観測可能性、クラスター / インスタンスおよび管理用の層の責務を分離している。Relay はセッション、経路選択、上限のあるバッファリング、配送、有効期限、通信経路検証、悪用制御および観測可能性を担う一方、秘密情報管理、トランザクション意味、アカウントに関する判断権限、利用者承認、署名認可、wallet-core およびクライアント側の最終完全性 / リプレイ検証を担わないことが明確である。
 
-また、opaque payload の扱い、session / participant / role / generation の binding、message identity と request / response correlation、exactly-once を保証しない delivery、client-side idempotency、bounded retention、重複・再送・expiry・state loss・restart・failover 後の stale state 不使用、cross-session / cross-recipient isolation、multi-instance 整合性、resource exhaustion および fail-closed が、Relay 固有の基本設計判断として具体化されている。
+また、内容を解釈しないペイロードの扱い、セッション / 参加者 / 役割 / 世代の結び付け、メッセージ識別情報と要求 / 応答対応付け、厳密に一回のみを保証しない配送、クライアント側の冪等性、上限のある保持、重複・再送・期限切れ・状態消失・再起動・障害時の切り替え後の古くなった状態不使用、セッション間の / 受信者間の分離、複数インスタンス整合性、リソース枯渇および安全側での終了が、Relay 固有の基本設計判断として具体化されている。
 
-Browser Extension / SDK は request creation、Origin / relying context、client-side E2E protection と最終検証、Mobile App は request / recipient / integrity / expiry の検証、trusted presentation、explicit approval、device authentication および signing、wallet-core は secret processing / raw signing を担う構成であり、Relay との責任分界も一貫している。Relay の admission、delivery、acknowledgement または保存状態を approval、署名成功、安全性または署名結果の正当性とみなさない設計になっている。
+ブラウザ拡張機能 / SDK は要求作成、オリジン / 依拠する文脈、クライアント側の E2E 保護と最終検証、モバイルアプリは要求 / 受信者 / 完全性 / 期限切れの検証、信頼された表示、明示的な承認、端末認証および署名、wallet-core は秘密情報処理 / 生の署名を担う構成であり、Relay との責任分界も一貫している。Relay の受け入れ判定、配送、受領確認または保存状態を承認、署名成功、安全性または署名結果の正当性とみなさない設計になっている。
 
-実装不能性、Relay の trust anchor 化、cross-session / cross-recipient の境界破綻、delivery guarantee の危険な過剰主張、secret exposure、replay による無断署名、上位設計との重大な矛盾は確認されなかった。
+実装不能性、Relay の信頼アンカー化、セッション間の / 受信者間の境界破綻、配送保証の危険な過剰主張、秘密情報露出、リプレイによる無断署名、上位設計との重大な矛盾は確認されなかった。
 
 ## 3. 判定
 
-### RELAY DESIGN READY
+### RELAY 設計 READY
 
 最終判定: `READY`
 
-基本設計として必要な Relay 固有の責務、Trust Boundary、session / admission、message lifecycle、delivery semantics、replay / duplicate、retention、sensitive data、multi-instance recovery、client との責任分界、security invariant および下位仕様への委譲範囲が定まっている。実装および下位仕様策定へ進めてよい。今回のレビューで記録すべき指摘はない。
+基本設計として必要な Relay 固有の責務、信頼境界、セッション / 受け入れ判定、メッセージライフサイクル、配送意味、リプレイ / 重複、保持、機微なデータ、複数インスタンス復旧、クライアントとの責任分界、セキュリティ上の不変条件および下位仕様への委譲範囲が定まっている。実装および下位仕様策定へ進めてよい。今回のレビューで記録すべき指摘はない。
 
 ## 4. 重点確認結果
 
-| 確認項目                              | 判定 | 確認結果                                                                                                                                                                                                                      |
-| ------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 基本設計としての粒度                  | 適合 | §3〜§30 が責務、境界、状態、lifecycle、delivery、recovery、fail-closed と委譲範囲を定め、具体 API、Redis / DB schema、wire schema、retry interval、cluster topology 等を固定していない。                                      |
-| 上位設計との整合                      | 適合 | §2、§29、§30、§32 が共通 security policy、signing flow、interfaces、Browser Extension、Mobile App、wallet-core の責務を参照し、Relay 固有の transport / delivery 適用に限定している。                                         |
-| Relay の責務 / 非責務                 | 適合 | §3〜§4、§29 が connection、session、routing、temporary delivery、expiration、transport validation、abuse control、observability と、secret、approval、signing、semantic validation、wallet authority の非責務を分離している。 |
-| Trust Boundary / 非信頼モデル         | 適合 | §5 が Internet-facing input、Browser Extension / SDK、Mobile、Relay persistence、admin plane を適切な境界で扱い、Relay compromise 単独で key acquisition、approval bypass、無断署名が成立しないことを示している。             |
-| Payload Visibility / Opaque Transport | 適合 | §8、§13 が E2E opaque envelope と routing metadata を区別し、Relay が transaction / message semantics、Account ownership、approval、risk、blind signing を解釈しない。独自暗号方式も導入していない。                          |
-| Session / Admission                   | 適合 | §6〜§7 が transport association、participant / role、generation、expiry、credential、message submission admission を分離し、session identifier 単独の join、retrieve、impersonation、injection を禁止している。               |
-| Message Lifecycle                     | 適合 | §9 が `SUBMITTED` から `DELIVERED`、`ACKNOWLEDGED / CONSUMED`、`EXPIRED` / `CANCELLED` / `DROPPED` 等まで transport lifecycle として定義し、Signing Request の approval / signing state を Relay が管理しない。               |
-| Delivery Semantics                    | 適合 | §10 が exactly-once を保証せず、bounded retryable / best-effort と重複配送の可能性を明示し、transport status と application processing / signing result を分離している。                                                      |
-| Replay / Duplicate                    | 適合 | §11 が Relay 側の structural suppression と client-side の identity、integrity、expiry、generation、approval binding、replay protection を分担し、Relay duplicate suppression を最終保証にしていない。                        |
-| Expiration / Retention                | 適合 | §12 が session、message、temporary buffering、delivered / consumed state、operational log を bounded lifetime と最小 retention に分類し、terminal state や restart 後の stale message 再利用を禁止している。                  |
-| Sensitive Data                        | 適合 | §13、§24、§28 が private key、Mnemonic、password、Wallet Store、E2E secret、plaintext payload、credential raw 値の受信・復号・保持・logging を禁止している。                                                                  |
-| Response Routing / Isolation          | 適合 | §17、§18 が request / response identity、session、direction、role、recipient、generation、correlation を binding し、cross-session、cross-recipient、stale response、response replacement を防ぐ基本構造を示している。        |
-| Concurrency / Scaling                 | 適合 | §18〜§19 が同時 submit / delivery / ack / expiry / reconnect / failover を logical transition として扱い、shared session / message state と multi-instance の整合性を要求している。                                           |
-| Failure / Recovery                    | 適合 | §20、§25〜§26 が storage failure、partition、overload、restart、state loss、failover、disconnect、expired / stale / replayed message を安全側へ遷移させ、signing state を復元しない。                                         |
-| Abuse / Enumeration                   | 適合 | §21〜§22 が flooding、oversized message、storage exhaustion、reconnect storm、identifier guessing、recipient enumeration に対する admission / resource boundary を定めている。                                                |
-| Client Responsibility Boundary        | 適合 | §15、§16、§29 が Browser Extension / SDK、Mobile App、wallet-core、Interfaces の request creation、validation、approval、authentication、signing、result validation を Relay から分離している。                               |
-| Security Invariants                   | 適合 | §28 に Relay 非authority、非trust anchor、secret isolation、delivery 非approval、bounded retention、isolation、fail-closed、compromise 単独で無断署名不可が MUST として列挙されている。                                       |
+| 確認項目                                    | 判定 | 確認結果                                                                                                                                                                                                               |
+| ------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 基本設計としての粒度                        | 適合 | §3〜§30 が責務、境界、状態、ライフサイクル、配送、復旧、安全側での終了と委譲範囲を定め、具体 API、Redis / DB スキーマ、通信上のスキーマ、再試行間隔、クラスター構成等を固定していない。                                |
+| 上位設計との整合                            | 適合 | §2、§29、§30、§32 が共通セキュリティポリシー、署名フロー、インターフェース、ブラウザ拡張機能、モバイルアプリ、wallet-core の責務を参照し、Relay 固有の通信経路 / 配送適用に限定している。                              |
+| Relay の責務 / 非責務                       | 適合 | §3〜§4、§29 が接続、セッション、経路選択、一時的な配送、有効期限、通信経路検証、悪用制御、観測可能性と、秘密情報、承認、署名、意味上の検証、ウォレット判断権限の非責務を分離している。                                 |
+| 信頼境界 / 非信頼モデル                     | 適合 | §5 がインターネットに公開する入力、ブラウザ拡張機能 / SDK、モバイル、Relay 永続化、管理者層を適切な境界で扱い、Relay 侵害単独で鍵取得、承認迂回、無断署名が成立しないことを示している。                                |
+| ペイロード可視性 / 内容を解釈しない通信経路 | 適合 | §8、§13 が E2E 内容を解釈しないエンベロープと経路選択メタデータを区別し、Relay がトランザクション / メッセージ意味、アカウント所有責任、承認、リスク、内容を確認しない署名を解釈しない。独自暗号方式も導入していない。 |
+| セッション / 受け入れ判定                   | 適合 | §6〜§7 が通信経路関連付け、参加者 / 役割、世代、期限切れ、認証情報、メッセージ送信受け入れ判定を分離し、セッション識別子単独の参加、retrieve、なりすまし、注入を禁止している。                                         |
+| メッセージライフサイクル                    | 適合 | §9 が `SUBMITTED` から `DELIVERED`、`ACKNOWLEDGED / CONSUMED`、`EXPIRED` / `CANCELLED` / `DROPPED` 等まで通信経路ライフサイクルとして定義し、署名要求の承認 / 署名状態を Relay が管理しない。                          |
+| 配送意味                                    | 適合 | §10 が厳密に一回のみを保証せず、上限のある再試行可能な / 可能な範囲での実行と重複配送の可能性を明示し、通信経路状態とアプリケーション処理 / 署名結果を分離している。                                                   |
+| リプレイ / 重複                             | 適合 | §11 が Relay 側の構造上の suppression とクライアント側の識別情報、完全性、期限切れ、世代、承認との結び付け、リプレイ保護を分担し、Relay 重複 suppression を最終保証にしていない。                                      |
+| 有効期限 / 保持                             | 適合 | §12 がセッション、メッセージ、一時的なバッファリング、配送済み / 消費済み状態、運用上のログを上限のある有効期間と最小保持に分類し、終端状態や再起動後の古くなったメッセージ再利用を禁止している。                      |
+| 機微なデータ                                | 適合 | §13、§24、§28 が秘密鍵、ニーモニック、パスワード、ウォレットストア、E2E 秘密情報、平文ペイロード、認証情報生の値の受信・復号・保持・ログ出力を禁止している。                                                           |
+| 応答経路選択 / 分離                         | 適合 | §17、§18 が要求 / 応答識別情報、セッション、方向、役割、受信者、世代、対応付けを結び付けし、セッション間の、受信者間の、古くなった応答、応答置き換えを防ぐ基本構造を示している。                                       |
+| 並行処理 / Scaling                          | 適合 | §18〜§19 が同時送信 / 配送 / 受領確認 / 期限切れ / 再接続 / 障害時の切り替えを論理的な遷移として扱い、共有のセッション / メッセージ状態と複数インスタンスの整合性を要求している。                                      |
+| 失敗 / 復旧                                 | 適合 | §20、§25〜§26 が保存領域失敗、分割、過負荷、再起動、状態消失、障害時の切り替え、接続解除、期限切れ / 古くなった / 再送されたメッセージを安全側へ遷移させ、署名状態を復元しない。                                       |
+| 悪用 / 列挙                                 | 適合 | §21〜§22 が大量送信、サイズ超過のメッセージ、保存領域枯渇、再接続 storm、識別子推測、受信者列挙に対する受け入れ判定 / リソース境界を定めている。                                                                       |
+| クライアント責務境界                        | 適合 | §15、§16、§29 がブラウザ拡張機能 / SDK、モバイルアプリ、wallet-core、インターフェースの要求作成、検証、承認、認証、署名、結果検証を Relay から分離している。                                                           |
+| セキュリティ上の不変条件                    | 適合 | §28 に Relay 非判断権限、非信頼アンカー、秘密情報の分離、配送非承認、上限のある保持、分離、安全側での終了、侵害単独で無断署名不可が MUST として列挙されている。                                                        |
 
 ## 5. 指摘一覧
 
 今回のレビューで、`BLOCKER`、`HIGH`、`MEDIUM`、`LOW`、`NIT` に該当する指摘は確認されなかった。
 
-| Severity | 件数 |
+| 重要度   | 件数 |
 | -------- | ---: |
-| BLOCKER  |    0 |
+| 阻害要因 |    0 |
 | HIGH     |    0 |
 | MEDIUM   |    0 |
 | LOW      |    0 |
-| NIT      |    0 |
+| 細部     |    0 |
 
 したがって、レビュー指摘 ID は発行していない。問題がない領域に形式的な指摘を追加しない。
 
-## 6. Trust Boundary / Relay 非信頼モデル評価
+## 6. 信頼境界 / Relay 非信頼モデル評価
 
-適合。§5 は、External client、Browser Extension、SDK、Mobile App、Internet-facing ingress を untrusted input とし、Relay 内部でも ingress / admission、session registry、routing、opaque persistence、cluster state、administrative plane を分離している。
+適合。§5 は、外部クライアント、ブラウザ拡張機能、SDK、モバイルアプリ、インターネットに公開する受信を信頼されていない入力とし、Relay 内部でも受信 / 受け入れ判定、セッション登録簿、経路選択、内容を解釈しない永続化、クラスター状態、管理用の層を分離している。
 
-- Relay は endpoint authentication や session admission を行っても、client、Signer、Account owner、user、approved request または safe transaction とみなさない。
-- Relay persistence、delivery success、acknowledgement、session membership、credential validation、operator action は signing authorization の根拠にならない。
-- Relay は private key、Mnemonic、Profile password、decrypted Wallet Store、E2E session secret、derived encryption material または signing secret を受信・復号・導出・保持・logging しない。
-- Relay が侵害されても、Relay 単独で secret acquisition、E2E payload decryption、valid request forgery、approval bypass、unauthorized signing を成立させない。
-- Administrative plane は data plane と分離され、operator は通常運用で payload、E2E secret、credential raw 値、Account、Origin または approval を閲覧・改変しない。
+- Relay はエンドポイント認証やセッション受け入れ判定を行っても、クライアント、署名主体、アカウント責任主体、利用者、承認済み要求または安全なトランザクションとみなさない。
+- Relay 永続化、配送成功、受領確認、セッション membership、認証情報検証、運用者対応は署名認可の根拠にならない。
+- Relay は秘密鍵、ニーモニック、プロファイルパスワード、復号されたウォレットストア、E2E セッション秘密情報、導出された暗号化資料または署名秘密情報を受信・復号・導出・保持・ログ出力しない。
+- Relay が侵害されても、Relay 単独で秘密情報取得、E2E ペイロード復号、有効な要求 forgery、承認迂回、unauthorized 署名を成立させない。
+- 管理用の層はデータ層と分離され、運用者は通常運用でペイロード、E2E 秘密情報、認証情報生の値、アカウント、オリジンまたは承認を閲覧・改変しない。
 
-Relay を trust anchor、delivery result を authorization、operator を signing authority と扱う記述は確認されなかった。
+Relay を信頼アンカー、配送結果を認可、運用者を署名判断権限と扱う記述は確認されなかった。
 
-## 7. Payload Visibility / Opaque Transport 評価
+## 7. ペイロード可視性 / 内容を解釈しない通信経路評価
 
-適合。§8、§13 は Relay が既存 protocol の E2E opaque envelope を扱い、Relay が参照できる metadata を size、version、session、direction、identity、expiry、generation、authorization および routing に必要な最小範囲に限定している。transaction recipient、amount、message contents、Account ownership、approval、risk または semantic safety を metadata から推測しないことも明示されている。
+適合。§8、§13 は Relay が既存プロトコルの E2E 内容を解釈しないエンベロープを扱い、Relay が参照できるメタデータをサイズ、バージョン、セッション、方向、識別情報、期限切れ、世代、認可および経路選択に必要な最小範囲に限定している。トランザクション受信者、数量、メッセージ内容、アカウント所有責任、承認、リスクまたは意味上の安全性をメタデータから推測しないことも明示されている。
 
-TLS と E2E protection を混同せず、Relay 独自の key exchange、MAC、nonce、AAD、digest または envelope を追加していない。改変、順序変更、重複、遅延または誤配送の最終検出は Mobile App / Browser Extension / SDK の request / response integrity、target binding、expiry および semantic validation に委譲されている。これは [`security-design.md`](../../design/security-design.md)、[`interfaces.md`](../../design/interfaces.md)、[`mobile-app.md`](../../design/mobile-app.md) および [`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md) と整合する。
+TLS と E2E 保護を混同せず、Relay 独自の鍵交換、MAC、ノンス、AAD、ダイジェストまたはエンベロープを追加していない。改変、順序変更、重複、遅延または誤配送の最終検出はモバイルアプリ / ブラウザ拡張機能 / SDK の要求 / 応答完全性、対象結び付け、期限切れおよび意味上の検証に委譲されている。これは [`security-design.md`](../../design/security-design.md)、[`interfaces.md`](../../design/interfaces.md)、[`mobile-app.md`](../../design/mobile-app.md) および [`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md) と整合する。
 
-## 8. Session / Admission 評価
+## 8. セッション / 受け入れ判定評価
 
-適合。§6 の session は Web-side participant と Mobile participant の transport context として定義され、Profile、Account、Origin、approval、Wallet Store、device authentication または signing authorization と混同されていない。session identifier は routing identifier に留まり、知識だけで join、message retrieve、participant impersonation、response injection、ack / cancel 横取りまたは cross-session access が成立しない。
+適合。§6 のセッションは Web 側の参加者とモバイル参加者の通信経路文脈として定義され、プロファイル、アカウント、オリジン、承認、ウォレットストア、端末認証または署名認可と混同されていない。セッション識別子は経路選択識別子に留まり、知識だけで参加、メッセージ retrieve、参加者なりすまし、応答注入、受領確認 / キャンセル横取りまたはセッション間のアクセスが成立しない。
 
-§7 は transport connection authentication、session participation、message submission admission、delivery、signing authorization、user approval を表で分離している。認証済み client が approved signer または approved request ではないこと、admission failure が fail-closed で不要な存在情報を返さないこと、reconnect が current session / role / generation / expiry の再検証を伴うことが明確である。
+§7 は通信経路接続認証、セッション participation、メッセージ送信受け入れ判定、配送、署名認可、利用者承認を表で分離している。認証済みクライアントが承認済み署名主体または承認済み要求ではないこと、受け入れ判定失敗が安全側に終了して不要な存在情報を返さないこと、再接続が現在のセッション / 役割 / 世代 / 期限切れの再検証を伴うことが明確である。
 
-## 9. Message Lifecycle / Delivery Semantics 評価
+## 9. メッセージライフサイクル / 配送意味評価
 
-適合。§9 は Relay が `SUBMITTED`、`TRANSPORT_VALIDATED`、`STORED / PENDING`、`AVAILABLE`、`DELIVERED`、`ACKNOWLEDGED / CONSUMED` と terminal condition を管理し、`AUTHORIZED`、`SIGNING`、`SUCCEEDED` または `USER_REJECTED` を transport lifecycle に取り込まない。
+適合。§9 は Relay が `SUBMITTED`、`TRANSPORT_VALIDATED`、`STORED / PENDING`、`AVAILABLE`、`DELIVERED`、`ACKNOWLEDGED / CONSUMED` と終端条件を管理し、`AUTHORIZED`、`SIGNING`、`SUCCEEDED` または `USER_REJECTED` を通信経路ライフサイクルに取り込まない。
 
-§10 は exactly-once delivery / application processing を保証せず、bounded な retryable / best-effort delivery と重複配送を前提にしている。Relay の重複配送は client-side idempotency / request identity により処理され、delivery failure は signature generation retry と分離される。既存 result の再配送・照会が可能な場合も、同一 target の再署名へ進まないため、`Relay の重複配送 ≠ 二重署名` の責任分界が維持されている。
+§10 は厳密に一回のみ配送 / アプリケーション処理を保証せず、上限のあるな再試行可能な / 可能な範囲での実行配送と重複配送を前提にしている。Relay の重複配送はクライアント側の冪等性 / 要求識別情報により処理され、配送失敗は署名生成再試行と分離される。既存結果の再配送・照会が可能な場合も、同一対象の再署名へ進まないため、`Relay の重複配送 ≠ 二重署名` の責任分界が維持されている。
 
-## 10. Replay / Duplicate 評価
+## 10. リプレイ / 重複評価
 
-適合。§11 は active session 内の identity 不整合、expired / cancelled / consumed / invalidated / generation 不一致、direction / recipient / correlation 不一致、ack / cancel / response retry および旧 generation の復活を transport-level で抑止する。一方で、Relay が過去の全 ciphertext を保持して replay 判定する前提にはせず、Mobile App / Browser Extension / SDK が generation-bound integrity、request identity、expiry、source / recipient、Account、Chain / Network、operation、approval binding および既消費状態を最終検証する。
+適合。§11 は有効なセッション内の識別情報不整合、期限切れ / キャンセル済み / 消費済み / 無効化済み / 世代不一致、方向 / 受信者 / 対応付け不一致、受領確認 / キャンセル / 応答再試行および旧世代の復活を通信経路レベルので抑止する。一方で、Relay が過去の全暗号文を保持してリプレイ判定する前提にはせず、モバイルアプリ / ブラウザ拡張機能 / SDK が世代に結び付いた完全性、要求識別情報、期限切れ、送信元 / 受信者、アカウント、チェーン / ネットワーク、操作、承認との結び付けおよび既消費状態を最終検証する。
 
-この分担は、Relay の state loss 後に旧 ciphertext が transport 外形を満たし得る場合でも、client-side validation を通じて approval / signing / success に到達させないという Requirements の受け入れ条件と整合する。重複抑止の有無を署名成功の根拠にしていない。
+この分担は、Relay の状態消失後に旧暗号文が通信経路外形を満たし得る場合でも、クライアント側の検証を通じて承認 / 署名 / 成功に到達させないという要件の受け入れ条件と整合する。重複抑止の有無を署名成功の根拠にしていない。
 
-## 11. Retention / Sensitive Data 評価
+## 11. 保持 / 機微なデータ評価
 
-適合。§12 は session、message、temporary buffering、delivered / consumed state、operational log を分け、transport handoff に必要な最短の bounded lifetime として扱う。payload history、分析、長期 retry queue、backup、履歴サービスとして利用せず、terminal state、restart、state loss、expiry 後に古い handoff を再利用できない。
+適合。§12 はセッション、メッセージ、一時的なバッファリング、配送済み / 消費済み状態、運用上のログを分け、通信経路受け渡しに必要な最短の上限のある有効期間として扱う。ペイロード履歴、分析、長期再試行キュー、バックアップ、履歴サービスとして利用せず、終端状態、再起動、状態消失、期限切れ後に古い受け渡しを再利用できない。
 
-§13、§24 は API response、storage、backup、log、diagnostic、analytics、telemetry、APM / WAF capture、error、admin view に plaintext transaction、message content、decrypted request / response、private key、Mnemonic、Profile password、E2E secret または credential raw 値を出さないことを定めている。routing metadata も必要最小限に限定され、security-design の Secret isolation / bounded retention 方針と整合する。
+§13、§24 は API 応答、保存領域、バックアップ、ログ、診断、利用状況分析、遠隔計測データ、APM / WAF 取得、エラー、管理者表示に平文トランザクション、メッセージ内容、復号された要求 / 応答、秘密鍵、ニーモニック、プロファイルパスワード、E2E 秘密情報または認証情報生の値を出さないことを定めている。経路選択メタデータも必要最小限に限定され、security-design の秘密情報の分離 / 上限のある保持方針と整合する。
 
-## 12. Cross-session / Cross-recipient Isolation 評価
+## 12. セッション間の / 受信者間の分離評価
 
-適合。§17〜§19 は session、participant、role、generation、request / response identity、direction、recipient、correlation、delivery state を組み合わせて routing context を保持する。異なる session / recipient の message、response、acknowledgement、cancel、state transition を混在させず、identity collision だけで access できない。
+適合。§17〜§19 はセッション、参加者、役割、世代、要求 / 応答識別情報、方向、受信者、対応付け、配送状態を組み合わせて経路選択文脈を保持する。異なるセッション / 受信者のメッセージ、応答、受領確認、キャンセル、状態遷移を混在させず、識別情報 collision だけでアクセスできない。
 
-同一 session の複数 request、同一 client の複数 connection、reconnect と delivery、expiry と delivery、ack と cleanup、submit と duplicate、response と disconnect、instance failover の競合も、atomic な logical transition として扱い、terminal state の再活性化、state rollback、recipient substitution を許可しない構造になっている。
+同一セッションの複数要求、同一クライアントの複数接続、再接続と配送、期限切れと配送、受領確認と後処理、送信と重複、応答と接続解除、インスタンス障害時の切り替えの競合も、不可分な論理的な遷移として扱い、終端状態の再活性化、状態ロールバック、受信者差し替えを許可しない構造になっている。
 
-## 13. Horizontal Scaling / Failure / Recovery 評価
+## 13. 水平スケーリング / 失敗 / 復旧評価
 
-適合。§19 は stateless にできる structural processing と、session / participant / role / generation、pending opaque envelope、response / ack / cancel / consumed / expiry / terminal state、delivery coordination に必要な shared state を区分している。shared state の利用不能、generation 不一致、consistency 不確認、split-brain 疑いでは新規 handoff、state transition、delivery を停止・拒否する。
+適合。§19 は状態を持たない構成にできる構造上の処理と、セッション / 参加者 / 役割 / 世代、保留中の内容を解釈しないエンベロープ、応答 / 受領確認 / キャンセル / 消費済み / 期限切れ / 終端状態、配送調整に必要な共有の状態を区分している。共有の状態の利用不能、世代不一致、整合性不確認、split-brain 疑いでは新規受け渡し、状態遷移、配送を停止・拒否する。
 
-§20、§25〜§26 は instance failure、persistence failure、network partition、storage unavailable、overload、rolling restart、state loss、failover、disconnect を success に変換せず、failure、timeout、expiry または result unknown として扱う。restart / state loss 後に expired / consumed / deleted message、stale session、old generation、signing authorization、approval、device authentication、Wallet Store または client secret を復元しないため、availability のために security boundary を弱めていない。
+§20、§25〜§26 はインスタンス失敗、永続化失敗、ネットワーク分割、保存領域利用不能、過負荷、rolling 再起動、状態消失、障害時の切り替え、接続解除を成功に変換せず、失敗、タイムアウト、期限切れまたは結果不明として扱う。再起動 / 状態消失後に期限切れ / 消費済み / deleted メッセージ、古くなったセッション、旧世代、署名認可、承認、端末認証、ウォレットストアまたはクライアント秘密情報を復元しないため、利用可能性のためにセキュリティ境界を弱めていない。
 
-## 14. Browser Extension / SDK / Mobile App / wallet-core との責任分界
+## 14. ブラウザ拡張機能 / SDK / モバイルアプリ / wallet-core との責任分界
 
 適合。§15、§16、§29〜§30 および上位資料との照合により、次の責務分界が保たれている。
 
-| 主体                    | Relay と共有しない責務                                                                                                                                                            |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Browser Extension / SDK | Web integration、Origin / relying context、request creation、client-side E2E protection、最終 request / response validation、署名開始の判断                                       |
-| Relay                   | request creator、transaction inspector、approval presenter、Account authority、signing、wallet-core、client-side replay / integrity の最終保証                                    |
-| Mobile App              | request / source / recipient / session / integrity / expiry の検証、semantic inspection、trusted approval、device authentication、Account / Network、signing、response validation |
-| wallet-core             | Wallet Store、Profile password authorization、secret processing、key lifecycle、cryptographic operation、raw signing                                                              |
-| Interfaces              | request / response semantics、operation、identity、correlation、result / failure の意味                                                                                           |
+| 主体                   | Relay と共有しない責務                                                                                                                               |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ブラウザ拡張機能 / SDK | Web 統合、オリジン / 依拠する文脈、要求作成、クライアント側の E2E 保護、最終要求 / 応答検証、署名開始の判断                                          |
+| Relay                  | 要求 creator、トランザクション inspector、承認 presenter、アカウントに関する判断権限、署名、wallet-core、クライアント側のリプレイ / 完全性の最終保証 |
+| モバイルアプリ         | 要求 / 送信元 / 受信者 / セッション / 完全性 / 期限切れの検証、意味上の内容検査、信頼された承認、端末認証、アカウント / ネットワーク、署名、応答検証 |
+| wallet-core            | ウォレットストア、プロファイルパスワード認可、秘密情報処理、鍵ライフサイクル、暗号学的な操作、生の署名                                               |
+| インターフェース       | 要求 / 応答意味、操作、識別情報、対応付け、結果 / 失敗の意味                                                                                         |
 
-Relay は SDK / Browser Extension が作成した protocol message を Mobile App へ運ぶだけであり、Mobile App の verification、trusted presentation、approval、device authentication、wallet-core signing を `verified`、`safe`、`approved` 等の status で置き換えない。Relay 独自の signing protocol、semantic protocol、operation conversion も定義していない。
+Relay は SDK / ブラウザ拡張機能が作成したプロトコルメッセージをモバイルアプリへ運ぶだけであり、モバイルアプリの検証、信頼された表示、承認、端末認証、wallet-core 署名を `verified`、`safe`、`approved` 等の状態で置き換えない。Relay 独自の署名プロトコル、意味上のプロトコル、操作変換も定義していない。
 
-## 15. Security Invariants 評価
+## 15. セキュリティ上の不変条件評価
 
-適合。§28 の 16 項目は、既存 Security Design の単純な複製ではなく、Relay の transport / cluster / persistence / routing へ次のように適用している。
+適合。§28 の 16 項目は、既存セキュリティ設計の単純な複製ではなく、Relay の通信経路 / クラスター / 永続化 / 経路選択へ次のように適用している。
 
-- Relay は signing authority、wallet、transaction validator、policy engine、Account authority、user approval authority ではない。
-- Relay の認証、admission、保存、delivery、acknowledgement、availability は request authenticity、approval、signing success、transaction safety の根拠ではない。
-- session / request / recipient identifier または transport credential の knowledge だけで message retrieve、session hijack、impersonation、injection、cross-session access を成立させない。
-- expired、consumed、cancelled、replayed、duplicate、stale、invalidated、old generation の message / session を有効な delivery target にしない。
-- Relay の duplicate、順序変更、遅延、再送が client-side approval binding / replay protection を越えて二重署名へ直結しない。
-- cross-session、cross-recipient、stale response leakage を許さず、restart / state loss / failover / reconnect 後に古い state、approval、signing authorization、secret を危険に復元しない。
-- payload / sensitive data を恒常的に retention / log せず、security-critical validation、session consistency、generation、routing integrity を確認できないときは fail-closed とする。
-- Relay compromise 単独では secret acquisition、E2E decryption、approval bypass、unauthorized signing が成立しない。
+- Relay は署名判断権限、ウォレット、トランザクション検証器、ポリシーエンジン、アカウントに関する判断権限、利用者承認判断権限ではない。
+- Relay の認証、受け入れ判定、保存、配送、受領確認、利用可能性は要求真正性、承認、署名成功、トランザクション安全性の根拠ではない。
+- セッション / 要求 / 受信者識別子または通信経路認証情報の knowledge だけでメッセージ retrieve、セッション hijack、なりすまし、注入、セッション間のアクセスを成立させない。
+- 期限切れ、消費済み、キャンセル済み、再送された、重複、古くなった、無効化済み、旧世代のメッセージ / セッションを有効な配送対象にしない。
+- Relay の重複、順序変更、遅延、再送がクライアント側の承認との結び付け / リプレイ保護を越えて二重署名へ直結しない。
+- セッション間の、受信者間の、古くなった応答漏えいを許さず、再起動 / 状態消失 / 障害時の切り替え / 再接続後に古い状態、承認、署名認可、秘密情報を危険に復元しない。
+- ペイロード / 機微なデータを恒常的に保持 / ログせず、セキュリティ上重大な検証、セッション整合性、世代、経路選択完全性を確認できないときは安全側での終了とする。
+- Relay 侵害単独では秘密情報取得、E2E 復号、承認迂回、unauthorized 署名が成立しない。
 
-本文の component、lifecycle、failure / recovery、responsibility boundary と矛盾する invariant は確認されなかった。
+本文のコンポーネント、ライフサイクル、失敗 / 復旧、責務境界と矛盾する不変条件は確認されなかった。
 
 ## 16. 上位設計との整合性
 
-### Concept / Requirements
+### コンセプト / 要件
 
-[`concept-sheet.md`](../../concept/concept-sheet.md) の Signer と Relay の責任分界、外部要求を信頼しない原則、利用者承認、bounded retention および Relay compromise への耐性に一致する。[`relay.md`](../../requirements/relay.md) の RR-001〜RR-011、RR-NFR-001〜RR-NFR-005、RR-AC-001〜RR-AC-012、RR-OPEN-001〜RR-OPEN-002 が、opaque transport、generation / identity、replay、result unknown、retention、logging、failure、scaling および client-side validation の根拠として追跡されている。最新の Requirements レビューでも未解決の重大指摘は確認されなかった。
+[`concept-sheet.md`](../../concept/concept-sheet.md) の署名主体と Relay の責任分界、外部要求を信頼しない原則、利用者承認、上限のある保持および Relay 侵害への耐性に一致する。[`relay.md`](../../requirements/relay.md) の RR-001〜RR-011、RR-NFR-001〜RR-NFR-005、RR-AC-001〜RR-AC-012、RR-OPEN-001〜RR-OPEN-002 が、内容を解釈しない通信経路、世代 / 識別情報、リプレイ、結果不明、保持、ログ出力、失敗、scaling およびクライアント側の検証の根拠として追跡されている。最新の要件レビューでも未解決の重大指摘は確認されなかった。
 
-### Architecture
+### アーキテクチャ
 
-[`architecture.md`](../../design/architecture.md) §3、§5.5、§6.5、§8〜§9、§16〜§17 と整合する。Relay は opaque online transport として structural validation、session / routing、temporary state を担い、Mobile / Browser / SDK の client-side integrity、approval、signing を代替しない。Relay の persistence、cluster、availability の設計も、shared state と consistency を安全側に扱う範囲に留まっている。
+[`architecture.md`](../../design/architecture.md) §3、§5.5、§6.5、§8〜§9、§16〜§17 と整合する。Relay は内容を解釈しない online 通信経路として構造上の検証、セッション / 経路選択、一時的な状態を担い、モバイル / ブラウザ / SDK のクライアント側の完全性、承認、署名を代替しない。Relay の永続化、クラスター、利用可能性の設計も、共有の状態と整合性を安全側に扱う範囲に留まっている。
 
-### Security Design
+### セキュリティ設計
 
-[`security-design.md`](../../design/security-design.md) §3〜§4、§10〜§12、§15、§17〜§18 と整合する。Relay、Internet input、operator / storage を限定的信頼境界とし、secret isolation、E2E protection、explicit approval、one request = one confirmation = one authentication = one signing、replay / concurrent request、bounded retention および fail-closed を Relay の transport 適用へ落とし込んでいる。
+[`security-design.md`](../../design/security-design.md) §3〜§4、§10〜§12、§15、§17〜§18 と整合する。Relay、Internet 入力、運用者 / 保存領域を限定的信頼境界とし、秘密情報の分離、E2E 保護、明示的な承認、one 要求 = one 確認 = one 認証 = one 署名、リプレイ / 並行する要求、上限のある保持および安全側での終了を Relay の通信経路適用へ落とし込んでいる。
 
-### Signing Flow / Interfaces
+### 署名フロー / インターフェース
 
-[`signing-flow.md`](../../design/signing-flow.md) §7、§16、§20〜§22 および [`interfaces.md`](../../design/interfaces.md) §4〜§9 と整合する。request / response identity、correlation、target binding、result unknown、delivery unknown、failure、versioning の意味を Relay が独自に再定義せず、Relay lifecycle を signing lifecycle として扱っていない。
+[`signing-flow.md`](../../design/signing-flow.md) §7、§16、§20〜§22 および [`interfaces.md`](../../design/interfaces.md) §4〜§9 と整合する。要求 / 応答識別情報、対応付け、対象結び付け、結果不明、配送不明、失敗、バージョン管理の意味を Relay が独自に再定義せず、Relay ライフサイクルを署名ライフサイクルとして扱っていない。
 
-### Browser Extension / Mobile App
+### ブラウザ拡張機能 / モバイルアプリ
 
-[`browser-extension.md`](../../design/browser-extension.md) §21、§25、[`mobile-app.md`](../../design/mobile-app.md) §8、§12、§14〜§16、§25 と、explicit approval、trusted UI、client-side validation、wallet-core separation、fail-closed、stale state 不使用の原則が一致する。Browser Extension の page / privileged boundary や Mobile App の foreground / device authentication / OS lifecycle を Relay の責務へ取り込んでいない。
+[`browser-extension.md`](../../design/browser-extension.md) §21、§25、[`mobile-app.md`](../../design/mobile-app.md) §8、§12、§14〜§16、§25 と、明示的な承認、信頼された UI、クライアント側の検証、wallet-core 分離、安全側での終了、古くなった状態不使用の原則が一致する。ブラウザ拡張機能のページ / 特権を持つ境界やモバイルアプリのフォアグラウンド / 端末認証 / OS ライフサイクルを Relay の責務へ取り込んでいない。
 
-### Handoff / ADR
+### 受け渡し / ADR
 
-[`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md) の transaction / message signing handoff、opaque Relay delivery、Mobile 側の復号・検証・承認・署名責任と整合する。Relay の具体 envelope、credential、TTL、ACK、polling および storage schema は本書で再定義されていない。[`ADR 0001`](../../adr/0001-mainnet-evidence-lite.md) の release evidence / availability 条件も、Relay が Mainnet signing authority になる形へ拡張されていない。
+[`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md) のトランザクション / メッセージ署名受け渡し、内容を解釈しない Relay 配送、モバイル側の復号・検証・承認・署名責任と整合する。Relay の具体エンベロープ、認証情報、TTL、受領確認、ポーリングおよび保存領域スキーマは本書で再定義されていない。[`ADR 0001`](../../adr/0001-mainnet-evidence-lite.md) のリリース証跡 / 利用可能性条件も、Relay が Mainnet 署名判断権限になる形へ拡張されていない。
 
 ## 17. 基本設計粒度の評価
 
 粒度は妥当である。
 
-- 実装者が主要判断に迷わない範囲として、Relay の責務、Trust Boundary、session / admission、message lifecycle、delivery semantics、replay、retention、routing isolation、concurrency、scaling、failure / recovery、abuse control および client boundary を定めている。
-- WebSocket / HTTP の具体選定、Redis / DB / broker、persistence schema、wire schema、session ID format、exact TTL、retry interval、queue algorithm、cluster topology、metrics 名、admin API、rate limit 数値等は下位仕様・運用設計へ委譲している。
-- `RR-OPEN-001`〜`RR-OPEN-002` および transport / persistence / operations の未決事項を、Relay を trust anchor 化する設計判断へすり替えていない。
+- 実装者が主要判断に迷わない範囲として、Relay の責務、信頼境界、セッション / 受け入れ判定、メッセージライフサイクル、配送意味、リプレイ、保持、経路選択分離、並行処理、scaling、失敗 / 復旧、悪用制御およびクライアント境界を定めている。
+- WebSocket / HTTP の具体選定、Redis / DB / ブローカー、永続化スキーマ、通信上のスキーマ、セッション ID 形式、厳密な TTL、再試行間隔、キューアルゴリズム、クラスター構成、metrics 名、管理者 API、頻度上限数値等は下位仕様・運用設計へ委譲している。
+- `RR-OPEN-001`〜`RR-OPEN-002` および通信経路 / 永続化 / 操作の未決事項を、Relay を信頼アンカー化する設計判断へすり替えていない。
 
-したがって、具体 API、Redis key、DB schema、wire schema、retry interval、TTL、load balancing、metrics 一覧の欠落を基本設計の不足とは判定しない。
+したがって、具体 API、Redis 鍵、DB スキーマ、通信上のスキーマ、再試行間隔、TTL、負荷 balancing、metrics 一覧の欠落を基本設計の不足とは判定しない。
 
 ## 18. 未決事項の評価
 
-§31 の未決事項は、基本設計を確定不能にする blocker ではなく、Requirements、handoff specification、protocol specification、下位 storage / cluster / operations 設計へ適切に引き継がれている。
+§31 の未決事項は、基本設計を確定不能にする阻害要因ではなく、要件、受け渡し仕様、プロトコル仕様、下位保存領域 / クラスター / 操作設計へ適切に引き継がれている。
 
-- `RR-OPEN-001` は transaction / message signing handoff と milestone の契約を下流で確定するが、Relay の signing authority 化を許可しない。
-- `RR-OPEN-002` は unavailable、expiry、result unknown、validation failure、retryable failure の外部分類を下流で決めるが、失敗を success と扱わず、古い request を再利用しない下限を維持する。
-- transport authentication、session / pairing、opaque persistence、generation、multi-instance consistency、failover、retention、admin governance は、structural validation、bounded retention、client-side approval / replay protection、fail-closed を弱めない条件で下流へ委譲されている。
-- 要求にない federation、decentralized relay network、permissionless discovery、automatic signing fallback、long-term payload history を未決事項として追加していない。
+- `RR-OPEN-001` はトランザクション / メッセージ署名受け渡しとマイルストーンの契約を下流で確定するが、Relay の署名判断権限化を許可しない。
+- `RR-OPEN-002` は利用不能、期限切れ、結果不明、検証失敗、再試行可能な失敗の外部分類を下流で決めるが、失敗を成功と扱わず、古い要求を再利用しない下限を維持する。
+- 通信経路認証、セッション / ペアリング、内容を解釈しない永続化、世代、複数インスタンス整合性、障害時の切り替え、保持、管理者 governance は、構造上の検証、上限のある保持、クライアント側の承認 / リプレイ保護、安全側での終了を弱めない条件で下流へ委譲されている。
+- 要求にない federation、decentralized relay ネットワーク、permissionless 検出、自動署名代替経路、長期ペイロード履歴を未決事項として追加していない。
 
-未決事項があることを理由に、Relay が payload semantics、approval、Account ownership、signing authorization または wallet state を判定する余地は残されていない。
+未決事項があることを理由に、Relay がペイロード意味、承認、アカウント所有責任、署名認可またはウォレット状態を判定する余地は残されていない。
 
 ## 19. 最終判定
 
 `docs/design/relay.md` は、Relay 基本設計として `READY` と判定する。
 
-### RELAY DESIGN READY
+### RELAY 設計 READY
 
 指摘件数: `BLOCKER 0 / HIGH 0 / MEDIUM 0 / LOW 0 / NIT 0`
 
-## 20. Validation
+## 20. 検証
 
-- Markdown formatting: `pnpm exec prettier --check docs/reviews/design/relay-review-001.md` に成功した。
-- 相対リンク: レビュー成果物から参照する上位資料、Requirements、handoff specification、ADR のローカルファイル存在を確認した。
+- Markdown 整形: `pnpm exec prettier --check docs/reviews/design/relay-review-001.md` に成功した。
+- 相対リンク: レビュー成果物から参照する上位資料、要件、受け渡し仕様、ADR のローカルファイル存在を確認した。
 - 指摘 ID 重複: 指摘なし。指摘 ID は発行していない。
-- Severity 表記: 指摘なし。集計表の表記は指定された `BLOCKER` / `HIGH` / `MEDIUM` / `LOW` / `NIT` と一致している。
+- 重要度表記: 指摘なし。集計表の表記は指定された `BLOCKER` / `HIGH` / `MEDIUM` / `LOW` / `NIT` と一致している。
 - レビュー対象: `docs/design/relay.md` のみを対象とし、本文は変更していない。
 - `git diff --check`: レビュー成果物について問題なし。
 - 変更ファイル: 既存の `_nem` / `_symbol` の変更を除き、今回の変更はレビュー成果物 1 ファイルのみ。
-- リポジトリ全体 `pnpm format:check`: exit 2。既存の `_nem`、`_sns`、`_snwc`、`_symbol`、`.agents`、既存アプリ・パッケージ等に多数の format warning と HTML syntax error があるため失敗した。今回のレビュー成果物は全体走査で warning 対象になっておらず、個別 check に成功しているため、今回の変更起因とは判定しない。
-- lint / typecheck / test / build: レビュー成果物のみの変更のため実行していない。未実行を成功とは扱わない。
+- リポジトリ全体 `pnpm format:check`: 終了 2。既存の `_nem`、`_sns`、`_snwc`、`_symbol`、`.agents`、既存アプリ・パッケージ等に多数の形式警告と HTML 構文エラーがあるため失敗した。今回のレビュー成果物は全体走査で警告対象になっておらず、個別確認に成功しているため、今回の変更起因とは判定しない。
+- lint / typecheck / テスト / ビルド: レビュー成果物のみの変更のため実行していない。未実行を成功とは扱わない。

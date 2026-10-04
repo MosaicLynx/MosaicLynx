@@ -1,85 +1,85 @@
-# MosaicLynx 共通 Interface / Data Model Specification
+# MosaicLynx 共通インターフェース / データモデル仕様
 
 ## 1. 目的
 
-本書は、MosaicLynx の SDK、Browser Extension、Mobile App、Relay および symbol-nem-wallet-core（以下 wallet-core）の境界で共有する Interface / Data Model を仕様化する。
+本書は、MosaicLynx の SDK、ブラウザ拡張機能、モバイルアプリ、Relay および symbol-nem-wallet-core（以下 wallet-core）の境界で共有するインターフェース / データモデルを仕様化する。
 
-本書の目的は、上流の Concept、Requirements、Design で確定した共通概念を、実装者が追加の意味上の設計判断なしに検証・直列化・相関付けできる外部契約へ具体化することである。関数内部のアルゴリズム、クラス構造、UI、transport の endpoint および wallet-core の内部実装は定めない。
+本書の目的は、上流のコンセプト、要件、設計で確定した共通概念を、実装者が追加の意味上の設計判断なしに検証・直列化・相関付けできる外部契約へ具体化することである。関数内部のアルゴリズム、クラス構造、UI、通信経路のエンドポイントおよび wallet-core の内部実装は定めない。
 
 本書の規範語は次の意味を持つ。
 
 - **MUST**: 対象範囲で必須である。
 - **MUST NOT**: 対象範囲で禁止する。
 - **SHOULD**: 原則として満たす。満たせない場合は理由と影響を記録する。
-- **OPEN**: 本書だけでは決定できない。下流実装で都合よく確定してはならない。
+- **未決**: 本書だけでは決定できない。下流実装で都合よく確定してはならない。
 
 ## 2. 適用範囲
 
 ### 2.1 対象
 
-対象は、次の境界をまたぐ公開または共有データの意味、型、必須性、検証、serialization および lifecycle である。
+対象は、次の境界をまたぐ公開または共有データの意味、型、必須性、検証、シリアライズおよびライフサイクルである。
 
-- Web App / dApp ↔ MosaicLynx SDK
-- SDK ↔ Browser Extension または Mobile Signer
-- Relay ↔ Mobile App の opaque handoff に含まれる request / response の論理契約
-- Signer ↔ wallet-core の承認済み target と結果の境界
+- Web アプリ / dApp ↔ MosaicLynx SDK
+- SDK ↔ ブラウザ拡張機能またはモバイル署名主体
+- Relay ↔ モバイルアプリの内容を解釈しない受け渡しに含まれる要求 / 応答の論理契約
+- 署名主体 ↔ wallet-core の承認済み対象と結果の境界
 - 署名結果を dApp が独立検証するための共通情報
 
 ### 2.2 対象外
 
 次は本書で新たに定義しない。
 
-- Browser Extension 固有の message event、Chrome API、UI、Storage layout
-- Mobile 固有の Deep Link、OS API、secure storage、認証および lifecycle
-- Relay の HTTP / WebSocket endpoint、Redis schema、credential protocol、TTL の追加設計
-- SDK の全公開 API、transaction construction、transport 選択および framework adapter
-- Symbol / NEM の transaction schema、署名 byte 列、hash、address、鍵導出の再定義
-- wallet-core の Binding、Wallet Store、KDF、暗号、key slot および内部 error
-- signing lifecycle 全体の処理順。状態の共通表現と禁止される再利用だけを定める
+- ブラウザ拡張機能固有のメッセージイベント、Chrome API、UI、保存領域配置
+- モバイル固有のディープリンク、OS API、安全な保存領域、認証およびライフサイクル
+- Relay の HTTP / WebSocket エンドポイント、Redis スキーマ、認証情報プロトコル、TTL の追加設計
+- SDK の全公開 API、トランザクション組み立て、通信経路選択および基盤アダプター
+- Symbol / NEM のトランザクションスキーマ、署名バイト列、ハッシュ、アドレス、鍵導出の再定義
+- wallet-core のバインディング、ウォレットストア、KDF、暗号、鍵枠および内部エラー
+- 署名ライフサイクル全体の処理順。状態の共通表現と禁止される再利用だけを定める
 
-wallet-core の正式公開 API への接続は [wallet-core Integration Specification](./wallet-core-integration.md) を正本とする。上記の内部詳細は、既存の下位仕様・設計・wallet-core 契約が定める範囲に従う。本書と下位資料が競合する場合、未決事項として扱う。
+wallet-core の正式公開 API への接続は [wallet-core 統合仕様](./wallet-core-integration.md) を正本とする。上記の内部詳細は、既存の下位仕様・設計・wallet-core 契約が定める範囲に従う。本書と下位資料が競合する場合、未決事項として扱う。
 
 ## 3. 上流資料と規範性
 
 主な上流資料は次のとおりである。
 
-- [Concept Sheet](../concept/concept-sheet.md)
+- [コンセプトシート](../concept/concept-sheet.md)
 - [共通要件](../requirements/requirements.md)
-- [Browser Extension 要件](../requirements/browser-extension.md)
-- [Mobile App 要件](../requirements/mobile-app.md)
+- [ブラウザ拡張機能要件](../requirements/browser-extension.md)
+- [モバイルアプリ要件](../requirements/mobile-app.md)
 - [Relay 要件](../requirements/relay.md)
 - [SDK 要件](../requirements/sdk.md)
 - [アーキテクチャ設計](../design/architecture.md)
 - [共通データモデル・インターフェース基本設計](../design/interfaces.md)
 - [共通セキュリティ設計](../design/security-design.md)
 - [署名フロー基本設計](../design/signing-flow.md)
-- [Web Transaction Handoff Specification](./web-transaction-handoff-spec.md)
-- [Profile / Account Specification](./profile-account-spec.md)
-- [Chain Compatibility Specification](./chain-compatibility-spec.md)
-- [wallet-core Integration Specification](./wallet-core-integration.md)（正式 core commit / API / DTO / backend / error の正本）
+- [Web トランザクション受け渡し仕様](./web-transaction-handoff-spec.md)
+- [プロファイル / アカウント仕様](./profile-account-spec.md)
+- [チェーン互換性仕様](./chain-compatibility-spec.md)
+- [wallet-core 統合仕様](./wallet-core-integration.md)（正式コアコミット / API / DTO / バックエンド / エラーの正本）
 
 レビュー資料は整合性確認に使用した。レビューの指摘を、それ自体が新しい製品要求または仕様の根拠であるとは扱わない。interfaces-review-001 の IF-001〜IF-003 は、上流設計に既にある境界を本書で明示するために反映した。
 
 ## 4. 用語
 
-| 用語                       | 本書での意味                                                                                                                                                  |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Chain                      | symbol または nem。transaction、address、key identity および署名規則の境界である。                                                                            |
-| Network                    | mainnet または testnet。Chain と組み合わせて使用する。                                                                                                        |
-| Scope                      | chain と network の組み合わせ。単独の network identifier では表さない。                                                                                       |
-| Signer                     | Browser Extension または Mobile App。意味検証、表示、共通4条件、明示承認、認証、署名 orchestration および result / delivery disposition の authority である。 |
-| Public Account Identity    | Chain / Network、address、public key 等の外部へ公開可能な identity。                                                                                          |
-| Internal Account Reference | Profile、permission または wallet-core の key slot を Signer 内部で解決する参照。公開 Account Identity とは別物である。                                       |
-| Signing target             | 実際に署名する transaction、aggregate、cosignature parent、multisig context または structured message。                                                       |
-| TransactionSummary         | Signer が signing target から導出する確認用の概要。target の代替ではない。                                                                                    |
-| request identity           | request を一意に識別し、重複・replay・差し替えを検出する identity。                                                                                           |
-| delivery disposition       | known signed result に付随する、署名結果の生成状態とは別の配送状態。signing state ではない。                                                                  |
+| 用語                     | 本書での意味                                                                                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| チェーン                 | symbol または nem。トランザクション、アドレス、鍵識別情報および署名規則の境界である。                                                            |
+| ネットワーク             | mainnet または testnet。チェーンと組み合わせて使用する。                                                                                         |
+| 対象範囲                 | チェーンとネットワークの組み合わせ。単独のネットワーク識別子では表さない。                                                                       |
+| 署名主体                 | ブラウザ拡張機能またはモバイルアプリ。意味検証、表示、共通4条件、明示承認、認証、署名処理の調整および結果 / 配送処理結果の区分の判断権限である。 |
+| アカウントの公開識別情報 | チェーン / ネットワーク、アドレス、公開鍵等の外部へ公開可能な識別情報。                                                                          |
+| アカウントの内部参照     | プロファイル、許可または wallet-core の鍵枠を署名主体内部で解決する参照。公開アカウントの識別情報とは別物である。                                |
+| 署名対象                 | 実際に署名するトランザクション、アグリゲート、連署署名親、マルチシグ文脈または構造化されたメッセージ。                                           |
+| TransactionSummary       | 署名主体が署名対象から導出する確認用の概要。対象の代替ではない。                                                                                 |
+| 要求識別情報             | 要求を一意に識別し、重複・リプレイ・差し替えを検出する識別情報。                                                                                 |
+| 配送処理結果の区分       | 既知の署名済み結果に付随する、署名結果の生成状態とは別の配送状態。署名状態ではない。                                                             |
 
 ## 5. 共通プリミティブ
 
-### 5.1 Chain、Network、Scope
+### 5.1 チェーン、ネットワーク、対象範囲
 
-共通 enum は次のとおりとする。
+共通列挙型は次のとおりとする。
 
 ```ts
 type Chain = 'symbol' | 'nem';
@@ -91,27 +91,27 @@ interface Scope {
 }
 ```
 
-- chain と network はともに required で、null を許可しない。
-- chain と network の組み合わせは、payload、Profile、Account および capability と一致しなければならない。
+- チェーンとネットワークはともに必須で、null を許可しない。
+- チェーンとネットワークの組み合わせは、ペイロード、プロファイル、アカウントおよび対応能力と一致しなければならない。
 - symbol と nem、mainnet と testnet を暗黙変換してはならない。
-- Scope に id を wire の正本として追加しない。symbol-mainnet のような表示用または Application 内部の派生値は、chain と network から再生成する。
-- Network の数値 constant、address 規則および transaction 規則は Chain Compatibility Specification に従う。
+- 対象範囲に id を通信上の正本として追加しない。symbol-mainnet のような表示用またはアプリケーション内部の派生値は、チェーンとネットワークから再生成する。
+- ネットワークの数値定数、アドレス規則およびトランザクション規則はチェーン互換性仕様に従う。
 
-### 5.2 Identifier
+### 5.2 識別子
 
-| 識別子                 | 表現                                                                                       | 必須性と用途                                                                                                                               |
-| ---------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| requestId              | CSPRNG で生成した 128-bit 値を padding なし base64url で表す文字列                         | 外部 request で required。response の相関キーであり、同一 request の duplicate / replay 判定に使う。                                       |
-| sessionId              | CSPRNG で生成した 128-bit 値を padding なし base64url で表す文字列                         | Mobile Relay handoff の session で required。SDK 公開 API の引数・戻り値には含めない。Browser session の具体形式は下位仕様に委譲する。     |
-| generationId           | Relay generation を表す非秘密の opaque string                                              | Relay handoff request で required。current generation と一致しない値は拒否する。形式、長さおよび生成方式は Relay protocol の OPEN とする。 |
-| requestDigest          | SHA-256(JCS(RelayRequest)) の lowercase hexadecimal                                        | Relay response で required。元 request の完全性・相関を検証する。                                                                          |
-| correlation identifier | 独立した wire field を定義しない。requestId を request / response correlation の正本とする | correlationId を別名で追加してはならない。既存 protocol が別名を定める場合は、本仕様との整合を OPEN とする。                               |
+| 識別子         | 表現                                                                                | 必須性と用途                                                                                                                           |
+| -------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| requestId      | CSPRNG で生成した 128-bit 値をパディングなし base64url で表す文字列                 | 外部要求で必須。応答の相関キーであり、同一要求の重複 / リプレイ判定に使う。                                                            |
+| sessionId      | CSPRNG で生成した 128-bit 値をパディングなし base64url で表す文字列                 | モバイル Relay 受け渡しのセッションで必須。SDK 公開 API の引数・戻り値には含めない。ブラウザセッションの具体形式は下位仕様に委譲する。 |
+| generationId   | Relay 世代を表す非秘密の内容を解釈しない文字列                                      | Relay 受け渡し要求で必須。現在の世代と一致しない値は拒否する。形式、長さおよび生成方式は Relay プロトコルの未決とする。                |
+| requestDigest  | SHA-256(JCS(RelayRequest)) の小文字 16進数                                          | Relay 応答で必須。元要求の完全性・相関を検証する。                                                                                     |
+| 対応付け識別子 | 独立した通信上のフィールドを定義しない。requestId を要求 / 応答対応付けの正本とする | correlationId を別名で追加してはならない。既存プロトコルが別名を定める場合は、本仕様との整合を未決とする。                             |
 
-Identifier は opaque value として比較する。大小文字変換、別 encoding への正規化、短縮表示または推測可能な連番化を行ってはならない。CSPRNG、credential、session secret の内部 lifecycle は各 protocol の責任であり、本書は秘密値を共通 model に追加しない。
+識別子は内容を解釈しない値として比較する。大小文字変換、別エンコーディングへの正規化、短縮表示または推測可能な連番化を行ってはならない。CSPRNG、認証情報、セッション秘密情報の内部ライフサイクルは各プロトコルの責任であり、本書は秘密値を共通モデルに追加しない。
 
-### 5.3 Account Identity
+### 5.3 アカウントの識別情報
 
-外部境界で公開可能な Account は次の形を持つ。
+外部境界で公開可能なアカウントは次の形を持つ。
 
 ```ts
 interface PublicAccountIdentity extends Scope {
@@ -120,82 +120,82 @@ interface PublicAccountIdentity extends Scope {
 }
 ```
 
-- 全 field は required、nullable 不可である。
-- address と publicKey の format、長さ、network byte、checksum および encoding は Chain-specific implementation と Chain Compatibility Specification で検証する。
-- address、publicKey、Chain、Network は Signer / chain integration が payload、Profile および選択 Account と照合した値を正本とする。
-- profileId、内部 accountId、wallet-core key slot、private key、Mnemonic、seed、Profile password、decrypted Wallet Store およびそれらを復元できる値を Public Account Identity に含めない。
-- displayName は既存の外部契約が提供する場合だけ補助表示値として扱う。署名者・Chain・Network の検証事実には使用しない。
+- 全フィールドは必須、null 許容不可である。
+- アドレスと publicKey の形式、長さ、ネットワークバイト、チェックサムおよびエンコーディングはチェーン固有の実装とチェーン互換性仕様で検証する。
+- アドレス、publicKey、チェーン、ネットワークは署名主体 / チェーン統合がペイロード、プロファイルおよび選択アカウントと照合した値を正本とする。
+- profileId、内部 accountId、wallet-core 鍵枠、秘密鍵、ニーモニック、シード、プロファイルパスワード、復号されたウォレットストアおよびそれらを復元できる値をアカウントの公開識別情報に含めない。
+- displayName は既存の外部契約が提供する場合だけ補助表示値として扱う。署名者・チェーン・ネットワークの検証事実には使用しない。
 
-Internal Account Reference は Signer / Application 内部に限定する。外部 requester が提示した reference は、現在の Profile、permission、Scope、expected signer および Public Account Identity と照合する補助情報に過ぎず、鍵選択または authorization の authority ではない。
+アカウントの内部参照は署名主体 / アプリケーション内部に限定する。外部要求元が提示した参照は、現在のプロファイル、許可、対象範囲、期待される署名主体およびアカウントの公開識別情報と照合する補助情報に過ぎず、鍵選択または認可の判断権限ではない。
 
-Public Account Identity と Internal Account Reference の境界は page-facing contract にも適用する。`profileId`、内部 `accountId`、Wallet Store ID、key slot またはそれらを代替する opaque handle を、SDK、Provider、Relay、Web page または dApp 向けの field として追加してはならない。Account の公開 identity は §5.3 の `PublicAccountIdentity` に限り、Signer は内部の Profile / Account context を使って authorization と鍵選択を解決する。
+アカウントの公開識別情報とアカウントの内部参照の境界はページに公開する契約にも適用する。`profileId`、内部 `accountId`、ウォレットストア ID、鍵枠またはそれらを代替する内容を解釈しないハンドルを、SDK、Provider、Relay、Web ページまたは dApp 向けのフィールドとして追加してはならない。アカウントの公開識別情報は §5.3 の `PublicAccountIdentity` に限り、署名主体は内部のプロファイル / アカウント文脈を使って認可と鍵選択を解決する。
 
-### 5.4 Timestamp、Expiry、Nonce
+### 5.4 タイムスタンプ、期限切れ、ノンス
 
-共通日時の確定形式は YYYY-MM-DDTHH:mm:ssZ の UTC RFC 3339、秒精度、fraction なしである。日時 field は string、required な日時は null を許可しない。
+共通日時の確定形式は YYYY-MM-DDTHH:mm:ssZ の UTC RFC 3339、秒精度、fraction なしである。日時フィールドは文字列、必須な日時は null を許可しない。
 
-- createdAt は request 作成時刻である。
-- expiresAt は request の期限である。expiresAt <= createdAt、期限切れまたは期限を延長した request は拒否する。
-- Relay handoff の expiresAt は createdAt の 5 分後であり、Relay / App は延長しない。
-- issuedAt と message の expiry は request-level expiry と別に検証する。どちらかが期限切れなら署名しない。
-- structured message の nonce は CSPRNG の padding なし base64url で、16〜32 byte を表す。Origin + Account 単位で再利用してはならない。
-- request expiry、message expiry、session expiry、permission expiry を同一視しない。上流資料に permission の期限 field はないため、permission expiry は §18 の OPEN とする。
+- createdAt は要求作成時刻である。
+- expiresAt は要求の期限である。expiresAt <= createdAt、期限切れまたは期限を延長した要求は拒否する。
+- Relay 受け渡しの expiresAt は createdAt の 5 分後であり、Relay / アプリは延長しない。
+- issuedAt とメッセージの期限切れは要求単位の期限切れと別に検証する。どちらかが期限切れなら署名しない。
+- 構造化されたメッセージのノンスは CSPRNG のパディングなし base64url で、16〜32 バイトを表す。オリジン + アカウント単位で再利用してはならない。
+- 要求期限切れ、メッセージ期限切れ、セッション期限切れ、許可期限切れを同一視しない。上流資料に許可の期限フィールドはないため、許可期限切れは §18 の未決とする。
 
 時刻の比較は日時の数値的な時刻値で行う。入力文字列の表示形式の違いを理由に意味を変えず、規定外形式は受け付けない。
 
-### 5.5 Origin
+### 5.5 オリジン
 
-Origin は scheme://host[:port] の canonical origin string であり、path、query、fragment、表示名および favicon を含めない。
+オリジンは方式://host[:ポート] の正規オリジン文字列であり、パス、照会、フラグメント、表示名およびファビコンを含めない。
 
-- Browser SDK は window.location.origin から取得し、dApp 引数で上書きできない。
-- Browser Extension は browser が観測した top-level HTTPS Origin を authority とし、page の自己申告値を authority としない。
-- file:、data:、opaque Origin、browser internal page、他 Extension Origin および対象外の iframe / child frame は、既存 Browser 要件に従い request caller として受け付けない。
-- structured message の origin は URL の canonical origin として保持し、http / https 以外を拒否する。
-- Origin の比較は canonical string の完全一致で行う。scheme、host、port、ASCII / Punycode 表現の差を同一視してはならない。host の大小文字・default port 等の canonicalization は、生成元の URL canonicalization に委ね、実装が独自に再定義しない。
-- Mainnet Mobile handoff では、initiatorOrigin は public DNS に解決する HTTPS、既定 port 443 に限定する。loopback、link-local、private、reserved address、HTTP downgrade、redirect、cross-origin、DNS rebinding を拒否する。
-- Mainnet Mobile handoff では originProof を required とする。Testnet で proof を省略する場合も「要求元未検証」を Signer 側で扱い、verified caller と表示してはならない。
-- Origin が欠落、空、形式不正、観測値との不一致または検証不能の場合は、接続・署名を許可しない。disconnect の Relay request も initiatorOrigin を持ち、対象 Origin の許可だけを操作する。
+- ブラウザ SDK は window.location.origin から取得し、dApp 引数で上書きできない。
+- ブラウザ拡張機能はブラウザが観測した最上位の HTTPS オリジンを判断権限とし、ページの自己申告値を判断権限としない。
+- ファイル:、データ:、内容を解釈しないオリジン、ブラウザ内部ページ、他拡張機能オリジンおよび対象外の iframe / 子フレームは、既存ブラウザ要件に従い要求呼び出し元として受け付けない。
+- 構造化されたメッセージのオリジンは URL の正規オリジンとして保持し、http / https 以外を拒否する。
+- オリジンの比較は正規文字列の完全一致で行う。方式、ホスト、ポート、ASCII / Punycode 表現の差を同一視してはならない。ホストの大小文字・既定ポート等の正規化は、生成元の URL 正規化に委ね、実装が独自に再定義しない。
+- Mainnet モバイル受け渡しでは、initiatorOrigin は公開 DNS に解決する HTTPS、既定ポート 443 に限定する。ループバック、link-local、private、予約済みのアドレス、HTTP 格下げ、リダイレクト、オリジン間の、DNS rebinding を拒否する。
+- Mainnet モバイル受け渡しでは originProof を必須とする。Testnet で証明を省略する場合も「要求元未検証」を署名主体側で扱い、検証済み呼び出し元と表示してはならない。
+- オリジンが欠落、空、形式不正、観測値との不一致または検証不能の場合は、接続・署名を許可しない。接続解除の Relay 要求も initiatorOrigin を持ち、対象オリジンの許可だけを操作する。
 
-### 5.6 Capability と Permission の関係
+### 5.6 対応能力と許可の関係
 
-Capability は「対応可能性」を表し、authorization、Account ownership、unlock、approval、署名成功または permission の存在を表さない。既存設計で扱う capability の意味は次のとおりである。
+対応能力は「対応可能性」を表し、認可、アカウント所有責任、ロック解除、承認、署名成功または許可の存在を表さない。既存設計で扱う対応能力の意味は次のとおりである。
 
-- connection
-- account / address disclosure
-- transaction signing
-- message signing
-- cosignature signing（既存 SDK contract の optional capability）
-- supported Chain / Network
-- local signing または remote handoff
+- 接続
+- アカウント / アドレス情報公開
+- トランザクション署名
+- メッセージ署名
+- 連署署名署名（既存 SDK 契約の任意対応能力）
+- 対応済みのチェーン / ネットワーク
+- ローカル署名またはリモート受け渡し
 
-上記は capability の意味カテゴリであり、新しい共通 wire identifier を発明するものではない。capability identifier の namespace、capability set の exact field、capability version の型および negotiation object は §18 の OPEN とする。
+上記は対応能力の意味カテゴリであり、新しい共通通信上の識別子を発明するものではない。対応能力識別子の名前空間、対応能力集合の厳密なフィールド、対応能力バージョンの型および協議オブジェクトは §18 の未決とする。
 
-## 6. Request / Response Envelope
+## 6. 要求 / 応答エンベロープ
 
-本章は、MosaicLynx の共通 request / response envelope、common field、public identity、result / delivery union の canonical specification owner である。`RelayRequestBase`、`RelayOperation`、`RelayResponseBase`、`RelayRequest`、`RelayResponse`、`PublicAccountIdentity` および `DeliveryDisposition` の意味、型、必須性、union の組合せを変更する場合は本章を更新し、Handoff、SDK、Browser、Mobile、Relay は本章へ追跡する。Web Transaction Handoff Specification §7 は Web / Relay transport の operation-specific validation、暗号、HTTP、lifecycle を定めるが、同名の common type または field を独立した別 contract として再定義しない。
+本章は、MosaicLynx の共通要求 / 応答エンベロープ、共通のフィールド、公開識別情報、結果 / 配送共用体の正規仕様責任主体である。`RelayRequestBase`、`RelayOperation`、`RelayResponseBase`、`RelayRequest`、`RelayResponse`、`PublicAccountIdentity` および `DeliveryDisposition` の意味、型、必須性、共用体の組合せを変更する場合は本章を更新し、受け渡し、SDK、ブラウザ、モバイル、Relay は本章へ追跡する。Web トランザクション受け渡し仕様 §7 は Web / Relay 通信経路の操作固有の検証、暗号、HTTP、ライフサイクルを定めるが、同名の共通の型またはフィールドを独立した別契約として再定義しない。
 
-本章と下位仕様に同一 field の記述がある場合、本章が common semantic / wire authority である。下位仕様の alias は wire-identical な参照表現に限り、requiredness、型、enum、result union、Account identity または delivery semantics を変更してはならない。矛盾がある場合は本章を優先し、下位仕様を修正する。
+本章と下位仕様に同一フィールドの記述がある場合、本章が共通の意味上の / 通信上の判断権限である。下位仕様の別名は wire-identical な参照表現に限り、requiredness、型、列挙型、結果共用体、アカウントの識別情報または配送意味を変更してはならない。矛盾がある場合は本章を優先し、下位仕様を修正する。
 
 ### 6.1 共通の論理契約
 
-すべての外部署名 request は、少なくとも次の意味を持つ。これは transport-independent な論理契約であり、各 transport の wire object に context 等の新しい wrapper field を要求するものではない。
+すべての外部署名要求は、少なくとも次の意味を持つ。これは通信方式に依存しないな論理契約であり、各通信経路の通信上のオブジェクトに文脈等の新しいラッパーフィールドを要求するものではない。
 
-| 論理 field                    | 型                                               | 必須                         | nullable | 意味                                                                                  |
-| ----------------------------- | ------------------------------------------------ | ---------------------------- | -------- | ------------------------------------------------------------------------------------- |
-| requestId                     | string                                           | MUST                         | 不可     | request identity。§5.2 の形式。                                                       |
-| operation                     | operation enum                                   | MUST                         | 不可     | request の意味と validation path。                                                    |
-| createdAt                     | timestamp string                                 | MUST                         | 不可     | request 作成時刻。                                                                    |
-| expiresAt                     | timestamp string                                 | MUST                         | 不可     | request expiry。                                                                      |
-| caller / Origin context       | Origin または platform-specific verified context | 適用時 MUST                  | 不可     | request 元と permission binding。Browser / Web では Origin required。                 |
-| Scope                         | Scope                                            | 署名・接続 operation で MUST | 不可     | Chain / Network。disconnect のように下位 wire が省略する operation は既存契約に従う。 |
-| signing target                | operation-specific payload                       | 署名 operation で MUST       | 不可     | 実際の検証・署名対象。                                                                |
-| protocol / capability context | protocol-specific                                | 適用時 MUST                  | 不可     | version、generation、対応 capability。                                                |
+| 論理フィールド            | 型                                               | 必須                  | null 許容 | 意味                                                                                  |
+| ------------------------- | ------------------------------------------------ | --------------------- | --------- | ------------------------------------------------------------------------------------- |
+| requestId                 | 文字列                                           | MUST                  | 不可      | 要求識別情報。§5.2 の形式。                                                           |
+| 操作                      | 操作列挙型                                       | MUST                  | 不可      | 要求の意味と検証パス。                                                                |
+| createdAt                 | タイムスタンプ文字列                             | MUST                  | 不可      | 要求作成時刻。                                                                        |
+| expiresAt                 | タイムスタンプ文字列                             | MUST                  | 不可      | 要求期限切れ。                                                                        |
+| 呼び出し元 / オリジン文脈 | オリジンまたはプラットフォーム固有の検証済み文脈 | 適用時 MUST           | 不可      | 要求元と許可結び付け。ブラウザ / Web ではオリジン必須。                               |
+| 対象範囲                  | 対象範囲                                         | 署名・接続操作で MUST | 不可      | チェーン / ネットワーク。接続解除のように下位通信上のが省略する操作は既存契約に従う。 |
+| 署名対象                  | 操作固有のペイロード                             | 署名操作で MUST       | 不可      | 実際の検証・署名対象。                                                                |
+| プロトコル / 対応能力文脈 | protocol-specific                                | 適用時 MUST           | 不可      | バージョン、世代、対応対応能力。                                                      |
 
-Response は request の requestId に一対一で対応し、request の operation、Scope、Account、signer、target と一致する結果だけを返す。署名 operation の response は、署名生成の `signingOutcome` と、その既知 result の `deliveryDisposition` を別軸で表す。Response の transport delivery status を署名 outcome または Signer-originated disposition として生成・推測してはならない。
+応答は要求の requestId に一対一で対応し、要求の操作、対象範囲、アカウント、署名主体、対象と一致する結果だけを返す。署名操作の応答は、署名生成の `signingOutcome` と、その既知結果の `deliveryDisposition` を別軸で表す。応答の通信経路配送状態を署名結果または署名主体が生成した処理結果の区分として生成・推測してはならない。
 
-### 6.2 Relay handoff の concrete envelope
+### 6.2 Relay 受け渡しの具体的なエンベロープ
 
-Relay handoff では、RelayRequestBase の次の field を required とする。
+Relay 受け渡しでは、RelayRequestBase の次のフィールドを必須とする。
 
 ```ts
 interface RelayRequestBase {
@@ -208,26 +208,26 @@ interface RelayRequestBase {
 }
 ```
 
-RelayRequest の operation union は次の既存契約に限定する。
+RelayRequest の操作共用体は次の既存契約に限定する。
 
 ```ts
 type RelayOperation =
   'connect' | 'refreshActiveAccount' | 'signTransaction' | 'signData' | 'cosignTransaction' | 'disconnect';
 ```
 
-operation-specific field は次のとおりである。
+操作固有のフィールドは次のとおりである。
 
-- connect / refreshActiveAccount: chain、network required、originProof optional（Mobile Mainnet では required）。
-- signTransaction: chain、network、payload required、expectedSignerPublicKey optional、originProof optional（Mobile Mainnet では required）。
-- signData: chain、network、purpose、nonce、issuedAt、messageExpiresAt、payload required。expectedSignerPublicKey と originProof は optional（Mobile Mainnet では proof required）。
-- cosignTransaction: Symbol は parentPayload、detached required、NEM は payload と parentPayload required。chain、network は required、expectedSignerPublicKey と originProof は optional（Mobile Mainnet では proof required）。
-- disconnect: operation のみで Scope field は既存 handoff contract では持たない。ただし initiatorOrigin により対象 Origin を binding する。
+- 接続 / refreshActiveAccount: チェーン、ネットワーク必須、originProof 任意（モバイル Mainnet では必須）。
+- signTransaction: チェーン、ネットワーク、ペイロード必須、expectedSignerPublicKey 任意、originProof 任意（モバイル Mainnet では必須）。
+- signData: チェーン、ネットワーク、目的、ノンス、issuedAt、messageExpiresAt、ペイロード必須。expectedSignerPublicKey と originProof は任意（モバイル Mainnet では証明必須）。
+- cosignTransaction: Symbol は parentPayload、分離された必須、NEM はペイロードと parentPayload 必須。チェーン、ネットワークは必須、expectedSignerPublicKey と originProof は任意（モバイル Mainnet では証明必須）。
+- 接続解除: 操作のみで対象範囲フィールドは既存受け渡し契約では持たない。ただし initiatorOrigin により対象オリジンを結び付けする。
 
-Relay はこれらの payload を opaque として扱う。復号後の上記 field の structural / semantic validation は SDK と Signer が行う。Relay は encrypted envelope の外形・routing metadata だけを検証し、plaintext の operation、Account ownership、approval、署名可否を判断しない。
+Relay はこれらのペイロードを内容を解釈しないとして扱う。復号後の上記フィールドの構造上の / 意味上の検証は SDK と署名主体が行う。Relay は暗号化されたエンベロープの外形・経路選択メタデータだけを検証し、平文の操作、アカウント所有責任、承認、署名可否を判断しない。
 
-### 6.3 Relay response
+### 6.3 Relay 応答
 
-Relay response の concrete logical shape は次の union に限定する。
+Relay 応答の具体的な論理的な構造は次の共用体に限定する。
 
 ```ts
 interface RelayResponseBase {
@@ -268,33 +268,33 @@ type RelayResponse =
     });
 ```
 
-`errorCode` は [Web Transaction Handoff Specification](./web-transaction-handoff-spec.md) §10 が定義する `MosaicLynxSDKErrorCode` を参照する。本仕様はこの型を再定義せず、Handoff §10 に含まれない値を受け付けない。`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` はこの error taxonomy に含めず、上記の signing / delivery semantics で表現する。
+`errorCode` は [Web トランザクション受け渡し仕様](./web-transaction-handoff-spec.md) §10 が定義する `MosaicLynxSDKErrorCode` を参照する。本仕様はこの型を再定義せず、受け渡し §10 に含まれない値を受け付けない。`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` はこのエラー分類体系に含めず、上記の署名 / 配送意味で表現する。
 
-outcome と payload の依存関係は次のとおりとする。
+結果とペイロードの依存関係は次のとおりとする。
 
-- connected は account required、その他の signing result と errorCode は禁止する。
-- disconnected は account、signing result、errorCode を持たない。
-- signed は `signingOutcome: 'SUCCEEDED'`、signedTransaction および deliveryDisposition required、account と errorCode を持たない。
-- cosigned は cosignTransaction のみで許可し、`signingOutcome: 'SUCCEEDED'`、cosignature および deliveryDisposition required。signedTransaction / signedData / account / errorCode は禁止する。
-- dataSigned は `signingOutcome: 'SUCCEEDED'`、signedData および deliveryDisposition required、account と errorCode を持たない。
-- resultUnknown は `signingOutcome: 'RESULT_UNKNOWN'` required、signed result、deliveryDisposition、account および errorCode を持たない。
-- rejected / failed は errorCode required、成功 result を持たない。
+- 接続済みはアカウント必須、その他の署名結果と errorCode は禁止する。
+- disconnected はアカウント、署名結果、errorCode を持たない。
+- 署名済みは `signingOutcome: 'SUCCEEDED'`、signedTransaction および deliveryDisposition 必須、アカウントと errorCode を持たない。
+- 連署済みは cosignTransaction のみで許可し、`signingOutcome: 'SUCCEEDED'`、連署署名および deliveryDisposition 必須。signedTransaction / signedData / アカウント / errorCode は禁止する。
+- dataSigned は `signingOutcome: 'SUCCEEDED'`、signedData および deliveryDisposition 必須、アカウントと errorCode を持たない。
+- resultUnknown は `signingOutcome: 'RESULT_UNKNOWN'` 必須、署名済み結果、deliveryDisposition、アカウントおよび errorCode を持たない。
+- 拒否済み / 失敗は errorCode 必須、成功結果を持たない。
 
-`signingOutcome` と `deliveryDisposition` は trusted Signer が確定した値だけを保持する。SDK、Provider、Relay は request correlation、構造検証および transport だけを行い、これらを生成・推測・確定・別の意味へ normalize しない。Relay state から利用者の判断結果や Signer-originated disposition を推測してはならない。Relay HTTP の 4xx / 5xx body は既存 handoff 仕様の { "error": "RELAY_REQUEST_REJECTED" } に従い、SDK が利用者向け error として返す concrete mapping は下位 protocol に従う。
+`signingOutcome` と `deliveryDisposition` は信頼された署名主体が確定した値だけを保持する。SDK、Provider、Relay は要求対応付け、構造検証および通信経路だけを行い、これらを生成・推測・確定・別の意味へ正規化しない。Relay 状態から利用者の判断結果や署名主体が生成した処理結果の区分を推測してはならない。Relay HTTP の 4xx / 5xx 本文は既存受け渡し仕様の { "エラー": "RELAY_REQUEST_REJECTED" } に従い、SDK が利用者向けエラーとして返す具体的な対応付けは下位プロトコルに従う。
 
-### 6.4 Unknown field、duplicate、unsupported value
+### 6.4 不明フィールド、重複、未対応の値
 
-- JSON object の duplicate key、required field の欠落、unexpected type、null、unknown enum、invalid union combination、trailing data および malformed encoding は拒否する。
-- Protocol schema が明示的に extension field を許可していない限り、unknown field は受信側で意味解釈せず拒否する。unknown field を既存 field の alias として扱わない。
-- unknown operation、unsupported version、unsupported capability、unknown chain / network、unsupported transaction / message format は、別 operation、raw signing、別 transport または旧 protocol へ fallback せず安全側に終了する。
-- 既存 handoff の originProof、expectedSignerPublicKey および operation-specific optional field は、対応 operation でのみ許可する。不要な field を送らない。
-- Relay は opaque ciphertext の plaintext field を根拠に意味を補完しない。Mobile Signer が復号後に semantic validation を行う。
+- JSON オブジェクトの重複鍵、必須フィールドの欠落、予期しない型、null、不明列挙型、無効な共用体 combination、末尾のデータおよび不正な形式のエンコーディングは拒否する。
+- プロトコルスキーマが明示的に拡張機能フィールドを許可していない限り、不明フィールドは受信側で意味解釈せず拒否する。不明フィールドを既存フィールドの別名として扱わない。
+- 不明操作、未対応のバージョン、未対応の対応能力、不明チェーン / ネットワーク、未対応のトランザクション / メッセージ形式は、別操作、生の署名、別通信経路または旧プロトコルへ代替経路せず安全側に終了する。
+- 既存受け渡しの originProof、expectedSignerPublicKey および操作固有の任意フィールドは、対応操作でのみ許可する。不要なフィールドを送らない。
+- Relay は内容を解釈しない暗号文の平文フィールドを根拠に意味を補完しない。モバイル署名主体が復号後に意味上の検証を行う。
 
-## 7. Origin Proof、Capability / Version
+## 7. オリジン証明、対応能力 / バージョン
 
-### 7.1 Origin Proof
+### 7.1 オリジン証明
 
-既存 handoff の Origin proof は次の exact shape である。
+既存受け渡しのオリジン証明は次の厳密な構造である。
 
 ```ts
 interface OriginProof {
@@ -318,53 +318,53 @@ interface OriginKeyManifest {
 }
 ```
 
-Mobile Mainnet App は manifest の Origin 完全一致、key ID、algorithm、有効期間および status を検証し、revoked key を受理しない。Origin proof は caller binding の補助であり、Signer の request、Scope、permission、target および expiry の検証を省略する根拠ではない。
+モバイル Mainnet アプリはマニフェストのオリジン完全一致、鍵 ID、アルゴリズム、有効期間および状態を検証し、失効済み鍵を受理しない。オリジン証明は呼び出し元結び付けの補助であり、署名主体の要求、対象範囲、許可、対象および期限切れの検証を省略する根拠ではない。
 
-OriginProofInput は既存 handoff の shape と規則に従う。payloadHash は signTransaction の場合だけ許可し、decoded transaction bytes の SHA-256 lowercase hexadecimal とする。Proof の signing input、manifest 取得制約および timeout は Web Transaction Handoff Specification の既存契約をそのまま使用する。
+OriginProofInput は既存受け渡しの構造と規則に従う。payloadHash は signTransaction の場合だけ許可し、デコード済みトランザクションバイト列の SHA-256 小文字 16進数とする。証明の署名入力、マニフェスト取得制約およびタイムアウトは Web トランザクション受け渡し仕様の既存契約をそのまま使用する。
 
-### 7.2 Version representation
+### 7.2 バージョン表現
 
-既存資料で確定している version / protocol literal は次のとおりである。
+既存資料で確定しているバージョン / プロトコルリテラルは次のとおりである。
 
-| 対象                      | 確定値                    |
-| ------------------------- | ------------------------- |
-| MosaicLynx SDK            | 1.0.0                     |
-| Provider API              | 2.x major 2 が必須        |
-| Relay protocol            | mosaiclynx.relay.v1       |
-| structured message domain | mosaiclynx.message.v1     |
-| Origin proof              | mosaiclynx.origin.v1      |
-| Origin key manifest       | mosaiclynx.origin-keys.v1 |
+| 対象                           | 確定値                    |
+| ------------------------------ | ------------------------- |
+| MosaicLynx SDK                 | 1.0.0                     |
+| Provider API                   | 2.x 主要 2 が必須         |
+| Relay プロトコル               | mosaiclynx.relay.v1       |
+| 構造化されたメッセージドメイン | mosaiclynx.message.v1     |
+| オリジン証明                   | mosaiclynx.origin.v1      |
+| オリジン鍵マニフェスト         | mosaiclynx.origin-keys.v1 |
 
-上記以外に、全 component で共有する version field の名前、SemVer の許容範囲、protocol version と capability version の関係、deprecation、migration および negotiation message は確定していない。実装は独自の共通 version field や version comparison rule を追加してはならない。
+上記以外に、全コンポーネントで共有するバージョンフィールドの名前、SemVer の許容範囲、プロトコルバージョンと対応能力バージョンの関係、非推奨化、移行および協議メッセージは確定していない。実装は独自の共通バージョンフィールドやバージョン比較規則を追加してはならない。
 
-### 7.3 Compatibility rule
+### 7.3 互換性規則
 
-- Provider API major が非対応なら UNAVAILABLE とし、Mobile Relay へ downgrade しない。
-- operation、Chain、Network、format、protocol または capability を解釈できない場合は unavailable / unsupported とし、別の operation や raw signing へ変換しない。
-- compatibility を理由に explicit approval、Origin binding、Chain / Network 分離、request correlation、secret isolation または fail-closed を弱めない。
-- additive field を無視できるのは、受信 schema がその field を安全に無視できると明示している場合だけである。既存契約で明示がない場合は unknown field として拒否する。
-- breaking change は既存 literal または既存 version の意味を変更せず、新しい protocol / capability version として上流資料で承認する。
+- Provider API 主要が非対応なら利用不能とし、モバイル Relay へ格下げしない。
+- 操作、チェーン、ネットワーク、形式、プロトコルまたは対応能力を解釈できない場合は利用不能 / 未対応のとし、別の操作や生の署名へ変換しない。
+- 互換性を理由に明示的な承認、オリジンとの結び付け、チェーン / ネットワーク分離、要求対応付け、秘密情報の分離または安全側での終了を弱めない。
+- 追加的なフィールドを無視できるのは、受信スキーマがそのフィールドを安全に無視できると明示している場合だけである。既存契約で明示がない場合は不明フィールドとして拒否する。
+- breaking 変更は既存リテラルまたは既存バージョンの意味を変更せず、新しいプロトコル / 対応能力バージョンとして上流資料で承認する。
 
-### 7.4 Mainnet signing capability gate
+### 7.4 Mainnet 署名対応能力判定条件
 
-Mainnet signing capability は、current release と適用中の release / evidence policy を満たした trusted Signer だけが有効化できる。`Scope.network = 'mainnet'` は対象 network を示すが、Mainnet signing capability の有効性を証明しない。
+Mainnet 署名対応能力は、現在のリリースと適用中のリリース / 根拠ポリシーを満たした信頼された署名主体だけが有効化できる。`Scope.network = 'mainnet'` は対象ネットワークを示すが、Mainnet 署名対応能力の有効性を証明しない。
 
-次のいずれも Mainnet gate の代替にならない。
+次のいずれも Mainnet 判定条件の代替にならない。
 
 - `Scope` または `network = 'mainnet'`。
-- signing capability、Provider capability、Provider state、connection、permission または Account disclosure。
-- SDK availability、Relay availability、OS capability または wallet-core signing capability。
-- test success、response delivery success または signed response の存在。
+- 署名対応能力、Provider 対応能力、Provider 状態、接続、許可またはアカウント情報公開。
+- SDK 利用可能性、Relay 利用可能性、OS 対応能力または wallet-core 署名対応能力。
+- テスト成功、応答配送成功または署名済み応答の存在。
 
-release / evidence gate が missing、invalid、expired、inconsistent、unverifiable または unknown の場合、Mainnet signing capability は disabled / unavailable とし、fail-closed にする。この判定は Testnet capability を不要に無効化せず、Testnet-only の提供を妨げない。
+リリース / 根拠判定条件が欠落、無効な、期限切れ、不整合の、検証不能のまたは不明の場合、Mainnet 署名対応能力は無効 / 利用不能とし、安全側に終了する。この判定は Testnet 対応能力を不要に無効化せず、Testnet 専用の提供を妨げない。
 
-evidence schema、evaluator、signature format、trusted key、build embedding および release tooling は [ADR 0001](../adr/0001-mainnet-evidence-lite.md)、[Mainnet release evidence](../release/mainnet-release-evidence.md) および [evidence policy](../evidence/evidence-policy.json) に委譲する。本書はそれらの詳細を再定義しない。
+根拠スキーマ、評価器、署名形式、信頼された鍵、ビルド埋め込みおよびリリース補助ツールは [ADR 0001](../adr/0001-mainnet-evidence-lite.md)、[Mainnet リリース証跡](../release/mainnet-release-evidence.md) および [根拠ポリシー](../evidence/evidence-policy.json) に委譲する。本書はそれらの詳細を再定義しない。
 
-## 8. Permission Model
+## 8. 許可モデル
 
-### 8.1 Permission Grant
+### 8.1 許可許可付与
 
-Application が保持する permission の既存論理 model は次のとおりである。これは SDK / Relay の公開 API ではなく、Signer / Application 管理下の model である。
+アプリケーションが保持する許可の既存論理モデルは次のとおりである。これは SDK / Relay の公開 API ではなく、署名主体 / アプリケーション管理下のモデルである。
 
 ```ts
 interface PermissionGrant {
@@ -378,83 +378,83 @@ interface PermissionGrant {
 }
 ```
 
-- 全 field は required、null 不可である。
-- origin は §5.5 の canonical Origin。profileId と accountIds は内部参照であり、SDK 公開 API、Relay、Web page または dApp に返さない。
-- scope.chain、scope.network は対象 Profile と Account identity に一致しなければならない。
-- accountIds は利用者が明示的に許可した Account の集合である。空集合を接続許可として扱わず、全 Account を暗黙追加しない。
-- revision は permission の変更を識別する non-negative integer。scope、account set、Profile、Origin の変更ごとに増加させ、署名 Authorization の binding に含める。
-- createdAt / updatedAt は §5.4 の timestamp。updatedAt < createdAt は拒否する。
-- 接続 permission は connection / public Account disclosure の許可であり、署名ごとの explicit confirmation、authentication、inspection または signing authorization を含まない。
-- accountIds、scope または revision が変更・revoke された時点で、対応する session、未完了 Authorization および古い approval は無効化する。
+- 全フィールドは必須、null 不可である。
+- オリジンは §5.5 の正規オリジン。profileId と accountIds は内部参照であり、SDK 公開 API、Relay、Web ページまたは dApp に返さない。
+- scope.chain、scope.network は対象プロファイルとアカウントの識別情報に一致しなければならない。
+- accountIds は利用者が明示的に許可したアカウントの集合である。空集合を接続許可として扱わず、全アカウントを暗黙追加しない。
+- リビジョンは許可の変更を識別する non-negative 整数。対象範囲、アカウント集合、プロファイル、オリジンの変更ごとに増加させ、署名認可の結び付けに含める。
+- createdAt / updatedAt は §5.4 のタイムスタンプ。updatedAt < createdAt は拒否する。
+- 接続許可は接続 / 公開アカウント情報公開の許可であり、署名ごとの明示的な確認、認証、内容検査または署名認可を含まない。
+- accountIds、対象範囲またはリビジョンが変更・失効された時点で、対応するセッション、未完了認可および古い承認は無効化する。
 
-### 8.2 Permission binding と revocation
+### 8.2 許可結び付けと失効
 
-署名 request は、少なくとも次の binding を検証する。
+署名要求は、少なくとも次の結び付けを検証する。
 
 ```text
-Origin + Profile + Scope + permitted Account + permission revision
+オリジン + プロファイル + 対象範囲 + 許可済みのアカウント + 許可リビジョン
 ```
 
-requestId は permission の代替ではない。Origin、Profile、Scope、Account、permission revision のいずれかが一致しない request は署名しない。Profile の可変な default Account を、接続許可された Account の代替にしてはならない。
+requestId は許可の代替ではない。オリジン、プロファイル、対象範囲、アカウント、許可リビジョンのいずれかが一致しない要求は署名しない。プロファイルの可変な既定アカウントを、接続許可されたアカウントの代替にしてはならない。
 
-現行上流 model に独立した permissionId、revokedAt、expiresAt または revocation token はない。revocation は permission binding と revision change により表現する。独立 revocation identifier、permission expiration、cross-device permission synchronization が必要かは §18 の OPEN-004 とする。
+現行上流モデルに独立した permissionId、revokedAt、expiresAt または失効トークンはない。失効は許可結び付けとリビジョン変更により表現する。独立失効識別子、許可有効期限、端末間の許可同期が必要かは §18 の OPEN-004 とする。
 
-### 8.3 Unknown permission / capability
+### 8.3 不明許可 / 対応能力
 
-- unknown permission scope、unknown capability、unknown account reference または未検証の permission revision は、許可されていないものとして扱う。
-- Permission の存在だけで署名を開始しない。
-- connection、account/address disclosure、signing request は別概念である。signing request には毎回の確認・認証を適用する。
-- Permission を別 Origin、別 Profile、別 Scope、別 Account または別 protocol capability へ拡張・流用しない。
+- 不明許可対象範囲、不明対応能力、不明アカウント参照または未検証の許可リビジョンは、許可されていないものとして扱う。
+- 許可の存在だけで署名を開始しない。
+- 接続、account/address 情報公開、署名要求は別概念である。署名要求には毎回の確認・認証を適用する。
+- 許可を別オリジン、別プロファイル、別対象範囲、別アカウントまたは別プロトコル対応能力へ拡張・流用しない。
 
-### 8.4 Profile-local security context
+### 8.4 プロファイル内のセキュリティ文脈
 
-Profile と、その Profile に固定された Profile Network / Account association は、公開 field ではない Signer-local な security context とする。Profile を page、SDK、Provider または Relay 向けの新しい public identifier として追加してはならない。`PermissionGrant.profileId` は Signer / Application 内部の参照であり、Public Account Identity または page-facing contract に含めない。
+プロファイルと、そのプロファイルに固定されたプロファイルネットワーク / アカウント関連付けは、公開フィールドではない署名主体内のなセキュリティ文脈とする。プロファイルをページ、SDK、Provider または Relay 向けの新しい公開識別子として追加してはならない。`PermissionGrant.profileId` は署名主体 / アプリケーション内部の参照であり、アカウントの公開識別情報またはページに公開する契約に含めない。
 
-Signer は、少なくとも次を同じ Profile-local context に binding して検証・再確認する。
+署名主体は、少なくとも次を同じプロファイル内の文脈に結び付けして検証・再確認する。
 
-- request、caller / source、session および permission。
-- Account、Chain / Network、operation、signing target、freshness および inspection。
-- approval、Authentication、Signing-capable unlock および Account authorization。
-- wallet-core call、wallet-core result、result validation、response recipient および delivery context。
+- 要求、呼び出し元 / 送信元、セッションおよび許可。
+- アカウント、チェーン / ネットワーク、操作、署名対象、鮮度および内容検査。
+- 承認、認証、署名可能な状態へのロック解除およびアカウントの利用認可。
+- wallet-core 呼び出し、wallet-core 結果、結果検証、応答受信者および配送文脈。
 
-次のいずれかが発生した場合、影響する active request、Authorization、approval、Authentication、Account authorization および response delivery context を失効させる。
+次のいずれかが発生した場合、影響する有効な要求、認可、承認、認証、アカウントの利用認可および応答配送文脈を失効させる。
 
-- Profile switch、Profile lock、Profile association change。
-- Account switch、Account association change、Chain / Network switch。
-- caller、Origin または source context の変更。
-- relevant permission の変更、permission revision の変更または session の変更。
-- context loss、process loss または適用されるその他の lifecycle loss。
+- プロファイル切り替え、プロファイルロック、プロファイル関連付け変更。
+- アカウント切り替え、アカウント関連付け変更、チェーン / ネットワーク切り替え。
+- 呼び出し元、オリジンまたは送信元文脈の変更。
+- 関連する許可の変更、許可リビジョンの変更またはセッションの変更。
+- 文脈消失、プロセス消失または適用されるその他のライフサイクル消失。
 
-失効した context は `INVALIDATED` とし、古い approval、Authentication、Account authorization または result を別 Profile、別 request、別 Account、別 caller または別 recipient に流用・再割当てしてはならない。既知 result の recovery を行う場合も、元の request identity と同一の Profile-local context / recipient binding を維持する。
+失効した文脈は `INVALIDATED` とし、古い承認、認証、アカウントの利用認可または結果を別プロファイル、別要求、別アカウント、別呼び出し元または別受信者に流用・再割当てしてはならない。既知結果の復旧を行う場合も、元の要求識別情報と同一のプロファイル内の文脈 / 受信者結び付けを維持する。
 
-### 8.5 Concurrent request isolation
+### 8.5 並行する要求分離
 
-複数の request は、それぞれ独立した security / lifecycle unit とする。active request 間で、次の情報を共有・統合・流用してはならない。
+複数の要求は、それぞれ独立したセキュリティ / ライフサイクル単体とする。有効な要求間で、次の情報を共有・統合・流用してはならない。
 
-- request identity、caller / source、session および Profile-local context。
-- Account、Chain / Network、operation、target および inspection。
-- approval、Authentication、Signing-capable unlock および Account authorization。
-- result、response recipient および delivery state。
+- 要求識別情報、呼び出し元 / 送信元、セッションおよびプロファイル内の文脈。
+- アカウント、チェーン / ネットワーク、操作、対象および内容検査。
+- 承認、認証、署名可能な状態へのロック解除およびアカウントの利用認可。
+- 結果、応答受信者および配送状態。
 
-この isolation は Browser の複数 tab / frame / document と Mobile の複数 handoff にも適用する。late、stale または duplicate response を別 request の completion、result または recipient へ再対応付けしてはならない。queue、mutex、ordering、backpressure および scheduling の具体方式は本書で決定しない。
+この分離はブラウザの複数タブ / フレーム / 文書とモバイルの複数受け渡しにも適用する。遅延した、古くなったまたは重複応答を別要求の完了、結果または受信者へ再対応付けしてはならない。キュー、排他制御、順序、負荷制御および scheduling の具体方式は本書で決定しない。
 
-## 9. Signing 関連共通モデル
+## 9. 署名関連共通モデル
 
-### 9.1 Logical operation
+### 9.1 論理的な操作
 
-署名の共通 logical operation は次のとおりである。
+署名の共通論理的な操作は次のとおりである。
 
-| Logical operation | 対象                                                                                    |
-| ----------------- | --------------------------------------------------------------------------------------- |
-| TRANSACTION_SIGN  | 通常 transaction、Symbol Aggregate、NEM multisig wrapper 等を最初の署名対象として扱う。 |
-| COSIGNATURE_SIGN  | 既存 parent Aggregate / multisig へ selected cosigner が追加署名する。                  |
-| MESSAGE_SIGN      | structured message または既存 message signing contract に署名する。                     |
+| 論理的な操作     | 対象                                                                                            |
+| ---------------- | ----------------------------------------------------------------------------------------------- |
+| TRANSACTION_SIGN | 通常トランザクション、Symbol アグリゲート、NEM マルチシグラッパー等を最初の署名対象として扱う。 |
+| COSIGNATURE_SIGN | 既存親アグリゲート / マルチシグへ選択済みの連署者が追加署名する。                               |
+| MESSAGE_SIGN     | 構造化されたメッセージまたは既存メッセージ署名契約に署名する。                                  |
 
-公開 handoff operation への対応は signTransaction、signData、cosignTransaction であり、logical operation と API 名を混同しない。Aggregate、Partial、NEM multisig は共通 operation を増やさず、Chain-specific transaction context として扱う。
+公開受け渡し操作への対応は signTransaction、signData、cosignTransaction であり、論理的な操作と API 名を混同しない。アグリゲート、部分トランザクション、NEM マルチシグは共通操作を増やさず、チェーン固有のトランザクション文脈として扱う。
 
-### 9.2 Transaction request
+### 9.2 トランザクション要求
 
-signTransaction の既存 request field は次のとおりである。
+signTransaction の既存要求フィールドは次のとおりである。
 
 ```ts
 interface TransactionSigningRequest extends Scope {
@@ -464,16 +464,16 @@ interface TransactionSigningRequest extends Scope {
 }
 ```
 
-- payload は required の hexadecimal string。偶数長、hex character のみ、decoded byte length 256 KiB 以下とする。
-- 大文字小文字の変更以外の入力変換を検証前に行わない。canonical serialization 後の bytes は入力 decoded bytes と byte-for-byte 一致しなければならない。
-- expectedSignerPublicKey は optional。指定時は対象 Chain の形式へ検証し、実際の signer public key と完全一致させる。不一致は SIGNER_MISMATCH とし成功 result を返さない。
-- expectedSignerPublicKey がない場合も、payload の signer と許可された / 選択された Account の identity を Signer が照合する。zero signer の補完は行わない。
-- 対応 transaction type / version、全 field、aggregate embedded transaction、署名状態、network、canonicality、size、integer range および chain-specific effect は product-spec と chain-compatibility-spec に従う。
-- unknown type / version、未解析 field、余剰 byte、非 canonical encoding、overflow、過剰な nest / element、wrong signer、unresolved alias を安全に解決できない場合は署名しない。
+- ペイロードは必須の 16進数文字列。偶数長、hex character のみ、デコード済みバイト長さ 256 KiB 以下とする。
+- 大文字小文字の変更以外の入力変換を検証前に行わない。正規シリアライズ後のバイト列は入力デコード済みバイト列とバイト単位で一致する一致しなければならない。
+- expectedSignerPublicKey は任意。指定時は対象チェーンの形式へ検証し、実際の署名主体公開鍵と完全一致させる。不一致は SIGNER_MISMATCH とし成功結果を返さない。
+- expectedSignerPublicKey がない場合も、ペイロードの署名主体と許可された / 選択されたアカウントの識別情報を署名主体が照合する。zero 署名主体の補完は行わない。
+- 対応トランザクション型 / バージョン、全フィールド、アグリゲート埋め込みトランザクション、署名状態、ネットワーク、正規形式への適合性、サイズ、整数範囲およびチェーン固有の影響は product-spec と chain-compatibility-spec に従う。
+- 不明型 / バージョン、未解析フィールド、余剰バイト、非正規エンコーディング、オーバーフロー、過剰な nest / element、誤った署名主体、未解消別名を安全に解決できない場合は署名しない。
 
-### 9.3 Cosignature request
+### 9.3 連署署名要求
 
-公開 request は chain ごとに次を持つ。
+公開要求はチェーンごとに次を持つ。
 
 ```ts
 interface SymbolCosignatureRequest extends Scope {
@@ -493,13 +493,13 @@ interface NemCosignatureRequest extends Scope {
 }
 ```
 
-parentPayload は required であり、hash、summary、opaque identifier または外部 lookup だけで代替してはならない。Signer は parent 全体、embedded / inner transaction、existing signature / cosignature、selected cosigner、role、asset effect、fee、deadline、Chain / Network、期限および request binding を再構成・検証・表示する。完全な parent を確認できない場合は署名しない。
+parentPayload は必須であり、ハッシュ、要約、内容を解釈しない識別子または外部照会だけで代替してはならない。署名主体は親全体、埋め込み / 内部トランザクション、既存の署名 / 連署署名、選択済みの連署者、役割、資産影響、手数料、期限、チェーン / ネットワーク、期限および要求結び付けを再構成・検証・表示する。完全な親を確認できない場合は署名しない。
 
-Symbol の Aggregate と NEM multisig の structure、hash、address、signing bytes および role semantics を共通化しない。
+Symbol のアグリゲートと NEM マルチシグの構造、ハッシュ、アドレス、署名バイト列および役割意味を共通化しない。
 
-### 9.4 Structured message
+### 9.4 構造化されたメッセージ
 
-既存 Product / Core の structured message model は次のとおりである。
+既存プロダクト / コアの構造化されたメッセージモデルは次のとおりである。
 
 ```ts
 interface StructuredMessage {
@@ -522,37 +522,37 @@ interface SignedData {
 }
 ```
 
-- domain は固定 literal である。
-- purpose は [a-z0-9][a-z0-9._:-]{0,63} に一致する required string。
-- nonce は 16〜32 random bytes の padding なし base64url。Origin + Account で reserve / used を管理し、同一 nonce を再利用しない。
-- issuedAt は現在時刻の前後 5 分以内、expiresAt は issuedAt より後かつ 10 分以内。request expiry と message expiry の早い方を署名期限とする。
-- payload.encoding = utf8 は NFC 済みの有効な Unicode でなければならず、NFC でない入力を変換してはならない。hex は偶数長 lowercase hexadecimal、decoded payload は 16 KiB 以下とする。
-- signing bytes は ASCII prefix MOSAICLYNX\0MESSAGE\0V1\0 と、StructuredMessage を RFC 8785 JCS で canonicalize した UTF-8 bytes の連結である。署名 primitive は wallet-core / chain-specific 契約に委譲する。
-- message の表示内容と signing bytes は同じ structured message から生成し、raw bytes の羅列だけで blind signing を成立させない。
+- ドメインは固定リテラルである。
+- 目的は [a-z0-9][a-z0-9._:-]{0,63} に一致する必須文字列。
+- ノンスは 16〜32 random バイト列のパディングなし base64url。オリジン + アカウントで reserve / used を管理し、同一ノンスを再利用しない。
+- issuedAt は現在時刻の前後 5 分以内、expiresAt は issuedAt より後かつ 10 分以内。要求期限切れとメッセージ期限切れの早い方を署名期限とする。
+- payload.encoding = utf8 は NFC 済みの有効な Unicode でなければならず、NFC でない入力を変換してはならない。hex は偶数長小文字 16進数、デコード済みペイロードは 16 KiB 以下とする。
+- 署名バイト列は ASCII 接頭辞 MOSAICLYNX\0MESSAGE\0V1\0 と、StructuredMessage を RFC 8785 JCS で正規化した UTF-8 バイト列の連結である。署名基本機構は wallet-core / チェーン固有の契約に委譲する。
+- メッセージの表示内容と署名バイト列は同じ構造化されたメッセージから生成し、生バイト列の羅列だけで内容を確認しない署名を成立させない。
 
-本節は canonical message と wire adapter の正本である。MVP の MESSAGE_SIGN は本節の structured text message に対応し、arbitrary byte signing は非対応とする。core `0.2.0` に message 専用 API はなく、[Integration §4〜§5](./wallet-core-integration.md) の正式 `sign` を使用する。
+本節は正規メッセージと通信上のアダプターの正本である。MVP の MESSAGE_SIGN は本節の構造化されたテキストメッセージに対応し、任意のバイト署名は非対応とする。コア `0.2.0` にメッセージ専用 API はなく、[統合 §4〜§5](./wallet-core-integration.md) の正式 `sign` を使用する。
 
-Relay / Provider request から canonical message を構成する exact mapping は、`domain = 'mosaiclynx.message.v1'`、`origin = 検証済み initiatorOrigin / browser-observed Origin`、chain / network / purpose / nonce / issuedAt / payload は同名 field の検証済み値、`message.expiresAt = request.messageExpiresAt` とする。request-level `expiresAt` は配送期限であり message の field へ代入しない。request envelope の expiresAt と messageExpiresAt は両方 required であり別々に検証する。expiresAt を messageExpiresAt の代用にする入力、または payload 内に第三の expiry / canonical object を追加する入力は拒否する。Provider `signMessage` も同じ messageExpiresAt を持つ request へ射影する。canonical message / SignedData には messageExpiresAt を含めず expiresAt だけを含める。
+Relay / Provider 要求から正規メッセージを構成する厳密な対応付けは、`domain = 'mosaiclynx.message.v1'`、`origin = 検証済み initiatorOrigin / browser-observed Origin`、チェーン / ネットワーク / 目的 / ノンス / issuedAt / ペイロードは同名フィールドの検証済み値、`message.expiresAt = request.messageExpiresAt` とする。要求単位の `expiresAt` は配送期限でありメッセージのフィールドへ代入しない。要求エンベロープの expiresAt と messageExpiresAt は両方必須であり別々に検証する。expiresAt を messageExpiresAt の代用にする入力、またはペイロード内に第三の期限切れ / 正規オブジェクトを追加する入力は拒否する。Provider `signMessage` も同じ messageExpiresAt を持つ要求へ射影する。正規メッセージ / SignedData には messageExpiresAt を含めず expiresAt だけを含める。
 
-signing bytes / signingDigest はこの canonical StructuredMessage 全体から生成し、encoding と value を書き換えない。UTF-8 text は unpaired surrogate を含まない有効な Unicode、NFC 済み、本文全体を表示できることを要求する。hex は偶数長 lowercase、fatal UTF-8 decode 成功、NFC 済みのテキストを全文表示できる場合だけ許可する。binary、encrypted bytes、任意の digest、unsupported encoding、replacement-character decode、解釈不能 hex を warning / hex dump だけで承認してはならない。制御文字・双方向・ゼロ幅文字は可視 escape と位置を示し、truncation / ellipsis で本文を省略しない。安全に表示できない場合は拒否する。hex の原値と encoding も確認可能にし、表示用 text を signing value に置換しない。
+署名バイト列 / signingDigest はこの正規 StructuredMessage 全体から生成し、エンコーディングと値を書き換えない。UTF-8 テキストは unpaired surrogate を含まない有効な Unicode、NFC 済み、本文全体を表示できることを要求する。hex は偶数長小文字、fatal UTF-8 デコード成功、NFC 済みのテキストを全文表示できる場合だけ許可する。バイナリ、暗号化されたバイト列、任意のダイジェスト、未対応のエンコーディング、replacement-character デコード、解釈不能 hex を警告 / hex ダンプだけで承認してはならない。制御文字・双方向・ゼロ幅文字は可視 escape と位置を示し、truncation / ellipsis で本文を省略しない。安全に表示できない場合は拒否する。hex の原値とエンコーディングも確認可能にし、表示用テキストを署名値に置換しない。
 
-Signer は「message signing」、requester Origin の検証状態、purpose、Account の public identity、Scope、nonce、issuedAt / message expiry / request expiry、encoding、全文と signing digest を同じ owned DTO から表示する。Testnet proof 省略時も origin の canonical 一致と未検証表示を必須とする。signedData.signature は64 bytesの lowercase hex 128桁、signerPublicKey は32 bytesの lowercase hex 64桁、signingDigest は SHA-256(signing bytes) の lowercase hex 64桁。返却 message は同じ canonical object。Signer / caller は選択 Account / expected signer と Scope・Origin・nonce・expiry を照合し、対応 Chain の public-key Verifier で prefix + JCS bytes の signature を検証する。transaction signature をこの結果として受け入れない。
+署名主体は「メッセージ署名」、要求元オリジンの検証状態、目的、アカウントの公開識別情報、対象範囲、ノンス、issuedAt / メッセージ期限切れ / 要求期限切れ、エンコーディング、全文と署名ダイジェストを同じ所有する DTO から表示する。Testnet 証明省略時もオリジンの正規一致と未検証表示を必須とする。signedData.signature は64 バイト列の小文字 hex 128桁、signerPublicKey は32 バイト列の小文字 hex 64桁、signingDigest は SHA-256(署名バイト列) の小文字 hex 64桁。返却メッセージは同じ正規オブジェクト。署名主体 / 呼び出し元は選択アカウント / 期待される署名主体と対象範囲・オリジン・ノンス・期限切れを照合し、対応チェーンの public-key 検証者で接頭辞 + JCS バイト列の署名を検証する。トランザクション署名をこの結果として受け入れない。
 
-### 9.5 TransactionSummary / Inspection
+### 9.5 TransactionSummary / 内容検査
 
-TransactionSummary は Signer が target から導出する confirmation 用 model である。適用可能な範囲で次の情報を含める。
+TransactionSummary は署名主体が対象から導出する確認用モデルである。適用可能な範囲で次の情報を含める。
 
-- operation、transaction type、version、Chain、Network
-- sender、expected signer、selected signer、recipient、asset / mosaic、amount、fee、deadline
-- message、aggregate outer / embedded transaction、parent / multisig context
-- existing signature / cosignature、expected role、metadata / namespace / authority / permission changes
-- target digest、canonical consistency、freshness、external state unverified、warnings
+- 操作、トランザクション型、バージョン、チェーン、ネットワーク
+- 送信者、期待される署名主体、選択済みの署名主体、受信者、資産 / mosaic、数量、手数料、期限
+- メッセージ、アグリゲート外側 / 埋め込みトランザクション、親 / マルチシグ文脈
+- 既存の署名 / 連署署名、期待される役割、メタデータ / 名前空間 / 判断権限 / 許可変更
+- 対象ダイジェスト、正規整合性、鮮度、外部状態未検証の、警告
 
-summary は表示のための derived information であり、署名 target、hash-only parent、外部 dApp の説明または Relay metadata の代替ではない。summary と target の不一致、必須情報の欠落、表示不能、未知 field または安全な意味解釈の失敗は INSPECTION_FAILED 相当として署名を拒否する。画面 layout、表示順、文言および transaction type ごとの field は下位仕様に委譲する。
+要約は表示のための導出された情報であり、署名対象、ハッシュのみ親、外部 dApp の説明または Relay メタデータの代替ではない。要約と対象の不一致、必須情報の欠落、表示不能、未知フィールドまたは安全な意味解釈の失敗は INSPECTION_FAILED 相当として署名を拒否する。画面配置、表示順、文言およびトランザクション型ごとのフィールドは下位仕様に委譲する。
 
-### 9.6 Signing result
+### 9.6 署名結果
 
-transaction signing の成功結果は次の公開情報を持つ。
+トランザクション署名の成功結果は次の公開情報を持つ。
 
 ```ts
 interface SignedTransaction {
@@ -562,13 +562,13 @@ interface SignedTransaction {
 }
 ```
 
-payload、hash、signerPublicKey は required、nullable 不可である。Signer は wallet-core の返却値をそのまま転送せず、元 target、requestId、operation、Account、Chain、Network、expected signer と対応することを検証する。dApp は受け取った結果を元 request と独立に検証し、announce は dApp の責務とする。
+ペイロード、ハッシュ、signerPublicKey は必須、null 許容不可である。署名主体は wallet-core の返却値をそのまま転送せず、元対象、requestId、操作、アカウント、チェーン、ネットワーク、期待される署名主体と対応することを検証する。dApp は受け取った結果を元要求と独立に検証し、アナウンスは dApp の責務とする。
 
-公開 payload / hash / signerPublicKey は lowercase hex とし、入力の許可された大文字 hex は byte 同一性で比較する。hash / signerPublicKey は32 bytes（64桁）。署名以外の元 field の変化を許可しない。core の raw result からの組立ては [Integration §5](./wallet-core-integration.md) に従う。
+公開ペイロード / ハッシュ / signerPublicKey は小文字 hex とし、入力の許可された大文字 hex はバイト同一性で比較する。ハッシュ / signerPublicKey は32 バイト列（64桁）。署名以外の元フィールドの変化を許可しない。コアの生の結果からの組立ては [統合 §5](./wallet-core-integration.md) に従う。
 
-### 9.6.1 Cosignature result と対応範囲
+### 9.6.1 連署署名結果と対応範囲
 
-v1 の cosignTransaction は optional capability とし、提供する Signer は Chain Compatibility §4 の Symbol AggregateCompleteV2 / AggregateBondedV2（embedded TransferV1 のみ）の attached / detached、NEM MultisigV1（inner TransferV1/V2）の CosignatureV1 に限る。capability がない Signer は受付時 UNAVAILABLE、対応 capability 内の未知 type / version は UNSUPPORTED_TRANSACTION とし core を呼ばない。必須 capability への昇格や他 type の拡張は別の承認を必要とする。
+v1 の cosignTransaction は任意対応能力とし、提供する署名主体はチェーン互換性 §4 の Symbol AggregateCompleteV2 / AggregateBondedV2（埋め込み TransferV1 のみ）の attached / 分離された、NEM MultisigV1（内部 TransferV1/V2）の CosignatureV1 に限る。対応能力がない署名主体は受付時利用不能、対応対応能力内の未知型 / バージョンは UNSUPPORTED_TRANSACTION としコアを呼ばない。必須対応能力への昇格や他型の拡張は別の承認を必要とする。
 
 ```ts
 type MosaicLynxCosignature =
@@ -589,148 +589,148 @@ type MosaicLynxCosignature =
     };
 ```
 
-全 field は required、nullable 不可、他 field は禁止。parentHash は full signed parent から Signer が再計算した32 bytesの lowercase hex 64桁。Symbol signerPublicKey / signature は32 / 64 bytesの lowercase hex 64 / 128桁。version は wire の u64 cosignature version 0 を表す固定文字列 `'0'`（number / BigInt 不可）。detached は request と一致する boolean。attached は署名要素だけを返し parent payload へ自動追記しない。detached も同じ親 hash と署名を返し呼出し側が network DTO へ変換する。
+全フィールドは必須、null 許容不可、他フィールドは禁止。parentHash は全体署名済み親から署名主体が再計算した32 バイト列の小文字 hex 64桁。Symbol signerPublicKey / 署名は32 / 64 バイト列の小文字 hex 64 / 128桁。バージョンは通信上の u64 連署署名バージョン 0 を表す固定文字列 `'0'`（数値 / BigInt 不可）。`detached` は要求と一致する真偽値。attached は署名要素だけを返し親ペイロードへ自動追記しない。`detached` も同じ親ハッシュと署名を返し呼出し側がネットワーク DTO へ変換する。
 
-NEM signedTransaction は検証済み CosignatureV1 に core signature を設定した完全 payload / その transaction hash / cosigner public key。NEM は独立 signature / version / detached field を返さない。signature と entity version 1 は payload 内を検証する。parentHash はその payload の multisigTransactionHash と一致し、multisigAccountAddress は signed parent の inner signer に対応し、parent / cosignature / selected key の network が一致する。
+NEM signedTransaction は検証済み CosignatureV1 にコア署名を設定した完全ペイロード / そのトランザクションハッシュ / 連署者公開鍵。NEM は独立署名 / バージョン / 分離されたフィールドを返さない。署名と entity バージョン 1 はペイロード内を検証する。parentHash はそのペイロードの multisigTransactionHash と一致し、multisigAccountAddress は署名済み親の内部署名主体に対応し、親 / 連署署名 / 選択済みの鍵のネットワークが一致する。
 
-いずれも operation は cosigned outcome と元 request の operation の照合で表し result に重複 field を追加しない。request ID は response envelope に required、internal Account ID / Profile ID / key ID は返さない。Signer / SDK は full parent を使い親署名・既存 cosignature・cosigner role・重複・全 inner・parent hash を検証し、Symbol は親 hash の raw bytes、NEM は CosignatureV1 の signing bytes への署名を独立検証する。cosignature は SignedTransaction / SignedData branch で返さない。
+いずれも操作は連署済み結果と元要求の操作の照合で表し結果に重複フィールドを追加しない。要求 ID は応答エンベロープに必須、内部アカウント ID / プロファイル ID / 鍵 ID は返さない。署名主体 / SDK は全体親を使い親署名・既存連署署名・連署者役割・重複・全内部・親ハッシュを検証し、Symbol は親ハッシュの生バイト列、NEM は CosignatureV1 の署名バイト列への署名を独立検証する。連署署名は SignedTransaction / SignedData 分岐で返さない。
 
-成功は §6.3 の cosigned + SUCCEEDED + deliveryDisposition、署名生成不明は resultUnknown、確定拒否・失敗は既存 errorCode とする。SDK は Handoff の `MosaicLynxSigningResult<MosaicLynxCosignature>` に意味不変に射影する。DELIVERY_UNKNOWN でも既知 cosignature を保持し、自動再署名しない。
+成功は §6.3 の連署済み + 成功 + deliveryDisposition、署名生成不明は resultUnknown、確定拒否・失敗は既存 errorCode とする。SDK は受け渡しの `MosaicLynxSigningResult<MosaicLynxCosignature>` に意味不変に射影する。DELIVERY_UNKNOWN でも既知連署署名を保持し、自動再署名しない。
 
-### 9.7 Common signing gate
+### 9.7 共通の署名判定条件
 
-Signer は、同一の次の context に対して、署名直前まで共通 gate を成立・再確認しなければならない。
-
-```text
-request
-caller / source
-Profile-local security context
-Account
-Chain / Network
-operation
-signing target
-freshness
-```
-
-上記 context に対して、次の4条件を互いに独立した必須条件としてすべて成立させる。
-
-1. Authentication。
-2. Signing-capable unlock。
-3. 対象 Profile / Chain / Network / Account に対する Account authorization。
-4. Explicit user approval。
-
-`AUTHORIZED` は、この4条件が同一の Signer-owned context に対して成立した状態である。4条件のいずれかが missing、stale、revoked、locked、unknown または mismatch の場合、Signer は `AUTHORIZED`、`SIGNING` または `SUCCEEDED` へ進めず、wallet-core を呼び出さない。
-
-connection、permission、Account disclosure、capability、Provider availability、session、ordinary `UNLOCKED`、過去の Authentication、wallet-core password validation、Wallet Store validation、Relay delivery、SDK state または Provider state は、4条件のいずれの代替にもならない。permission の存在は Account authorization の成立を意味せず、selected Account は Account authorization の成立を意味しない。
-
-Signer は wallet-core call の直前に、request の freshness、caller / source、Profile-local context、Account、Chain / Network、operation、target、inspection、approval、Authentication、Signing-capable unlock、Account authorization および response binding を再確認する。確認できない値、失効、lock、stale、unknown または mismatch が一つでもある場合は Authorization を失効させ、署名しない。
-
-### 9.8 wallet-core adapter
-
-全 operation は [wallet-core Integration Specification](./wallet-core-integration.md) の正式 `get_public_account` / `sign`、Profile / key mapping、Uint8Array、raw signature result、warnings、同期・初期化・backend・error contract を使用する。MosaicLynx は private key / Mnemonic を取得・保持せず、通常 signing に export を呼ばない。core に request ID / Origin / expiry を持つ API や unlock session、transaction / cosignature / message 専用 API があると仮定しない。
-
-## 10. Error Model
-
-### 10.1 共通 error の意味
-
-境界を越える error は、外部利用者が安全な終了・新規 request・再接続を判断できる最小限の情報だけを含む。共通 error は次の logical category を区別する。
-
-| Category              | 意味                                                                                      | retryable の既定                                        |
-| --------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| invalid_request       | schema、必須 field、形式、サイズ、encoding、context または payload が不正                 | 同じ request は不可。入力を修正した新規 request のみ    |
-| unsupported           | operation、Chain、Network、format、type、version または capability が非対応               | 同じ意味の fallback 不可。対応確認後の新規 request のみ |
-| permission_denied     | Origin、session、scope、Profile、Account または permission revision が不一致・revoke 済み | 同じ request は不可                                     |
-| user_rejected         | 利用者が明示的に拒否した                                                                  | 自動 retry 不可                                         |
-| locked                | Signer-local gate が locked                                                               | 認証なしで再試行不可                                    |
-| account_unavailable   | 選択した Profile / key が利用不能                                                         | 新規選択と認証が必要                                    |
-| network_mismatch      | Account / payload / Scope の Network 不一致                                               | 同じ request は不可                                     |
-| authentication_failed | 署名ごとの認証が失敗した                                                                  | 古い approval の再利用不可                              |
-| expired               | request、message、transaction context または parent が期限切れ                            | 新しい expiry と新規承認を伴う request のみ             |
-| cancelled             | 利用者、dApp、Signer、platform または transport が取消した                                | 同じ request の再開不可                                 |
-| duplicate_or_replay   | 使用済み、重複、replay、late delivery または stale identity                               | 同じ request の再送不可                                 |
-| inspection_failed     | parse、validation、semantic inspection または表示が不可能                                 | blind signing 不可                                      |
-| signing_failed        | wallet-core / Signer の処理失敗が確定                                                     | 原因を隠した自動再署名不可                              |
-| timeout               | wait、transport または lifecycle の期限到達                                               | outcome を推測せず新規 request のみ                     |
-| transport_failure     | Provider、Relay、network、handoff または delivery の失敗                                  | Relay delivery を署名成功と扱わない                     |
-| internal_failure      | 安全に意味を確定できない内部失敗                                                          | fail-closed                                             |
-
-retryable は共通 wire field として確定していない。上表の既定は処理規則であり、下位 protocol が明示する場合だけ具体的な retryable field へ射影する。
-
-### 10.2 SDK 公開 error code
-
-Relay handoff で使用する `MosaicLynxSDKErrorCode` と `MosaicLynxSDKError` は、[Web Transaction Handoff Specification](./web-transaction-handoff-spec.md) §10 が定義する。本仕様では、Handoff §10 の code 集合、error mapping および error 型を再定義しない。
-
-Handoff §10 の公開 code 集合には `INVALID_MESSAGE` と `NONCE_REUSED` は含まれない。したがって、本仕様でもこれらを公開 code として扱わない。structured message の schema、size、encoding、validation、expiry および replay に関する具体的な error code への射影は、Handoff §10 の既存 mapping に従い、ここで別 code または alias を追加してはならない。
-
-message は human-readable だが、分岐・authorization・retry の根拠にしない。安定した code を使用する。HTTP status、URL、token、暗号 library error、Provider 内部例外、stack trace、parser dump、Vault detail および wallet-core の秘密情報を公開 message、details または cause に含めない。
-
-Relay の RELAY_REQUEST_REJECTED は Relay HTTP の structural rejection body であり、SDK 公開 error code と同一視しない。Relay / Provider / wallet-core の error mapping は、外部が必要な category を失わない範囲で normalize する。
-
-### 10.3 Unknown result と delivery disposition
-
-署名結果そのものと、その結果を recipient へ配送できたかは別軸で扱う。概念上は次のように表現する。
+署名主体は、同一の次の文脈に対して、署名直前まで共通判定条件を成立・再確認しなければならない。
 
 ```text
-signing outcome + delivery disposition
+要求
+呼び出し元 / 送信元
+プロファイル内のセキュリティ文脈
+アカウント
+チェーン / ネットワーク
+操作
+署名対象
+鮮度
 ```
 
-Signing outcome の authority は trusted Signer だけである。共通の concrete representation は次のとおりとする。
+上記文脈に対して、次の4条件を互いに独立した必須条件としてすべて成立させる。
+
+1. 認証。
+2. 署名可能な状態へのロック解除。
+3. 対象プロファイル / チェーン / ネットワーク / アカウントに対するアカウントの利用認可。
+4. 利用者による明示的な承認。
+
+`AUTHORIZED` は、この4条件が同一の署名主体が所有する文脈に対して成立した状態である。4条件のいずれかが欠落、古くなった、失効済み、ロック済み、不明または不一致の場合、署名主体は `AUTHORIZED`、`SIGNING` または `SUCCEEDED` へ進めず、wallet-core を呼び出さない。
+
+接続、許可、アカウント情報公開、対応能力、Provider 利用可能性、セッション、通常の `UNLOCKED`、過去の認証、wallet-core パスワード検証、ウォレットストア検証、Relay 配送、SDK 状態または Provider 状態は、4条件のいずれの代替にもならない。許可の存在はアカウントの利用認可の成立を意味せず、選択済みのアカウントはアカウントの利用認可の成立を意味しない。
+
+署名主体は wallet-core 呼び出しの直前に、要求の鮮度、呼び出し元 / 送信元、プロファイル内の文脈、アカウント、チェーン / ネットワーク、操作、対象、内容検査、承認、認証、署名可能な状態へのロック解除、アカウントの利用認可および応答結び付けを再確認する。確認できない値、失効、ロック、古くなった、不明または不一致が一つでもある場合は認可を失効させ、署名しない。
+
+### 9.8 wallet-core アダプター
+
+全操作は [wallet-core 統合仕様](./wallet-core-integration.md) の正式 `get_public_account` / `sign`、プロファイル / 鍵対応付け、Uint8Array、生の署名結果、警告、同期・初期化・バックエンド・エラー契約を使用する。MosaicLynx は秘密鍵 / ニーモニックを取得・保持せず、通常署名にエクスポートを呼ばない。コアに要求 ID / オリジン / 期限切れを持つ API やロック解除セッション、トランザクション / 連署署名 / メッセージ専用 API があると仮定しない。
+
+## 10. エラーモデル
+
+### 10.1 共通エラーの意味
+
+境界を越えるエラーは、外部利用者が安全な終了・新規要求・再接続を判断できる最小限の情報だけを含む。共通エラーは次の論理的な分類を区別する。
+
+| 分類                  | 意味                                                                                           | 再試行可能なの既定                               |
+| --------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| invalid_request       | スキーマ、必須フィールド、形式、サイズ、エンコーディング、文脈またはペイロードが不正           | 同じ要求は不可。入力を修正した新規要求のみ       |
+| 未対応の              | 操作、チェーン、ネットワーク、形式、型、バージョンまたは対応能力が非対応                       | 同じ意味の代替経路不可。対応確認後の新規要求のみ |
+| permission_denied     | オリジン、セッション、対象範囲、プロファイル、アカウントまたは許可リビジョンが不一致・失効済み | 同じ要求は不可                                   |
+| user_rejected         | 利用者が明示的に拒否した                                                                       | 自動再試行不可                                   |
+| ロック済み            | 署名主体内の判定条件がロック済み                                                               | 認証なしで再試行不可                             |
+| account_unavailable   | 選択したプロファイル / 鍵が利用不能                                                            | 新規選択と認証が必要                             |
+| network_mismatch      | アカウント / ペイロード / 対象範囲のネットワーク不一致                                         | 同じ要求は不可                                   |
+| authentication_failed | 署名ごとの認証が失敗した                                                                       | 古い承認の再利用不可                             |
+| 期限切れ              | 要求、メッセージ、トランザクション文脈または親が期限切れ                                       | 新しい期限切れと新規承認を伴う要求のみ           |
+| キャンセル済み        | 利用者、dApp、署名主体、プラットフォームまたは通信経路が取消した                               | 同じ要求の再開不可                               |
+| duplicate_or_replay   | 使用済み、重複、リプレイ、遅延した配送または古くなった識別情報                                 | 同じ要求の再送不可                               |
+| inspection_failed     | 解析、検証、意味上の内容検査または表示が不可能                                                 | 内容を確認しない署名不可                         |
+| signing_failed        | wallet-core / 署名主体の処理失敗が確定                                                         | 原因を隠した自動再署名不可                       |
+| タイムアウト          | 待機、通信経路またはライフサイクルの期限到達                                                   | 結果を推測せず新規要求のみ                       |
+| transport_failure     | Provider、Relay、ネットワーク、受け渡しまたは配送の失敗                                        | Relay 配送を署名成功と扱わない                   |
+| internal_failure      | 安全に意味を確定できない内部失敗                                                               | 安全側での終了                                   |
+
+再試行可能なは共通通信上のフィールドとして確定していない。上表の既定は処理規則であり、下位プロトコルが明示する場合だけ具体的な再試行可能なフィールドへ射影する。
+
+### 10.2 SDK 公開エラーコード
+
+Relay 受け渡しで使用する `MosaicLynxSDKErrorCode` と `MosaicLynxSDKError` は、[Web トランザクション受け渡し仕様](./web-transaction-handoff-spec.md) §10 が定義する。本仕様では、受け渡し §10 のコード集合、エラー対応付けおよびエラー型を再定義しない。
+
+受け渡し §10 の公開コード集合には `INVALID_MESSAGE` と `NONCE_REUSED` は含まれない。したがって、本仕様でもこれらを公開コードとして扱わない。構造化されたメッセージのスキーマ、サイズ、エンコーディング、検証、期限切れおよびリプレイに関する具体的なエラーコードへの射影は、受け渡し §10 の既存対応付けに従い、ここで別コードまたは別名を追加してはならない。
+
+メッセージは人が読めるだが、分岐・認可・再試行の根拠にしない。安定したコードを使用する。HTTP 状態、URL、トークン、暗号ライブラリエラー、Provider 内部例外、スタック追跡、パーサーダンプ、Vault 詳細および wallet-core の秘密情報を公開メッセージ、詳細または原因に含めない。
+
+Relay の RELAY_REQUEST_REJECTED は Relay HTTP の構造上の拒否本文であり、SDK 公開エラーコードと同一視しない。Relay / Provider / wallet-core のエラー対応付けは、外部が必要な分類を失わない範囲で正規化する。
+
+### 10.3 不明結果と配送処理結果の区分
+
+署名結果そのものと、その結果を受信者へ配送できたかは別軸で扱う。概念上は次のように表現する。
+
+```text
+署名結果 + 配送処理結果の区分
+```
+
+署名結果の判断権限は信頼された署名主体だけである。共通の具体的な表現は次のとおりとする。
 
 ```ts
 type SigningOutcome = 'SUCCEEDED' | 'RESULT_UNKNOWN';
 type DeliveryDisposition = 'PENDING' | 'DELIVERED' | 'DELIVERY_UNKNOWN';
 ```
 
-`RESULT_UNKNOWN` は signing outcome 側の disposition であり、trusted Signer が signing generation 自体について、署名が生成されたか生成されなかったかを安全に確定できない場合に限り成立する。wallet-core / Binding 呼び出し中の process loss、または signing generation 中に Signer が outcome を安全に復元できない状態が例である。Signer は成功、拒否、失敗または未署名と推測せず、Handoff の `resultUnknown` branch として返す。
+`RESULT_UNKNOWN` は署名結果側の処理結果の区分であり、信頼された署名主体が署名生成自体について、署名が生成されたか生成されなかったかを安全に確定できない場合に限り成立する。wallet-core / バインディング呼び出し中のプロセス消失、または署名生成中に署名主体が結果を安全に復元できない状態が例である。署名主体は成功、拒否、失敗または未署名と推測せず、受け渡しの `resultUnknown` 分岐として返す。
 
-SDK、Provider、Relay または transport は `RESULT_UNKNOWN` を生成・推測・確定しない。SDK timeout、Relay outage、network failure、response absence、Provider disconnect、recipient offline、reconnect failure、response delivery failure、page lifecycle loss、SDK lifecycle loss または Relay state loss だけを根拠に `RESULT_UNKNOWN` としてはならない。これらは transport / lifecycle failure として分離する。
+SDK、Provider、Relay または通信経路は `RESULT_UNKNOWN` を生成・推測・確定しない。SDK タイムアウト、Relay 障害、ネットワーク失敗、応答欠如、Provider 接続解除、受信者オフライン、再接続失敗、応答配送失敗、ページライフサイクル消失、SDK ライフサイクル消失または Relay 状態消失だけを根拠に `RESULT_UNKNOWN` としてはならない。これらは通信経路 / ライフサイクル失敗として分離する。
 
-`DELIVERY_UNKNOWN` は signing outcome ではなく、Signer が valid な signed result を既に保持している一方、その result の delivery disposition を安全に確定できない場合の Signer-side disposition である。したがって `SUCCEEDED + DELIVERY_UNKNOWN` が成立し、署名 result を破棄したり signing failure / `RESULT_UNKNOWN` へ変換したりしてはならない。SDK、Provider、Relay または transport は delivery state から `DELIVERY_UNKNOWN` を生成・推測・確定しない。
+`DELIVERY_UNKNOWN` は署名結果ではなく、署名主体が有効な署名済み結果を既に保持している一方、その結果の配送処理結果の区分を安全に確定できない場合の署名主体側の処理結果の区分である。したがって `SUCCEEDED + DELIVERY_UNKNOWN` が成立し、署名結果を破棄したり署名失敗 / `RESULT_UNKNOWN` へ変換したりしてはならない。SDK、Provider、Relay または通信経路は配送状態から `DELIVERY_UNKNOWN` を生成・推測・確定しない。
 
 ```text
 PENDING → DELIVERED
 PENDING → DELIVERY_UNKNOWN
 ```
 
-`PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` は delivery disposition の概念値であり、signing lifecycle の state または新しい signing operation ではない。`SUCCEEDED` は signing result が確定済みであることを意味し、delivery disposition はその result に付随する別軸である。
+`PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` は配送処理結果の区分の概念値であり、署名ライフサイクルの状態または新しい署名操作ではない。`SUCCEEDED` は署名結果が確定済みであることを意味し、配送処理結果の区分はその結果に付随する別軸である。
 
-Signer-originated `RESULT_UNKNOWN` と delivery disposition は、SDK、Provider、Relay および対応 transport を通過しても request correlation とともに意味を保持する。これらを `INTERNAL_ERROR`、通常の transport failure、user rejection、signing failure、相互の別 disposition または成功・失敗の別意味へ normalize してはならない。Relay は opaque envelope を搬送するだけで、Signer の disposition を生成・変更しない。`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` は Handoff §10 の通常 error code に追加しない。
+署名主体が生成した `RESULT_UNKNOWN` と配送処理結果の区分は、SDK、Provider、Relay および対応通信経路を通過しても要求対応付けとともに意味を保持する。これらを `INTERNAL_ERROR`、通常の通信経路失敗、利用者拒否、署名失敗、相互の別処理結果の区分または成功・失敗の別意味へ正規化してはならない。Relay は内容を解釈しないエンベロープを搬送するだけで、署名主体の処理結果の区分を生成・変更しない。`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` は受け渡し §10 の通常エラーコードに追加しない。
 
-`SUCCEEDED + DELIVERY_UNKNOWN` の recovery candidate は、同じ request / context に対する既存 result の resend、redelivery、retrieval または lookup に限る。新しい signature の生成、`SIGNING` への復帰または別 target の署名は許可しない。
+`SUCCEEDED + DELIVERY_UNKNOWN` の復旧候補は、同じ要求 / 文脈に対する既存結果の再送、再配送、取得または照会に限る。新しい署名の生成、`SIGNING` への復帰または別対象の署名は許可しない。
 
-### 10.4 Invocation certainty、timeout、duplicate
+### 10.4 呼び出し確定性、タイムアウト、重複
 
-Signer が正式 core `sign` を一度も呼んでいないと確実に把握する場合だけ、timeout / cancel を EXPIRED / CANCELLED、signing-not-started と確定できる。invocation 開始後、completion または生成失敗を確定できない場合は RESULT_UNKNOWN とする。exception / BindingFailure / Promise timeout は未署名の証拠ではない。valid signed result が既に得られていれば SUCCEEDED を保持し、Signer が配送結果を確定できない場合は DELIVERY_UNKNOWN。
+署名主体が正式コア `sign` を一度も呼んでいないと確実に把握する場合だけ、タイムアウト / キャンセルを期限切れ / キャンセル済み、署名未開始と確定できる。呼び出し開始後、完了または生成失敗を確定できない場合は RESULT_UNKNOWN とする。例外 / BindingFailure / 保証タイムアウトは未署名の証拠ではない。有効な署名済み結果が既に得られていれば成功を保持し、署名主体が配送結果を確定できない場合は DELIVERY_UNKNOWN。
 
-SDK / Provider / Relay の timeout は transport_failure であり、これらが Signer の両 disposition や unsigned を推測してはならない。requestId は caller / Profile / target / operation / Scope / recipient と binding して比較する。同じ ID・異なる内容は tampering、同じ ID・同じ内容は duplicate とし追加の confirmation / core signing を起こさない。元の valid known result が存在し recipient binding が current の場合だけ同じ結果を再配送できる。SIGNING / RESULT_UNKNOWN の duplicate は処理を再開しない。新 ID による caller retry も承認を意味せず、明示的な新規操作と fresh 四条件を要求する。
+SDK / Provider / Relay のタイムアウトは transport_failure であり、これらが署名主体の両処理結果の区分や未署名を推測してはならない。requestId は呼び出し元 / プロファイル / 対象 / 操作 / 対象範囲 / 受信者と結び付けして比較する。同じ ID・異なる内容は改ざん、同じ ID・同じ内容は重複とし追加の確認 / コア署名を起こさない。元の有効な既知の結果が存在し受信者結び付けが現在の場合だけ同じ結果を再配送できる。署名 / RESULT_UNKNOWN の重複は処理を再開しない。新 ID による呼び出し元再試行も承認を意味せず、明示的な新規操作と新鮮な四条件を要求する。
 
-## 11. Serialization
+## 11. シリアライズ
 
-### 11.1 JSON と field naming
+### 11.1 JSON とフィールド命名
 
-既存の SDK / Relay / handoff boundary は JSON object と TypeScript の camelCase field naming を使用する。実装は既存 field 名を snake_case、別名または位置依存 tuple へ変換してはならない。
+既存の SDK / Relay / 受け渡し境界は JSON オブジェクトと TypeScript の camelCase フィールド命名を使用する。実装は既存フィールド名を snake_case、別名または位置依存組へ変換してはならない。
 
-- JSON object の required / optional は本書および operation-specific contract に従う。
-- optional field の absent と null は同じ意味ではない。nullable と明示されない field に null を送らず、値がない場合は field を omitted とする。
-- boolean、string、array、object の型を別 JSON 型へ coercion しない。
-- integer quantity、amount、fee、deadline、timestamp number および chain-specific numeric field は浮動小数で計算しない。wire の exact representation は Chain Compatibility Specification に従う。
-- arbitrary binary は共通モデルで raw JSON byte array としない。既存契約が指定する hexadecimal または padding なし base64url を使用する。どちらも指定されていない binary field は OPEN とする。
-- public key、signature、hash、payload の encoding と大小文字規則は operation / Chain-specific contract に従う。入力を表示都合で変換してから digest / signature verification しない。
+- JSON オブジェクトの必須 / 任意は本書および操作固有の契約に従う。
+- 任意フィールドの存在しないと null は同じ意味ではない。null 許容と明示されないフィールドに null を送らず、値がない場合はフィールドを omitted とする。
+- 真偽値、文字列、配列、オブジェクトの型を別 JSON 型へ coercion しない。
+- 整数数量、数量、手数料、期限、タイムスタンプ数値およびチェーン固有の数値フィールドは浮動小数で計算しない。通信上の厳密な表現はチェーン互換性仕様に従う。
+- 任意のバイナリは共通モデルで生の JSON バイト配列としない。既存契約が指定する 16進数またはパディングなし base64url を使用する。どちらも指定されていないバイナリフィールドは未決とする。
+- 公開鍵、署名、ハッシュ、ペイロードのエンコーディングと大小文字規則は操作 / チェーン固有の契約に従う。入力を表示都合で変換してからダイジェスト / 署名検証しない。
 
-### 11.2 Canonicalization と digest
+### 11.2 正規化とダイジェスト
 
-RFC 8785 JSON Canonicalization Scheme（JCS）が指定された object は、次の順に処理する。
+RFC 8785 JSON 正規化方式（JCS）が指定されたオブジェクトは、次の順に処理する。
 
-1. schema、型、required field、unknown field および value constraint を検証する。
-2. RFC 8785 JCS で canonicalize する。
-3. 指定された場合に限り UTF-8 bytes の digest を計算する。
-4. digest、AEAD、signature または response binding を検証する。
+1. スキーマ、型、必須フィールド、不明フィールドおよび値制約を検証する。
+2. RFC 8785 JCS で正規化する。
+3. 指定された場合に限り UTF-8 バイト列のダイジェストを計算する。
+4. ダイジェスト、AEAD、署名または応答結び付けを検証する。
 
-Relay handoff request の requestDigest は SHA-256(JCS(RelayRequest)) の lowercase hexadecimal である。structured message の signing bytes は §9.4 の prefix + JCS bytes である。JCS が指定されていない model に独自 canonicalization を追加してはならない。
+Relay 受け渡し要求の requestDigest は SHA-256(JCS(RelayRequest)) の小文字 16進数である。構造化されたメッセージの署名バイト列は §9.4 の接頭辞 + JCS バイト列である。JCS が指定されていないモデルに独自正規化を追加してはならない。
 
-### 11.3 Relay encrypted envelope
+### 11.3 Relay 暗号化されたエンベロープ
 
-Relay の暗号文は Relay が opaque として扱う。既存 envelope の外形は次のとおりである。
+Relay の暗号文は Relay が内容を解釈しないとして扱う。既存エンベロープの外形は次のとおりである。
 
 ```ts
 interface EncryptedRelayEnvelope {
@@ -740,246 +740,246 @@ interface EncryptedRelayEnvelope {
 }
 ```
 
-nonce と ciphertextAndTag の base64url 表現、AAD、key derivation および generation binding は Web Transaction Handoff Specification と packages/relay-protocol の既存契約に従う。Relay は復号、再暗号化、payload rewriting、semantic conversion および signing result の生成を行わない。
+ノンスと ciphertextAndTag の base64url 表現、AAD、鍵導出および世代結び付けは Web トランザクション受け渡し仕様と packages/relay-protocol の既存契約に従う。Relay は復号、再暗号化、ペイロード rewriting、意味上の変換および署名結果の生成を行わない。
 
-## 12. Validation
+## 12. 検証
 
-### 12.0 External input → owned immutable DTO
+### 12.0 外部入力 → 所有する不変 DTO
 
-SDK、Provider、Extension message channel、Relay 復号後、Deep Link / OS invocation の入力はすべて untrusted。SDK による正規化も Signer の再検証を省略しない。各境界は次の契約を満たす。
+SDK、Provider、拡張機能メッセージチャネル、Relay 復号後、ディープリンク / OS 呼び出しの入力はすべて信頼されていない。SDK による正規化も署名主体の再検証を省略しない。各境界は次の契約を満たす。
 
 ```text
-external object / bounded JSON bytes
-→ bounded snapshot / copy → plain-data normalization
-→ schema validation → semantic validation → internal immutable DTO
+外部オブジェクト / 上限のある JSON バイト列
+→ 上限のあるスナップショット / コピー → 通常のデータ正規化
+→ スキーマ検証 → 意味上の検証 → 内部不変 DTO
 ```
 
-- plain object（Object.prototype または null prototype）と dense Array、schema の primitive のみ許可する。own enumerable data property descriptor の値を一度だけ読み、required field の inherited value、getter / setter / accessor、Symbol key、non-enumerable schema field、class instance、Date、Map、Set、function、toJSON、cycle、schema にない object type を拒否する。`__proto__`、`prototype`、`constructor` を全階層で拒否し、prototype chain から値を補完しない。JSON duplicate key / trailing data は parse 時に拒否する。
-- JS Proxy を trap 無実行で判定する保証はない。descriptor / prototype / collection inspection が throw、inconsistent、unreadable の場合は拒否する。返る descriptor の値だけを owned snapshot に取り込み、trap の副作用や外部 object 群の原子的 snapshot を保証しない。privileged Signer は browser / OS transport を通して受けた plain data を再検証し、untrusted realm の live object や Proxy を approval / authority として受け取らない。
-- 検証後は外部 object / nested object / property を再 read しない。`validate(input.foo); use(input.foo)`、外部 object の freeze だけ、JSON.stringify による getter / toJSON 実行を snapshot の代替にしない。inspection、display、digest、core call は同じ Signer-owned immutable DTO とその派生 bytes だけを使う。context 変更時は invalidation、target 変更は新規 request / approval を要求する。
-- request の number は schema が許可する finite safe integer のみ。NaN、Infinity、fraction、範囲外、負のゼロ、BigInt、numeric string coercion、unexpected undefined / null を拒否する。chain quantity の BigInt は内部 SDK decode 後だけ許可し、public hex / decimal string 契約を変えない。
-- 外部 request field は公開 schema が定める string / object / boolean 等に限り、Uint8Array / Buffer / ArrayBuffer / DataView / typed array は wire payload に許可しない。core-call bytes は owned DTO から生成する。内部 byte boundary に Uint8Array を受ける時も長さ確認後に view 範囲だけを非共有 owned buffer へ copy し、SharedArrayBuffer、detached / resizable / unreadable buffer を拒否する。外部 view と alias を共有せず、copy 後の mutation が core bytes に影響しないことを要求する。
+- 通常のオブジェクト（Object.prototype または null プロトタイプ）と dense 配列、スキーマの基本機構のみ許可する。自身の enumerable データプロパティ descriptor の値を一度だけ読み、必須フィールドの継承した値、ゲッター / setter / accessor、Symbol 鍵、non-enumerable スキーマフィールド、クラスインスタンス、Date、対応表、集合、関数、toJSON、cycle、スキーマにないオブジェクト型を拒否する。`__proto__`、`prototype`、`constructor` を全階層で拒否し、プロトタイプチェーンから値を補完しない。JSON 重複鍵 / 末尾のデータは解析時に拒否する。
+- JS Proxy を trap 無実行で判定する保証はない。descriptor / プロトタイプ / 収集内容検査が throw、不整合の、読み取り不能なの場合は拒否する。返る descriptor の値だけを所有するスナップショットに取り込み、trap の副作用や外部オブジェクト群の原子的スナップショットを保証しない。特権を持つ署名主体はブラウザ / OS 通信経路を通して受けた通常のデータを再検証し、信頼されていない realm の live オブジェクトや Proxy を承認 / 判断権限として受け取らない。
+- 検証後は外部オブジェクト / nested オブジェクト / プロパティを再読み取りしない。`validate(input.foo); use(input.foo)`、外部オブジェクトの freeze だけ、JSON.stringify によるゲッター / toJSON 実行をスナップショットの代替にしない。内容検査、表示、ダイジェスト、コア呼び出しは同じ署名主体が所有する不変 DTO とその派生バイト列だけを使う。文脈変更時は無効化、対象変更は新規要求 / 承認を要求する。
+- 要求の数値はスキーマが許可する有限の安全な整数のみ。NaN、Infinity、fraction、範囲外、負のゼロ、BigInt、数値の文字列 coercion、予期しない undefined / null を拒否する。チェーン数量の BigInt は内部 SDK デコード後だけ許可し、公開 hex / decimal 文字列契約を変えない。
+- 外部要求フィールドは公開スキーマが定める文字列 / オブジェクト / 真偽値等に限り、Uint8Array / バッファー / ArrayBuffer / DataView / typed 配列は通信上のペイロードに許可しない。core-call バイト列は所有する DTO から生成する。内部バイト境界に Uint8Array を受ける時も長さ確認後に表示範囲だけを非共有所有するバッファーへコピーし、SharedArrayBuffer、分離された / resizable / 読み取り不能なバッファーを拒否する。外部表示と別名を共有せず、コピー後の変更がコアバイト列に影響しないことを要求する。
 
-resource bounds は本節が owner とし、JSON parse / snapshot / encode / JCS / hex decode / copy より前と処理中に適用する。超過は invalid_request / INVALID_PARAMS（transaction 本体不正は INVALID_TRANSACTION）、core 未呼出し。限界ちょうどは他の schema 条件を満たす場合にのみ許可する。
+リソース上限は本節が責任主体とし、JSON 解析 / スナップショット / encode / JCS / hex デコード / コピーより前と処理中に適用する。超過は invalid_request / INVALID_PARAMS（トランザクション本体不正は INVALID_TRANSACTION）、コア未呼出し。限界ちょうどは他のスキーマ条件を満たす場合にのみ許可する。
 
-| 対象                                                      | 最大値と数え方                                                                                             |
-| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| request / response JSON または owned plain-data JSON 表現 | UTF-8 512 KiB。padding / escaping / 全 field を含む。raw Relay encrypted HTTP body の512 KiB制限も別に適用 |
-| 単独 string                                               | UTF-8 512 KiB、UTF-16 code unit 524288。より厳しい payload / identifier / message 制限を優先               |
-| container nesting                                         | root container を1と数え最大16                                                                             |
-| object の own field 数                                    | 一 object 64（unknown field も数える）                                                                     |
-| array elements                                            | 一 array 256、sparse / extra named property 不可。aggregate は chain 規則の100を優先                       |
-| 全 container / property / array element の総数            | root を含め4096。入力全体の走査で加算                                                                      |
-| transaction / parentPayload                               | 各 decoded 256 KiB、hex 524288 characters。複数 field は上記全体 bound も満たす                            |
-| message payload                                           | utf8 / hex-decoded bytes 16 KiB、signing bytes は core 上限1 MiB以内                                       |
-| core call byte boundary                                   | signing payload 1 MiB、opaque Store 16 MiB、public key 32 / signature64 bytes                              |
+| 対象                                                  | 最大値と数え方                                                                                                      |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| 要求 / 応答 JSON または所有する通常のデータ JSON 表現 | UTF-8 512 KiB。パディング / escaping / 全フィールドを含む。生の Relay 暗号化された HTTP 本文の512 KiB制限も別に適用 |
+| 単独文字列                                            | UTF-8 512 KiB、UTF-16 コード単体 524288。より厳しいペイロード / 識別子 / メッセージ制限を優先                       |
+| container nesting                                     | ルート container を1と数え最大16                                                                                    |
+| オブジェクトの自身のフィールド数                      | 一オブジェクト 64（不明フィールドも数える）                                                                         |
+| 配列 elements                                         | 一配列 256、sparse / extra 名前付きのプロパティ不可。アグリゲートはチェーン規則の100を優先                          |
+| 全 container / プロパティ / 配列 element の総数       | ルートを含め4096。入力全体の走査で加算                                                                              |
+| トランザクション / parentPayload                      | 各デコード済み 256 KiB、hex 524288 characters。複数フィールドは上記全体結び付いたも満たす                           |
+| メッセージペイロード                                  | utf8 / hex-decoded バイト列 16 KiB、署名バイト列はコア上限1 MiB以内                                                 |
+| コア呼び出しバイト境界                                | 署名ペイロード 1 MiB、内容を解釈しないストア 16 MiB、公開鍵 32 / signature64 バイト列                               |
 
-個々の field 上限を満たしても全体 body 上限を超える要求は拒否する。Relay は plaintext を解析せず raw ciphertext body だけを制限する。core facade の snapshot / payload limit はこの上流境界と表示・承認 binding の代替ではない。
+個々のフィールド上限を満たしても全体本文上限を超える要求は拒否する。Relay は平文を解析せず生の暗号文本文だけを制限する。コアファサードのスナップショット / ペイロード上限はこの上流境界と表示・承認結び付けの代替ではない。
 
 ### 12.1 共通検証順序
 
-各受信側は §12.0 の owned normalization を完了し、以後外部入力を再 read せず、少なくとも次の順序で fail-closed に検証する。関数内部の実装方法は規定しない。
+各受信側は §12.0 の所有する正規化を完了し、以後外部入力を再読み取りせず、少なくとも次の順序で安全側での終了に検証する。関数内部の実装方法は規定しない。
 
-1. JSON / envelope の型、size、duplicate key、required / optional、unknown field。
-2. enum、literal、identifier format、timestamp format、length、range および null 禁止。
-3. requestId、sessionId、generation、requestDigest、response correlation および duplicate / replay。
-4. Origin、caller、session、permission scope / revision、Profile / Account binding。
-5. Chain、Network、payload signer、expected signer および Profile consistency。
-6. operation-specific transaction / message parse、canonicality、semantic inspection および displayability。
-7. inspection、Explicit user approval、Authentication、Signing-capable unlock、Account authorization および Authorization binding。
-8. 署名前の target、Profile-local context、caller、freshness、digest、permission revision、4条件、capability context および raw input の再検証。
-9. wallet-core result と request / target / Account / Chain / Network / Profile-local context / 4条件の対応。
+1. JSON / エンベロープの型、サイズ、重複鍵、必須 / 任意、不明フィールド。
+2. 列挙型、リテラル、識別子形式、タイムスタンプ形式、長さ、範囲および null 禁止。
+3. requestId、sessionId、世代、requestDigest、応答対応付けおよび重複 / リプレイ。
+4. オリジン、呼び出し元、セッション、許可対象範囲 / リビジョン、プロファイル / アカウント結び付け。
+5. チェーン、ネットワーク、ペイロード署名主体、期待される署名主体およびプロファイル整合性。
+6. 操作固有のトランザクション / メッセージ解析、正規形式への適合性、意味上の内容検査および表示可能性。
+7. 内容検査、利用者による明示的な承認、認証、署名可能な状態へのロック解除、アカウントの利用認可および認可との結び付け。
+8. 署名前の対象、プロファイル内の文脈、呼び出し元、鮮度、ダイジェスト、許可リビジョン、4条件、対応能力文脈および生の入力の再検証。
+9. wallet-core 結果と要求 / 対象 / アカウント / チェーン / ネットワーク / プロファイル内の文脈 / 4条件の対応。
 
-途中の検証を別 component の成功、Relay delivery、Provider response、過去の approval、現在の permission の存在だけで代替してはならない。
+途中の検証を別コンポーネントの成功、Relay 配送、Provider 応答、過去の承認、現在の許可の存在だけで代替してはならない。
 
-### 12.2 Model ごとの検証
+### 12.2 モデルごとの検証
 
-| Model                 | 共通 validation                                                                                                                               |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Scope                 | enum、Chain / Network の組み合わせ、payload / Account / Profile との一致。                                                                    |
-| Identifier            | exact encoding、必要な byte length、空値禁止、duplicate / reuse 禁止。                                                                        |
-| Origin                | canonical form、許可された scheme、browser observed context / proof との完全一致、Mainnet の DNS / HTTPS 制約。                               |
-| Timestamp             | UTC RFC 3339 秒精度、実在日時、順序、expiry、既定 TTL。                                                                                       |
-| PublicAccountIdentity | required field、Chain-specific address / public key、Scope 一致、signer identity 一致。                                                       |
-| PermissionGrant       | Origin、Profile、Scope、permitted account、revision、timestamp の整合。unknown permission は未許可。                                          |
-| Transaction payload   | 偶数長 hex、256 KiB 以下、decode、allowlist、全 field、size、range、network、canonical reserialize byte equality。                            |
-| Structured message    | fixed domain、purpose regex、nonce length / freshness / reuse、payload encoding、NFC / lowercase hex、issued / expiry window。                |
-| TransactionSummary    | target-derived、全 security-relevant field、表示可能性、target との不一致なし。外部 summary 単独信用禁止。                                    |
-| Response              | requestId / digest、operation、signer、Account、Scope、target、signing outcome、delivery disposition と result / error の union consistency。 |
-| Error                 | stable public code、secret / internal detail の非露出、unknown code の安全側処理。                                                            |
+| モデル                     | 共通検証                                                                                                                           |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 対象範囲                   | 列挙型、チェーン / ネットワークの組み合わせ、ペイロード / アカウント / プロファイルとの一致。                                      |
+| 識別子                     | 厳密なエンコーディング、必要なバイト長さ、空値禁止、重複 / 再利用禁止。                                                            |
+| オリジン                   | 正規 form、許可された方式、ブラウザ観測された文脈 / 証明との完全一致、Mainnet の DNS / HTTPS 制約。                                |
+| タイムスタンプ             | UTC RFC 3339 秒精度、実在日時、順序、期限切れ、既定 TTL。                                                                          |
+| PublicAccountIdentity      | 必須フィールド、チェーン固有のアドレス / 公開鍵、対象範囲一致、署名主体識別情報一致。                                              |
+| PermissionGrant            | オリジン、プロファイル、対象範囲、許可済みのアカウント、リビジョン、タイムスタンプの整合。不明許可は未許可。                       |
+| トランザクションペイロード | 偶数長 hex、256 KiB 以下、デコード、許可リスト、全フィールド、サイズ、範囲、ネットワーク、正規 reserialize バイト等価性。          |
+| 構造化されたメッセージ     | 固定ドメイン、目的 regex、ノンス長さ / 鮮度 / 再利用、ペイロードエンコーディング、NFC / 小文字 hex、発行された / 期限切れ window。 |
+| TransactionSummary         | 対象から導出した、全セキュリティに関わるフィールド、表示可能性、対象との不一致なし。外部要約単独信用禁止。                         |
+| 応答                       | requestId / ダイジェスト、操作、署名主体、アカウント、対象範囲、対象、署名結果、配送処理結果の区分と結果 / エラーの共用体整合性。  |
+| エラー                     | 安定した公開コード、秘密情報 / 内部詳細の非露出、不明コードの安全側処理。                                                          |
 
-### 12.3 Mutually exclusive と依存関係
+### 12.3 相互排他と依存関係
 
-- RelayResponse は outcome ごとに許可された result field だけを持つ。
-- rejected / failed に成功 result を併記しない。
-- signed / dataSigned / cosigned は `signingOutcome: 'SUCCEEDED'`、known signed result および `deliveryDisposition` を持つ。`DELIVERY_UNKNOWN` でも result を保持する。
-- resultUnknown は `signingOutcome: 'RESULT_UNKNOWN'` だけを持ち、成功 result、deliveryDisposition または errorCode を持たない。
-- `RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` は通常 error code へ射影しない。transport / lifecycle failure から生成・推測しない。
-- originProof は対応 operation のみ許可し、Mobile Mainnet では required とする。
-- expectedSignerPublicKey は指定時だけ検証し、指定がない場合でも payload / selected Account の signer validation を省略しない。
-- Symbol cosignature の parentPayload と NEM cosignature の payload / parentPayload を混同しない。
-- request expiry と message expiry のどちらかが過ぎた場合は署名しない。
-- 同一 requestId で内容が異なる request は conflict / tampering として拒否する。同一内容の duplicate も追加 signing を発生させない。
+- RelayResponse は結果ごとに許可された結果フィールドだけを持つ。
+- 拒否済み / 失敗に成功結果を併記しない。
+- 署名済み / dataSigned / 連署済みは `signingOutcome: 'SUCCEEDED'`、既知の署名済み結果および `deliveryDisposition` を持つ。`DELIVERY_UNKNOWN` でも結果を保持する。
+- resultUnknown は `signingOutcome: 'RESULT_UNKNOWN'` だけを持ち、成功結果、deliveryDisposition または errorCode を持たない。
+- `RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` は通常エラーコードへ射影しない。通信経路 / ライフサイクル失敗から生成・推測しない。
+- originProof は対応操作のみ許可し、モバイル Mainnet では必須とする。
+- expectedSignerPublicKey は指定時だけ検証し、指定がない場合でもペイロード / 選択済みのアカウントの署名主体検証を省略しない。
+- Symbol 連署署名の parentPayload と NEM 連署署名のペイロード / parentPayload を混同しない。
+- 要求期限切れとメッセージ期限切れのどちらかが過ぎた場合は署名しない。
+- 同一 requestId で内容が異なる要求は競合 / 改ざんとして拒否する。同一内容の重複も追加署名を発生させない。
 
-## 13. 共通 State / Lifecycle 表現
+## 13. 共通状態 / ライフサイクル表現
 
-署名 request の state は次の exact set を使用する。
+署名要求の状態は次の厳密な集合を使用する。
 
 ```text
 RECEIVED → VALIDATED → INSPECTED → AWAITING_USER → AUTHORIZED → SIGNING → SUCCEEDED
 
-terminal:
+終端:
 REJECTED | FAILED | EXPIRED | CANCELLED | INVALIDATED | RESULT_UNKNOWN
 ```
 
-- RECEIVED: 外部経路から受信したが、trusted request として扱う前。
-- VALIDATED: 構造、caller、permission、session、Profile-local context、freshness、Chain / Network / Account、operation、capability を検証済み。これは署名 gate の成立を意味しない。
-- INSPECTED: target を chain-specific に解析し、confirmation model を生成済み。
-- AWAITING_USER: Signer 管理 UI で確認・拒否を待つ。署名認証は未成立。
-- AUTHORIZED: 特定 request / target と同一の Signer-owned Profile-local context に対して、Authentication、Signing-capable unlock、Account authorization および Explicit user approval の4条件が独立して成立した短寿命状態。
-- SIGNING: 4条件、Profile-local context、target および response binding を署名直前に再検証した後、wallet-core の signing contract を呼び出している状態。自動再実行しない。
-- SUCCEEDED: 4条件が成立した同一 context において、wallet-core result と target、signer、Account、Scope、request correlation を検証済みの状態。response delivery の成功を意味しない。
-- REJECTED: 利用者拒否。署名 result を持たない。
-- FAILED: 失敗が確定した。
-- EXPIRED: request または適用 message / transaction context の期限切れ。
-- CANCELLED: 利用者、dApp、Signer、platform または transport による取消。
-- INVALIDATED: context、target、permission、session、lifecycle または integrity の変化により継続不能。
-- RESULT_UNKNOWN: trusted Signer が署名生成自体の成否を安全に確定できない状態。delivery failure には使用しない。Signer だけが成立させる。
+- RECEIVED: 外部経路から受信したが、信頼された要求として扱う前。
+- VALIDATED: 構造、呼び出し元、許可、セッション、プロファイル内の文脈、鮮度、チェーン / ネットワーク / アカウント、操作、対応能力を検証済み。これは署名判定条件の成立を意味しない。
+- INSPECTED: 対象をチェーン固有のに解析し、確認モデルを生成済み。
+- AWAITING_USER: 署名主体管理 UI で確認・拒否を待つ。署名認証は未成立。
+- 認可済みの: 特定要求 / 対象と同一の署名主体が所有するプロファイル内の文脈に対して、認証、署名可能な状態へのロック解除、アカウントの利用認可および利用者による明示的な承認の4条件が独立して成立した短寿命状態。
+- 署名: 4条件、プロファイル内の文脈、対象および応答結び付けを署名直前に再検証した後、wallet-core の署名契約を呼び出している状態。自動再実行しない。
+- 成功: 4条件が成立した同一文脈において、wallet-core 結果と対象、署名主体、アカウント、対象範囲、要求対応付けを検証済みの状態。応答配送の成功を意味しない。
+- 拒否済み: 利用者拒否。署名結果を持たない。
+- 失敗: 失敗が確定した。
+- 期限切れ: 要求または適用メッセージ / トランザクション文脈の期限切れ。
+- キャンセル済み: 利用者、dApp、署名主体、プラットフォームまたは通信経路による取消。
+- 無効化済み: 文脈、対象、許可、セッション、ライフサイクルまたは完全性の変化により継続不能。
+- RESULT_UNKNOWN: 信頼された署名主体が署名生成自体の成否を安全に確定できない状態。配送失敗には使用しない。署名主体だけが成立させる。
 
-Terminal state を reopen しない。REJECTED、FAILED、EXPIRED、CANCELLED、INVALIDATED、RESULT_UNKNOWN から同じ request / Authorization で signing を再開しない。SUCCEEDED 後の delivery status は signing state ではなく §10.3 の disposition として扱う。`DELIVERY_UNKNOWN` は state set に追加しない。
+終端状態を再発しない。拒否済み、失敗、期限切れ、キャンセル済み、無効化済み、RESULT_UNKNOWN から同じ要求 / 認可で署名を再開しない。成功後の配送状態は署名状態ではなく §10.3 の処理結果の区分として扱う。`DELIVERY_UNKNOWN` は状態集合に追加しない。
 
-### 13.1 Retry / re-sign / automatic fallback
+### 13.1 再試行 / 再署名 / 自動代替経路
 
-次のいずれかの後に、同じ request / target / Authorization を用いた automatic signing retry または re-sign を行ってはならない。
+次のいずれかの後に、同じ要求 / 対象 / 認可を用いた自動署名再試行または再署名を行ってはならない。
 
-- user rejection、Authentication failure、Signing-capable unlock failure、Account authorization failure。
-- permission denial / revocation、caller / Origin mismatch、integrity failure、replay / duplicate failure。
-- semantic validation / inspection failure、Chain / Network mismatch、security-relevant context mismatch。
-- `RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、transport failure または delivery failure。
+- 利用者拒否、認証失敗、署名可能な状態へのロック解除失敗、アカウントの利用認可失敗。
+- 許可拒否 / 失効、呼び出し元 / オリジン不一致、完全性失敗、リプレイ / 重複失敗。
+- 意味上の検証 / 内容検査失敗、チェーン / ネットワーク不一致、セキュリティに関わる文脈不一致。
+- `RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、通信経路失敗または配送失敗。
 
-availability recovery と security decision の迂回を分離する。local から remote、remote から local、Provider A から Provider B、Signer A から Signer B、Relay failure から local Signer、または local Provider failure から Relay Signer への automatic route fallback を行ってはならない。transport reconnect、response redelivery、resend、retrieval または lookup は signing retry ではなく、known signed result がある場合の既存 result recovery としてだけ扱う。
+利用可能性復旧とセキュリティ判断の迂回を分離する。ローカルからリモート、リモートからローカル、Provider A から Provider B、署名主体 A から署名主体 B、Relay 失敗からローカル署名主体、またはローカル Provider 失敗から Relay 署名主体への自動経路代替経路を行ってはならない。通信経路再接続、応答再配送、再送、取得または照会は署名再試行ではなく、既知の署名済み結果がある場合の既存結果復旧としてだけ扱う。
 
-利用者が明示的に新しい signing operation を開始する場合だけ、新しい署名を許可する。その operation は少なくとも new request identity、fresh caller / source context、fresh Profile-local context、fresh validation、fresh inspection、fresh Authentication、fresh Signing-capable unlock、fresh Account authorization および fresh Explicit user approval を持たなければならない。古い Authorization、approval、Authentication、session、ciphertext または target binding を再利用してはならない。具体的な retry loop、interval、queue、scheduler または route selection implementation は本書で決定しない。
+利用者が明示的に新しい署名操作を開始する場合だけ、新しい署名を許可する。その操作は少なくとも新規要求識別情報、新鮮な呼び出し元 / 送信元文脈、新鮮なプロファイル内の文脈、新鮮な検証、新鮮な内容検査、新鮮な認証、新鮮な署名可能な状態へのロック解除、新鮮なアカウントの利用認可および新鮮な利用者による明示的な承認を持たなければならない。古い認可、承認、認証、セッション、暗号文または対象結び付けを再利用してはならない。具体的な再試行 loop、間隔、キュー、scheduler または経路選択実装は本書で決定しない。
 
-## 14. Forward / Backward Compatibility
+## 14. 前方互換性 / 後方互換性
 
 ### 14.1 互換性を許可できる変更
 
-次の変更だけを、既存の security invariant と schema validation を維持する範囲で許可候補とする。
+次の変更だけを、既存のセキュリティ上の不変条件とスキーマ検証を維持する範囲で許可候補とする。
 
-- 新しい optional field を、受信側が明示的に安全に無視または処理できる同一 version へ追加する。
-- 既存 capability set に、既存 operation の意味を変えない新 capability を追加する。
-- 新しい protocol / capability version を追加し、old version の意味を変更しない。
+- 新しい任意フィールドを、受信側が明示的に安全に無視または処理できる同一バージョンへ追加する。
+- 既存対応能力集合に、既存操作の意味を変えない新対応能力を追加する。
+- 新しいプロトコル / 対応能力バージョンを追加し、旧バージョンの意味を変更しない。
 
 ### 14.2 互換性を許可しない変更
 
-- required field の削除、型変更、enum の意味変更、同じ field への別 encoding の導入。
-- Chain / Network、Origin、Account、permission、request correlation、expiry、approval または target binding の弱体化。
-- unknown operation / version / field を旧 operation、raw signing または別 transport の成功へ fallback すること。
-- 同じ version literal のまま signing bytes、canonicalization、signature result、error semantics を変更すること。
+- 必須フィールドの削除、型変更、列挙型の意味変更、同じフィールドへの別エンコーディングの導入。
+- チェーン / ネットワーク、オリジン、アカウント、許可、要求対応付け、期限切れ、承認または対象結び付けの弱体化。
+- 不明操作 / バージョン / フィールドを旧操作、生の署名または別通信経路の成功へ代替経路すること。
+- 同じバージョンリテラルのまま署名バイト列、正規化、署名結果、エラー意味を変更すること。
 
-Unknown field、unknown enum、unsupported version、duplicate key、ambiguous union、malformed payload は、明示的な forward-compatible schema がない限り拒否する。Backward compatibility の期間、deprecation、migration および capability negotiation の処理手順は本書の範囲外である。
+不明フィールド、不明列挙型、未対応のバージョン、重複鍵、曖昧な共用体、不正な形式のペイロードは、明示的な forward-compatible スキーマがない限り拒否する。後方互換性の期間、非推奨化、移行および対応能力協議の処理手順は本書の範囲外である。
 
-## 15. Security Invariants
+## 15. セキュリティ上の不変条件
 
-Interface / Data Model 層では、少なくとも次を MUST とする。
+インターフェース / データモデル層では、少なくとも次を MUST とする。
 
-1. request、response、permission、Account、summary、error、URL、log、diagnostic に private key、Mnemonic、seed、Profile password、decrypted Wallet Store、session secret、credential raw 値または復元可能な秘密情報を含めない。
-2. request、caller / source、Profile-local security context、session、permission、Account、Chain / Network、operation、target、inspection、approval、Authentication、Signing-capable unlock、Account authorization、wallet-core call、result および response recipient / delivery を、適用範囲で同一 context に binding する。requestId 単独で authorization を表現しない。
-3. Authentication、Signing-capable unlock、Account authorization および Explicit user approval の4条件を独立した必須 gate とし、Signer が wallet-core 呼び出し直前まで再確認する。いずれかが missing、stale、revoked、locked、unknown または mismatch なら signing しない。
-4. connection、permission、Account disclosure、capability、Provider availability、session、ordinary `UNLOCKED`、過去の Authentication、wallet-core password validation、Wallet Store validation、Relay delivery、SDK state または Provider state を、4条件の代替にしない。
-5. requestId、nonce、expiry、generation および duplicate / replay state を用いて、遅延・再送・state loss が追加署名に直結しないようにする。
-6. 外部入力、encrypted envelope、Relay metadata、Node metadata、dApp の display text および自己申告 Origin を、semantic validation 前に trusted としない。
-7. Signer が target 全体を parse、validate、inspect、display できない場合は署名しない。warning だけで blind signing を許可しない。
-8. 1 request = 1 confirmation = 1 authentication = 1 signing operation を維持し、active request 間で context、approval、authentication、result または response recipient / delivery state を共有・統合・流用しない。
-9. Profile switch、Profile lock、association、Account、Chain / Network、caller / source、permission、revision、session または lifecycle の変更・喪失で、影響する active request / Authorization と delivery context を invalidated とする。古い context を別 Profile、別 request または別 recipient に再割当てしない。
-10. 署名前に承認時 context、permission revision、4条件、capability context、target、canonical bytes、digest および signer を再検証する。変更時は Authorization を invalidated とする。
-11. Signing outcome と delivery disposition を分離する。`RESULT_UNKNOWN` は trusted Signer だけが生成し、`DELIVERY_UNKNOWN` は valid signed result を伴う Signer-side disposition とする。SDK、Provider、Relay または transport が生成・推測・確定しない。
-12. Signer-originated `RESULT_UNKNOWN` / delivery disposition は SDK、Provider、Relay および transport を通過しても意味を変えず、通常 error code、transport failure、user rejection または signing failure へ変換しない。
-13. Relay の acceptance、delivery、acknowledgement、保存状態または availability を approval、semantic safety、署名成功、Account authorization、`RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` と混同しない。
-14. `RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、security failure、transport failure または delivery failure の後に automatic re-sign、signing retry または alternate route fallback を行わない。known result の recovery は既存 result の resend / redelivery / retrieval / lookup に限る。
-15. 利用者が明示的に開始した fresh signing operation だけが新しい署名を開始でき、new request identity、fresh caller / source、Profile、validation、inspection、4条件および approval を要求する。
-16. Mainnet signing capability は current release / evidence gate を満たした trusted Signer だけが有効化する。gate が missing、invalid、expired、inconsistent、unverifiable または unknown なら Mainnet を disabled / unavailable とし、Testnet-only の継続を妨げない。
-17. unknown、unsupported、malformed、期限切れ、認証失敗、context loss または検証不能は fail-closed とする。
+1. 要求、応答、許可、アカウント、要約、エラー、URL、ログ、診断に秘密鍵、ニーモニック、シード、プロファイルパスワード、復号されたウォレットストア、セッション秘密情報、認証情報生の値または復元可能な秘密情報を含めない。
+2. 要求、呼び出し元 / 送信元、プロファイル内のセキュリティ文脈、セッション、許可、アカウント、チェーン / ネットワーク、操作、対象、内容検査、承認、認証、署名可能な状態へのロック解除、アカウントの利用認可、wallet-core 呼び出し、結果および応答受信者 / 配送を、適用範囲で同一文脈に結び付けする。requestId 単独で認可を表現しない。
+3. 認証、署名可能な状態へのロック解除、アカウントの利用認可および利用者による明示的な承認の4条件を独立した必須判定条件とし、署名主体が wallet-core 呼び出し直前まで再確認する。いずれかが欠落、古くなった、失効済み、ロック済み、不明または不一致なら署名しない。
+4. 接続、許可、アカウント情報公開、対応能力、Provider 利用可能性、セッション、通常の `UNLOCKED`、過去の認証、wallet-core パスワード検証、ウォレットストア検証、Relay 配送、SDK 状態または Provider 状態を、4条件の代替にしない。
+5. requestId、ノンス、期限切れ、世代および重複 / リプレイ状態を用いて、遅延・再送・状態消失が追加署名に直結しないようにする。
+6. 外部入力、暗号化されたエンベロープ、Relay メタデータ、ノードメタデータ、dApp の表示テキストおよび自己申告オリジンを、意味上の検証前に信頼されたとしない。
+7. 署名主体が対象全体を解析、検証、内容検査、表示できない場合は署名しない。警告だけで内容を確認しない署名を許可しない。
+8. 1 要求 = 1 確認 = 1 認証 = 1 署名操作を維持し、有効な要求間で文脈、承認、認証、結果または応答受信者 / 配送状態を共有・統合・流用しない。
+9. プロファイル切り替え、プロファイルロック、関連付け、アカウント、チェーン / ネットワーク、呼び出し元 / 送信元、許可、リビジョン、セッションまたはライフサイクルの変更・喪失で、影響する有効な要求 / 認可と配送文脈を無効化済みとする。古い文脈を別プロファイル、別要求または別受信者に再割当てしない。
+10. 署名前に承認時文脈、許可リビジョン、4条件、対応能力文脈、対象、正規バイト列、ダイジェストおよび署名主体を再検証する。変更時は認可を無効化済みとする。
+11. 署名結果と配送処理結果の区分を分離する。`RESULT_UNKNOWN` は信頼された署名主体だけが生成し、`DELIVERY_UNKNOWN` は有効な署名済み結果を伴う署名主体側の処理結果の区分とする。SDK、Provider、Relay または通信経路が生成・推測・確定しない。
+12. 署名主体が生成した `RESULT_UNKNOWN` / 配送処理結果の区分は SDK、Provider、Relay および通信経路を通過しても意味を変えず、通常エラーコード、通信経路失敗、利用者拒否または署名失敗へ変換しない。
+13. Relay の受け入れ、配送、受領確認、保存状態または利用可能性を承認、意味上の安全性、署名成功、アカウントの利用認可、`RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` と混同しない。
+14. `RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、セキュリティ失敗、通信経路失敗または配送失敗の後に自動再署名、署名再試行または代替の経路代替経路を行わない。既知の結果の復旧は既存結果の再送 / 再配送 / 取得 / 照会に限る。
+15. 利用者が明示的に開始した新鮮な署名操作だけが新しい署名を開始でき、新規要求識別情報、新鮮な呼び出し元 / 送信元、プロファイル、検証、内容検査、4条件および承認を要求する。
+16. Mainnet 署名対応能力は現在のリリース / 根拠判定条件を満たした信頼された署名主体だけが有効化する。判定条件が欠落、無効な、期限切れ、不整合の、検証不能のまたは不明なら Mainnet を無効 / 利用不能とし、Testnet 専用の継続を妨げない。
+17. 不明、未対応の、不正な形式の、期限切れ、認証失敗、文脈消失または検証不能は安全側での終了とする。
 
-## 16. Component Responsibilities
+## 16. コンポーネントの責務
 
-| Component                 | 共通 model の利用                                                                                                                                                                         | 担当しないこと                                                                                                                                                                                |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SDK                       | 公開 Scope / Account、request construction、requestId correlation、capability / version の確認、response validation、Signer-originated result / delivery semantics の pass-through        | 最終 Origin authority、permission authority、4条件の成立、semantic inspection、approval、secret processing、raw signing、announce、unknown / delivery disposition の生成                      |
-| Browser Extension         | browser-observed Origin / document context、PermissionGrant、Account / Profile / Scope binding、target inspection、TransactionSummary、trusted UI、4条件、pre-sign revalidation、結果検証 | Page / Provider の自己申告を authority とすること、wallet-core 内部責務、Relay の意味解釈、alternate route の自動選択                                                                         |
-| Mobile App                | handoff source、origin proof、session / generation、request integrity、Profile-local context、Scope / Account、target inspection、trusted UI、4条件、result / delivery disposition の生成 | Relay delivery を approval とすること、未実装の Mobile capability を実装済みとすること、wallet-core 内部責務、alternate route の自動選択                                                      |
-| Relay                     | protocol / generation / requestId / expiry / size / structural lifecycle、opaque envelope の一時配送、Signer-originated response の correlation-preserving pass-through                   | payload semantics、transaction / message inspection、Origin / Account authority、4条件、approval、署名、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の生成・推測・変更、announce、long-term history |
-| wallet-core               | 秘密情報、Wallet Store、key identity、chain-specific cryptography、raw signing の正本                                                                                                     | Origin、permission、Profile-local context、4条件、UI、user approval、transaction meaning、request correlation、公開 error または disposition の設計                                           |
-| Release / evidence policy | current release の Mainnet release / evidence gate の評価と trusted evidence の管理                                                                                                       | signing target の inspection、4条件、approval、Authentication または raw signing。Mainnet gate の詳細方式は下位 release authority に委譲する                                                  |
+| コンポーネント          | 共通モデルの利用                                                                                                                                                                       | 担当しないこと                                                                                                                                                                                  |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SDK                     | 公開対象範囲 / アカウント、要求組み立て、requestId 対応付け、対応能力 / バージョンの確認、応答検証、署名主体が生成した結果 / 配送意味のそのまま通過させる                              | 最終オリジンの信頼性判断、許可判断権限、4条件の成立、意味上の内容検査、承認、秘密情報処理、生の署名、アナウンス、不明 / 配送処理結果の区分の生成                                                |
+| ブラウザ拡張機能        | ブラウザで観測したオリジン / 文書文脈、PermissionGrant、アカウント / プロファイル / 対象範囲結び付け、対象内容検査、TransactionSummary、信頼された UI、4条件、署名前再検証、結果検証   | ページ / Provider の自己申告を判断権限とすること、wallet-core 内部責務、Relay の意味解釈、代替の経路の自動選択                                                                                  |
+| モバイルアプリ          | 受け渡し送信元、オリジン証明、セッション / 世代、要求完全性、プロファイル内の文脈、対象範囲 / アカウント、対象内容検査、信頼された UI、4条件、結果 / 配送処理結果の区分の生成          | Relay 配送を承認とすること、未実装のモバイル対応能力を実装済みとすること、wallet-core 内部責務、代替の経路の自動選択                                                                            |
+| Relay                   | プロトコル / 世代 / requestId / 期限切れ / サイズ / 構造上のライフサイクル、内容を解釈しないエンベロープの一時配送、署名主体が生成した応答の correlation-preserving そのまま通過させる | ペイロード意味、トランザクション / メッセージ内容検査、オリジン / アカウントに関する判断権限、4条件、承認、署名、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN` の生成・推測・変更、アナウンス、長期履歴 |
+| wallet-core             | 秘密情報、ウォレットストア、鍵識別情報、チェーン固有の暗号処理、生の署名の正本                                                                                                         | オリジン、許可、プロファイル内の文脈、4条件、UI、利用者承認、トランザクション意味、要求対応付け、公開エラーまたは処理結果の区分の設計                                                           |
+| リリース / 根拠ポリシー | 現在のリリースの Mainnet リリース / 根拠判定条件の評価と信頼された根拠の管理                                                                                                           | 署名対象の内容検査、4条件、承認、認証または生の署名。Mainnet 判定条件の詳細方式は下位リリース判断権限に委譲する                                                                                 |
 
-Relay と wallet-core は共通 model の一部を transport / cryptographic boundary として受け取るが、相手の責任を代替しない。SDK、Provider および Relay は Signer-originated `RESULT_UNKNOWN` / delivery disposition の意味を変更せず通過させるが、それらの authority ではない。Mobile App は現在の workspace に実装がない将来コンポーネントであり、ここで記載するのは要求・設計上の責任境界である。
+Relay と wallet-core は共通モデルの一部を通信経路 / 暗号学的な境界として受け取るが、相手の責任を代替しない。SDK、Provider および Relay は署名主体が生成した `RESULT_UNKNOWN` / 配送処理結果の区分の意味を変更せず通過させるが、それらの判断権限ではない。モバイルアプリは現在のワークスペースに実装がない将来コンポーネントであり、ここで記載するのは要求・設計上の責任境界である。
 
-## 17. Traceability
+## 17. 追跡可能性
 
-重要な契約のみを次に追跡する。共通 request / response envelope、public Account identity、result / delivery union の canonical owner は本仕様 §6 であり、Handoff §7、SDK、Browser、Mobile、Relay の各記述はこの行へ戻る。
+重要な契約のみを次に追跡する。共通要求 / 応答エンベロープ、アカウントの公開識別情報、結果 / 配送共用体の正本の管理主体は本仕様 §6 であり、受け渡し §7、SDK、ブラウザ、モバイル、Relay の各記述はこの行へ戻る。
 
-| Requirement                                                | Design                                                                 | 本仕様                                                                                                                                 |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| CR-005、CR-NFR-005、SDK-FR-012                             | architecture §13、interfaces design §3.3                               | §5.1、§9.2、§12.2 の Chain / Network 分離と chain-specific validation                                                                  |
-| CR-NFR-008、CR-NFR-009、CR-NFR-010、CR-NFR-011、CR-NFR-012 | browser-extension design §7〜§10、signing-flow §5、§16、§21            | §5.2〜§5.5、§6、§8、§13、§15 の binding、freshness、correlation、replay 防止                                                           |
-| CR-002、CR-003、CR-004、CR-007-TX、CR-007-MSG              | security-design §8、signing-flow §8〜§15、interfaces design §6.5       | §9 の target、TransactionSummary、structured message、blind signing 禁止                                                               |
-| CR-006、SDK-FR-008、RR-002                                 | signing-flow §20、interfaces design §6.4、handoff §7.2                 | §6.3、§9.6、§10.3 の result correlation、response outcome、unknown / delivery 分離                                                     |
-| CR-011、RR-003、RR-008、RR-NFR-003                         | architecture §8〜§12、relay design §8、§27〜§29、security-design §17   | §6.2、§7、§11.3、§15、§16 の Relay opaque boundary、generation、secret isolation                                                       |
-| SDK-FR-002〜004、BR-004、MR-004                            | browser-extension design §8〜§9、sdk design §8〜§10                    | §5.3、§8 の Public Account、PermissionGrant、Origin / Scope / Account binding                                                          |
-| SDK-COMP-001〜004、RR-NFR-005                              | sdk design §7、§18、relay design §27、interfaces review IF-001〜IF-003 | §7、§14 の known version literal、unsupported / unknown の fail-closed、OPEN の保持                                                    |
-| CR-016、CR-AC-017、Signing Flow §16 / §23                  | interfaces design §9.1、security-design §7〜§8、signing-flow §8 / §16  | §8.4、§9.7、§12.1、§13、§15 の common four conditions、Signer gate、pre-sign revalidation、非代替性                                    |
-| CR-NFR-008〜CR-NFR-011、CR-AC-011〜013                     | interfaces design §6、security-design §10.2、signing-flow §7 / §23     | §8.4〜§8.5、§12、§13、§15 の Profile-local security context、lifecycle invalidation、concurrent request isolation                      |
-| CR-012、CR-NFR-012、RR-NFR-002、RR-NFR-005                 | signing-flow §7.4、§19〜§23、sdk / relay design の result boundary     | §6.1〜§6.3、§10.3、§13.1、§15、§16 の Signer-only disposition、transport failure 分離、pass-through、known-result recovery、no re-sign |
-| SDK-FR-009〜011、CR-AC-015、Signing Flow §21 / §23         | architecture §5.2、sdk design §17 / §21、relay design §25 / §29        | §6.4、§10.1、§13.1、§14.2、§15 の no automatic retry / re-sign / route fallback と fresh signing contract                              |
-| CR-NFR-006、CR-AC-008、BR-013、ADR 0001                    | architecture §16〜§17、security-design §16、release evidence policy    | §7.4、§12.2、§15、§16 の Mainnet release / evidence gate、fail-closed、Testnet-only 継続および下位 authority 委譲                      |
+| 要求                                                       | 設計                                                                      | 本仕様                                                                                                                                    |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| CR-005、CR-NFR-005、SDK-FR-012                             | アーキテクチャ §13、インターフェース設計 §3.3                             | §5.1、§9.2、§12.2 のチェーン / ネットワーク分離とチェーン固有の検証                                                                       |
+| CR-NFR-008、CR-NFR-009、CR-NFR-010、CR-NFR-011、CR-NFR-012 | browser-extension 設計 §7〜§10、signing-flow §5、§16、§21                 | §5.2〜§5.5、§6、§8、§13、§15 の結び付け、鮮度、対応付け、リプレイ防止                                                                     |
+| CR-002、CR-003、CR-004、CR-007-TX、CR-007-MSG              | security-design §8、signing-flow §8〜§15、インターフェース設計 §6.5       | §9 の対象、TransactionSummary、構造化されたメッセージ、内容を確認しない署名禁止                                                           |
+| CR-006、SDK-FR-008、RR-002                                 | signing-flow §20、インターフェース設計 §6.4、受け渡し §7.2                | §6.3、§9.6、§10.3 の結果対応付け、応答結果、不明 / 配送分離                                                                               |
+| CR-011、RR-003、RR-008、RR-NFR-003                         | アーキテクチャ §8〜§12、relay 設計 §8、§27〜§29、security-design §17      | §6.2、§7、§11.3、§15、§16 の Relay 内容を解釈しない境界、世代、秘密情報の分離                                                             |
+| SDK-FR-002〜004、BR-004、MR-004                            | browser-extension 設計 §8〜§9、sdk 設計 §8〜§10                           | §5.3、§8 の公開アカウント、PermissionGrant、オリジン / 対象範囲 / アカウント結び付け                                                      |
+| SDK-COMP-001〜004、RR-NFR-005                              | sdk 設計 §7、§18、relay 設計 §27、インターフェースレビュー IF-001〜IF-003 | §7、§14 の既知のバージョンリテラル、未対応の / 不明の安全側での終了、未決の保持                                                           |
+| CR-016、CR-AC-017、署名フロー §16 / §23                    | インターフェース設計 §9.1、security-design §7〜§8、signing-flow §8 / §16  | §8.4、§9.7、§12.1、§13、§15 の共通の四つの条件、署名主体判定条件、署名前再検証、非代替性                                                  |
+| CR-NFR-008〜CR-NFR-011、CR-AC-011〜013                     | インターフェース設計 §6、security-design §10.2、signing-flow §7 / §23     | §8.4〜§8.5、§12、§13、§15 のプロファイル内のセキュリティ文脈、ライフサイクル無効化、並行する要求分離                                      |
+| CR-012、CR-NFR-012、RR-NFR-002、RR-NFR-005                 | signing-flow §7.4、§19〜§23、sdk / relay 設計の結果境界                   | §6.1〜§6.3、§10.3、§13.1、§15、§16 の署名主体のみの処理結果の区分、通信経路失敗分離、そのまま通過させる、確定済みの結果復旧、再署名の禁止 |
+| SDK-FR-009〜011、CR-AC-015、署名フロー §21 / §23           | アーキテクチャ §5.2、sdk 設計 §17 / §21、relay 設計 §25 / §29             | §6.4、§10.1、§13.1、§14.2、§15 の no 自動再試行 / 再署名 / 経路代替経路と新鮮な署名契約                                                   |
+| CR-NFR-006、CR-AC-008、BR-013、ADR 0001                    | アーキテクチャ §16〜§17、security-design §16、リリース証跡ポリシー        | §7.4、§12.2、§15、§16 の Mainnet リリース / 根拠判定条件、安全側での終了、Testnet 専用継続および下位判断権限委譲                          |
 
-## 18. OPEN Issues
+## 18. 未決課題
 
-### OPEN-001: Structured message expiry field の整合
+### OPEN-001: 構造化されたメッセージ有効期限フィールドの整合
 
-Resolved（本 remediation の明示依頼に基づく contract decision）。§9.4 が canonical message と adapter の正本。request.messageExpiresAt は message.expiresAt へ一意に mapping し request.expiresAt は配送期限として分離する。暗黙 alias、両方を同じ request に送ること、別 JCS object の署名は禁止する。歴史的 ID は維持する。
+解消済み（本 remediation の明示依頼に基づく契約判断）。§9.4 が正規メッセージとアダプターの正本。request.messageExpiresAt は message.expiresAt へ一意に対応付けし request.expiresAt は配送期限として分離する。暗黙別名、両方を同じ要求に送ること、別 JCS オブジェクトの署名は禁止する。歴史的 ID は維持する。
 
-### OPEN-002: Common capability identifier / negotiation contract
+### OPEN-002: 共通の対応能力識別子 / 協議契約
 
-- **問題:** capability の意味カテゴリはあるが、identifier の namespace、set field、version representation、negotiation response、deprecation rule が確定していない。
-- **本書だけで決定できない理由:** SDK、Provider、Mobile、Relay の version policy と公開 scope を同時に決める必要があり、Design が下位仕様へ委譲している。
-- **影響範囲:** unsupported 判定、Provider API、Mobile / Relay compatibility、Mainnet capability の具体的 advertisement、forward compatibility。Mainnet gate の存在、release / evidence policy への従属、非代替性および判定不能時の fail-closed は §7.4 で確定しており、本 OPEN の対象外である。
-- **戻すべき上流文書:** docs/requirements/sdk.md の SDK-OPEN-006、SDK-OPEN-007、docs/requirements/relay.md の RR-OPEN-001、必要に応じて SDK / Relay Design。
+- **問題:** 対応能力の意味カテゴリはあるが、識別子の名前空間、集合フィールド、バージョン表現、協議応答、非推奨化規則が確定していない。
+- **本書だけで決定できない理由:** SDK、Provider、モバイル、Relay のバージョンポリシーと公開対象範囲を同時に決める必要があり、設計が下位仕様へ委譲している。
+- **影響範囲:** 未対応の判定、Provider API、モバイル / Relay 互換性、Mainnet 対応能力の具体的 advertisement、前方互換性互換性。Mainnet 判定条件の存在、リリース / 根拠ポリシーへの従属、非代替性および判定不能時の安全側での終了は §7.4 で確定しており、本未決の対象外である。
+- **戻すべき上流文書:** docs/requirements/sdk.md の SDK-OPEN-006、SDK-OPEN-007、docs/requirements/relay.md の RR-OPEN-001、必要に応じて SDK / Relay 設計。
 
-### OPEN-003: Common protocol version field and compatibility matrix
+### OPEN-003: 共通のプロトコルバージョンフィールドと互換性対応表
 
-- **問題:** SDK 1.0.0、Provider 2.x、Relay mosaiclynx.relay.v1 等の literal は確定しているが、全境界共通の version field と matrix がない。
-- **本書だけで決定できない理由:** version mismatch の公開 error、backward compatibility の期間、deprecation、migration は release / platform policy と結合する。
-- **影響範囲:** unknown version、additive field、Provider / Relay selection、旧 client の安全な拒否。
-- **戻すべき上流文書:** docs/requirements/sdk.md の SDK-OPEN-006、docs/requirements/mobile-app.md の MR-OPEN-001、Relay handoff / release design。
+- **問題:** SDK 1.0.0、Provider 2.x、Relay mosaiclynx.relay.v1 等のリテラルは確定しているが、全境界共通のバージョンフィールドと対応表がない。
+- **本書だけで決定できない理由:** バージョン不一致の公開エラー、後方互換性の期間、非推奨化、移行はリリース / プラットフォームポリシーと結合する。
+- **影響範囲:** 不明バージョン、追加的なフィールド、Provider / Relay 選択、旧クライアントの安全な拒否。
+- **戻すべき上流文書:** docs/requirements/sdk.md の SDK-OPEN-006、docs/requirements/mobile-app.md の MR-OPEN-001、Relay 受け渡し / リリース設計。
 
-### OPEN-004: Permission expiry and independent revocation identifier
+### OPEN-004: 許可期限切れと独立した失効識別子
 
-- **問題:** 現行 PermissionGrant は Origin、Profile、Scope、Account set、revision、created / updated を持つが、expiresAt、独立 permissionId、revokedAt は定義していない。
-- **本書だけで決定できない理由:** permission expiry と request / session expiry を混同できず、複数 platform の revoke / synchronization contract を先に決める必要がある。
-- **影響範囲:** revocation、Authorization invalidation、Mobile / Browser state synchronization、backup / restore、session recovery。
-- **戻すべき上流文書:** docs/design/interfaces.md の permission delegation、docs/design/security-design.md §9、docs/requirements/sdk.md の connection / permission 下流仕様、必要に応じて Profile / Account Specification。
+- **問題:** 現行 PermissionGrant はオリジン、プロファイル、対象範囲、アカウント集合、リビジョン、created / updated を持つが、expiresAt、独立 permissionId、revokedAt は定義していない。
+- **本書だけで決定できない理由:** 許可期限切れと要求 / セッション期限切れを混同できず、複数プラットフォームの失効 / 同期契約を先に決める必要がある。
+- **影響範囲:** 失効、認可無効化、モバイル / ブラウザ状態同期、バックアップ / 復元、セッション復旧。
+- **戻すべき上流文書:** docs/design/interfaces.md の許可委譲、docs/design/security-design.md §9、docs/requirements/sdk.md の接続 / 許可下流仕様、必要に応じてプロファイル / アカウント仕様。
 
-### OPEN-005: Browser / Mobile caller context outside existing handoff
+### OPEN-005: ブラウザ / モバイル呼び出し元文脈対象外の既存の受け渡し
 
-- **問題:** Browser の observed Origin と Mobile Mainnet の Origin proof は定義されているが、Browser session identifier の wire form、Mobile の非 Relay caller、非 Web 外部 invocation の共通表現は未確定である。
-- **本書だけで決定できない理由:** platform API、OS handoff、permission authority、Mainnet gate と結合し、共通 callerContext を独自追加すると architecture を拡張するため。
-- **影響範囲:** Origin binding、session correlation、permission scope、Mobile / Browser cross-transport compatibility。
-- **戻すべき上流文書:** docs/requirements/sdk.md の SDK-OPEN-007、docs/requirements/mobile-app.md の MR-OPEN-002、Browser / Mobile Design。
+- **問題:** ブラウザの観測されたオリジンとモバイル Mainnet のオリジン証明は定義されているが、ブラウザセッション識別子の通信上の form、モバイルの非 Relay 呼び出し元、非 Web 外部呼び出しの共通表現は未確定である。
+- **本書だけで決定できない理由:** プラットフォーム API、OS 受け渡し、許可判断権限、Mainnet 判定条件と結合し、共通 callerContext を独自追加するとアーキテクチャを拡張するため。
+- **影響範囲:** オリジンとの結び付け、セッション対応付け、許可対象範囲、モバイル / ブラウザ通信経路間の互換性。
+- **戻すべき上流文書:** docs/requirements/sdk.md の SDK-OPEN-007、docs/requirements/mobile-app.md の MR-OPEN-002、ブラウザ / モバイル設計。
 
-### OPEN-006: Aggregate / multisig / cosignature public scope
+### OPEN-006: アグリゲート / マルチシグ / 連署署名公開対象範囲
 
-Resolved for v1 contract。§9.6.1 と Chain Compatibility §4 が Symbol attached / detached Aggregate v2 と NEM CosignatureV1 の対応範囲・結果を固定する。capability は optional、非提供 Signer は UNAVAILABLE。必須化・他 type / version・future Partial の拡張は本決定の対象外。SDK / Provider / Mobile / Handoff は同じ cosigned / resultUnknown / delivery union に追跡する。
+解消済み for v1 契約。§9.6.1 とチェーン互換性 §4 が Symbol attached / 分離されたアグリゲート v2 と NEM CosignatureV1 の対応範囲・結果を固定する。対応能力は任意、非提供署名主体は利用不能。必須化・他型 / バージョン・将来部分トランザクションの拡張は本決定の対象外。SDK / Provider / モバイル / 受け渡しは同じ連署済み / resultUnknown / 配送共用体に追跡する。
 
-## 19. Specification 完了条件
+## 19. 仕様完了条件
 
 本書を参照する実装・レビューは、少なくとも次を確認できる状態を完了とする。
 
-- §5〜§6 の required / optional、identifier、Origin、Scope、Envelope および response union を検証できる。
-- §8 の permission binding、Profile-local context、concurrent request isolation と公開 / 内部 Account 境界を越境させない。
-- §9 の transaction / message / cosignature を Chain-specific 契約へ委譲し、blind signing を許可しない。
-- §9.7、§10.3、§13.1 の common four conditions、Signer-only `RESULT_UNKNOWN`、Signer-side `DELIVERY_UNKNOWN`、transport failure 分離、known-result recovery、no automatic re-sign / fallback および fresh signing requirements を検証できる。
-- §10〜§14 の error、serialization、validation、state、compatibility を用いて成功、delivery disposition、result unknown および安全側失敗を区別できる。
-- §7.4、§15〜§16 の Mainnet release / evidence gate、fail-closed、secret isolation、request correlation、Relay opaque boundary、SDK / wallet-core boundary を維持できる。
-- §18 の OPEN を未解決のまま、実装が独自の共有 field、version、permission expiry、expiry の独自 alias または capability negotiation を発明していない。
+- §5〜§6 の必須 / 任意、識別子、オリジン、対象範囲、エンベロープおよび応答共用体を検証できる。
+- §8 の許可結び付け、プロファイル内の文脈、並行する要求分離と公開 / 内部アカウント境界を越境させない。
+- §9 のトランザクション / メッセージ / 連署署名をチェーン固有の契約へ委譲し、内容を確認しない署名を許可しない。
+- §9.7、§10.3、§13.1 の共通の四つの条件、署名主体のみの `RESULT_UNKNOWN`、署名主体側の `DELIVERY_UNKNOWN`、通信経路失敗分離、確定済みの結果復旧、no 自動再署名 / 代替経路および新鮮な署名要件を検証できる。
+- §10〜§14 のエラー、シリアライズ、検証、状態、互換性を用いて成功、配送処理結果の区分、結果不明および安全側失敗を区別できる。
+- §7.4、§15〜§16 の Mainnet リリース / 根拠判定条件、安全側での終了、秘密情報の分離、要求対応付け、Relay 内容を解釈しない境界、SDK / wallet-core 境界を維持できる。
+- §18 の未決を未解決のまま、実装が独自の共有フィールド、バージョン、許可期限切れ、期限切れの独自別名または対応能力協議を発明していない。

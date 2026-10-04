@@ -1,9 +1,9 @@
-# MosaicLynx Testnet mobile support and security
+# MosaicLynx Testnet モバイルアプリのサポートとセキュリティ
 
-Support requests should use the public support form published at `https://mosaiclynx.app/support`. Store listings must use that same owner-controlled URL and must not point at a personal account.
+サポートへの問い合わせには、`https://mosaiclynx.app/support` で公開されているサポートフォームを使用する。ストアの掲載情報には、この同じ責任者管理下の URL を使用しなければならず、個人アカウントを案内してはならない。
 
-Security reports should be sent to `security@mosaiclynx.app`. Include the affected app version, operating-system version, and reproduction steps. Never include a mnemonic, private key, Vault or backup password, Relay handoff URL, app token, session secret, or complete transaction payload.
+セキュリティ報告は `security@mosaiclynx.app` へ送る。影響を受けるアプリのバージョン、OS のバージョン、再現手順を記載する。ニーモニック、秘密鍵、Vault やバックアップのパスワード、Relay の受け渡し URL、アプリトークン、セッション秘密情報、トランザクションの完全なペイロードを含めてはならない。
 
-The release owner must verify both addresses before TestFlight or Play closed testing begins. Acknowledgement and disclosure timelines are release-operations policy and are not encoded in the application.
+リリース責任者は、TestFlight または Play のクローズドテストを開始する前に、両方の連絡先を確認しなければならない。受領確認と情報公開の期限はリリース運用ポリシーで定めるものであり、アプリケーションには組み込まれていない。
 
-MosaicLynx Testnet does not provide account recovery. Losing both the mnemonic and an encrypted backup permanently removes access to the Testnet profile.
+MosaicLynx Testnet はアカウントの復旧サービスを提供しない。ニーモニックと暗号化されたバックアップの両方を失うと、Testnet プロファイルへのアクセスを永久に失う。

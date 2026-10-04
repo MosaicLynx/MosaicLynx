@@ -1,766 +1,766 @@
-# MosaicLynx Mobile App Specification
+# MosaicLynx モバイルアプリ仕様
 
 ## 1. 文書の位置付け
 
-| 項目         | 内容                                                                                                                                  |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Status       | Design から実装へ引き渡す Mobile App Specification                                                                                    |
-| 対象         | iOS / Android の MosaicLynx Mobile App と、その外部 handoff 境界                                                                      |
-| 主な責任主体 | Mobile trusted host / trusted Signer                                                                                                  |
-| 適用範囲     | Mobile App の責務、外部入力、Profile / Account binding、署名 lifecycle、Relay handoff、秘密情報境界、platform lifecycle、release gate |
-| 対象外       | source code、class / file 構造、framework・library・database の選定、CI/CD、deployment procedure、test implementation                 |
+| 項目         | 内容                                                                                                                                                              |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 状態         | 設計から実装へ引き渡すモバイルアプリ仕様                                                                                                                          |
+| 対象         | iOS / Android の MosaicLynx モバイルアプリと、その外部受け渡し境界                                                                                                |
+| 主な責任主体 | モバイル信頼されたホスト / 信頼された署名主体                                                                                                                     |
+| 適用範囲     | モバイルアプリの責務、外部入力、プロファイル / アカウント結び付け、署名ライフサイクル、Relay 受け渡し、秘密情報境界、プラットフォームライフサイクル、リリース判定 |
+| 対象外       | 送信元コード、クラス / ファイル構造、基盤・ライブラリ・データベースの選定、CI/CD、配置手順、テスト実装                                                            |
 
-本仕様は、承認済みの Mobile App 基本設計を、実装者と利用者が同じ外部動作を実現できる粒度へ具体化する。共通の request / response、署名 lifecycle、error、serialization、Chain-specific protocol および Wallet Core の契約は、既存 Specification を正本として参照する。本書は Mobile App 固有の適用を定め、既存の共通契約を別の契約へ置き換えない。
+本仕様は、承認済みのモバイルアプリ基本設計を、実装者と利用者が同じ外部動作を実現できる粒度へ具体化する。共通の要求 / 応答、署名ライフサイクル、エラー、シリアライズ、チェーン固有のプロトコルおよび wallet-core の契約は、既存仕様を正本として参照する。本書はモバイルアプリ固有の適用を定め、既存の共通契約を別の契約へ置き換えない。
 
-本仕様における `MUST`、`MUST NOT`、`SHOULD` および `MAY` は、上位 Specification の規範語と同じ意味で用いる。
+本仕様における `MUST`、`MUST NOT`、`SHOULD` および `MAY` は、上位仕様の規範語と同じ意味で用いる。
 
-### 1.1 規範性と authority
+### 1.1 規範性と判断権限
 
-authority は文書全体の順位ではなく、対象となる contract を所有する Specification または policy によって決まる。
+判断権限は文書全体の順位ではなく、対象となる契約を所有する仕様またはポリシーによって決まる。
 
-- Common contract の authority は、それぞれの contract を所有する既存 Specification にある。共通 request / response、common field、common state、error、signing result、`RESULT_UNKNOWN`、`deliveryDisposition`、serialization、Chain / Network semantics、Profile / Account common semantics、Handoff protocol、version / capability および release / evidence contract は、本書で上書きしない。具体的には [共通 Interface / Data Model Specification](./interfaces.md)、[Signing Protocol Specification](./signing-protocol.md)、[Web Transaction Handoff Specification](./web-transaction-handoff-spec.md)、[Profile / Account Specification](./profile-account-spec.md)、[Chain Compatibility Specification](./chain-compatibility-spec.md) および適用される release / evidence の Specification / policy が各自の authority である。
-- Mobile-specific contract は、Mobile 上で common contract をどのように適用するか、Mobile-specific lifecycle、Mobile trusted host、platform boundary、Mobile-specific validation、trusted Mobile UI、additional security restriction、fail-closed condition および実装に必要な Mobile-specific constraint を定める。本書は common contract の代替や override authority ではない。
-- Mobile-specific specialization を定める場合も、common contract を弱めず、common field、common state または common semantics を変更せず、common contract と両立する追加制約として定める。
-- Common Specification と本書の間に矛盾が見つかった場合は、Mobile 側で上書き・選択せず、該当 common Specification を authority とする。矛盾は未解決の cross-document issue として既存の OPEN / §19 の委譲先で扱い、解消されるまで本書独自の field、state、error、version または capability を追加しない。
+- 共通の契約の判断権限は、それぞれの契約を所有する既存仕様にある。共通要求 / 応答、共通のフィールド、共通の状態、エラー、署名結果、`RESULT_UNKNOWN`、`deliveryDisposition`、シリアライズ、チェーン / ネットワーク意味、プロファイル / アカウント共通の意味、受け渡しプロトコル、バージョン / 対応能力およびリリース / 根拠契約は、本書で上書きしない。具体的には [共通インターフェース / データモデル仕様](./interfaces.md)、[署名プロトコル仕様](./signing-protocol.md)、[Web トランザクション受け渡し仕様](./web-transaction-handoff-spec.md)、[プロファイル / アカウント仕様](./profile-account-spec.md)、[チェーン互換性仕様](./chain-compatibility-spec.md) および適用されるリリース / 根拠の仕様 / ポリシーが各自の判断権限である。
+- モバイル固有の契約は、モバイル上で共通の契約をどのように適用するか、モバイル固有のライフサイクル、モバイル信頼されたホスト、プラットフォーム境界、モバイル固有の検証、信頼されたモバイル UI、追加のセキュリティ制限、安全側での終了条件および実装に必要なモバイル固有の制約を定める。本書は共通の契約の代替や上書き判断権限ではない。
+- モバイル固有の specialization を定める場合も、共通の契約を弱めず、共通のフィールド、共通の状態または共通の意味を変更せず、共通の契約と両立する追加制約として定める。
+- 共通の仕様と本書の間に矛盾が見つかった場合は、モバイル側で上書き・選択せず、該当共通の仕様を判断権限とする。矛盾は未解決の文書間の課題として既存の未決 / §19 の委譲先で扱い、解消されるまで本書独自のフィールド、状態、エラー、バージョンまたは対応能力を追加しない。
 
-上流の Requirements / Design は traceability と判断根拠であり、common contract の authority を変更しない。
+上流の要件 / 設計は追跡可能性と判断根拠であり、共通の契約の判断権限を変更しない。
 
-共通受信境界は [Interfaces §12.0](./interfaces.md) の bounded snapshot / plain-data normalization / immutable DTO を使用し、validation 後の外部 property 再 read を禁止する。正式 core integration は [wallet-core Integration](./wallet-core-integration.md)、message expiry / text format は Interfaces §9.4、cosignature の optional scope / result / unknown / delivery は Interfaces §9.6.1 を正本とする。Relay は core を呼ばず plaintext の normalization / semantics を担わない。Signer だけが core を呼ぶ。
+共通受信境界は [インターフェース §12.0](./interfaces.md) の上限のあるスナップショット / 通常のデータ正規化 / 不変 DTO を使用し、検証後の外部プロパティ再読み取りを禁止する。正式コア統合は [wallet-core 統合](./wallet-core-integration.md)、メッセージ期限切れ / テキスト形式はインターフェース §9.4、連署署名の任意対象範囲 / 結果 / 不明 / 配送はインターフェース §9.6.1 を正本とする。Relay はコアを呼ばず平文の正規化 / 意味を担わない。署名主体だけがコアを呼ぶ。
 
-## 2. Scope、前提および非責務
+## 2. 対象範囲、前提および非責務
 
-### 2.1 Scope
+### 2.1 対象範囲
 
-Mobile App は、端末上で利用者の署名判断を成立させる local trusted Signer である。対象は次の能力である。
+モバイルアプリは、端末上で利用者の署名判断を成立させるローカル信頼された署名主体である。対象は次の能力である。
 
-- Application Profile と Account の表示、選択、関連付けおよび Scope の管理。
-- 外部アプリ・スマホブラウザからの handoff と、Relay 経由の署名要求の受信。
-- request、source、session、permission、Profile / Account、Chain / Network、operation、target および期限の検証。
-- Mobile App が管理する trusted foreground UI での transaction / message 内容の確認。
-- Authentication、Signing-capable unlock、Account authorization および Explicit user approval の独立した signing gate。
-- `wallet-core` の外部契約を利用した Wallet Store、秘密情報処理および raw signing。
-- 元 request に binding された response の生成と、Relay への暗号化 response の配送。
-- Android milestone と iOS milestone を独立した platform capability として評価すること。
+- アプリケーションプロファイルとアカウントの表示、選択、関連付けおよび対象範囲の管理。
+- 外部アプリ・スマホブラウザからの受け渡しと、Relay 経由の署名要求の受信。
+- 要求、送信元、セッション、許可、プロファイル / アカウント、チェーン / ネットワーク、操作、対象および期限の検証。
+- モバイルアプリが管理する信頼されたフォアグラウンド UI でのトランザクション / メッセージ内容の確認。
+- 認証、署名可能な状態へのロック解除、アカウントの利用認可および利用者による明示的な承認の独立した署名判定条件。
+- `wallet-core` の外部契約を利用したウォレットストア、秘密情報処理および生の署名。
+- 元要求に結び付けされた応答の生成と、Relay への暗号化応答の配送。
+- Android マイルストーンと iOS マイルストーンを独立したプラットフォーム対応能力として評価すること。
 
-Mobile v1 の必須 signing operation は transaction signing と structured `MESSAGE_SIGN` である。既存 handoff が定める `connect`、`refreshActiveAccount` および `disconnect` は同じ Mobile handoff 境界で扱う。`cosignTransaction` は Interfaces §9.6.1 の optional capability とし、非対応は UNAVAILABLE。提供する chain / mode の result contract は同節に固定する。
+モバイル v1 の必須署名操作はトランザクション署名と構造化された `MESSAGE_SIGN` である。既存受け渡しが定める `connect`、`refreshActiveAccount` および `disconnect` は同じモバイル受け渡し境界で扱う。`cosignTransaction` はインターフェース §9.6.1 の任意対応能力とし、非対応は利用不能。提供するチェーン / 方式の結果契約は同節に固定する。
 
 ### 2.2 非責務
 
-Mobile App は次を担わない。
+モバイルアプリは次を担わない。
 
-- Relay server の session 保管、opaque envelope の semantic 解釈、Relay の TTL・rate limit・HTTP / Redis 管理または Relay-side authorization。
-- SDK の公開 API、Web page integration、Provider discovery、transport 選択または dApp の結果検証。
-- Relay、Mobile App または Signer による transaction announce、node 選択、残高・履歴取得または継続的な network state 管理。
-- 外部アプリ、Web page、Relay、通知、OS link の表示文言を approval の根拠にすること。
-- `wallet-core` の KDF、AEAD、Wallet Store、key derivation、chain-specific cryptography または raw signing の再実装。
-- OS の Keychain / Keystore / Secure Enclave / StrongBox の内部実装を `wallet-core` の責任として扱うこと。
-- 端末紛失時の管理者による秘密情報再発行、遠隔復旧または custody 保証。
+- Relay サーバーのセッション保管、内容を解釈しないエンベロープの意味上の解釈、Relay の TTL・頻度上限・HTTP / Redis 管理または Relay-side 認可。
+- SDK の公開 API、Web ページ統合、Provider 検出、通信経路選択または dApp の結果検証。
+- Relay、モバイルアプリまたは署名主体によるトランザクションアナウンス、ノード選択、残高・履歴取得または継続的なネットワーク状態管理。
+- 外部アプリ、Web ページ、Relay、通知、OS リンクの表示文言を承認の根拠にすること。
+- `wallet-core` の KDF、AEAD、ウォレットストア、鍵導出、チェーン固有の暗号処理または生の署名の再実装。
+- OS の Keychain / Keystore / 安全な Enclave / StrongBox の内部実装を `wallet-core` の責任として扱うこと。
+- 端末紛失時の管理者による秘密情報再発行、遠隔復旧またはカストディ保証。
 
 ## 3. 用語と共通契約
 
-| 用語                       | 本仕様での意味                                                                                                                                                                                                               |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Mobile trusted host        | Mobile App 内で request validation、Profile / Account、trusted UI、四条件 gate、lifecycle、wallet-core orchestration および response validation を統合する Signer-side authority。具体的な内部構造を意味しない。             |
-| Signer                     | 利用者の確認・承認を受け、承認済み target を wallet-core で署名する trusted component。Mobile App が Mobile 経路の Signer である。                                                                                           |
-| Profile-local context      | Application Profile、Profile に固定された Network、active Account、permission、session、request、approval および wallet-core context を内部で binding した security context。公開 wire field としての `profileId` ではない。 |
-| Public Account Identity    | `chain`、`network`、`address`、`publicKey` を含む外部公開可能な Account identity。内部 key slot や `accountId` は含まない。                                                                                                  |
-| Internal Account Reference | Mobile App 内で Profile、permission および wallet-core key identity を解決する内部参照。外部 requester が直接指定する鍵 selector ではない。                                                                                  |
-| Handoff context            | `mosaiclynx.relay.v1`、generation、session、request、source、recipient、credential role、expiry および E2E envelope を含む受け渡し文脈。                                                                                     |
-| Signing target             | transaction 全体、structured message、または既存契約が定める chain-specific target。summary、hash-only identifier または外部 lookup は target の代替ではない。                                                               |
-| delivery disposition       | known signed result に付随する `PENDING`、`DELIVERED` または `DELIVERY_UNKNOWN`。署名 lifecycle state や Relay transport state ではない。                                                                                    |
+| 用語                     | 本仕様での意味                                                                                                                                                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| モバイル信頼されたホスト | モバイルアプリ内で要求検証、プロファイル / アカウント、信頼された UI、四条件判定条件、ライフサイクル、wallet-core 処理の調整および応答検証を統合する署名主体側の判断権限。具体的な内部構造を意味しない。                             |
+| 署名主体                 | 利用者の確認・承認を受け、承認済み対象を wallet-core で署名する信頼されたコンポーネント。モバイルアプリがモバイル経路の署名主体である。                                                                                              |
+| プロファイル内の文脈     | アプリケーションプロファイル、プロファイルに固定されたネットワーク、有効なアカウント、許可、セッション、要求、承認および wallet-core 文脈を内部で結び付けしたセキュリティ文脈。公開通信上のフィールドとしての `profileId` ではない。 |
+| アカウントの公開識別情報 | `chain`、`network`、`address`、`publicKey` を含む外部公開可能なアカウントの識別情報。内部鍵枠や `accountId` は含まない。                                                                                                             |
+| アカウントの内部参照     | モバイルアプリ内でプロファイル、許可および wallet-core 鍵識別情報を解決する内部参照。外部要求元が直接指定する鍵選択子ではない。                                                                                                      |
+| 受け渡し文脈             | `mosaiclynx.relay.v1`、世代、セッション、要求、送信元、受信者、認証情報役割、期限切れおよび E2E エンベロープを含む受け渡し文脈。                                                                                                     |
+| 署名対象                 | トランザクション全体、構造化されたメッセージ、または既存契約が定めるチェーン固有の対象。要約、ハッシュのみ識別子または外部照会は対象の代替ではない。                                                                                 |
+| 配送処理結果の区分       | 既知の署名済み結果に付随する `PENDING`、`DELIVERED` または `DELIVERY_UNKNOWN`。署名ライフサイクル状態や Relay 通信経路状態ではない。                                                                                                 |
 
-Mobile App は `chain: 'symbol' | 'nem'` と `network: 'mainnet' | 'testnet'` を共通契約どおり別々に扱う。Scope、Profile、Account、payload および result の組合せを一致させ、暗黙の Chain / Network 変換を行わない。
+モバイルアプリは `chain: 'symbol' | 'nem'` と `network: 'mainnet' | 'testnet'` を共通契約どおり別々に扱う。対象範囲、プロファイル、アカウント、ペイロードおよび結果の組合せを一致させ、暗黙のチェーン / ネットワーク変換を行わない。
 
-## 4. Actor、Component および責任境界
+## 4. 主体、コンポーネントおよび責任境界
 
-### 4.1 Component responsibility
+### 4.1 コンポーネント責務
 
-| Component                    | Mobile App との境界                                                                                                                                                                                                                                 |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Application / UI             | Profile、Account、permission、request lifecycle、表示、操作、platform integration、lifecycle invalidation および response orchestration を担う。外部由来の表示を trust anchor にしない。                                                            |
-| Mobile trusted host / Signer | caller / handoff、request、Scope、Profile / Account、target、inspection、四条件 gate、署名、result validation および fail-closed の最終 authority である。                                                                                          |
-| Trusted approval UI          | Mobile App が管理する foreground の確認領域。Signer が target から生成した confirmation model を表示し、明示的な approve / reject を受ける。                                                                                                        |
-| Chain integration            | Symbol / NEM の transaction / message を chain-specific に parse、validate、canonicalize、inspection および display model 化する。共通 lifecycle を担わない。                                                                                       |
-| `wallet-core`                | Wallet Store、Profile password 処理、Software Key、cryptographic public identity、秘密情報処理および approved raw bytes の signing を担う。caller、UI、permission、四条件または semantic inspection を担わない。                                    |
-| OS / platform                | external invocation routing、device lock、user presence、protected storage、hardware-backed capability および process lifecycle を提供し得る。request validity、approval、署名 semantics を決めない。                                               |
-| SDK                          | request の生成、公開 API、transport-independent correlation、response mapping および dApp への結果伝達を担う。semantic inspection、approval、Authentication、Signing-capable unlock、Account authorization、秘密情報処理および signing を担わない。 |
-| Relay                        | E2E encrypted opaque envelope の一時的な transport、structural validation、routing、generation、session、expiry、duplicate / stale state および transport status を担う。署名判断、認証、approval、signing、result / disposition の生成を担わない。 |
-| dApp / Web page              | request を発行し、返された result を独立検証し、必要な network 処理を行う。Mobile App の approval、secret または gate を制御しない。                                                                                                                |
-| Release authority            | current release / evidence policy を評価し、Mainnet capability の gate status を発行する。Mobile App は status を消費し、独自に gate を免除・昇格しない。                                                                                           |
+| コンポーネント                      | モバイルアプリとの境界                                                                                                                                                                                                                 |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| アプリケーション / UI               | プロファイル、アカウント、許可、要求ライフサイクル、表示、操作、プラットフォーム統合、ライフサイクル無効化および応答処理の調整を担う。外部由来の表示を信頼アンカーにしない。                                                           |
+| モバイル信頼されたホスト / 署名主体 | 呼び出し元 / 受け渡し、要求、対象範囲、プロファイル / アカウント、対象、内容検査、四条件判定条件、署名、結果検証および安全側での終了の最終判断権限である。                                                                             |
+| 信頼された承認 UI                   | モバイルアプリが管理するフォアグラウンドの確認領域。署名主体が対象から生成した確認モデルを表示し、明示的な承認 / 拒否を受ける。                                                                                                        |
+| チェーン統合                        | Symbol / NEM のトランザクション / メッセージをチェーン固有のに解析、検証、正規化、内容検査および表示モデル化する。共通ライフサイクルを担わない。                                                                                       |
+| `wallet-core`                       | ウォレットストア、プロファイルパスワード処理、ソフトウェア鍵、暗号学的な公開識別情報、秘密情報処理および承認済み生バイト列の署名を担う。呼び出し元、UI、許可、四条件または意味上の内容検査を担わない。                                 |
+| OS / プラットフォーム               | 外部呼び出し経路選択、端末ロック、利用者存在、保護された保存領域、ハードウェアで保護された対応能力およびプロセスライフサイクルを提供し得る。要求有効性、承認、署名意味を決めない。                                                     |
+| SDK                                 | 要求の生成、公開 API、通信方式に依存しない対応付け、応答対応付けおよび dApp への結果伝達を担う。意味上の内容検査、承認、認証、署名可能な状態へのロック解除、アカウントの利用認可、秘密情報処理および署名を担わない。                   |
+| Relay                               | E2E 暗号化された内容を解釈しないエンベロープの一時的な通信経路、構造上の検証、経路選択、世代、セッション、期限切れ、重複 / 古くなった状態および通信経路状態を担う。署名判断、認証、承認、署名、結果 / 処理結果の区分の生成を担わない。 |
+| dApp / Web ページ                   | 要求を発行し、返された結果を独立検証し、必要なネットワーク処理を行う。モバイルアプリの承認、秘密情報または判定条件を制御しない。                                                                                                       |
+| リリース判断権限                    | 現在のリリース / 根拠ポリシーを評価し、Mainnet 対応能力の判定条件状態を発行する。モバイルアプリは状態を消費し、独自に判定条件を免除・昇格しない。                                                                                      |
 
-### 4.2 Mobile trusted host の Signer 責任
+### 4.2 モバイル信頼されたホストの署名主体責任
 
-Mobile trusted host は、次の処理を同一 request context に binding して実施する。
+モバイル信頼されたホストは、次の処理を同一要求文脈に結び付けして実施する。
 
-1. 外部 invocation または Relay handoff を untrusted input として受信する。
-2. source、recipient、session、generation、request identity、integrity、expiry および permission を検証する。
-3. current Profile、Profile Network、selected Account、Chain / Network および expected signer を解決し、整合性を検証する。
-4. target 全体を chain-specific に inspection し、trusted UI 用 confirmation model を生成する。
-5. 利用者の明示的な approve / reject を trusted UI から取得する。
-6. Authentication と Signing-capable unlock を別々の条件として取得・確認する。
-7. 対象 Profile / Chain / Network / Account の Account authorization を確認する。
-8. wallet-core 呼び出し直前に target、Profile-local context および四条件を再検証する。
-9. wallet-core を介して署名し、返却結果と元 request / target の対応を検証する。
-10. 共通 response contract に従う response を生成し、Signer-originated result semantics を意味不変に保持して配送する。
+1. 外部呼び出しまたは Relay 受け渡しを信頼されていない入力として受信する。
+2. 送信元、受信者、セッション、世代、要求識別情報、完全性、期限切れおよび許可を検証する。
+3. 現在のプロファイル、プロファイルネットワーク、選択済みのアカウント、チェーン / ネットワークおよび期待される署名主体を解決し、整合性を検証する。
+4. 対象全体をチェーン固有のに内容検査し、信頼された UI 用確認モデルを生成する。
+5. 利用者の明示的な承認 / 拒否を信頼された UI から取得する。
+6. 認証と署名可能な状態へのロック解除を別々の条件として取得・確認する。
+7. 対象プロファイル / チェーン / ネットワーク / アカウントのアカウントの利用認可を確認する。
+8. wallet-core 呼び出し直前に対象、プロファイル内の文脈および四条件を再検証する。
+9. wallet-core を介して署名し、返却結果と元要求 / 対象の対応を検証する。
+10. 共通応答契約に従う応答を生成し、署名主体が生成した結果意味を意味不変に保持して配送する。
 
-Relay、SDK、external app、OS metadata、OS authentication adapter または wallet-core のいずれも、この Signer-side responsibility を成立・変更・免除・迂回できない。
+Relay、SDK、外部アプリ、OS メタデータ、OS 認証アダプターまたは wallet-core のいずれも、この署名主体側の責務を成立・変更・免除・迂回できない。
 
-## 5. Trust Boundary
+## 5. 信頼境界
 
 ```text
-External / untrusted
-  dApp / Web page / SDK / Deep Link / Universal Link / App Link / Intent / share
-  Relay / network / notification / OS handoff metadata
-          │ すべて Mobile App で再検証する
+外部 / 信頼されていない
+  dApp / Web ページ / SDK / ディープリンク / Universal Link / App Link / Intent / 共有
+  Relay / ネットワーク / 通知 / OS 受け渡しメタデータ
+          │ すべてモバイルアプリで再検証する
           ▼
-Mobile request boundary
-  source・recipient・session・generation・request identity・integrity・expiry
-          │ 検証済み request context のみ
+モバイル要求境界
+  送信元・受信者・セッション・世代・要求識別情報・完全性・期限切れ
+          │ 検証済み要求文脈のみ
           ▼
-Mobile trusted host boundary
-  Profile / Account / permission / Chain / Network
-  chain-specific inspection / trusted UI / four-condition gate / lifecycle
-          │ approval 済み、再検証済み target のみ
+モバイル信頼されたホスト境界
+  プロファイル / アカウント / 許可 / チェーン / ネットワーク
+  チェーン固有の内容検査 / 信頼された UI / 四条件判定条件 / ライフサイクル
+          │ 承認済み、再検証済み対象のみ
           ▼
-wallet-core logical / binding boundary
-  Wallet Store・key identity・secret processing・raw signing
-          │ OS storage / user presence は別責任
+wallet-core 論理的な / バインディング境界
+  ウォレットストア・鍵識別情報・秘密情報処理・生の署名
+          │ OS 保存領域 / 利用者存在は別責任
           ▼
-OS security boundary
-  device lock・protected credential / key・hardware-backed capability
+OS セキュリティ境界
+  端末ロック・保護された認証情報 / 鍵・ハードウェアで保護された対応能力
 ```
 
-次を trust anchor としてはならない。
+次を信頼アンカーとしてはならない。
 
-- URL、scheme、association、アプリ名、icon、Origin 文字列、通知または外部 UI。
-- Relay の存在、metadata、transport status、HTTP 2xx、ACK、`consumed`、purge または availability。
-- SDK / dApp の自己申告、connection、permission、Account cache または Provider state。
-- OS authentication success、device unlock、通常の `UNLOCKED`、wallet-core の password / Store validation または signing success。
+- URL、方式、関連付け、アプリ名、アイコン、オリジン文字列、通知または外部 UI。
+- Relay の存在、メタデータ、通信経路状態、HTTP 2xx、受領確認、`consumed`、削除または利用可能性。
+- SDK / dApp の自己申告、接続、許可、アカウントキャッシュまたは Provider 状態。
+- OS 認証成功、端末ロック解除、通常の `UNLOCKED`、wallet-core のパスワード / ストア検証または署名成功。
 
-OS と `wallet-core` は限定された責任範囲で trusted だが、OS が caller、transaction の意味または利用者の意思を保証すること、または wallet-core が利用者承認を代行することを意味しない。Binding、WASM memory、Native host、JavaScript buffer または crash report が秘密情報を自動隔離・消去することも前提にしない。
+OS と `wallet-core` は限定された責任範囲で信頼されただが、OS が呼び出し元、トランザクションの意味または利用者の意思を保証すること、または wallet-core が利用者承認を代行することを意味しない。バインディング、WASM メモリ、ネイティブホスト、JavaScript バッファーまたは異常終了報告書が秘密情報を自動隔離・消去することも前提にしない。
 
-## 6. Profile / Account / Scope Binding
+## 6. プロファイル / アカウント / 対象範囲バインディング
 
-### 6.1 Profile の選択
+### 6.1 プロファイルの選択
 
-- Profile の `network` は作成時に `mainnet` または `testnet` の一つへ固定され、変更できない。
-- Profile は作成時に Symbol または NEM の一方の Chain に固定する。Symbol と NEM の両方を利用する場合は、Chain ごとに別 Profile を選択する。
-- request の network と一致しない Profile を選択して署名してはならない。
-- 外部 request の `profileId`、internal account reference、Account 名または expected signer は、Profile の選択・鍵選択・authorization の authority ではない。
-- Mobile App は Profile を外部 request に合わせて暗黙に切り替えてはならない。利用者が trusted UI で Profile を明示選択した場合も、selected Profile / Network を再表示し、target を再検証し、新しい approval context を要求する。
-- Profile switch、Profile lock、Profile association change または Profile の削除・無効化が発生した場合、関連する approval、Authentication、Signing-capable unlock、Account authorization および未完了 request を失効させる。
+- プロファイルの `network` は作成時に `mainnet` または `testnet` の一つへ固定され、変更できない。
+- プロファイルは作成時に Symbol または NEM の一方のチェーンに固定する。Symbol と NEM の両方を利用する場合は、チェーンごとに別プロファイルを選択する。
+- 要求のネットワークと一致しないプロファイルを選択して署名してはならない。
+- 外部要求の `profileId`、アカウントの内部参照、アカウント名または期待される署名主体は、プロファイルの選択・鍵選択・認可の判断権限ではない。
+- モバイルアプリはプロファイルを外部要求に合わせて暗黙に切り替えてはならない。利用者が信頼された UI でプロファイルを明示選択した場合も、選択済みのプロファイル / ネットワークを再表示し、対象を再検証し、新しい承認文脈を要求する。
+- プロファイル切り替え、プロファイルロック、プロファイル関連付け変更またはプロファイルの削除・無効化が発生した場合、関連する承認、認証、署名可能な状態へのロック解除、アカウントの利用認可および未完了要求を失効させる。
 
-Application Profile と wallet-core Profile / Wallet Store は同一の責任単位ではない。Application は Profile metadata、active Profile、permission、Account association および表示を管理し、wallet-core はその外部契約に従って cryptographic identity と Wallet Store を管理する。
+アプリケーションプロファイルと wallet-core プロファイル / ウォレットストアは同一の責任単位ではない。アプリケーションはプロファイルメタデータ、有効なプロファイル、許可、アカウント関連付けおよび表示を管理し、wallet-core はその外部契約に従って暗号学的な識別情報とウォレットストアを管理する。
 
-### 6.2 Account の選択と binding
+### 6.2 アカウントの選択と結び付け
 
-Account は Chain-specific な cryptographic identity と Application Account association の検証済み対応である。
+アカウントはチェーン固有のな暗号学的な識別情報とアプリケーションアカウント関連付けの検証済み対応である。
 
-- Mobile App は request の Scope、Profile Network、enabled Chain、selected Account、payload signer、expected signer および wallet-core public identity を照合する。
-- `expectedSignerPublicKey` がある場合、対象 Chain の形式を検証し、selected / authorized Account の実際の signer public key と完全一致させる。不一致は `SIGNER_MISMATCH` 相当の既存 error mapping とし、署名しない。
-- `expectedSignerPublicKey` がない場合も、payload signer と利用者が trusted UI で確認した selected Account の一致検証を省略しない。
-- Symbol と NEM の Account / Key Identity、address、network、derivation semantics および signing bytes を共通の一つの identity として扱わない。
-- `PublicAccountIdentity` には公開を許可された `chain`、`network`、`address`、`publicKey` および既存契約が許す表示情報だけを含める。private key、Mnemonic、seed、Profile password、decrypted Store、wallet-core key slot、internal `accountId` または `profileId` を含めない。
-- Account の選択は Account authorization ではない。connection permission、public Account disclosure、session または capability も Account authorization の代替ではない。
+- モバイルアプリは要求の対象範囲、プロファイルネットワーク、有効チェーン、選択済みのアカウント、ペイロード署名主体、期待される署名主体および wallet-core 公開識別情報を照合する。
+- `expectedSignerPublicKey` がある場合、対象チェーンの形式を検証し、選択済みの / 認可済みのアカウントの実際の署名主体公開鍵と完全一致させる。不一致は `SIGNER_MISMATCH` 相当の既存エラー対応付けとし、署名しない。
+- `expectedSignerPublicKey` がない場合も、ペイロード署名主体と利用者が信頼された UI で確認した選択済みのアカウントの一致検証を省略しない。
+- Symbol と NEM のアカウント / 鍵識別情報、アドレス、ネットワーク、導出意味および署名バイト列を共通の一つの識別情報として扱わない。
+- `PublicAccountIdentity` には公開を許可された `chain`、`network`、`address`、`publicKey` および既存契約が許す表示情報だけを含める。秘密鍵、ニーモニック、シード、プロファイルパスワード、復号されたストア、wallet-core 鍵枠、内部 `accountId` または `profileId` を含めない。
+- アカウントの選択はアカウントの利用認可ではない。接続許可、公開アカウント情報公開、セッションまたは対応能力もアカウントの利用認可の代替ではない。
 
-### 6.3 Permission と Account authorization
+### 6.3 許可とアカウントの利用認可
 
-connection / pairing permission は、caller に対する公開 Account disclosure または scope の許可であり、個別 signing authorization ではない。Mobile App は、少なくとも caller / source、Profile、Scope、Account、permission scope / revision、operation、target および freshness の対応を確認する。
+接続 / ペアリング許可は、呼び出し元に対する公開アカウント情報公開または対象範囲の許可であり、個別署名認可ではない。モバイルアプリは、少なくとも呼び出し元 / 送信元、プロファイル、対象範囲、アカウント、許可対象範囲 / リビジョン、操作、対象および鮮度の対応を確認する。
 
-Account authorization は、対象 Profile / Chain / Network / Account を当該 request の signing target に使用するための Signer-side authorization である。これは request ごとの Explicit user approval、Authentication および Signing-capable unlock と独立して成立させる。permission が存在することだけで、この authorization を成立させてはならない。
+アカウントの利用認可は、対象プロファイル / チェーン / ネットワーク / アカウントを当該要求の署名対象に使用するための署名主体側の認可である。これは要求ごとの利用者による明示的な承認、認証および署名可能な状態へのロック解除と独立して成立させる。許可が存在することだけで、この認可を成立させてはならない。
 
-permission が存在しない、revoked、scope / revision 不一致、Profile 不一致、Account 不一致、caller 不一致または authorization 状態を確認できない場合、署名を開始せず既存の `permission_denied` / concrete error mapping に従って終了する。
+許可が存在しない、失効済み、対象範囲 / リビジョン不一致、プロファイル不一致、アカウント不一致、呼び出し元不一致または認可状態を確認できない場合、署名を開始せず既存の `permission_denied` / 具体的なエラー対応付けに従って終了する。
 
-## 7. 共通 Signing Gate
+## 7. 共通署名判定条件
 
 ### 7.1 四条件
 
-Mobile App は wallet-core を呼び出す前に、次の四条件をすべて独立に成立させる。
+モバイルアプリは wallet-core を呼び出す前に、次の四条件をすべて独立に成立させる。
 
-1. **Authentication**: 当該 request / target に対する利用者の署名ごとの認証が成立している。
-2. **Signing-capable unlock**: 対象 Profile の signing capability を利用できる unlock 状態が成立している。通常の `UNLOCKED` と同一視しない。
-3. **Account authorization**: 対象 Profile / Chain / Network / Account をこの request で使う authorization が成立している。
-4. **Explicit user approval**: 利用者が同じ target、Scope、Account、operation および確認内容を trusted UI で明示的に承認している。
+1. **認証**: 当該要求 / 対象に対する利用者の署名ごとの認証が成立している。
+2. **署名可能な状態へのロック解除**: 対象プロファイルの署名対応能力を利用できるロック解除状態が成立している。通常の `UNLOCKED` と同一視しない。
+3. **アカウントの利用認可**: 対象プロファイル / チェーン / ネットワーク / アカウントをこの要求で使う認可が成立している。
+4. **利用者による明示的な承認**: 利用者が同じ対象、対象範囲、アカウント、操作および確認内容を信頼された UI で明示的に承認している。
 
-四条件は、次の binding tuple に対する一回限りの短寿命 authorization とする。
+四条件は、次の結び付け組に対する一回限りの短寿命認可とする。
 
 ```text
-(requestId, caller/source, handoff context, session/generation,
- Profile-local context, permission revision, Account, Chain, Network,
- operation, exact target or trusted digest, inspection result, freshness)
+(requestId, caller/source, 受け渡し文脈, session/generation,
+ プロファイル内の文脈, 許可リビジョン, アカウント, チェーン, ネットワーク,
+ 操作, 厳密な対象または信頼されたダイジェスト, 内容検査結果, 鮮度)
 ```
 
-`requestId` 単独、session、generation、permission、capability、selected Account、OS / device unlock、過去の Authentication、wallet-core password / Store validation または Relay delivery は四条件の代替ではない。
+`requestId` 単独、セッション、世代、許可、対応能力、選択済みのアカウント、OS / 端末ロック解除、過去の認証、wallet-core パスワード / ストア検証または Relay 配送は四条件の代替ではない。
 
-### 7.2 Signing-capable unlock
+### 7.2 署名可能な状態へのロック解除
 
 - `LOCKED` では署名しない。
-- 通常の `UNLOCKED` は Application の利用状態であり、Authentication、Signing-capable unlock、Account authorization または Explicit user approval を意味しない。
-- signing-capable unlock は、対象 Profile と当該 request context に binding された signing capability として扱う。
-- device unlock、OS biometric success または App foreground 復帰だけで signing-capable unlock へ自動遷移してはならない。
-- Profile switch、device lock、protected storage capability loss、manual lock、idle timeout、process restart、context loss または security state の不明化で signing-capable unlock を無効化する。
-- unlock の credential、KDF、Store validation および秘密情報処理は wallet-core と platform 下位契約に従う。Mobile App はこれらを再実装せず、失敗時は fail-closed とする。
+- 通常の `UNLOCKED` はアプリケーションの利用状態であり、認証、署名可能な状態へのロック解除、アカウントの利用認可または利用者による明示的な承認を意味しない。
+- 署名可能な状態へのロック解除は、対象プロファイルと当該要求文脈に結び付けされた署名対応能力として扱う。
+- 端末ロック解除、OS 生体認証成功またはアプリフォアグラウンド復帰だけで署名可能な状態へのロック解除へ自動遷移してはならない。
+- プロファイル切り替え、端末ロック、保護された保存領域対応能力消失、手動ロック、待機タイムアウト、プロセス再起動、文脈消失またはセキュリティ状態の不明化で署名可能な状態へのロック解除を無効化する。
+- ロック解除の認証情報、KDF、ストア検証および秘密情報処理は wallet-core とプラットフォーム下位契約に従う。モバイルアプリはこれらを再実装せず、失敗時は安全側での終了とする。
 
-### 7.3 Authentication
+### 7.3 認証
 
-Profile / Account Specification の `SigningAuthentication = 'every-signature'` を適用する。署名ごとに、Profile password または既存 platform contract が認める有効な user-presence / device authentication を request に binding して取得する。
+プロファイル / アカウント仕様の `SigningAuthentication = 'every-signature'` を適用する。署名ごとに、プロファイルパスワードまたは既存プラットフォーム契約が認める有効な利用者の立ち会い / 端末認証を要求に結び付けして取得する。
 
-Authentication は「現在利用者が App を操作している」ことを示す条件であり、他の三条件を成立させない。認証だけの成功、別 request の認証済み context、前回の biometric success、OS device unlock または自動復帰は署名を許可しない。
+認証は「現在利用者がアプリを操作している」ことを示す条件であり、他の三条件を成立させない。認証だけの成功、別要求の認証済み文脈、前回の生体認証成功、OS 端末ロック解除または自動復帰は署名を許可しない。
 
-具体的な PIN、OS passcode、biometric の組合せ、fallback、再認証頻度、rate limit および lock timeout は §19 の OPEN または platform 下位仕様に従う。未定義の fallback や認証失敗の bypass は許可しない。
+具体的な PIN、OS パスコード、生体認証の組合せ、代替経路、再認証頻度、頻度上限およびロックタイムアウトは §19 の未決またはプラットフォーム下位仕様に従う。未定義の代替経路や認証失敗の迂回は許可しない。
 
 ### 7.4 四条件成立前の禁止
 
-次のいずれかがある場合、Mobile App は wallet-core を呼び出さず、success result を生成しない。
+次のいずれかがある場合、モバイルアプリは wallet-core を呼び出さず、成功結果を生成しない。
 
-- 四条件の一つでも未成立、stale、revoked、locked、unknown または mismatch。
-- caller、session、generation、Profile、Account、Chain / Network、operation、target、inspection または expiry のいずれかを確認できない。
-- trusted UI が foreground でなく、利用者が確認できず、または確認内容が target から生成されていない。
-- Mainnet gate が成立していない場合の Mainnet signing。
+- 四条件の一つでも未成立、古くなった、失効済み、ロック済み、不明または不一致。
+- 呼び出し元、セッション、世代、プロファイル、アカウント、チェーン / ネットワーク、操作、対象、内容検査または期限切れのいずれかを確認できない。
+- 信頼された UI がフォアグラウンドでなく、利用者が確認できず、または確認内容が対象から生成されていない。
+- Mainnet 判定条件が成立していない場合の Mainnet 署名。
 
-`connect`、Account disclosure、permission、session の有効性、Relay が request を配送したこと、または wallet-core が bytes を返せることだけで署名可能状態へ進めてはならない。
+`connect`、アカウント情報公開、許可、セッションの有効性、Relay が要求を配送したこと、または wallet-core がバイト列を返せることだけで署名可能状態へ進めてはならない。
 
-## 8. External Invocation と Handoff
+## 8. 外部呼び出しと受け渡し
 
 ### 8.1 共通受信原則
 
-App 起動、notification、Deep Link、Universal Link、App Link、Intent、share または Relay request の受信は、request を受け取った事実にすぎず、approve、unlock、Authentication または signing を意味しない。すべての外部入力を validation 前は untrusted とする。
+アプリ起動、通知、ディープリンク、普遍的な Link、App Link、Intent、共有または Relay 要求の受信は、要求を受け取った事実にすぎず、承認、ロック解除、認証または署名を意味しない。すべての外部入力を検証前は信頼されていないとする。
 
-Mobile App は request を次の順で取り扱う。
+モバイルアプリは要求を次の順で取り扱う。
 
-1. 外側の入力を bounded data として受信し、過剰長、duplicate key、unknown field、null、型不一致および malformed encoding を拒否する。
-2. handoff protocol、version、operation、request / session / generation identity、recipient、direction、expiry および endpoint credential role を確認する。
-3. E2E envelope を既存 Handoff 契約で復号・integrity 検証し、request digest、requestId、session、generation および direction の対応を確認する。
-4. source / Origin、permission、Profile / Account、Scope、expected signer および operation を確認する。
-5. target を Chain-specific に parse、validate、canonicalize、inspection し、確認可能な内容を生成する。
-6. trusted UI へ渡して explicit approval を取得し、認証・unlock・Account authorization と pre-sign revalidation を行う。
+1. 外側の入力を上限のあるデータとして受信し、過剰長、重複鍵、不明フィールド、null、型不一致および不正な形式のエンコーディングを拒否する。
+2. 受け渡しプロトコル、バージョン、操作、要求 / セッション / 世代識別情報、受信者、方向、期限切れおよびエンドポイント認証情報役割を確認する。
+3. E2E エンベロープを既存受け渡し契約で復号・完全性検証し、要求ダイジェスト、requestId、セッション、世代および方向の対応を確認する。
+4. 送信元 / オリジン、許可、プロファイル / アカウント、対象範囲、期待される署名主体および操作を確認する。
+5. 対象をチェーン固有のに解析、検証、正規化、内容検査し、確認可能な内容を生成する。
+6. 信頼された UI へ渡して明示的な承認を取得し、認証・ロック解除・アカウントの利用認可と署名前再検証を行う。
 
-いずれかの段階で不一致、未検証、expired、duplicate、replay、unsupported または displayability failure があれば、approval UI の署名操作へ進めず terminal / safe failure とする。
+いずれかの段階で不一致、未検証、期限切れ、重複、リプレイ、未対応のまたは表示可能性失敗があれば、承認 UI の署名操作へ進めず終端 / 安全な失敗とする。
 
-### 8.2 現行 Handoff の link 契約
+### 8.2 現行受け渡しのリンク契約
 
-現行 `mosaiclynx.relay.v1` の Mobile handoff は、verified HTTPS App Link を標準経路とする。
+現行 `mosaiclynx.relay.v1` のモバイル受け渡しは、検証済み HTTPS App Link を標準経路とする。
 
 ```text
 https://link.mosaiclynx.app/v1/handoff/{sessionId}#s={sessionSecret}&a={appToken}
 ```
 
-- iOS は Associated Domains、Android は Digital Asset Links により正規 App と `link.mosaiclynx.app` を関連付ける。
-- `sessionId`、`sessionSecret` および `appToken` は既存 Handoff の CSPRNG / encoding 契約に従う。`appToken` は Mobile-side Relay endpoint authorization credential、`sessionSecret` は E2E secret であり、署名秘密情報ではない。
-- fragment は verified client-side handoff で正規 Mobile App へ一時的に渡すためだけに使う。fragment 全体、token、session secret を Relay、HTTP request body、Referer、server / application log、analytics、telemetry、diagnostics、error / crash reporting、Clipboard、browser storage または persistent history へ送らない。
-- App は scheme、host、path、session ID、fragment field、重複 field、unknown field および過剰長を strict validation する。validation できない link は signing request に昇格させない。
-- 標準 v1 は custom URL scheme ではない。custom scheme、QR、generic share / Intent、その他の Deep Link を追加標準経路として受理するには別途 handoff contract が必要である。ただし採用された場合も、外部入力非信頼、expiry、replay、integrity、Profile binding および四条件を省略しない。
-- 正常系では App から browser callback link を開かない。元ページが response を取得する。
-- 未導入 fallback は署名フローではない。fallback は fragment を送信・保存せず、導入案内を表示し、credential を正規 App 以外へ転送しない。
+- iOS は Associated Domains、Android は Digital 資産リンクにより正規アプリと `link.mosaiclynx.app` を関連付ける。
+- `sessionId`、`sessionSecret` および `appToken` は既存受け渡しの CSPRNG / エンコーディング契約に従う。`appToken` はモバイル側の Relay エンドポイント認可認証情報、`sessionSecret` は E2E 秘密情報であり、署名秘密情報ではない。
+- フラグメントは検証済みクライアント側の受け渡しで正規モバイルアプリへ一時的に渡すためだけに使う。フラグメント全体、トークン、セッション秘密情報を Relay、HTTP 要求本文、Referer、サーバー / アプリケーションログ、利用状況分析、遠隔計測データ、診断情報、エラー / 異常終了報告、クリップボード、ブラウザ保存領域または永続的な履歴へ送らない。
+- アプリは方式、ホスト、パス、セッション ID、フラグメントフィールド、重複フィールド、不明フィールドおよび過剰長を strict 検証する。検証できないリンクは署名要求に昇格させない。
+- 標準 v1 は独自の URL 方式ではない。独自の方式、QR、一般的な共有 / Intent、その他のディープリンクを追加標準経路として受理するには別途受け渡し契約が必要である。ただし採用された場合も、外部入力非信頼、期限切れ、リプレイ、完全性、プロファイル結び付けおよび四条件を省略しない。
+- 正常系ではアプリからブラウザコールバックリンクを開かない。元ページが応答を取得する。
+- 未導入代替経路は署名フローではない。代替経路はフラグメントを送信・保存せず、導入案内を表示し、認証情報を正規アプリ以外へ転送しない。
 
-### 8.3 Origin proof
+### 8.3 オリジン証明
 
-Mainnet の Mobile handoff では `originProof` を必須とする。`initiatorOrigin` は public DNS に解決する HTTPS Origin、既定 port 443 とし、private / reserved / loopback / link-local address、redirect、cross-origin、HTTP downgrade、DNS rebinding または manifest の Origin 不一致を拒否する。
+Mainnet のモバイル受け渡しでは `originProof` を必須とする。`initiatorOrigin` は公開 DNS に解決する HTTPS オリジン、既定ポート 443 とし、private / 予約済みの / ループバック / link-local アドレス、リダイレクト、オリジン間の、HTTP 格下げ、DNS rebinding またはマニフェストのオリジン不一致を拒否する。
 
-Mobile App は同一 Origin の既存 well-known manifest と proof の version、key ID、algorithm、有効期間、status、署名および payload / request identity の対応を検証する。proof が欠落、expired、revoked、wrong Origin、wrong key または検証不能なら Mainnet signing を開始しない。
+モバイルアプリは同一オリジンの既存 well-known マニフェストと証明のバージョン、鍵 ID、アルゴリズム、有効期間、状態、署名およびペイロード / 要求識別情報の対応を検証する。証明が欠落、期限切れ、失効済み、誤ったオリジン、誤った鍵または検証不能なら Mainnet 署名を開始しない。
 
-Testnet では既存 contract が proof なしを許す場合がある。その場合は trusted UI に「要求元（未検証）」として表示し、Mainnet の「登録鍵で検証済み」と同じ保証を表示しない。Origin proof は caller binding の補助であり、request、Scope、permission、target、Profile または四条件の検証を省略する根拠ではない。
+Testnet では既存契約が証明なしを許す場合がある。その場合は信頼された UI に「要求元（未検証）」として表示し、Mainnet の「登録鍵で検証済み」と同じ保証を表示しない。オリジン証明は呼び出し元結び付けの補助であり、要求、対象範囲、許可、対象、プロファイルまたは四条件の検証を省略する根拠ではない。
 
-## 9. Relay Integration
+## 9. Relay 統合
 
-### 9.1 Relay の authority 限界
+### 9.1 Relay の判断権限限界
 
-Relay は opaque / untrusted transport である。Relay は次を解釈、生成、推測、変更または確定してはならない。
+Relay は内容を解釈しない / 信頼されていない通信経路である。Relay は次を解釈、生成、推測、変更または確定してはならない。
 
-- transaction / message の意味、signer、recipient、Account ownership、risk、display model。
-- Authentication、Signing-capable unlock、Account authorization、Explicit user approval または signing authorization。
-- transaction / message の semantic validation、signed result、`RESULT_UNKNOWN` または `deliveryDisposition`。
-- Mainnet release / evidence gate、Testnet / Mainnet capability または Signer の安全性。
+- トランザクション / メッセージの意味、署名主体、受信者、アカウント所有責任、リスク、表示モデル。
+- 認証、署名可能な状態へのロック解除、アカウントの利用認可、利用者による明示的な承認または署名認可。
+- トランザクション / メッセージの意味上の検証、署名済み結果、`RESULT_UNKNOWN` または `deliveryDisposition`。
+- Mainnet リリース / 根拠判定条件、Testnet / Mainnet 対応能力または署名主体の安全性。
 
-Relay は、既存 Handoff / Relay Specification に従って protocol、generation、session、direction、credential role、サイズ、expiry、lifecycle、request / response correlation、duplicate / conflicting state および opaque envelope の外形を検証する。この structural validation は Mobile App の E2E、Origin、semantic、Account、approval、署名検証の代替ではない。
+Relay は、既存受け渡し / Relay 仕様に従ってプロトコル、世代、セッション、方向、認証情報役割、サイズ、期限切れ、ライフサイクル、要求 / 応答対応付け、重複 / 競合する状態および内容を解釈しないエンベロープの外形を検証する。この構造上の検証はモバイルアプリの E2E、オリジン、意味上の、アカウント、承認、署名検証の代替ではない。
 
-### 9.2 Mobile-side Relay flow
+### 9.2 モバイル側の Relay フロー
 
-現行 Handoff 契約に従う Mobile-side flow は次である。
+現行受け渡し契約に従うモバイル側のフローは次である。
 
 ```text
-SDK が current generation を取得
-  → encrypted request が Relay に登録される
-  → verified App Link で Mobile App が起動
-  → Mobile App が appToken で request envelope を取得
-  → Mobile App が復号・検証・inspection・approval・署名
-  → Mobile App が encrypted response を appToken で登録
-  → 元ページの SDK が response を取得・復号・検証して ACK
+SDK が現在の世代を取得
+  → 暗号化された要求が Relay に登録される
+  → 検証済み App Link でモバイルアプリが起動
+  → モバイルアプリが appToken で要求エンベロープを取得
+  → モバイルアプリが復号・検証・内容検査・承認・署名
+  → モバイルアプリが暗号化された応答を appToken で登録
+  → 元ページの SDK が応答を取得・復号・検証して ACK
 ```
 
-Mobile App は `appToken` を Mobile-side request retrieval / response upload にだけ使用し、`webToken` を Mobile-side credential として使用しない。Relay は `sessionSecret` を受信、保存、hash 化、導出または復号に使用しない。
+モバイルアプリは `appToken` をモバイル側の要求取得 / 応答アップロードにだけ使用し、`webToken` をモバイル側の認証情報として使用しない。Relay は `sessionSecret` を受信、保存、ハッシュ化、導出または復号に使用しない。
 
-Mobile App は Relay から取得した request が正しいように見えるだけで approval UI へ渡さない。少なくとも protocol、requestId、requestDigest、generation、session、direction、recipient、createdAt / expiresAt、operation、source / Origin、Scope、Profile / Account、integrity、target および duplicate / replay を検証する。
+モバイルアプリは Relay から取得した要求が正しいように見えるだけで承認 UI へ渡さない。少なくともプロトコル、requestId、requestDigest、世代、セッション、方向、受信者、createdAt / expiresAt、操作、送信元 / オリジン、対象範囲、プロファイル / アカウント、完全性、対象および重複 / リプレイを検証する。
 
-### 9.3 Relay-local state と Mobile / Signer state
+### 9.3 Relay 内の状態とモバイル / 署名主体状態
 
 次の状態軸を相互に変換してはならない。
 
-| 軸                          | Mobile App / Signer が生成または確定する意味                                                                                                                    | Relay が観測・管理する意味                                                                               |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| request / signing lifecycle | common signing state である `RECEIVED`、`VALIDATED`、`INSPECTED`、`AWAITING_USER`、`AUTHORIZED`、`SIGNING`、`SUCCEEDED`、`RESULT_UNKNOWN` および terminal state | Relay の transport state では表現しない                                                                  |
-| delivery disposition        | known signed result に付随する `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN`                                                                                       | Relay は生成・変更・推測・確認しない                                                                     |
-| Relay transport lifecycle   | —                                                                                                                                                               | `pending`、`response_available`、`consumed`、`cancelled`、`expired`。lowercase の transport state        |
-| transport failure           | —                                                                                                                                                               | unavailable、timeout、state loss、credential failure、network failure 等の Relay / client transport 事実 |
+| 軸                           | モバイルアプリ / 署名主体が生成または確定する意味                                                                                                 | Relay が観測・管理する意味                                                                            |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 要求 / 署名ライフサイクル    | 共通の署名状態である `RECEIVED`、`VALIDATED`、`INSPECTED`、`AWAITING_USER`、`AUTHORIZED`、`SIGNING`、`SUCCEEDED`、`RESULT_UNKNOWN` および終端状態 | Relay の通信経路状態では表現しない                                                                    |
+| 配送処理結果の区分           | 既知の署名済み結果に付随する `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN`                                                                           | Relay は生成・変更・推測・確認しない                                                                  |
+| Relay 通信経路ライフサイクル | —                                                                                                                                                 | `pending`、`response_available`、`consumed`、`cancelled`、`expired`。小文字の通信経路状態             |
+| 通信経路失敗                 | —                                                                                                                                                 | 利用不能、タイムアウト、状態消失、認証情報失敗、ネットワーク失敗等の Relay / クライアント通信経路事実 |
 
-Relay の `response_available`、HTTP 2xx、ACK、`consumed`、purge または response retrieval は Mobile の `SUCCEEDED`、`DELIVERED`、`RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を意味しない。逆に Mobile の `SUCCEEDED + PENDING` は Relay の `response_available` と併存できる。
+Relay の `response_available`、HTTP 2xx、受領確認、`consumed`、削除または応答取得はモバイルの `SUCCEEDED`、`DELIVERED`、`RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を意味しない。逆にモバイルの `SUCCEEDED + PENDING` は Relay の `response_available` と併存できる。
 
-`AUTHENTICATING` は上表の request / signing lifecycle に含まれない。これは Mobile App 内部だけの local UI / authentication substep であり、common signing state、public state、wire state、response field、Relay state、永続化 state または SDK contract に serialize / expose してはならない。common exact state set を拡張せず、common signing protocol の state transition、`RESULT_UNKNOWN` または `deliveryDisposition` の意味も変更しない。
+`AUTHENTICATING` は上表の要求 / 署名ライフサイクルに含まれない。これはモバイルアプリ内部だけのローカル UI / 認証内部手順であり、共通の署名状態、公開状態、通信上の状態、応答フィールド、Relay 状態、永続化状態または SDK 契約にシリアライズ / expose してはならない。共通の厳密な状態集合を拡張せず、共通の署名プロトコルの状態遷移、`RESULT_UNKNOWN` または `deliveryDisposition` の意味も変更しない。
 
-### 9.4 Relay state loss と generation
+### 9.4 Relay 状態消失と世代
 
-Relay restart、storage loss または state continuity loss 後は、Relay が generation を切り替え、旧 generation の session / request / response を current handoff として復旧しない。Mobile App は old generation、old ciphertext、old session または state loss 前の approval を再利用しない。
+Relay 再起動、保存領域消失または状態継続性消失後は、Relay が世代を切り替え、旧世代のセッション / 要求 / 応答を現在の受け渡しとして復旧しない。モバイルアプリは旧世代、旧暗号文、旧セッションまたは状態消失前の承認を再利用しない。
 
-current generation metadata が付いた old ciphertext が Relay に一時保存される可能性があっても、Mobile App は generation-bound E2E validation に失敗する request を approval、signing または success へ進めない。再試行は new generation、new session / request identity、fresh envelope、fresh validation および fresh user approval を伴う。
+現在の世代メタデータが付いた旧暗号文が Relay に一時保存される可能性があっても、モバイルアプリは世代に結び付いた E2E 検証に失敗する要求を承認、署名または成功へ進めない。再試行は新規世代、新規セッション / 要求識別情報、新鮮なエンベロープ、新鮮な検証および新鮮な利用者承認を伴う。
 
-## 10. Signing Request の検証と Inspection
+## 10. 署名要求の検証と内容検査
 
-### 10.1 共通 validation
+### 10.1 共通検証
 
-Mobile App は次の順序で検証する。各項目の exact type、encoding、length、canonicalization および error mapping は参照 Specification の契約を使用する。
+モバイルアプリは次の順序で検証する。各項目の厳密な型、エンコーディング、長さ、正規化およびエラー対応付けは参照仕様の契約を使用する。
 
-1. 外側の input / envelope の型、size、duplicate key、required / optional、unknown field および malformed encoding。
-2. protocol literal、version、operation、identifier、timestamp、nullable、range および union combination。
-3. requestId、session、generation、requestDigest、direction、recipient、duplicate、replay、consumed / cancelled / expired および late delivery。
-4. source / Origin、origin proof（適用時）、permission scope / revision、Profile-local context および selected Account。
-5. Chain、Network、operation、expected signer、payload integrity および Profile Network の一致。
-6. operation-specific target の parse、chain-specific validation、canonicalization、semantic inspection および displayability。
-7. request expiry、message expiry、transaction / parent expiry、session expiry および applicable capability / release gate。
+1. 外側の入力 / エンベロープの型、サイズ、重複鍵、必須 / 任意、不明フィールドおよび不正な形式のエンコーディング。
+2. プロトコルリテラル、バージョン、操作、識別子、タイムスタンプ、null 許容、範囲および共用体 combination。
+3. requestId、セッション、世代、requestDigest、方向、受信者、重複、リプレイ、消費済み / キャンセル済み / 期限切れおよび遅延した配送。
+4. 送信元 / オリジン、オリジン証明（適用時）、許可対象範囲 / リビジョン、プロファイル内の文脈および選択済みのアカウント。
+5. チェーン、ネットワーク、操作、期待される署名主体、ペイロード完全性およびプロファイルネットワークの一致。
+6. 操作固有の対象の解析、チェーン固有の検証、正規化、意味上の内容検査および表示可能性。
+7. 要求期限切れ、メッセージ期限切れ、トランザクション / 親期限切れ、セッション期限切れおよび適用可能な対応能力 / リリース判定。
 
-検証失敗時は `VALIDATED`、`INSPECTED`、`AWAITING_USER`、`AUTHORIZED` または `SIGNING` へ進めない。Relay、SDK、dApp、OS または wallet-core が同じ検証に成功したことを Mobile の最終検証の代替にしない。
+検証失敗時は `VALIDATED`、`INSPECTED`、`AWAITING_USER`、`AUTHORIZED` または `SIGNING` へ進めない。Relay、SDK、dApp、OS または wallet-core が同じ検証に成功したことをモバイルの最終検証の代替にしない。
 
-### 10.2 Transaction signing
+### 10.2 トランザクション署名
 
-現行 handoff の `signTransaction` は、既存の `MosaicLynxSignTransactionParams` / `RelaySigningRequest` に従う。`chain`、`network`、hex payload および optional `expectedSignerPublicKey` の exact contract は Handoff、Interfaces、Signing Protocol および Chain Compatibility Specification を参照する。
+現行受け渡しの `signTransaction` は、既存の `MosaicLynxSignTransactionParams` / `RelaySigningRequest` に従う。`chain`、`network`、hex ペイロードおよび任意 `expectedSignerPublicKey` の厳密な契約は受け渡し、インターフェース、署名プロトコルおよびチェーン互換性仕様を参照する。
 
-最低限、次を満たさない transaction は署名しない。
+最低限、次を満たさないトランザクションは署名しない。
 
-- payload が偶数長の hexadecimal で、decoded byte length が Handoff の 256 KiB 以下である。
-- chain、network、transaction type / version、全 field、signature state および必要な parent / inner context を parse / validate できる。
-- decode 後の chain-specific canonical serialization が元 payload と byte-for-byte で一致する。
-- selected / authorized Account、payload signer、expected signer、Profile Network および Scope が一致する。
-- 利用者が security-relevant field と影響を trusted UI で確認できる。
+- ペイロードが偶数長の 16進数で、デコード済みバイト長さが受け渡しの 256 KiB 以下である。
+- チェーン、ネットワーク、トランザクション型 / バージョン、全フィールド、署名状態および必要な親 / 内部文脈を解析 / 検証できる。
+- デコード後のチェーン固有の正規シリアライズが元ペイロードとバイト単位で一致するで一致する。
+- 選択済みの / 認可済みのアカウント、ペイロード署名主体、期待される署名主体、プロファイルネットワークおよび対象範囲が一致する。
+- 利用者がセキュリティに関わるフィールドと影響を信頼された UI で確認できる。
 
-確認対象には適用可能な transaction type / version、Chain、Network、Account / signer、recipient、asset / mosaic、amount、fee、deadline、message、namespace、metadata、authority / permission change、Aggregate outer / embedded transaction、existing signature / cosignature、parent identity、expected role および warning を含める。各 Chain が定める schema、signing bytes、hash、address、Aggregate / multisig / cosignature scope は Chain Compatibility と下位契約を正本とする。
+確認対象には適用可能なトランザクション型 / バージョン、チェーン、ネットワーク、アカウント / 署名主体、受信者、資産 / mosaic、数量、手数料、期限、メッセージ、名前空間、メタデータ、判断権限 / 許可変更、アグリゲート外側 / 埋め込みトランザクション、既存の署名 / 連署署名、親識別情報、期待される役割および警告を含める。各チェーンが定めるスキーマ、署名バイト列、ハッシュ、アドレス、アグリゲート / マルチシグ / 連署署名対象範囲はチェーン互換性と下位契約を正本とする。
 
-hash-only、opaque identifier、hash + summary、外部 lookup、Node response、Relay metadata または dApp supplied description だけでは parent / transaction 全体の confirmation model を作らない。Partial、Symbol Aggregate、NEM multisig / cosignature を受信した場合も、Signer が渡された全体を独立に parse / validate / display できるときだけ、その既存 operation の candidate とする。未対応、部分的、ambiguous、unparseable または表示不能な security-relevant field があれば、warning-only や raw signing へ fallback しない。
+ハッシュのみ、内容を解釈しない識別子、ハッシュ + 要約、外部照会、ノード応答、Relay メタデータまたは dApp 提供された説明だけでは親 / トランザクション全体の確認モデルを作らない。部分トランザクション、Symbol アグリゲート、NEM マルチシグ / 連署署名を受信した場合も、署名主体が渡された全体を独立に解析 / 検証 / 表示できるときだけ、その既存操作の候補とする。未対応、部分的、曖昧な、unparseable または表示不能なセキュリティに関わるフィールドがあれば、警告のみや生の署名へ代替経路しない。
 
-### 10.3 Structured `MESSAGE_SIGN`
+### 10.3 構造化された `MESSAGE_SIGN`
 
-Mobile v1 の message signing は、wire operation `signData` に対応する structured `MESSAGE_SIGN` である。arbitrary raw bytes signing ではない。
+モバイル v1 のメッセージ署名は、通信上の操作 `signData` に対応する構造化された `MESSAGE_SIGN` である。任意の生バイト列署名ではない。
 
-現行 handoff の request context は `chain`、`network`、`purpose`、`nonce`、`issuedAt`、`messageExpiresAt`、`payload`（`utf8` または `hex` encoding）および optional `expectedSignerPublicKey` とする。exact field、encoding、nonce format、canonicalization および signed result format は [Interfaces §9.4](./interfaces.md)、[Signing Protocol §15](./signing-protocol.md) および Handoff §5 / §7 を正本とし、field alias を追加しない。
+現行受け渡しの要求文脈は `chain`、`network`、`purpose`、`nonce`、`issuedAt`、`messageExpiresAt`、`payload`（`utf8` または `hex` エンコーディング）および任意 `expectedSignerPublicKey` とする。厳密なフィールド、エンコーディング、ノンス形式、正規化および署名済み結果形式は [インターフェース §9.4](./interfaces.md)、[署名プロトコル §15](./signing-protocol.md) および受け渡し §5 / §7 を正本とし、フィールド別名を追加しない。
 
-Signer は同じ検証済み structured message model から inspection、trusted UI 表示および wallet-core へ渡す signing input を導出する。少なくとも source / handoff status、Profile、Account、Chain / Network、purpose、message contents、domain、nonce、issued / expiry、request freshness および replay state を適用可能な範囲で binding する。
+署名主体は同じ検証済み構造化されたメッセージモデルから内容検査、信頼された UI 表示および wallet-core へ渡す署名入力を導出する。少なくとも送信元 / 受け渡し状態、プロファイル、アカウント、チェーン / ネットワーク、目的、メッセージ内容、ドメイン、ノンス、発行された / 期限切れ、要求鮮度およびリプレイ状態を適用可能な範囲で結び付けする。
 
-parse failure、unknown format、raw-only / uninspectable content、expired、duplicate、replay、cross-source、cross-domain または cross-purpose の message は署名しない。外部の表示文言、SDK / Relay metadata または OS metadata から別の message model を作らず、message を transaction signing、別 operation または別 transport の成功へ変換しない。
+解析失敗、不明形式、生データのみ / 内容検査できない内容、期限切れ、重複、リプレイ、送信元間の、ドメイン間のまたは目的間のメッセージは署名しない。外部の表示文言、SDK / Relay メタデータまたは OS メタデータから別のメッセージモデルを作らず、メッセージをトランザクション署名、別操作または別通信経路の成功へ変換しない。
 
-## 11. Trusted UI、Approval および Signing
+## 11. 信頼された UI、承認および署名
 
-### 11.1 Trusted confirmation
+### 11.1 信頼された確認
 
-署名確認は Mobile App が管理する foreground UI で行う。UI は外部 App、browser、Relay、notification、OS link または stale screen に委譲しない。
+署名確認はモバイルアプリが管理するフォアグラウンド UI で行う。UI は外部アプリ、ブラウザ、Relay、通知、OS リンクまたは古くなった画面に委譲しない。
 
 利用者が少なくとも次を区別して確認できることを要求する。
 
-- source / relying context、handoff の検証状態および operation。
-- Symbol / NEM、Mainnet / Testnet、Profile Network、selected Account、address / public key および expected signer / role。
-- transaction または structured message の全 security-relevant field、target identity、expiry、warning および確認可能な影響。
-- Aggregate / parent / embedded / inner transaction、existing signature / cosignature、selected cosigner および role（適用時）。
-- Mainnet の Origin proof 検証状態、または Testnet で proof がない場合の「要求元（未検証）」表示。
+- 送信元 / 依拠する文脈、受け渡しの検証状態および操作。
+- Symbol / NEM、Mainnet / Testnet、プロファイルネットワーク、選択済みのアカウント、アドレス / 公開鍵および期待される署名主体 / 役割。
+- トランザクションまたは構造化されたメッセージの全セキュリティに関わるフィールド、対象識別情報、期限切れ、警告および確認可能な影響。
+- アグリゲート / 親 / 埋め込み / 内部トランザクション、既存の署名 / 連署署名、選択済みの連署者および役割（適用時）。
+- Mainnet のオリジン証明検証状態、または Testnet で証明がない場合の「要求元（未検証）」表示。
 
-layout、文言、localization、accessibility および platform-specific UI は implementation choice とする。ただし required information の省略、外部 summary の authority 化、表示不能 target の user self-accept、または警告だけでの blind signing を許可しない。
+配置、文言、ローカライズ、アクセシビリティおよびプラットフォーム固有の UI は実装選択とする。ただし必須情報の省略、外部要約の判断権限化、表示不能対象の利用者 self-accept、または警告だけでの内容を確認しない署名を許可しない。
 
-### 11.2 Approval と pre-sign revalidation
+### 11.2 承認と署名前再検証
 
-Explicit user approval は boolean flag ではなく、§7.1 の binding tuple に対する一回限りの approval context である。利用者の approve intent を取得した後、Authentication、Signing-capable unlock および Account authorization を当該 request に binding して成立させる。
+利用者による明示的な承認は真偽値フラグではなく、§7.1 の結び付け組に対する一回限りの承認文脈である。利用者の承認意図を取得した後、認証、署名可能な状態へのロック解除およびアカウントの利用認可を当該要求に結び付けして成立させる。
 
 wallet-core の呼び出し直前に、次をすべて再検証する。
 
-1. request が current、未期限切れ、未使用、未取消、未失効である。
-2. source、Origin proof / status、recipient、session、generation、requestId および response channel が承認時と同じである。
-3. Profile、Profile Network、Account、Chain、Network、permission scope / revision、operation および capability context が同じである。
-4. payload、parent、embedded / inner transaction、message、signer、expected signer、existing signature / cosignature、canonical form および inspection result が同じである。
-5. trusted UI が foreground で継続し、別 request に state が置換されていない。
-6. 四条件がすべて同一 request / target / Profile-local context に対して現在も成立し、missing、stale、revoked、locked、unknown または mismatch ではない。
+1. 要求が現在の、未期限切れ、未使用、未取消、未失効である。
+2. 送信元、オリジン証明 / 状態、受信者、セッション、世代、requestId および応答チャネルが承認時と同じである。
+3. プロファイル、プロファイルネットワーク、アカウント、チェーン、ネットワーク、許可対象範囲 / リビジョン、操作および対応能力文脈が同じである。
+4. ペイロード、親、埋め込み / 内部トランザクション、メッセージ、署名主体、期待される署名主体、既存の署名 / 連署署名、正規 form および内容検査結果が同じである。
+5. 信頼された UI がフォアグラウンドで継続し、別要求に状態が置換されていない。
+6. 四条件がすべて同一要求 / 対象 / プロファイル内の文脈に対して現在も成立し、欠落、古くなった、失効済み、ロック済み、不明または不一致ではない。
 
-一つでも失敗した場合は approval / authorization を `INVALIDATED` とし、wallet-core を呼び出さない。確認後の target mutation、Account substitution、Chain / Network substitution または TOCTOU を、再署名や別 transport で隠蔽してはならない。
+一つでも失敗した場合は承認 / 認可を `INVALIDATED` とし、wallet-core を呼び出さない。確認後の対象変更、アカウント差し替え、チェーン / ネットワーク差し替えまたは TOCTOU を、再署名や別通信経路で隠蔽してはならない。
 
-### 11.3 Signing と result validation
+### 11.3 署名と結果検証
 
-再検証済みで四条件を満たした target だけを wallet-core の既存 raw signing contract へ渡す。Mobile App は transaction construction、署名 byte 列、Chain-specific cryptography または Wallet Store crypto を独自に実装しない。
+再検証済みで四条件を満たした対象だけを wallet-core の既存生の署名契約へ渡す。モバイルアプリはトランザクション組み立て、署名バイト列、チェーン固有の暗号処理またはウォレットストア暗号処理を独自に実装しない。
 
-wallet-core が返した bytes / result は、次の対応を検証してから success response にする。
+wallet-core が返したバイト列 / 結果は、次の対応を検証してから成功応答にする。
 
-- original request / requestId / requestDigest / operation。
-- source、session / generation、response recipient および Profile-local context。
-- signer identity、selected / expected Account、Chain / Network。
-- exact target、target digest / hash、message identity または Chain-specific result identity。
-- 署名時点の四条件と approval context。
+- 元の要求 / requestId / requestDigest / 操作。
+- 送信元、セッション / 世代、応答受信者およびプロファイル内の文脈。
+- 署名主体識別情報、選択済みの / 期待されるアカウント、チェーン / ネットワーク。
+- 厳密な対象、対象ダイジェスト / ハッシュ、メッセージ識別情報またはチェーン固有の結果識別情報。
+- 署名時点の四条件と承認文脈。
 
-対応を安全に確認できない、wallet-core が失敗した、Store / Binding が不整合、または context が失われた場合は success result を返さない。秘密情報、内部 stack、raw parser detail または過剰な failure detail を返さない。
+対応を安全に確認できない、wallet-core が失敗した、ストア / バインディングが不整合、または文脈が失われた場合は成功結果を返さない。秘密情報、内部スタック、生のパーサー詳細または過剰な失敗詳細を返さない。
 
-## 12. Response、Result および Delivery Semantics
+## 12. 応答、結果および配送意味
 
-### 12.1 Response mapping
+### 12.1 応答対応付け
 
-Mobile App の Relay response は既存 Handoff の union に限定する。Mobile App は response を E2E 暗号化して Relay へ登録し、Relay は opaque bytes を pass-through する。
+モバイルアプリの Relay 応答は既存受け渡しの共用体に限定する。モバイルアプリは応答を E2E 暗号化して Relay へ登録し、Relay は内容を解釈しないバイト列をそのまま通過させるする。
 
-| Mobile 側の確定結果                                                   | response の意味                                                                                                                      |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| transaction signing 成功                                              | `outcome: 'signed'`、`signingOutcome: 'SUCCEEDED'`、known `signedTransaction` および `deliveryDisposition`。                         |
-| structured message signing 成功                                       | `outcome: 'dataSigned'`、`signingOutcome: 'SUCCEEDED'`、known `signedData` および `deliveryDisposition`。                            |
-| signing generation の成否不明                                         | `outcome: 'resultUnknown'`、`signingOutcome: 'RESULT_UNKNOWN'`。signed result、`deliveryDisposition` および `errorCode` を持たない。 |
-| 利用者拒否・validation / inspection / authorization / signing failure | `outcome: 'rejected'` または `outcome: 'failed'` と既存 `MosaicLynxSDKErrorCode`。success result を持たない。                        |
+| モバイル側の確定結果                          | 応答の意味                                                                                                                          |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| トランザクション署名成功                      | `outcome: 'signed'`、`signingOutcome: 'SUCCEEDED'`、既知の `signedTransaction` および `deliveryDisposition`。                       |
+| 構造化メッセージ署名成功                      | `outcome: 'dataSigned'`、`signingOutcome: 'SUCCEEDED'`、既知の `signedData` および `deliveryDisposition`。                          |
+| 署名生成の成否不明                            | `outcome: 'resultUnknown'`、`signingOutcome: 'RESULT_UNKNOWN'`。署名済み結果、`deliveryDisposition` および `errorCode` を持たない。 |
+| 利用者拒否・検証 / 内容検査 / 認可 / 署名失敗 | `outcome: 'rejected'` または `outcome: 'failed'` と既存 `MosaicLynxSDKErrorCode`。成功結果を持たない。                              |
 
-通常 failure の concrete code、response field、serialization および SDK Promise mapping は Handoff §10、Interfaces §10 および SDK Specification を正本とする。本書は新しい error code を追加しない。
+通常失敗の具体的なコード、応答フィールド、シリアライズおよび SDK 保証対応付けは受け渡し §10、インターフェース §10 および SDK 仕様を正本とする。本書は新しいエラーコードを追加しない。
 
 ### 12.2 `RESULT_UNKNOWN`
 
-`RESULT_UNKNOWN` は、trusted Mobile Signer が **signing generation 自体の成否を確定できない場合**に限定する。例として、wallet-core / Binding 呼び出し中の process termination、結果 buffer の喪失または signing operation の完了状態を trusted host が検証できない場合がある。
+`RESULT_UNKNOWN` は、信頼されたモバイル署名主体が **署名生成自体の成否を確定できない場合**に限定する。例として、wallet-core / バインディング呼び出し中のプロセス終了、結果バッファーの喪失または署名操作の完了状態を信頼されたホストが検証できない場合がある。
 
 次から `RESULT_UNKNOWN` を生成・推測してはならない。
 
-- 単なる network failure、Relay unavailable、Relay restart、response absence、ACK failure、SDK timeout、recipient offline、polling timeout または delivery failure。
-- Relay の `pending` / `response_available` / `consumed`、HTTP 2xx、session existence または purge。
+- 単なるネットワーク失敗、Relay 利用不能、Relay 再起動、応答欠如、受領確認失敗、SDK タイムアウト、受信者オフライン、ポーリングタイムアウトまたは配送失敗。
+- Relay の `pending` / `response_available` / `consumed`、HTTP 2xx、セッション存在または削除。
 - SDK、Provider、dApp または OS の自己申告。
 
-Mobile App が `RESULT_UNKNOWN` を返した後、同じ request / target の未署名を仮定した自動 re-sign、別 Signer、別 Provider または別 transport への自動 fallback を行わない。新しい signing は、利用者が明示的に開始する fresh request、fresh validation、fresh Authentication、fresh Signing-capable unlock、fresh Account authorization および fresh Explicit user approval を必要とする。
+モバイルアプリが `RESULT_UNKNOWN` を返した後、同じ要求 / 対象の未署名を仮定した自動再署名、別署名主体、別 Provider または別通信経路への自動代替経路を行わない。新しい署名は、利用者が明示的に開始する新鮮な要求、新鮮な検証、新鮮な認証、新鮮な署名可能な状態へのロック解除、新鮮なアカウントの利用認可および新鮮な利用者による明示的な承認を必要とする。
 
 ### 12.3 `deliveryDisposition`
 
-`deliveryDisposition` は known signed result にだけ付随し、署名 outcome と別軸である。
+`deliveryDisposition` は既知の署名済み結果にだけ付随し、署名結果と別軸である。
 
-| 値                 | 意味と authority                                                                                                                                                                                                |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PENDING`          | Mobile Signer が known signed result を保持し、response delivery が Signer-side の trusted delivery contract で完了確定していない。現行 Mobile Relay v1 の response upload 後の初期値は原則 `PENDING`。         |
-| `DELIVERED`        | trusted Signer が、既存 delivery contract により当該 known result の delivery 完了を確定した場合だけ許可する。Relay ACK、`consumed`、HTTP 2xx、purge、SDK retrieval または polling success だけでは生成しない。 |
-| `DELIVERY_UNKNOWN` | known signed result は保持しているが、その delivery disposition を trusted Signer が確定できない場合だけ許可する。Relay、SDK または transport が network failure 等から生成・推測してはならない。               |
+| 値                 | 意味と判断権限                                                                                                                                                                            |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PENDING`          | モバイル署名主体が既知の署名済み結果を保持し、応答配送が署名主体側の信頼された配送契約で完了確定していない。現行モバイル Relay v1 の応答アップロード後の初期値は原則 `PENDING`。          |
+| `DELIVERED`        | 信頼された署名主体が、既存配送契約により当該既知の結果の配送完了を確定した場合だけ許可する。Relay 受領確認、`consumed`、HTTP 2xx、削除、SDK 取得またはポーリング成功だけでは生成しない。  |
+| `DELIVERY_UNKNOWN` | 既知の署名済み結果は保持しているが、その配送処理結果の区分を信頼された署名主体が確定できない場合だけ許可する。Relay、SDK または通信経路がネットワーク失敗等から生成・推測してはならない。 |
 
-現行 Handoff v1 には Mobile App が SDK の ACK を受ける reverse acknowledgement contract がない。そのため Mobile App は Relay response 登録や SDK ACK の観測だけで `PENDING` を `DELIVERED` に変更しない。`DELIVERY_UNKNOWN` を使用する場合も、known result の存在と Signer-side authority を確認できなければならない。
+現行受け渡し v1 にはモバイルアプリが SDK の受領確認を受ける reverse 受領確認契約がない。そのためモバイルアプリは Relay 応答登録や SDK 受領確認の観測だけで `PENDING` を `DELIVERED` に変更しない。`DELIVERY_UNKNOWN` を使用する場合も、既知の結果の存在と署名主体側の判断権限を確認できなければならない。
 
-### 12.4 Known signed result の recovery
+### 12.4 既知の署名済み結果の復旧
 
-known signed result の recovery は新しい signing operation ではない。
+既知の署名済み結果の復旧は新しい署名操作ではない。
 
-- `SUCCEEDED + PENDING` または `SUCCEEDED + DELIVERY_UNKNOWN` の既存 result は、許可された `resend`、`redelivery`、`retrieval` または `lookup` のみで回復対象とする。
-- recovery は元 request、requestDigest、operation、signer、Account、Chain / Network、target および response recipient への binding を再検証する。
-- 同じ encrypted response の冪等な再登録、既存 response の取得または既存 result の再配送は許可され得るが、新しい signature は生成しない。
-- recovery のために `SIGNING` へ戻らず、別 target、別 Account、別 Signer、別 Provider または別 transport へ自動切替しない。
-- result の保持期間、lookup API、redelivery API および recovery record の storage は既存 Handoff / Relay / SDK contract が定める範囲に従い、未確定部分は §19 の OPEN とする。
+- `SUCCEEDED + PENDING` または `SUCCEEDED + DELIVERY_UNKNOWN` の既存結果は、許可された `resend`、`redelivery`、`retrieval` または `lookup` のみで回復対象とする。
+- 復旧は元要求、requestDigest、操作、署名主体、アカウント、チェーン / ネットワーク、対象および応答受信者への結び付けを再検証する。
+- 同じ暗号化された応答の冪等な再登録、既存応答の取得または既存結果の再配送は許可され得るが、新しい署名は生成しない。
+- 復旧のために `SIGNING` へ戻らず、別対象、別アカウント、別署名主体、別 Provider または別通信経路へ自動切替しない。
+- 結果の保持期間、照会 API、再配送 API および復旧レコードの保存領域は既存受け渡し / Relay / SDK 契約が定める範囲に従い、未確定部分は §19 の未決とする。
 
-Relay の response upload、ACK、retrieval、`consumed` または purge は recovery の authority ではない。Mobile App はこれらを `DELIVERED`、`RESULT_UNKNOWN` または再署名の根拠にしない。
+Relay の応答アップロード、受領確認、取得、`consumed` または削除は復旧の判断権限ではない。モバイルアプリはこれらを `DELIVERED`、`RESULT_UNKNOWN` または再署名の根拠にしない。
 
-## 13. State Model と Transition
+## 13. 状態モデルと遷移
 
-### 13.1 Request / signing lifecycle
+### 13.1 要求 / 署名ライフサイクル
 
-Mobile App の external signing lifecycle は、既存 Interfaces / Signing Protocol が定める common exact state set をそのまま使用する。次の図は common signing lifecycle であり、Mobile-specific state や local substep を含めない。
+モバイルアプリの外部署名ライフサイクルは、既存インターフェース / 署名プロトコルが定める共通の厳密な状態集合をそのまま使用する。次の図は共通の署名ライフサイクルであり、モバイル固有の状態やローカル内部手順を含めない。
 
 ```text
 RECEIVED → VALIDATED → INSPECTED → AWAITING_USER
   → AUTHORIZED → SIGNING → SUCCEEDED
 ```
 
-Authentication は引き続き四条件の一つとして必要であるが、Mobile App 内部では次の local substep として扱う。
+認証は引き続き四条件の一つとして必要であるが、モバイルアプリ内部では次のローカル内部手順として扱う。
 
 ```text
-AWAITING_USER (common state)
-  → [AUTHENTICATING: Mobile local UI / device authentication / user presence]
-  → AUTHORIZED (common state)
+AWAITING_USER (共通の状態)
+  → [AUTHENTICATING: モバイルローカル UI / 端末認証 / 利用者存在]
+  → AUTHORIZED (共通の状態)
 ```
 
-`AUTHENTICATING` は common signing state、public state または wire state ではない。response field、Relay state、永続化 state または SDK contract に serialize / expose せず、Interfaces / Signing Protocol の common exact state set を拡張せず、common signing protocol の state transition を変更しない。local substep が失敗、stale、revoked、locked または context mismatch になった場合も、既存の common failure / terminal semantics に従い、old Authentication または authorization を再利用しない。
+`AUTHENTICATING` は共通の署名状態、公開状態または通信上の状態ではない。応答フィールド、Relay 状態、永続化状態または SDK 契約にシリアライズ / expose せず、インターフェース / 署名プロトコルの共通の厳密な状態集合を拡張せず、共通の署名プロトコルの状態遷移を変更しない。ローカル内部手順が失敗、古くなった、失効済み、ロック済みまたは文脈不一致になった場合も、既存の共通の失敗 / 終端意味に従い、旧認証または認可を再利用しない。
 
-| State            | Mobile App における意味                                                                                                                  |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `RECEIVED`       | 外部 invocation または Relay から入力を受信した。trust、approval、署名可否は未確定。                                                     |
-| `VALIDATED`      | 外形、identity、source / handoff、integrity、expiry、recipient、permission、Profile / Account、Scope を検証した。                        |
-| `INSPECTED`      | chain-specific parse / validate / canonicalize と confirmation model 生成を完了した。                                                    |
-| `AWAITING_USER`  | trusted foreground UI で target を表示し、個別の user action を待っている。                                                              |
-| `AUTHORIZED`     | 四条件が同じ request / target / Profile-local context に対して独立にすべて成立した。一回限りの短寿命状態。                               |
-| `SIGNING`        | pre-sign revalidation 済み target を wallet-core に渡し、結果を待っている。                                                              |
-| `SUCCEEDED`      | known signed result と signer / request / target / four-condition context の対応を検証した。                                             |
-| `REJECTED`       | 利用者が明示的に拒否した。wallet-core は呼び出さない。                                                                                   |
-| `FAILED`         | validation、unsupported、permission、authentication、unlock、Account authorization、inspection、wallet-core または確定した内部 failure。 |
-| `EXPIRED`        | request、message、transaction / parent または適用期限が切れた。                                                                          |
-| `CANCELLED`      | 利用者、dApp、Signer、platform または transport の cancellation が signing generation 確定前に成立した。                                 |
-| `INVALIDATED`    | Profile、Account、source、session、generation、target、permission、四条件または lifecycle context が失効・変更・不明になった。           |
-| `RESULT_UNKNOWN` | signing generation 自体の成否を trusted Mobile Signer が確定できない。署名結果ではない。                                                 |
+| 状態             | モバイルアプリにおける意味                                                                                                 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `RECEIVED`       | 外部呼び出しまたは Relay から入力を受信した。信頼、承認、署名可否は未確定。                                                |
+| `VALIDATED`      | 外形、識別情報、送信元 / 受け渡し、完全性、期限切れ、受信者、許可、プロファイル / アカウント、対象範囲を検証した。         |
+| `INSPECTED`      | チェーン固有の解析 / 検証 / 正規化と確認モデル生成を完了した。                                                             |
+| `AWAITING_USER`  | 信頼されたフォアグラウンド UI で対象を表示し、個別の利用者対応を待っている。                                               |
+| `AUTHORIZED`     | 四条件が同じ要求 / 対象 / プロファイル内の文脈に対して独立にすべて成立した。一回限りの短寿命状態。                         |
+| `SIGNING`        | 署名前再検証済み対象を wallet-core に渡し、結果を待っている。                                                              |
+| `SUCCEEDED`      | 既知の署名済み結果と署名主体 / 要求 / 対象 / 四条件文脈の対応を検証した。                                                  |
+| `REJECTED`       | 利用者が明示的に拒否した。wallet-core は呼び出さない。                                                                     |
+| `FAILED`         | 検証、未対応の、許可、認証、ロック解除、アカウントの利用認可、内容検査、wallet-core または確定した内部失敗。               |
+| `EXPIRED`        | 要求、メッセージ、トランザクション / 親または適用期限が切れた。                                                            |
+| `CANCELLED`      | 利用者、dApp、署名主体、プラットフォームまたは通信経路のキャンセルが署名生成確定前に成立した。                             |
+| `INVALIDATED`    | プロファイル、アカウント、送信元、セッション、世代、対象、許可、四条件またはライフサイクル文脈が失効・変更・不明になった。 |
+| `RESULT_UNKNOWN` | 署名生成自体の成否を信頼されたモバイル署名主体が確定できない。署名結果ではない。                                           |
 
-`REJECTED`、`FAILED`、`EXPIRED`、`CANCELLED`、`INVALIDATED` および `RESULT_UNKNOWN` から、同じ request / authorization を使って `AWAITING_USER`、`AUTHORIZED` または `SIGNING` へ戻してはならない。これらの terminal state から Mobile local substep `AUTHENTICATING` を再開してもならない。新しい signing は新しい request identity と四条件を必要とする。
+`REJECTED`、`FAILED`、`EXPIRED`、`CANCELLED`、`INVALIDATED` および `RESULT_UNKNOWN` から、同じ要求 / 認可を使って `AWAITING_USER`、`AUTHORIZED` または `SIGNING` へ戻してはならない。これらの終端状態からモバイルローカル内部手順 `AUTHENTICATING` を再開してもならない。新しい署名は新しい要求識別情報と四条件を必要とする。
 
-### 13.2 Lock state
+### 13.2 ロック状態
 
-Mobile App は少なくとも `LOCKED`、通常の `UNLOCKED`、request-bound な signing-capable state および unavailable / terminal state を論理的に区別する。
+モバイルアプリは少なくとも `LOCKED`、通常の `UNLOCKED`、要求に結び付いたな署名可能な状態および利用不能 / 終端状態を論理的に区別する。
 
-| 事象                             | 必須動作                                                                                                                                                   |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| cold start / restart             | `LOCKED` とし、過去の Authentication、approval、authorization、signing operation を復元しない。                                                            |
-| device lock / user-presence loss | signing-capable state、decrypted secret および Authentication context を無効化する。device unlock だけで復帰しない。                                       |
-| manual lock / idle timeout       | signing-capable state、approval、Authentication、Account authorization および一時秘密を無効化する。                                                        |
-| foreground 復帰                  | request、Profile、Account、Scope、expiry、target、permission および device state を再検証し、内容を再表示して fresh approval / Authentication を要求する。 |
-| process restart / OS kill        | `LOCKED`。旧 approval、auth、unlock、signing operation を自動再開しない。                                                                                  |
+| 事象                              | 必須動作                                                                                                                              |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 初回開始 / 再起動                 | `LOCKED` とし、過去の認証、承認、認可、署名操作を復元しない。                                                                         |
+| 端末ロック / 利用者の立ち会い消失 | 署名可能な状態、復号された秘密情報および認証文脈を無効化する。端末ロック解除だけで復帰しない。                                        |
+| 手動ロック / 待機タイムアウト     | 署名可能な状態、承認、認証、アカウントの利用認可および一時秘密を無効化する。                                                          |
+| フォアグラウンド復帰              | 要求、プロファイル、アカウント、対象範囲、期限切れ、対象、許可および端末状態を再検証し、内容を再表示して新鮮な承認 / 認証を要求する。 |
+| プロセス再起動 / OS 強制終了      | `LOCKED`。旧承認、認証、ロック解除、署名操作を自動再開しない。                                                                        |
 
-## 14. Lifecycle、Failure および Recovery
+## 14. ライフサイクル、失敗および復旧
 
-### 14.1 Background / suspension / resume
+### 14.1 バックグラウンド / 中断 / 再開
 
-- background または suspended に移行した時点で、未完了 approval、Authentication、Account authorization および signing-capable state を原則として無効化する。
-- opaque request reference、expiry、必要最小限の session metadata を保持できるが、署名対象、decrypted secret、approval または auth context を復元してはならない。
-- background notification、silent wake、Relay polling、callback または headless execution だけで UI、unlock、approval または signing を実行しない。
-- foreground へ resume した場合、source、request identity、session / generation、payload、Profile / Account、Scope、permission、expiry、device capability および operation を再検証し、target を再表示し、利用者の fresh approval と Authentication を取得する。
+- バックグラウンドまたは中断されたに移行した時点で、未完了承認、認証、アカウントの利用認可および署名可能な状態を原則として無効化する。
+- 内容を解釈しない要求参照、期限切れ、必要最小限のセッションメタデータを保持できるが、署名対象、復号された秘密情報、承認または認証文脈を復元してはならない。
+- バックグラウンド通知、利用者に知らせない wake、Relay ポーリング、コールバックまたは画面を持たない実行だけで UI、ロック解除、承認または署名を実行しない。
+- フォアグラウンドへ再開した場合、送信元、要求識別情報、セッション / 世代、ペイロード、プロファイル / アカウント、対象範囲、許可、期限切れ、端末対応能力および操作を再検証し、対象を再表示し、利用者の新鮮な承認と認証を取得する。
 
-### 14.2 Process termination / state loss
+### 14.2 プロセス終了 / 状態消失
 
-- process termination、強制終了、crash、OS kill または端末再起動後に、自動署名・自動 unlock・自動 approval を行わない。
-- signing 開始前に state を失った request は `INVALIDATED`、`CANCELLED` または既存 error mapping の安全側結果とし、署名しない。
-- wallet-core 呼び出し中に process / Binding state を失い signing generation の成否を確定できない場合だけ `RESULT_UNKNOWN` とする。
-- wallet-core result と response が確定済みである場合、known result recovery の契約に従って既存 result の resend / retrieval だけを行い、再署名しない。
-- Relay state loss、session expiry、generation change または source context loss の後に、old request、old ciphertext、old authorization または old approval を新しい context へ移さない。
+- プロセス終了、強制終了、異常終了、OS 強制終了または端末再起動後に、自動署名・自動ロック解除・自動承認を行わない。
+- 署名開始前に状態を失った要求は `INVALIDATED`、`CANCELLED` または既存エラー対応付けの安全側結果とし、署名しない。
+- wallet-core 呼び出し中にプロセス / バインディング状態を失い署名生成の成否を確定できない場合だけ `RESULT_UNKNOWN` とする。
+- wallet-core 結果と応答が確定済みである場合、既知の結果復旧の契約に従って既存結果の再送 / 取得だけを行い、再署名しない。
+- Relay 状態消失、セッション期限切れ、世代変更または送信元文脈消失の後に、旧要求、旧暗号文、旧認可または旧承認を新しい文脈へ移さない。
 
-### 14.3 Network loss / Relay unavailable
+### 14.3 ネットワーク消失 / Relay 利用不能
 
-- network loss や Relay unavailable は、request validation、inspection、四条件または approval を省略する根拠にならない。
-- request を取得できない場合、Mobile App は署名 UI・署名・success result を生成しない。
-- 署名前の Relay / network failure は、既存の transport failure / timeout / error mapping として扱い、`RESULT_UNKNOWN` を推測しない。
-- 署名後に known result があり、response upload / delivery の状況が Signer-side contract で確定できない場合、既存 result recovery と `deliveryDisposition` の規則だけを適用する。新しい signing を開始しない。
-- Relay が再接続できても、old session が expired、cancelled、consumed、state-lost または generation-invalid なら resume せず、fresh handoff を要求する。
+- ネットワーク消失や Relay 利用不能は、要求検証、内容検査、四条件または承認を省略する根拠にならない。
+- 要求を取得できない場合、モバイルアプリは署名 UI・署名・成功結果を生成しない。
+- 署名前の Relay / ネットワーク失敗は、既存の通信経路失敗 / タイムアウト / エラー対応付けとして扱い、`RESULT_UNKNOWN` を推測しない。
+- 署名後に既知の結果があり、応答アップロード / 配送の状況が署名主体側の契約で確定できない場合、既存結果復旧と `deliveryDisposition` の規則だけを適用する。新しい署名を開始しない。
+- Relay が再接続できても、旧セッションが期限切れ、キャンセル済み、消費済み、state-lost または generation-invalid なら再開せず、新鮮な受け渡しを要求する。
 
-### 14.4 Cancellation、timeout、duplicate および replay
+### 14.4 キャンセル、タイムアウト、重複およびリプレイ
 
-- request / message / transaction / parent / session の期限は別々に検証し、いずれかが適用範囲で切れた場合は署名開始前に `EXPIRED` とする。現行 Relay handoff の request / session expiry は Handoff の 5 分契約に従い、Mobile App は延長しない。
-- signing 前の user / dApp / platform cancellation は `CANCELLED` または既存 concrete error mapping とし、wallet-core を呼ばない。
-- `SIGNING` 中の cancellation、timeout または process interruption で signing generation の成否を確定できない場合は `RESULT_UNKNOWN`。署名が生成されていないことを trusted Signer が確定できる場合だけ cancellation / failure とする。
-- `SUCCEEDED` 後の response cancellation は既存 signed result を取り消さない。再署名を開始しない。
-- 同じ `requestId` の同一内容が active request として重複した場合、第二の UI、Authentication、authorization または wallet-core signing を開始しない。既存処理または既存 result recovery に関連付けるか、既存 transport contract の安全な duplicate 処理へ委譲する。
-- 同じ `requestId` で内容、Scope、source、target または operation が異なる場合は conflict / tampering として拒否する。
-- 使用済み、terminal、expired、cancelled、revoked、old generation、stale または late request は再利用しない。
-- duplicate / replay の判定不能時は fail-closed とし、追加署名を発生させない。
+- 要求 / メッセージ / トランザクション / 親 / セッションの期限は別々に検証し、いずれかが適用範囲で切れた場合は署名開始前に `EXPIRED` とする。現行 Relay 受け渡しの要求 / セッション期限切れは受け渡しの 5 分契約に従い、モバイルアプリは延長しない。
+- 署名前の利用者 / dApp / プラットフォームキャンセルは `CANCELLED` または既存具体的なエラー対応付けとし、wallet-core を呼ばない。
+- `SIGNING` 中のキャンセル、タイムアウトまたはプロセス中断で署名生成の成否を確定できない場合は `RESULT_UNKNOWN`。署名が生成されていないことを信頼された署名主体が確定できる場合だけキャンセル / 失敗とする。
+- `SUCCEEDED` 後の応答キャンセルは既存署名済み結果を取り消さない。再署名を開始しない。
+- 同じ `requestId` の同一内容が有効な要求として重複した場合、第二の UI、認証、認可または wallet-core 署名を開始しない。既存処理または既存結果復旧に関連付けるか、既存通信経路契約の安全な重複処理へ委譲する。
+- 同じ `requestId` で内容、対象範囲、送信元、対象または操作が異なる場合は競合 / 改ざんとして拒否する。
+- 使用済み、終端、期限切れ、キャンセル済み、失効済み、旧世代、古くなったまたは遅延した要求は再利用しない。
+- 重複 / リプレイの判定不能時は安全側での終了とし、追加署名を発生させない。
 
-### 14.5 Local state と remote state の不一致
+### 14.5 ローカル状態とリモート状態の不一致
 
-| 状況                                                                | Mobile App の動作                                                                                                                |
-| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Relay は `response_available` だが Mobile が署名状態を持たない      | Relay state から `SUCCEEDED`、承認済みまたは `DELIVERED` を推測しない。request / response を再検証できなければ安全側に終了する。 |
-| Mobile は known signed result を持つが Relay が応答を見つけられない | result を再署名せず、許可された retrieval / resend / redelivery / lookup だけを行う。                                            |
-| Relay が `consumed` / purge 済みだが Mobile に known result がある  | `DELIVERED` を推測しない。既存 recovery contract に従い、result を破棄して別 target を署名しない。                               |
-| Relay が generation / state continuity を失った                     | old session / request / approval を復元せず、fresh generation / session / request / envelope / approval を要求する。             |
-| Mobile process が state を失ったが Relay に request が残る          | `LOCKED` から再開し、request を新たに検証・inspection・表示し、fresh four-condition gate を成立させる。自動署名しない。          |
+| 状況                                                              | モバイルアプリの動作                                                                                                   |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Relay は `response_available` だがモバイルが署名状態を持たない    | Relay 状態から `SUCCEEDED`、承認済みまたは `DELIVERED` を推測しない。要求 / 応答を再検証できなければ安全側に終了する。 |
+| モバイルは既知の署名済み結果を持つが Relay が応答を見つけられない | 結果を再署名せず、許可された取得 / 再送 / 再配送 / 照会だけを行う。                                                    |
+| Relay が `consumed` / 削除済みだがモバイルに既知の結果がある      | `DELIVERED` を推測しない。既存復旧契約に従い、結果を破棄して別対象を署名しない。                                       |
+| Relay が世代 / 状態継続性を失った                                 | 旧セッション / 要求 / 承認を復元せず、新鮮な世代 / セッション / 要求 / エンベロープ / 承認を要求する。                 |
+| モバイルプロセスが状態を失ったが Relay に要求が残る               | `LOCKED` から再開し、要求を新たに検証・内容検査・表示し、新鮮な四条件判定条件を成立させる。自動署名しない。            |
 
-## 15. Secret Handling と Wallet Core Boundary
+## 15. 秘密情報処理と wallet-core 境界
 
 ### 15.1 秘密情報の分類
 
-| 情報                                                        | 保持・処理主体                                          | Mobile App の契約                                                                                                                                    |
-| ----------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Mnemonic、private key、derived key、Wallet Store の秘密部分 | wallet-core のみ。MosaicLynx は取得・保持しない         | 外部 App、Web page、SDK、Relay、URL、notification、log、diagnostics、analytics、response または persistent plain storage へ渡さない。                |
-| Profile password                                            | 利用者の trusted auth surface と wallet-core の既存契約 | signing / unlock に必要な期間だけ扱い、通常の UI state、Relay、SDK、log または response に保存しない。                                               |
-| Encrypted Wallet Store                                      | wallet-core 定義の opaque data                          | Mobile Application は保存・置換・version 整合性を管理するが、内部 format、KDF、AEAD、key index を解釈・再実装しない。                                |
-| OS-protected credential / wrapping key                      | OS / platform integration                               | capability、端末変更、backup、失敗状態を Mobile の責任として表示・処理し、wallet-core の責任と混同しない。                                           |
-| `sessionSecret` / `appToken`                                | Handoff / Relay の一時 handoff credential               | 署名秘密情報ではないが、Handoff の fragment / endpoint 境界だけで最小期間扱う。署名 gate、Account authorization または Wallet Store の代替にしない。 |
+| 情報                                                           | 保持・処理主体                                      | モバイルアプリの契約                                                                                                                                            |
+| -------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ニーモニック、秘密鍵、導出された鍵、ウォレットストアの秘密部分 | wallet-core のみ。MosaicLynx は取得・保持しない     | 外部アプリ、Web ページ、SDK、Relay、URL、通知、ログ、診断情報、利用状況分析、応答または永続的な通常の保存領域へ渡さない。                                       |
+| プロファイルパスワード                                         | 利用者の信頼された認証接点と wallet-core の既存契約 | 署名 / ロック解除に必要な期間だけ扱い、通常の UI 状態、Relay、SDK、ログまたは応答に保存しない。                                                                 |
+| 暗号化されたウォレットストア                                   | wallet-core 定義の内容を解釈しないデータ            | モバイルアプリケーションは保存・置換・バージョン整合性を管理するが、内部形式、KDF、AEAD、鍵索引を解釈・再実装しない。                                           |
+| OS で保護された認証情報 / ラップ鍵                             | OS / プラットフォーム統合                           | 対応能力、端末変更、バックアップ、失敗状態をモバイルの責任として表示・処理し、wallet-core の責任と混同しない。                                                  |
+| `sessionSecret` / `appToken`                                   | 受け渡し / Relay の一時受け渡し認証情報             | 署名秘密情報ではないが、受け渡しのフラグメント / エンドポイント境界だけで最小期間扱う。署名判定条件、アカウントの利用認可またはウォレットストアの代替にしない。 |
 
-### 15.2 Wallet-core binding
+### 15.2 Wallet-core 結び付け
 
-Mobile App は、四条件と Profile / Account binding を再検証した approved raw target だけを wallet-core の既存 Binding へ渡す。wallet-core は key lifecycle、Wallet Store、秘密情報を使用する cryptographic processing、public identity および raw signing を担う。Mobile App は caller、permission、UI、semantic inspection、approval、OS user presence または release gate を wallet-core へ委譲しない。
+モバイルアプリは、四条件とプロファイル / アカウント結び付けを再検証した承認済み生の対象だけを wallet-core の既存バインディングへ渡す。wallet-core は鍵ライフサイクル、ウォレットストア、秘密情報を使用する暗号学的な処理、公開識別情報および生の署名を担う。モバイルアプリは呼び出し元、許可、UI、意味上の内容検査、承認、OS 利用者存在またはリリース判定を wallet-core へ委譲しない。
 
-Native / WASM、host buffer ownership、zeroization、Store replacement、migration、OS wrapping および platform integration の exact contract は wallet-core / platform 下位仕様へ委譲する。どの実装方式でも、Mobile App は wallet-core 外で KDF、AEAD、key derivation、Wallet Store encryption、password bypass または raw signing を追加しない。
+ネイティブ / WASM、ホストバッファー所有責任、ゼロ化、ストア置き換え、移行、OS ラップおよびプラットフォーム統合の厳密な契約は wallet-core / プラットフォーム下位仕様へ委譲する。どの実装方式でも、モバイルアプリは wallet-core 外で KDF、AEAD、鍵導出、ウォレットストア暗号化、パスワード迂回または生の署名を追加しない。
 
-秘密 byte は必要な cryptographic operation の最短期間だけ privileged host / Binding 境界に置く。Binding 呼び出し後、lock、background policy、device lock、process termination、error または context loss で一時秘密と認証 context を無効化する。memory copy、native / WASM buffer、screen preview、clipboard、notification、crash report および analytics への不要な複製を避ける。
+秘密バイトは必要な暗号学的な操作の最短期間だけ特権を持つホスト / バインディング境界に置く。バインディング呼び出し後、ロック、バックグラウンドポリシー、端末ロック、プロセス終了、エラーまたは文脈消失で一時秘密と認証文脈を無効化する。メモリコピー、ネイティブ / WASM バッファー、画面プレビュー、クリップボード、通知、異常終了報告書および利用状況分析への不要な複製を避ける。
 
-### 15.3 Backup / migration
+### 15.3 バックアップ / 移行
 
-Profile 全体 backup / restore、端末移行、OS-protected key の移行および recovery は v1 の共通必須能力ではない。提供する場合は、復元対象、復元後の signing capability、OS 保護状態、端末 bound key が復元されないことおよび失敗時の結果を利用者へ明示し、Profile / Account Specification と wallet-core 契約に従う。端末 bound wrapping key だけから秘密情報を復旧できると表示してはならない。
+プロファイル全体バックアップ / 復元、端末移行、OS で保護された鍵の移行および復旧は v1 の共通必須能力ではない。提供する場合は、復元対象、復元後の署名対応能力、OS 保護状態、端末結び付いた鍵が復元されないことおよび失敗時の結果を利用者へ明示し、プロファイル / アカウント仕様と wallet-core 契約に従う。端末結び付いたラップ鍵だけから秘密情報を復旧できると表示してはならない。
 
-## 16. Diagnostics、Logging および Privacy
+## 16. 診断情報、ログ出力およびプライバシー
 
-Diagnostics は既定で無効とする。有効にする場合も、既存 Handoff の allowlist に適合する非秘密 event だけを扱う。
+診断情報は既定で無効とする。有効にする場合も、既存受け渡しの許可リストに適合する非秘密イベントだけを扱う。
 
-本節でいう observability / auxiliary output は、log、warning、exception、diagnostics、analytics、telemetry、crash report、support output、Relay metadata その他の補助的な出力を指す。`§12.1`、Interfaces および Handoff が定める normative Handoff response と、その response を SDK / dApp へ伝える public result は、この禁止対象の `response` には含めない。正常 response は既存共通 contract の response union に従い、同 contract が要求・許可する public result / correlation field を含めることができる。
+本節でいう観測可能性 / 補助的な出力は、ログ、警告、例外、診断情報、利用状況分析、遠隔計測データ、異常終了報告書、サポート出力、Relay メタデータその他の補助的な出力を指す。`§12.1`、インターフェースおよび受け渡しが定める規範的な受け渡し応答と、その応答を SDK / dApp へ伝える公開結果は、この禁止対象の `response` には含めない。正常応答は既存共通契約の応答共用体に従い、同契約が要求・許可する公開結果 / 対応付けフィールドを含めることができる。
 
-たとえば既存 contract が定める場合に限り、`requestId`、`requestDigest`、signed transaction / signed data、signature、transaction hash、signer public key、public Account identity および `deliveryDisposition` を正常 response に含めてよい。これは既存 Handoff / Interfaces の field を使用する許可であり、本書が新しい response field を追加するものではない。`signed`、`dataSigned`、`resultUnknown`、`rejected` および `failed` の各 response union は、既存の response mapping と error contract に従う。
+たとえば既存契約が定める場合に限り、`requestId`、`requestDigest`、署名済みトランザクション / 署名済みデータ、署名、トランザクションハッシュ、署名主体公開鍵、アカウントの公開識別情報および `deliveryDisposition` を正常応答に含めてよい。これは既存受け渡し / インターフェースのフィールドを使用する許可であり、本書が新しい応答フィールドを追加するものではない。`signed`、`dataSigned`、`resultUnknown`、`rejected` および `failed` の各応答共用体は、既存の応答対応付けとエラー契約に従う。
 
-正常 response であっても、Mnemonic、private key、derived secret key、Profile password、decrypted Wallet Store、E2E secret、transport secret / credential、internal key reference、secret-bearing intermediate buffer その他 common Specification が禁止する secret を含めてはならない。public result を正常 response に含められることは、同じ値を observability / auxiliary output に記録してよいことを意味しない。
+正常応答であっても、ニーモニック、秘密鍵、導出された秘密鍵、プロファイルパスワード、復号されたウォレットストア、E2E 秘密情報、通信経路秘密情報 / 認証情報、内部鍵参照、秘密情報を含む中間のバッファーその他共通の仕様が禁止する秘密情報を含めてはならない。公開結果を正常応答に含められることは、同じ値を観測可能性 / 補助的な出力に記録してよいことを意味しない。
 
-許可される event 情報は次の範囲に限る。
+許可されるイベント情報は次の範囲に限る。
 
-- phase: `transport_selected`、`approval_requested`、`response_received`、`completed` または `failed`。
-- transport: `extension` または `mobile-relay`（SDK / handoff diagnostics と共通の値）。
-- event timestamp。
-- 既存の安定した public `errorCode`（該当時）。
+- 工程: `transport_selected`、`approval_requested`、`response_received`、`completed` または `failed`。
+- 通信経路: `extension` または `mobile-relay`（SDK / 受け渡し診断情報と共通の値）。
+- イベントタイムスタンプ。
+- 既存の安定した公開 `errorCode`（該当時）。
 
-次を observability / auxiliary output に含めてはならない。normative Handoff response 自体は除外するが、それを observability / auxiliary output として複製してはならない。
+次を観測可能性 / 補助的な出力に含めてはならない。規範的な受け渡し応答自体は除外するが、それを観測可能性 / 補助的な出力として複製してはならない。
 
-- Mnemonic、private key、derived key、Profile password、decrypted Wallet Store、session secret、transport credential、authorization secret。
-- full request、normative Handoff response の observability / auxiliary output への全体複製、plaintext、ciphertext 全文、payload、signed payload、raw transaction、message contents、hash、public key、address、requestId、sessionId、generationId、URL、Origin、stack trace、parser dump または internal reference。
+- ニーモニック、秘密鍵、導出された鍵、プロファイルパスワード、復号されたウォレットストア、セッション秘密情報、通信経路認証情報、認可秘密情報。
+- 全体要求、規範的な受け渡し応答の観測可能性 / 補助的な出力への全体複製、平文、暗号文全文、ペイロード、署名済みペイロード、生のトランザクション、メッセージ内容、ハッシュ、公開鍵、アドレス、requestId、sessionId、generationId、URL、オリジン、スタック追跡、パーサーダンプまたは内部参照。
 
-外部由来の文字列や画像を表示する場合も、executable content として扱わず、log / error へそのまま複製しない。Support / security report に秘密情報、handoff URL、token、session secret または full transaction payload を含めない。
+外部由来の文字列や画像を表示する場合も、実行ファイル内容として扱わず、ログ / エラーへそのまま複製しない。サポート / セキュリティ報告書に秘密情報、受け渡し URL、トークン、セッション秘密情報または全体トランザクションペイロードを含めない。
 
-## 17. Mainnet / Testnet Capability と Release Gate
+## 17. Mainnet / Testnet 対応能力とリリース判定
 
-### 17.1 Gate authority
+### 17.1 判定条件判断権限
 
-Mainnet signing capability の authority は、trusted Signer と current release / evidence policy を管理する release authority にある。Mobile App、SDK、Relay、OS availability、wallet-core capability または App Store / Google Play の配布成功は、gate evaluator でも gate の代替でもない。
+Mainnet 署名対応能力の判断権限は、信頼された署名主体と現在のリリース / 根拠ポリシーを管理するリリース判断権限にある。モバイルアプリ、SDK、Relay、OS 利用可能性、wallet-core 対応能力またはアプリストア / Google Play の配布成功は、判定条件評価器でも判定条件の代替でもない。
 
-Mobile App は gate status を検証可能な input として消費し、次のいずれかの場合は Mainnet signing capability を有効化せず fail-closed とする。
+モバイルアプリは判定条件状態を検証可能な入力として消費し、次のいずれかの場合は Mainnet 署名対応能力を有効化せず安全側での終了とする。
 
-- required evidence の欠落、期限切れ、invalid、mismatch または signature verification failure。
-- trusted key / trust source の不備。
-- current policy を安全に判定できない、または gate status が unknown。
-- platform capability、support policy、Origin proof、Profile / Account context または四条件の必要な状態を確認できない。
+- 必須根拠の欠落、期限切れ、無効な、不一致または署名検証失敗。
+- 信頼された鍵 / 信頼送信元の不備。
+- 現在のポリシーを安全に判定できない、または判定条件状態が不明。
+- プラットフォーム対応能力、サポートポリシー、オリジン証明、プロファイル / アカウント文脈または四条件の必要な状態を確認できない。
 
-Gate failure / unknown は Mainnet だけを disabled / unavailable にする。安全に許可された Testnet-only operation、Profile / Account 管理、署名要求の安全な拒否および既存 Testnet handoff を、Mainnet gate failure を理由に不必要に停止しない。
+判定条件失敗 / 不明は Mainnet だけを無効 / 利用不能にする。安全に許可された Testnet 専用操作、プロファイル / アカウント管理、署名要求の安全な拒否および既存 Testnet 受け渡しを、Mainnet 判定条件失敗を理由に不必要に停止しない。
 
-### 17.2 Platform capability contract
+### 17.2 プラットフォーム対応能力契約
 
-Mobile App は、release authority が承認した platform capability と Mainnet gate の結果を消費する。Mobile App 仕様自身は、OS version、hardware API、OS-backed wrapping、attestation、direct hardware signing、backup / restore または security signal の具体的な採否を新たに決めない。OS availability、wallet-core capability、Binding success、Relay connection、App の起動成功または Store 公開だけから Mainnet capability を推測してはならない。
+モバイルアプリは、リリース判断権限が承認したプラットフォーム対応能力と Mainnet 判定条件の結果を消費する。モバイルアプリ仕様自身は、OS バージョン、ハードウェア API、OS-backed ラップ、証明、直接のハードウェア署名、バックアップ / 復元またはセキュリティ signal の具体的な採否を新たに決めない。OS 利用可能性、wallet-core 対応能力、バインディング成功、Relay 接続、アプリの起動成功またはストア公開だけから Mainnet 対応能力を推測してはならない。
 
-current policy に基づく platform capability report または gate status が missing、invalid、expired、mismatch、unverifiable または unknown の場合、Mobile App は Mainnet signing を有効化せず fail-closed とする。実行中に承認済み capability または gate status が失われた場合も同様に Mainnet signing を停止する。Profile を削除せず、同じ理由だけで安全に許可された Testnet-only operation を不必要に停止しない。
+現在のポリシーに基づくプラットフォーム対応能力報告書または判定条件状態が欠落、無効な、期限切れ、不一致、検証不能のまたは不明の場合、モバイルアプリは Mainnet 署名を有効化せず安全側での終了とする。実行中に承認済み対応能力または判定条件状態が失われた場合も同様に Mainnet 署名を停止する。プロファイルを削除せず、同じ理由だけで安全に許可された Testnet 専用操作を不必要に停止しない。
 
-具体的な OS / hardware / wrapping / attestation / support matrix、runtime enforcement、Store release との関係は、`MR-OPEN-003` / `MOB-OPEN-003`、`MR-OPEN-006` / `MOB-OPEN-006`、`MR-OPEN-008` / `MOB-OPEN-008`、Mobile Design §27 および release authority の承認済み capability contract に委譲する。Profile 全体 backup / restore と端末移行の仕様上の authority は `OPEN-PROFILE-001` であり、Mainnet gate の evidence と一般的な backup capability を混同しない。
+具体的な OS / ハードウェア / ラップ / 証明 / サポート対応表、実行環境強制、ストアリリースとの関係は、`MR-OPEN-003` / `MOB-OPEN-003`、`MR-OPEN-006` / `MOB-OPEN-006`、`MR-OPEN-008` / `MOB-OPEN-008`、モバイル設計 §27 およびリリース判断権限の承認済み対応能力契約に委譲する。プロファイル全体バックアップ / 復元と端末移行の仕様上の判断権限は `OPEN-PROFILE-001` であり、Mainnet 判定条件の根拠と一般的なバックアップ対応能力を混同しない。
 
-Binding または platform capability が提供する保証範囲は、実際に承認・検証できた範囲だけを表示する。未確認の capability を direct hardware signer、hardware-backed Vault または同等の保証へ昇格して表示してはならない。現在の公開 Mobile build が Testnet-only であることは release material に従い、未決定の platform contract を根拠に変更してはならない。
+バインディングまたはプラットフォーム対応能力が提供する保証範囲は、実際に承認・検証できた範囲だけを表示する。未確認の対応能力を直接のハードウェア署名主体、ハードウェアで保護された Vault または同等の保証へ昇格して表示してはならない。現在の公開モバイルビルドが Testnet 専用であることはリリース資料に従い、未決定のプラットフォーム契約を根拠に変更してはならない。
 
-### 17.3 Release evidence の扱い
+### 17.3 リリース証跡の扱い
 
-初期 Mainnet release は [ADR 0001](../adr/0001-mainnet-evidence-lite.md) と [Mainnet release evidence](../release/mainnet-release-evidence.md) の current policy に従う。evidence manifest、trusted key、platform capability report、artifact / source / lockfile / SBOM digest、SDK integrity、compatibility metadata および required test evidence の exact format と評価手順は release authority の契約を使用する。
+初期 Mainnet リリースは [ADR 0001](../adr/0001-mainnet-evidence-lite.md) と [Mainnet リリース証跡](../release/mainnet-release-evidence.md) の現在のポリシーに従う。根拠マニフェスト、信頼された鍵、プラットフォーム対応能力報告書、成果物 / 送信元 / ロックファイル / SBOM ダイジェスト、SDK 完全性、互換性メタデータおよび必須テスト根拠の厳密な形式と評価手順はリリース判断権限の契約を使用する。
 
-Mobile App は Mainnet gate を独自に緩和・昇格せず、gate failure を `RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、transport failure、別 Signer または自動 re-sign へ変換しない。現在の checked-in policy / release material が Mainnet capability を許さない場合、公開 Mobile build は Testnet-only とする。
+モバイルアプリは Mainnet 判定条件を独自に緩和・昇格せず、判定条件失敗を `RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、通信経路失敗、別署名主体または自動再署名へ変換しない。現在の checked-in ポリシー / リリース資料が Mainnet 対応能力を許さない場合、公開モバイルビルドは Testnet 専用とする。
 
-## 18. Security Invariants
+## 18. セキュリティ上の不変条件
 
-以下は Mobile App に適用される MUST であり、下位仕様・実装・運用は弱めてはならない。
+以下はモバイルアプリに適用される MUST であり、下位仕様・実装・運用は弱めてはならない。
 
-1. 外部 App、Web page、SDK、Deep Link、Universal Link、App Link、Intent、share、Relay、network、notification および OS metadata は、validation 前はすべて untrusted とする。
-2. App 起動、request 受信、Relay delivery、OS authentication、device unlock、permission、connection、通常の `UNLOCKED` または wallet-core success だけで署名しない。
-3. 同じ request / target / Profile-local context に対する Authentication、Signing-capable unlock、Account authorization および Explicit user approval の四条件が独立にすべて成立し、署名前に再検証できる場合だけ wallet-core を呼び出す。
-4. request identity、source、session / generation、permission、Profile、Account、Chain / Network、operation、target、inspection、freshness、response recipient および四条件を binding し、別 request / Profile / Account / Scope へ流用しない。
-5. selected Account、connection permission、session、capability、Origin proof、OS credential または Relay state を Account authorization、approval または signing authority の代替にしない。
-6. trusted UI が target 全体と適用可能な security-relevant field を確認可能にできない transaction / message / parent / aggregate / multisig に署名しない。
-7. 外部 summary、hash-only parent、Node / Relay lookup、notification または外部表示を inspection の代替にしない。
-8. `signData` / `MESSAGE_SIGN` を transaction signing、arbitrary raw bytes または表示不能な format へ fallback しない。
-9. Symbol / NEM、Mainnet / Testnet、Account、address、public key、signing bytes および chain-specific semantics を暗黙変換しない。
-10. expired、consumed、cancelled、replayed、duplicate、late、stale、revoked、old generation または context-lost request / approval / auth を再利用しない。
-11. background、suspended、device lock、process restart、OS kill、Relay state loss または Profile / Account change 後に、古い approval、Authentication、unlock、Account authorization または signing operation を自動復元しない。
-12. `RESULT_UNKNOWN` は signing generation 自体の成否不明に限り、delivery / network / Relay failure から生成しない。
-13. `DELIVERY_UNKNOWN` は known signed result の trusted Signer-side delivery disposition 不明に限り、Relay / SDK / ACK / timeout から生成・推測しない。
-14. `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` は Relay の `pending`、`response_available`、`consumed` または HTTP status と混同しない。
-15. known signed result の resend / redelivery / retrieval / lookup を re-sign、新規 signing または alternate route と混同しない。
-16. user rejection、security failure、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、Relay failure、transport timeout または response absence の後に、自動 fallback、別 Signer、別 Provider、別 transport または自動 re-sign で承認境界を迂回しない。
-17. Mnemonic、private key、derived secret key、Profile password、decrypted Wallet Store、E2E secret、transport secret / credential、internal key reference、secret-bearing intermediate buffer、authorization secret および不要な public identity を external channel、Relay、SDK、log、diagnostics または persistent plain storage へ漏らさない。署名前の unsigned / untrusted request payload、内部処理用の intermediate raw bytes / payload、解析途中の buffer およびそれらの複製は、normative response に必要な public signed result ではない限り、external channel、SDK、Relay、log、diagnostics、telemetry、crash report、support output または persistent plaintext storage へ不要に露出してはならない。一方、common Specification が正常 response として要求・許可する public signed result（signed transaction payload、signed data、signature、hash、signer public key、public Account identity、request correlation field、`deliveryDisposition` 等）は、既存 Handoff response contract に従う normative response として SDK / dApp へ伝達できる。具体的な field 名、必須性および shape は common Specification を authority とし、本書は新しい response field を追加しない。Relay への伝送は既存 Handoff の E2E encrypted response に限り、Relay に plaintext の transaction、message または signed result を公開しない。
-18. `wallet-core` 外で key derivation、Wallet Store encryption、password authorization、cryptographic signing または秘密情報処理を再実装しない。
-19. Relay は opaque / untrusted transport のままとし、authentication、approval、Account authorization、inspection、signing、result / disposition、Mainnet gate または announce の authority にしない。
-20. Mainnet signing は current release / evidence gate と platform 条件が成立した場合だけ有効化し、gate failure / unknown では Testnet-only を安全に継続できる範囲を残す。
-21. security-critical な context、integrity、lifecycle、state continuity、result binding または secret boundary を確認できない場合は fail-closed とする。
+1. 外部アプリ、Web ページ、SDK、ディープリンク、普遍的な Link、App Link、Intent、共有、Relay、ネットワーク、通知および OS メタデータは、検証前はすべて信頼されていないとする。
+2. アプリ起動、要求受信、Relay 配送、OS 認証、端末ロック解除、許可、接続、通常の `UNLOCKED` または wallet-core 成功だけで署名しない。
+3. 同じ要求 / 対象 / プロファイル内の文脈に対する認証、署名可能な状態へのロック解除、アカウントの利用認可および利用者による明示的な承認の四条件が独立にすべて成立し、署名前に再検証できる場合だけ wallet-core を呼び出す。
+4. 要求識別情報、送信元、セッション / 世代、許可、プロファイル、アカウント、チェーン / ネットワーク、操作、対象、内容検査、鮮度、応答受信者および四条件を結び付けし、別要求 / プロファイル / アカウント / 対象範囲へ流用しない。
+5. 選択済みのアカウント、接続許可、セッション、対応能力、オリジン証明、OS 認証情報または Relay 状態をアカウントの利用認可、承認または署名判断権限の代替にしない。
+6. 信頼された UI が対象全体と適用可能なセキュリティに関わるフィールドを確認可能にできないトランザクション / メッセージ / 親 / アグリゲート / マルチシグに署名しない。
+7. 外部要約、ハッシュのみ親、ノード / Relay 照会、通知または外部表示を内容検査の代替にしない。
+8. `signData` / `MESSAGE_SIGN` をトランザクション署名、任意の生バイト列または表示不能な形式へ代替経路しない。
+9. Symbol / NEM、Mainnet / Testnet、アカウント、アドレス、公開鍵、署名バイト列およびチェーン固有の意味を暗黙変換しない。
+10. 期限切れ、消費済み、キャンセル済み、再送された、重複、遅延した、古くなった、失効済み、旧世代または context-lost 要求 / 承認 / 認証を再利用しない。
+11. バックグラウンド、中断された、端末ロック、プロセス再起動、OS 強制終了、Relay 状態消失またはプロファイル / アカウント変更後に、古い承認、認証、ロック解除、アカウントの利用認可または署名操作を自動復元しない。
+12. `RESULT_UNKNOWN` は署名生成自体の成否不明に限り、配送 / ネットワーク / Relay 失敗から生成しない。
+13. `DELIVERY_UNKNOWN` は既知の署名済み結果の信頼された署名主体側の配送処理結果の区分不明に限り、Relay / SDK / 受領確認 / タイムアウトから生成・推測しない。
+14. `PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` は Relay の `pending`、`response_available`、`consumed` または HTTP 状態と混同しない。
+15. 既知の署名済み結果の再送 / 再配送 / 取得 / 照会を再署名、新規署名または代替の経路と混同しない。
+16. 利用者拒否、セキュリティ失敗、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、Relay 失敗、通信経路タイムアウトまたは応答欠如の後に、自動代替経路、別署名主体、別 Provider、別通信経路または自動再署名で承認境界を迂回しない。
+17. ニーモニック、秘密鍵、導出された秘密鍵、プロファイルパスワード、復号されたウォレットストア、E2E 秘密情報、通信経路秘密情報 / 認証情報、内部鍵参照、秘密情報を含む中間のバッファー、認可秘密情報および不要な公開識別情報を外部チャネル、Relay、SDK、ログ、診断情報または永続的な通常の保存領域へ漏らさない。署名前の未署名 / 信頼されていない要求ペイロード、内部処理用の中間の生バイト列 / ペイロード、解析途中のバッファーおよびそれらの複製は、規範的な応答に必要な公開署名済み結果ではない限り、外部チャネル、SDK、Relay、ログ、診断情報、遠隔計測データ、異常終了報告書、サポート出力または永続的な平文保存領域へ不要に露出してはならない。一方、共通の仕様が正常応答として要求・許可する公開署名済み結果（署名済みトランザクションペイロード、署名済みデータ、署名、ハッシュ、署名主体公開鍵、アカウントの公開識別情報、要求対応付けフィールド、`deliveryDisposition` 等）は、既存受け渡し応答契約に従う規範的な応答として SDK / dApp へ伝達できる。具体的なフィールド名、必須性および構造は共通の仕様を判断権限とし、本書は新しい応答フィールドを追加しない。Relay への伝送は既存受け渡しの E2E 暗号化された応答に限り、Relay に平文のトランザクション、メッセージまたは署名済み結果を公開しない。
+18. `wallet-core` 外で鍵導出、ウォレットストア暗号化、パスワード認可、暗号学的な署名または秘密情報処理を再実装しない。
+19. Relay は内容を解釈しない / 信頼されていない通信経路のままとし、認証、承認、アカウントの利用認可、内容検査、署名、結果 / 処理結果の区分、Mainnet 判定条件またはアナウンスの判断権限にしない。
+20. Mainnet 署名は現在のリリース / 根拠判定条件とプラットフォーム条件が成立した場合だけ有効化し、判定条件失敗 / 不明では Testnet 専用を安全に継続できる範囲を残す。
+21. セキュリティ上重大な文脈、完全性、ライフサイクル、状態継続性、結果との結び付けまたは秘密情報境界を確認できない場合は安全側での終了とする。
 
-## 19. Error、OPEN および委譲
+## 19. エラー、未決および委譲
 
-### 19.1 Error semantics
+### 19.1 エラー意味
 
-Mobile App は新しい public error taxonomy を追加せず、Handoff §10、Interfaces §10、Signing Protocol §16 および SDK Specification の既存 mapping を使用する。
+モバイルアプリは新しい公開エラー分類体系を追加せず、受け渡し §10、インターフェース §10、署名プロトコル §16 および SDK 仕様の既存対応付けを使用する。
 
-| 事象                                                                    | Mobile App の動作                                                                                              |
-| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| malformed / unknown / unsupported input                                 | `FAILED` 相当の既存 `INVALID_PARAMS`、unsupported または operation-specific mapping。署名しない。              |
-| wrong source / recipient / session / generation                         | permission / context mismatch として拒否または `INVALIDATED`。自動切替しない。                                 |
-| wrong Profile / Account / Chain / Network / signer                      | mismatch error として拒否。Profile、Account、Scope を自動置換しない。                                          |
-| parse / canonical / display failure                                     | inspection failure。warning-only、raw signing または外部 lookup fallback をしない。                            |
-| user rejection                                                          | `REJECTED` と既存 `USER_REJECTED` mapping。wallet-core を呼ばない。                                            |
-| authentication / signing-capable unlock / Account authorization failure | `FAILED` または `INVALIDATED` と既存 mapping。古い状態を再利用しない。                                         |
-| request / message / parent expiry                                       | `EXPIRED` と既存 `REQUEST_EXPIRED` 等の mapping。延長しない。                                                  |
-| cancellation 前に signing が確定していない                              | `CANCELLED` と既存 mapping。再開しない。                                                                       |
-| wallet-core failure が確定                                              | `FAILED` と既存 signing / internal mapping。秘密情報を含めない。                                               |
-| Relay / network / transport failure                                     | transport failure / timeout と既存 mapping。これだけで `RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を作らない。 |
-| signing generation の成否不明                                           | `RESULT_UNKNOWN` response semantics。正常 error code や signed result を付けない。                             |
-| known signed result の delivery status 不明                             | `SUCCEEDED` result に trusted `DELIVERY_UNKNOWN` を付す。known result を捨てず、再署名しない。                 |
+| 事象                                                                 | モバイルアプリの動作                                                                                          |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 不正な形式の / 不明 / 未対応の入力                                   | `FAILED` 相当の既存 `INVALID_PARAMS`、未対応のまたは操作固有の対応付け。署名しない。                          |
+| 誤った送信元 / 受信者 / セッション / 世代                            | 許可 / 文脈不一致として拒否または `INVALIDATED`。自動切替しない。                                             |
+| 誤ったプロファイル / アカウント / チェーン / ネットワーク / 署名主体 | 不一致エラーとして拒否。プロファイル、アカウント、対象範囲を自動置換しない。                                  |
+| 解析 / 正規 / 表示失敗                                               | 内容検査失敗。警告のみ、生の署名または外部照会代替経路をしない。                                              |
+| 利用者拒否                                                           | `REJECTED` と既存 `USER_REJECTED` 対応付け。wallet-core を呼ばない。                                          |
+| 認証 / 署名可能な状態へのロック解除 / アカウントの利用認可失敗       | `FAILED` または `INVALIDATED` と既存対応付け。古い状態を再利用しない。                                        |
+| 要求 / メッセージ / 親期限切れ                                       | `EXPIRED` と既存 `REQUEST_EXPIRED` 等の対応付け。延長しない。                                                 |
+| キャンセル前に署名が確定していない                                   | `CANCELLED` と既存対応付け。再開しない。                                                                      |
+| wallet-core 失敗が確定                                               | `FAILED` と既存署名 / 内部対応付け。秘密情報を含めない。                                                      |
+| Relay / ネットワーク / 通信経路失敗                                  | 通信経路失敗 / タイムアウトと既存対応付け。これだけで `RESULT_UNKNOWN` または `DELIVERY_UNKNOWN` を作らない。 |
+| 署名生成の成否不明                                                   | `RESULT_UNKNOWN` 応答意味。正常エラーコードや署名済み結果を付けない。                                         |
+| 既知の署名済み結果の配送状態不明                                     | `SUCCEEDED` 結果に信頼された `DELIVERY_UNKNOWN` を付す。既知の結果を捨てず、再署名しない。                    |
 
-`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` は error code ではない。`RESULT_UNKNOWN` を `FAILED`、transport failure または user rejection に、`DELIVERY_UNKNOWN` を `RESULT_UNKNOWN`、failure または `DELIVERED` に自動変換しない。
+`RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` はエラーコードではない。`RESULT_UNKNOWN` を `FAILED`、通信経路失敗または利用者拒否に、`DELIVERY_UNKNOWN` を `RESULT_UNKNOWN`、失敗または `DELIVERED` に自動変換しない。
 
-### 19.2 Implementation choice / 下位仕様への委譲
+### 19.2 実装選択 / 下位仕様への委譲
 
-次は本仕様を弱めない範囲で implementation choice または下位仕様へ委譲する。
+次は本仕様を弱めない範囲で実装選択または下位仕様へ委譲する。
 
-- UI layout、文言、localization、accessibility、screen capture policy の具体的実装。
-- OS API call、Native / WASM host integration、buffer ownership、zeroization、secure storage adapter、database / storage library。
-- request queue / reject の algorithm、concurrency 上限、fairness、内部 record schema および memory management。
-- platform-specific の notification、background task、process lifecycle hook、error presentation。
+- UI 配置、文言、ローカライズ、アクセシビリティ、画面取得ポリシーの具体的実装。
+- OS API 呼び出し、ネイティブ / WASM ホスト統合、バッファー所有責任、ゼロ化、安全な保存領域アダプター、データベース / 保存領域ライブラリ。
+- 要求キュー / 拒否のアルゴリズム、並行処理上限、公平性、内部レコードスキーマおよびメモリ管理。
+- プラットフォーム固有の通知、バックグラウンドタスク、プロセスライフサイクルフック、エラー表示。
 
-### 19.3 OPEN Issues
+### 19.3 未決課題
 
-以下は、実装前に別 authority で決定が必要な事項である。未決であることは blind signing、approval 省略、old authorization の再利用、Relay authority 化または fail-open recovery を許可しない。
+以下は、実装前に別判断権限で決定が必要な事項である。未決であることは内容を確認しない署名、承認省略、旧認可の再利用、Relay 判断権限化または安全条件を満たさない継続復旧を許可しない。
 
-- **MOB-OPEN-001 / MR-OPEN-001**: iOS / Android の support OS version、端末範囲、Store / test distribution、個別 milestone の完了条件。
-- **MOB-OPEN-002 / MR-OPEN-002**: 現行標準の verified HTTPS App Link 以外の Deep Link、custom scheme、QR、generic share / Intent の採否、優先順位、source proof および追加 handoff contract。
-- **MOB-OPEN-003 / MR-OPEN-003 / CR-OPEN-001 / CR-OPEN-002**: wallet-core facade の三 backend / identity / error contract は Wallet-core Integration で確定済み。OS wrapping と migration の残りを扱い、現行 contract に秘密の受渡しや raw binding 呼出しを追加しない。
-- **MOB-OPEN-004 / MR-OPEN-004**: PIN、OS passcode、biometric、Profile password の役割、fallback、retry / rate limit、再認証頻度および lock timeout。
-- **MOB-OPEN-005 / MR-OPEN-005 / OPEN-RELAY-003 / OPEN-RELAY-004**: pending request の保持・再表示、temporary reconnect / resume、known result の retention、resend / retrieval / lookup API、Relay unavailable / delivery timeout の client-facing mapping。
-- **MOB-OPEN-006 / MR-OPEN-006**: Profile 全体 backup / restore、端末移行、OS key migration、端末紛失・削除・保護状態喪失時の復元可能性。Mainnet gate が要求する evidence と、一般 capability としての提供範囲を混同しないこと。
-- **MOB-OPEN-007 / MR-OPEN-007**: screen capture、recording、recent-app preview、notification、clipboard および crash / diagnostics の platform privacy policy。
-- **MOB-OPEN-008 / MR-OPEN-008**: Mobile release evidence の platform matrix、capability report、runtime enforcement、Store 公開と Mainnet capability の関係。Mainnet gate の存在、gate failure / unknown 時の Mainnet disabled、Testnet-only continuation および trusted release authority は確定済みである。
-- **MOB-OPEN-009 / OPEN-006 / OPEN-SDK-004**: v1 の optional cosignature scope / result は Interfaces §9.6.1 で解決済み。必須 capability 化、future Partial / type の拡張は未決であり現行に含めない。
+- **MOB-OPEN-001 / MR-OPEN-001**: iOS / Android のサポート OS バージョン、端末範囲、ストア / テスト配布、個別マイルストーンの完了条件。
+- **MOB-OPEN-002 / MR-OPEN-002**: 現行標準の検証済み HTTPS App Link 以外のディープリンク、独自の方式、QR、一般的な共有 / Intentの採否、優先順位、送信元証明および追加受け渡し契約。
+- **MOB-OPEN-003 / MR-OPEN-003 / CR-OPEN-001 / CR-OPEN-002**: wallet-core ファサードの三つのバックエンド / 識別情報 / エラー契約は Wallet-core 統合で確定済み。OS ラップと移行の残りを扱い、現行契約に秘密の受渡しや生バインディング呼出しを追加しない。
+- **MOB-OPEN-004 / MR-OPEN-004**: PIN、OS パスコード、生体認証、プロファイルパスワードの役割、代替経路、再試行 / 頻度上限、再認証頻度およびロックタイムアウト。
+- **MOB-OPEN-005 / MR-OPEN-005 / OPEN-RELAY-003 / OPEN-RELAY-004**: 保留中の要求の保持・再表示、一時的な再接続 / 再開、既知の結果の保持、再送 / 取得 / 照会 API、Relay 利用不能 / 配送タイムアウトのクライアントに公開する対応付け。
+- **MOB-OPEN-006 / MR-OPEN-006**: プロファイル全体バックアップ / 復元、端末移行、OS 鍵移行、端末紛失・削除・保護状態喪失時の復元可能性。Mainnet 判定条件が要求する根拠と、一般対応能力としての提供範囲を混同しないこと。
+- **MOB-OPEN-007 / MR-OPEN-007**: 画面取得、録画、最近使ったアプリプレビュー、通知、クリップボードおよび異常終了 / 診断情報のプラットフォームプライバシーポリシー。
+- **MOB-OPEN-008 / MR-OPEN-008**: モバイルリリース証跡のプラットフォーム対応表、対応能力報告書、実行環境強制、ストア公開と Mainnet 対応能力の関係。Mainnet 判定条件の存在、判定条件失敗 / 不明時の Mainnet 無効、Testnet 専用継続および信頼されたリリース判断権限は確定済みである。
+- **MOB-OPEN-009 / OPEN-006 / OPEN-SDK-004**: v1 の任意連署署名対象範囲 / 結果はインターフェース §9.6.1 で解決済み。必須対応能力化、将来部分トランザクション / 型の拡張は未決であり現行に含めない。
 
-共通 Interface の structured message expiry field は Interfaces §9.4 に固定済み。capability / version negotiation、permission expiry / revocation identifier および Mobile caller context の追加公開契約も、既存 `OPEN-001`〜`OPEN-005` と SDK / Handoff の authority に従う。本仕様は field alias、独自 version field、独自 capability identifier または独自 public error を追加しない。
+共通インターフェースの構造化されたメッセージ有効期限フィールドはインターフェース §9.4 に固定済み。対応能力 / バージョン協議、許可期限切れ / 失効識別子およびモバイル呼び出し元文脈の追加公開契約も、既存 `OPEN-001`〜`OPEN-005` と SDK / 受け渡しの判断権限に従う。本仕様はフィールド別名、独自バージョンフィールド、独自対応能力識別子または独自公開エラーを追加しない。
 
-## 20. Acceptance / Conformance Criteria
+## 20. 受け入れ / 適合条件
 
-Mobile App の実装は、少なくとも次を満たす場合に本仕様へ適合する。
+モバイルアプリの実装は、少なくとも次を満たす場合に本仕様へ適合する。
 
-1. iOS と Android が別々の milestone として評価され、片方の capability・test・release evidence が他方または v1 全体の完了へ流用されない。
-2. App Link、Relay、notification、OS metadata、SDK または外部 App からの入力が validation 前に trusted 扱いされず、malformed、unknown、duplicate、replay、late、expired、wrong recipient、wrong generation、wrong Scope および tampered input が approval / signing に到達しない。
-3. Profile Network、Profile.chain、selected Account、payload signer、expected signer、public identity および request Scope の対応が確認でき、Profile / Account の暗黙切替や cross-chain identity reuse が起こらない。
-4. Authentication、Signing-capable unlock、Account authorization および Explicit user approval の全組合せについて、一つでも欠ける場合に wallet-core が呼び出されず、成功 result が返らない。四条件は同一 request / target / Profile-local context に binding される。
-5. transaction 全体、structured message、Aggregate / parent / embedded / inner transaction および適用可能な multisig / cosignature context が chain-specific に検証・表示できない場合に、warning-only、hash-only、Node lookup、raw signing または別 operation fallback が起こらない。
-6. `signData` が transaction signing と区別され、message content、purpose、nonce、issued / expiry、source / domain context と実際の signing input が同一の検証済み model から導出される。
-7. user rejection、authentication / unlock / Account authorization failure、inspection failure、expiry、cancellation、Relay unavailable、network loss、process termination および state loss が安全側の既存 error / terminal semantics として扱われ、automatic approval / unlock / re-sign が起こらない。
-8. `RESULT_UNKNOWN` が signing generation 自体の成否不明に限定され、transport failure、ACK failure、response absence、Relay state または timeout から生成されない。
-9. known signed result がある場合、`PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` が Signer-side authority に従って保持され、Relay の `pending`、`response_available`、`consumed`、HTTP 2xx、ACK または purge から推測・書換えされない。
-10. `SUCCEEDED + DELIVERY_UNKNOWN` または `SUCCEEDED + PENDING` の recovery が既存 result の resend / redelivery / retrieval / lookup に限られ、new signing、re-sign、alternate Signer / Provider / transport fallback にならない。
-11. Relay が plaintext、transaction / message meaning、secret、approval、four-condition status、signed result、`RESULT_UNKNOWN` または `deliveryDisposition` を取得・生成・変更できない。Mobile は Relay structural validation と semantic / approval validation を区別する。
-12. background / suspend / resume、device lock、process termination、OS kill、Relay generation change、local / remote state mismatch の各経路で旧 approval、Authentication、unlock、Account authorization、target または secret が自動再利用されない。resume は fresh validation、再表示、fresh approval および必要な再認証を行う。
-13. Mnemonic、private key、derived key、Profile password、decrypted Wallet Store、session secret、transport credential、payload、signed payload、public identity、ID、URL、Origin および stack trace が指定された diagnostics / log / error 境界へ漏れない。diagnostics allowlist 以外の event が出力されない。
-14. wallet-core の既存 Binding、Wallet Store、key lifecycle、raw signing および Chain-specific cryptography を Mobile Application が再実装せず、approved target のみを渡す。Binding / platform capability の実際の保証範囲を表示し、未確認の capability を direct hardware signing 等へ昇格して表示しない。具体的な direct hardware support は `MOB-OPEN-003` / `MR-OPEN-003` の解消まで確定しない。
-15. Mainnet gate の required evidence、trusted key、policy、platform capability、Origin proof または gate status が missing / invalid / expired / unknown の場合に Mainnet signing が無効であり、Testnet-only operation は安全な範囲で継続できる。現行公開 Mobile build は Testnet-only である。
-16. Mobile Relay response の mapping が Handoff の existing response union、requestDigest、requestId、operation、signer、Account、Scope、target および expiry へ対応し、dApp が結果を独立検証できる。Mobile App が announce または node selection を行わない。
+1. iOS と Android が別々のマイルストーンとして評価され、片方の対応能力・テスト・リリース証跡が他方または v1 全体の完了へ流用されない。
+2. App Link、Relay、通知、OS メタデータ、SDK または外部アプリからの入力が検証前に信頼された扱いされず、不正な形式の、不明、重複、リプレイ、遅延した、期限切れ、誤った受信者、誤った世代、誤った対象範囲および改ざんされた入力が承認 / 署名に到達しない。
+3. プロファイルネットワーク、Profile.chain、選択済みのアカウント、ペイロード署名主体、期待される署名主体、公開識別情報および要求対象範囲の対応が確認でき、プロファイル / アカウントの暗黙切替やチェーン間の識別情報再利用が起こらない。
+4. 認証、署名可能な状態へのロック解除、アカウントの利用認可および利用者による明示的な承認の全組合せについて、一つでも欠ける場合に wallet-core が呼び出されず、成功結果が返らない。四条件は同一要求 / 対象 / プロファイル内の文脈に結び付けされる。
+5. トランザクション全体、構造化されたメッセージ、アグリゲート / 親 / 埋め込み / 内部トランザクションおよび適用可能なマルチシグ / 連署署名文脈がチェーン固有のに検証・表示できない場合に、警告のみ、ハッシュのみ、ノード照会、生の署名または別操作代替経路が起こらない。
+6. `signData` がトランザクション署名と区別され、メッセージ内容、目的、ノンス、発行された / 期限切れ、送信元 / ドメイン文脈と実際の署名入力が同一の検証済みモデルから導出される。
+7. 利用者拒否、認証 / ロック解除 / アカウントの利用認可失敗、内容検査失敗、期限切れ、キャンセル、Relay 利用不能、ネットワーク消失、プロセス終了および状態消失が安全側の既存エラー / 終端意味として扱われ、自動承認 / ロック解除 / 再署名が起こらない。
+8. `RESULT_UNKNOWN` が署名生成自体の成否不明に限定され、通信経路失敗、受領確認失敗、応答欠如、Relay 状態またはタイムアウトから生成されない。
+9. 既知の署名済み結果がある場合、`PENDING`、`DELIVERED`、`DELIVERY_UNKNOWN` が署名主体側の判断権限に従って保持され、Relay の `pending`、`response_available`、`consumed`、HTTP 2xx、受領確認または削除から推測・書換えされない。
+10. `SUCCEEDED + DELIVERY_UNKNOWN` または `SUCCEEDED + PENDING` の復旧が既存結果の再送 / 再配送 / 取得 / 照会に限られ、新規署名、再署名、代替の署名主体 / Provider / 通信経路代替経路にならない。
+11. Relay が平文、トランザクション / メッセージ意味、秘密情報、承認、四条件状態、署名済み結果、`RESULT_UNKNOWN` または `deliveryDisposition` を取得・生成・変更できない。モバイルは Relay 構造上の検証と意味上の / 承認検証を区別する。
+12. バックグラウンド / 中断 / 再開、端末ロック、プロセス終了、OS 強制終了、Relay 世代変更、ローカル / リモート状態不一致の各経路で旧承認、認証、ロック解除、アカウントの利用認可、対象または秘密情報が自動再利用されない。再開は新鮮な検証、再表示、新鮮な承認および必要な再認証を行う。
+13. ニーモニック、秘密鍵、導出された鍵、プロファイルパスワード、復号されたウォレットストア、セッション秘密情報、通信経路認証情報、ペイロード、署名済みペイロード、公開識別情報、ID、URL、オリジンおよびスタック追跡が指定された診断情報 / ログ / エラー境界へ漏れない。診断情報許可リスト以外のイベントが出力されない。
+14. wallet-core の既存バインディング、ウォレットストア、鍵ライフサイクル、生の署名およびチェーン固有の暗号処理をモバイルアプリケーションが再実装せず、承認済み対象のみを渡す。バインディング / プラットフォーム対応能力の実際の保証範囲を表示し、未確認の対応能力を直接のハードウェア署名等へ昇格して表示しない。具体的な直接のハードウェアサポートは `MOB-OPEN-003` / `MR-OPEN-003` の解消まで確定しない。
+15. Mainnet 判定条件の必須根拠、信頼された鍵、ポリシー、プラットフォーム対応能力、オリジン証明または判定条件状態が欠落 / 無効な / 期限切れ / 不明の場合に Mainnet 署名が無効であり、Testnet 専用操作は安全な範囲で継続できる。現行公開モバイルビルドは Testnet 専用である。
+16. モバイル Relay 応答の対応付けが受け渡しの既存の応答共用体、requestDigest、requestId、操作、署名主体、アカウント、対象範囲、対象および期限切れへ対応し、dApp が結果を独立検証できる。モバイルアプリがアナウンスまたはノード選択を行わない。
 
-## 21. Traceability
+## 21. 追跡可能性
 
-| 本仕様の領域                                            | Requirements                                                                               | Design                                                                       | Existing Specification / authority                                                                                                                              |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Scope、責務および Mobile milestone                      | `CR-001`、`CR-006`、`CR-007`、`CR-011`、`MR-001`、`MR-012`                                 | Architecture §5.2、§6.4；Mobile Design §2〜§5、§25                           | Interfaces §16；Signing Protocol §18；Handoff §2、§7                                                                                                            |
-| Trust boundary と Relay non-authority                   | `CR-008`、`CR-010`、`CR-011`、`CR-015`；`RR-003`、`RR-009`                                 | Security Design §3〜§5；Architecture §8〜§9；Mobile Design §6、§8、§25       | Relay Specification §4、§9、§20；Handoff §7、§13                                                                                                                |
-| Profile / Account / Network binding                     | `CR-005`、`CR-009`、`CR-013`、`MR-004`、`MR-007`                                           | Architecture §6.6〜§6.8；Mobile Design §9、§18〜§19                          | Interfaces §5、§8、§9；Profile / Account Specification §2〜§12、§26                                                                                             |
-| Authentication、unlock、Account authorization、approval | `CR-003`、`CR-004`、`CR-016`、`CR-AC-017`；`MR-005`、`MR-006`                              | Security Design §7〜§8；Signing Flow §4、§16；Mobile Design §4.1、§10、§12.3 | Signing Protocol §7〜§9；Profile / Account Specification §20；Interfaces §9.7                                                                                   |
-| Transaction / message inspection                        | `CR-002`、`CR-004`、`CR-007-TX`、`CR-007-MSG`、`CR-NFR-005`、`MR-004`                      | Signing Flow §9〜§15；Mobile Design §5.6、§12.2                              | Signing Protocol §9〜§15；Interfaces §9.2〜§9.5；Chain Compatibility Specification                                                                              |
-| Handoff / link / Origin proof                           | `CR-001`、`CR-NFR-008`、`CR-NFR-009`；`MR-002`、`MR-003`                                   | Mobile Design §7；Interfaces Design §7.3                                     | Handoff §7.1〜§7.5、§8〜§11；Interfaces §5、§7                                                                                                                  |
-| Result / delivery semantics                             | `CR-006`、`CR-010`、`CR-012`、`CR-NFR-012`；`RR-002`、`RR-NFR-002`                         | Signing Flow §7.3〜§7.4、§19；Mobile Design §8.3、§14、§22                   | Interfaces §6.3、§9.6、§10.3、§13；Signing Protocol §16、§19；Handoff §7.2、§9.6                                                                                |
-| Lifecycle、duplicate、replay、concurrency、state loss   | `CR-NFR-003`、`CR-NFR-009`〜`CR-NFR-011`；`MR-005`、`MR-006`；`RR-004`、`RR-006`、`RR-007` | Mobile Design §14〜§17、§21〜§22；Security Design §10、§15                   | Signing Protocol §6〜§8、§19〜§20；Relay Specification §6〜§7、§11〜§16、§20                                                                                    |
-| Secret handling / wallet-core                           | `CR-008`、`CR-013`、`CR-NFR-002`、`CR-NFR-004`；`MR-003`、`MR-007`〜`MR-010`；`RR-008`     | Architecture §6.8〜§6.9；Security Design §6；Mobile Design §11、§18〜§19     | Profile / Account Specification §10、§13、§20；Interfaces §5.3、§16；wallet-core external contract                                                              |
-| Mainnet gate / Testnet-only                             | `CR-NFR-006`、`CR-AC-008`、`MR-013`、`MR-AC-009`                                           | Architecture §3、§6.9、§16；Mobile Design §3.3、§23〜§24、§27                | Interfaces §7.4；Handoff §7.5、§13〜§14；ADR 0001；Mainnet release evidence；`MR-OPEN-008` / `MOB-OPEN-008`、`MR-OPEN-006` / `MOB-OPEN-006`、`OPEN-PROFILE-001` |
+| 本仕様の領域                                       | 要件                                                                                       | 設計                                                                       | 既存の仕様 / 判断権限                                                                                                                                              |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 対象範囲、責務およびモバイルマイルストーン         | `CR-001`、`CR-006`、`CR-007`、`CR-011`、`MR-001`、`MR-012`                                 | アーキテクチャ §5.2、§6.4；モバイル設計 §2〜§5、§25                        | インターフェース §16；署名プロトコル §18；受け渡し §2、§7                                                                                                          |
+| 信頼境界と Relay 判断権限を持たないこと            | `CR-008`、`CR-010`、`CR-011`、`CR-015`；`RR-003`、`RR-009`                                 | セキュリティ設計 §3〜§5；アーキテクチャ §8〜§9；モバイル設計 §6、§8、§25   | Relay 仕様 §4、§9、§20；受け渡し §7、§13                                                                                                                           |
+| プロファイル / アカウント / ネットワーク結び付け   | `CR-005`、`CR-009`、`CR-013`、`MR-004`、`MR-007`                                           | アーキテクチャ §6.6〜§6.8；モバイル設計 §9、§18〜§19                       | インターフェース §5、§8、§9；プロファイル / アカウント仕様 §2〜§12、§26                                                                                            |
+| 認証、ロック解除、アカウントの利用認可、承認       | `CR-003`、`CR-004`、`CR-016`、`CR-AC-017`；`MR-005`、`MR-006`                              | セキュリティ設計 §7〜§8；署名フロー §4、§16；モバイル設計 §4.1、§10、§12.3 | 署名プロトコル §7〜§9；プロファイル / アカウント仕様 §20；インターフェース §9.7                                                                                    |
+| トランザクション / メッセージ内容検査              | `CR-002`、`CR-004`、`CR-007-TX`、`CR-007-MSG`、`CR-NFR-005`、`MR-004`                      | 署名フロー §9〜§15；モバイル設計 §5.6、§12.2                               | 署名プロトコル §9〜§15；インターフェース §9.2〜§9.5；チェーン互換性仕様                                                                                            |
+| 受け渡し / リンク / オリジン証明                   | `CR-001`、`CR-NFR-008`、`CR-NFR-009`；`MR-002`、`MR-003`                                   | モバイル設計 §7；インターフェース設計 §7.3                                 | 受け渡し §7.1〜§7.5、§8〜§11；インターフェース §5、§7                                                                                                              |
+| 結果 / 配送意味                                    | `CR-006`、`CR-010`、`CR-012`、`CR-NFR-012`；`RR-002`、`RR-NFR-002`                         | 署名フロー §7.3〜§7.4、§19；モバイル設計 §8.3、§14、§22                    | インターフェース §6.3、§9.6、§10.3、§13；署名プロトコル §16、§19；受け渡し §7.2、§9.6                                                                              |
+| ライフサイクル、重複、リプレイ、並行処理、状態消失 | `CR-NFR-003`、`CR-NFR-009`〜`CR-NFR-011`；`MR-005`、`MR-006`；`RR-004`、`RR-006`、`RR-007` | モバイル設計 §14〜§17、§21〜§22；セキュリティ設計 §10、§15                 | 署名プロトコル §6〜§8、§19〜§20；Relay 仕様 §6〜§7、§11〜§16、§20                                                                                                  |
+| 秘密情報処理 / wallet-core                         | `CR-008`、`CR-013`、`CR-NFR-002`、`CR-NFR-004`；`MR-003`、`MR-007`〜`MR-010`；`RR-008`     | アーキテクチャ §6.8〜§6.9；セキュリティ設計 §6；モバイル設計 §11、§18〜§19 | プロファイル / アカウント仕様 §10、§13、§20；インターフェース §5.3、§16；wallet-core 外部契約                                                                      |
+| Mainnet 判定条件 / Testnet 専用                    | `CR-NFR-006`、`CR-AC-008`、`MR-013`、`MR-AC-009`                                           | アーキテクチャ §3、§6.9、§16；モバイル設計 §3.3、§23〜§24、§27             | インターフェース §7.4；受け渡し §7.5、§13〜§14；ADR 0001；Mainnet リリース証跡；`MR-OPEN-008` / `MOB-OPEN-008`、`MR-OPEN-006` / `MOB-OPEN-006`、`OPEN-PROFILE-001` |
 
-### 21.1 Traceability の読み方
+### 21.1 追跡可能性の読み方
 
-本書が追加したのは、既存要求・設計・共通契約を Mobile の reception、trusted UI、OS lifecycle、Relay client、Profile binding および platform gate に適用する外部動作である。共通 schema、暗号 parameter、公開 API、error code、Chain-specific byte 列、Relay endpoint の詳細を本書の独自契約として再定義していない。
+本書が追加したのは、既存要求・設計・共通契約をモバイルの受付、信頼された UI、OS ライフサイクル、Relay クライアント、プロファイル結び付けおよびプラットフォーム判定条件に適用する外部動作である。共通スキーマ、暗号パラメーター、公開 API、エラーコード、チェーン固有のバイト列、Relay エンドポイントの詳細を本書の独自契約として再定義していない。
 
-## 22. References
+## 22. 参照資料
 
-- [Mobile App 要件](../requirements/mobile-app.md)
+- [モバイルアプリ要件](../requirements/mobile-app.md)
 - [共通要件](../requirements/requirements.md)
 - [Relay 要件](../requirements/relay.md)
 - [SDK 要件](../requirements/sdk.md)
-- [Mobile App 基本設計](../design/mobile-app.md)
+- [モバイルアプリ基本設計](../design/mobile-app.md)
 - [共通アーキテクチャ設計](../design/architecture.md)
 - [共通セキュリティ設計](../design/security-design.md)
 - [署名フロー基本設計](../design/signing-flow.md)
-- [共通 Interfaces Specification](./interfaces.md)
-- [Signing Protocol Specification](./signing-protocol.md)
-- [Web Transaction Handoff Specification](./web-transaction-handoff-spec.md)
-- [Profile / Account Specification](./profile-account-spec.md)
-- [Chain Compatibility Specification](./chain-compatibility-spec.md)
-- [Relay Specification](./relay.md)
-- [SDK Specification](./sdk.md)
-- [MosaicLynx Browser Extension Specification](./browser-extension.md)（共通契約の整合確認のみ。Browser-specific な実装・caller context は Mobile へ流用しない）
-- [ADR 0001: Lite evidence policy](../adr/0001-mainnet-evidence-lite.md)
-- [Mainnet release evidence](../release/mainnet-release-evidence.md)
-- [Mobile support](../mobile/mobile-support.md)
-- [Mobile store release](../mobile/mobile-store-release.md)
-- [Mobile privacy](../mobile/mobile-privacy.md)
+- [共通インターフェース仕様](./interfaces.md)
+- [署名プロトコル仕様](./signing-protocol.md)
+- [Web トランザクション受け渡し仕様](./web-transaction-handoff-spec.md)
+- [プロファイル / アカウント仕様](./profile-account-spec.md)
+- [チェーン互換性仕様](./chain-compatibility-spec.md)
+- [Relay 仕様](./relay.md)
+- [SDK 仕様](./sdk.md)
+- [MosaicLynx ブラウザ拡張機能仕様](./browser-extension.md)（共通契約の整合確認のみ。ブラウザ固有のな実装・呼び出し元文脈はモバイルへ流用しない）
+- [ADR 0001: Lite 根拠ポリシー](../adr/0001-mainnet-evidence-lite.md)
+- [Mainnet リリース証跡](../release/mainnet-release-evidence.md)
+- [モバイルサポート](../mobile/mobile-support.md)
+- [モバイルストアリリース](../mobile/mobile-store-release.md)
+- [モバイルプライバシー](../mobile/mobile-privacy.md)

@@ -1,31 +1,31 @@
-# Mainnet release evidence
+# Mainnet リリース証跡
 
-Mainnet capability is fail-closed for each platform. A build embeds `true` only when the release-build gate verifies a signed evidence manifest. Missing evidence always produces a Testnet-only Extension.
+Mainnet 対応能力は、各プラットフォームで安全条件を満たす場合にのみ有効になる。リリースビルド時の判定で署名付き証跡マニフェストの検証に成功した場合に限り、ビルドへ `true` を埋め込む。証跡が欠けている場合、拡張機能は必ず Testnet 専用となる。
 
-## Lite policy
+## Lite ポリシー
 
-`docs/evidence/evidence-policy.json` is the checked-in policy. Lite requires a clean tagged commit, a source archive, Extension artifact, lockfile, SBOM, Symbol SDK integrity, compatibility versions, successful unit/integration/E2E reports, and one release approval. Manifest and all required evidence expire after 30 days. Optional audit, reproducible-build, differential, and fuzz entries must be marked `not-required` when absent.
+リポジトリに保存された `docs/evidence/evidence-policy.json` をポリシーの正本とする。Lite では、未コミットの変更がないタグ付きコミット、ソースアーカイブ、拡張機能の成果物、ロックファイル、SBOM、Symbol SDK の完全性、互換性の対象バージョン、成功した単体・統合・E2E テストの報告書、および1件のリリース承認を必要とする。マニフェストとすべての必須証跡の有効期間は30日とする。任意の監査、再現可能ビルド、差分テスト、ファズテストの証跡がない場合、該当項目を `not-required` と明記しなければならない。
 
-The policy's `trustedKeys` maps key IDs to base64 DER/SPKI Ed25519 public keys. Private PKCS#8 PEM signing keys are intentionally never stored in this repository.
+ポリシーの `trustedKeys` は、鍵 ID と base64 で表現した DER/SPKI 形式の Ed25519 公開鍵を対応付ける。PKCS#8 PEM 形式の署名用秘密鍵は、このリポジトリに保存しない。
 
-## Commands
+## コマンド
 
 ```sh
 pnpm evidence:collect --version 0.1.0
 pnpm build:extension
 pnpm evidence:manifest --version 0.1.0 --key-id release-2026
-# edit the manifest to add the release approval
+# マニフェストを編集してリリース承認を追加する
 pnpm evidence:sign --version 0.1.0 --key /offline/release-2026.pem
 pnpm evidence:verify --version 0.1.0 --platform extension
 pnpm evidence:gate --version 0.1.0 --platform mobile
 ```
 
-`collect` never reads a signing key. `sign` emits only a detached base64 signature. `gate` writes a platform report even on failure and exits nonzero when Mainnet is disabled.
+`collect` は署名用秘密鍵を読み取らない。`sign` は base64 形式の分離署名のみを出力する。`gate` は失敗時にもプラットフォーム別の報告書を書き出し、Mainnet が無効な場合はゼロ以外の終了コードを返す。
 
-## Investigation and recovery
+## 調査と復旧
 
-Read `extension/extension-capability-report.json` or `mobile/mobile-capability-report.json` for each exact failure. Regenerate expired test/artifact evidence and sign a new manifest; do not edit digests in place. For a lost or suspected compromised release key, immediately remove its key ID from the policy, ship a Testnet-only build if needed, create a replacement offline key, update the public key inventory, and sign the next release with the replacement. Treat the old key as revoked.
+個々の失敗理由は、`extension/extension-capability-report.json` または `mobile/mobile-capability-report.json` で確認する。期限切れのテスト・成果物の証跡は再生成し、新しいマニフェストに署名する。既存のダイジェストを直接編集してはならない。リリース鍵を紛失した場合、または漏えいが疑われる場合は、直ちにポリシーからその鍵 ID を削除する。必要に応じて Testnet 専用ビルドを配布し、オフラインで代替鍵を作成して公開鍵一覧を更新し、次のリリースに代替鍵で署名する。旧鍵は失効したものとして扱う。
 
-## Strict migration
+## Strict ポリシーへの移行
 
-Change `mode` to `strict`, require one release and one security approval, set `minimumDistinctApprovers` to 2, and set `allowSameApproverMultipleRoles` to `false`. Before changing the policy, arrange the audit, reproducible-build, fuzz and differential evidence required by the release process.
+`mode` を `strict` に変更し、リリース承認とセキュリティ承認を各1件必要とする。`minimumDistinctApprovers` を2、`allowSameApproverMultipleRoles` を `false` に設定する。ポリシーを変更する前に、リリース手順が要求する監査、再現可能ビルド、ファズテスト、差分テストの証跡を用意する。

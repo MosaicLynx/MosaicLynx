@@ -1,120 +1,120 @@
-# Signing Flow Design Review 006
+# 署名フロー設計レビュー 006
 
-## 1. Review Target
+## 1. レビュー対象
 
-- 対象: [Signing Flow Design](../../design/signing-flow.md)
+- 対象: [署名フロー設計](../../design/signing-flow.md)
 - 確認日: 2026-09-20
 - 成果物: `docs/reviews/design/signing-flow-review-006.md`
-- レビュー範囲: request lifecycle、cancellation race、terminal state、Authorization binding、handoff recipient / device / channel binding、result validation、Relay / Mobile flow、retry / delivery disposition。
-- 未確認範囲: API、wire schema、暗号、具体的 concurrency primitive、UI、wallet-core Binding 実装、runtime tests。
+- レビュー範囲: 要求ライフサイクル、キャンセル競合、終端状態、認可との結び付け、受け渡し受信者 / 端末 / チャネル結び付け、結果検証、Relay / モバイルフロー、再試行 / 配送処理結果の区分。
+- 未確認範囲: API、通信上のスキーマ、暗号、具体的並行処理基本機構、UI、wallet-core バインディング実装、実行環境テスト。
 
-## 2. Execution Audit
+## 2. 実行記録
 
-サブエージェントは使用せず、Review Board Chair が4つの独立 self-review pass を実施した。
+サブエージェントは使用せず、レビュー Board レビュー統括が4つの独立自己確認合格を実施した。
 
-| Pass            | 確認結果                                                                                                                           |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Reviewer A 相当 | Signer、SDK、Relay、wallet-core、Mobile の lifecycle responsibility と target / context ownership を確認。                         |
-| Reviewer B 相当 | four-condition gate、target equality、recipient / channel binding、wrong-device rejection、fail-closed を確認。                    |
-| Reviewer C 相当 | cancel と `SIGNING` の競合、`RESULT_UNKNOWN`、`CANCELLED`、`SUCCEEDED + DELIVERY_UNKNOWN`、restart、retry、terminal reuse を確認。 |
-| Reviewer D 相当 | Requirements、Interfaces、Security、Relay / Handoff、Signing Protocol との traceability と downstream implementability を確認。    |
+| 合格              | 確認結果                                                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| レビュアー A 相当 | 署名主体、SDK、Relay、wallet-core、モバイルのライフサイクル責務と対象 / 文脈所有責任を確認。                                     |
+| レビュアー B 相当 | 四条件判定条件、対象等価性、受信者 / チャネル結び付け、誤った端末拒否、安全側での終了を確認。                                    |
+| レビュアー C 相当 | キャンセルと `SIGNING` の競合、`RESULT_UNKNOWN`、`CANCELLED`、`SUCCEEDED + DELIVERY_UNKNOWN`、再起動、再試行、終端再利用を確認。 |
+| レビュアー D 相当 | 要件、インターフェース、セキュリティ、Relay / 受け渡し、署名プロトコルとの追跡可能性と下流実装可能性を確認。                     |
 
-## 3. Evidence Used
+## 3. 参照した根拠
 
-| 資料                                       | 確認目的                                                                             |
-| ------------------------------------------ | ------------------------------------------------------------------------------------ |
-| Signing Flow §5、§7、§16、§19〜§23         | 対象本文の request model、state machine、cancel、result、security invariant。        |
-| Common / SDK / Mobile / Relay Requirements | signing、cancel、timeout、handoff、result、replay の上流根拠。                       |
-| Interfaces Design §6.4、§7.6、§8、§9       | 共通 interface と cancellation / recipient semantics の整合。                        |
-| Relay Design / Relay Specification         | participant、direction、generation、transport status と signing outcome の分離。     |
-| Signing Protocol §6、§19〜§20              | cancel precedence、delivery disposition、automatic retry / fallback 禁止の補助確認。 |
-| `signing-flow-review-005.md`               | `DR-SF-007` / `DR-SF-008` の required correction と continuity を確認。              |
+| 資料                                    | 確認目的                                                                      |
+| --------------------------------------- | ----------------------------------------------------------------------------- |
+| 署名フロー §5、§7、§16、§19〜§23        | 対象本文の要求モデル、状態遷移、キャンセル、結果、セキュリティ上の不変条件。  |
+| 共通の / SDK / モバイル / Relay 要件    | 署名、キャンセル、タイムアウト、受け渡し、結果、リプレイの上流根拠。          |
+| インターフェース設計 §6.4、§7.6、§8、§9 | 共通インターフェースとキャンセル / 受信者意味の整合。                         |
+| Relay 設計 / Relay 仕様                 | 参加者、方向、世代、通信経路状態と署名結果の分離。                            |
+| 署名プロトコル §6、§19〜§20             | キャンセル優先順位、配送処理結果の区分、自動再試行 / 代替経路禁止の補助確認。 |
+| `signing-flow-review-005.md`            | `DR-SF-007` / `DR-SF-008` の必須修正と継続性を確認。                          |
 
-## 4. Review Result
+## 4. レビュー結果
 
 `READY`
 
-## 5. Summary
+## 5. 要約
 
-Signing Flow は、cancel を request-bound lifecycle operation として扱い、署名前の cancel を `CANCELLED`、`SIGNING` 中の成否不明を `RESULT_UNKNOWN`、既知成功後の配送不明を `SUCCEEDED + DELIVERY_UNKNOWN` とする precedence を明示した。既知成功を cancel へ変換せず、terminal state を reopen / auto-resign しないことも確認できる。
+署名フローは、キャンセルを要求に結び付いたライフサイクル操作として扱い、署名前のキャンセルを `CANCELLED`、`SIGNING` 中の成否不明を `RESULT_UNKNOWN`、既知成功後の配送不明を `SUCCEEDED + DELIVERY_UNKNOWN` とする優先順位を明示した。既知成功をキャンセルへ変換せず、終端状態を再発 / auto-resign しないことも確認できる。
 
-Handoff についても、intended recipient / participant、device または Signer-local identity、session / generation、response channel / direction を Authorization、pre-sign revalidation、Mobile / Relay flow、result validation に結び付け、wrong-device / wrong-direction / stale-channel response の拒否責任を Signer / adapter に割り当てた。Critical、Major、Minor の新規 finding は確認しなかった。
+受け渡しについても、意図した受信者 / 参加者、端末または署名主体内の識別情報、セッション / 世代、応答チャネル / 方向を認可、署名前再検証、モバイル / Relay フロー、結果検証に結び付け、誤った端末 / wrong-direction / stale-channel 応答の拒否責任を署名主体 / アダプターに割り当てた。重大、主要、軽微の新規指摘は確認しなかった。
 
-## 6. Finding Status
+## 6. 指摘の状態
 
-| ID                       | Severity              | Status              | 今回の状態根拠                                                                                                                              |
-| ------------------------ | --------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DR-SF-001`〜`DR-SF-006` | 過去 Critical / Major | Resolved / 再発なし | four-condition gate、Profile binding、result validation、concurrent isolation、fallback 禁止を再確認した。                                  |
-| `DR-SF-007`              | Major                 | Resolved            | §7.4 が cancel authority、state ごとの outcome precedence、`RESULT_UNKNOWN` / `CANCELLED` / `SUCCEEDED + DELIVERY_UNKNOWN` を定義した。     |
-| `DR-SF-008`              | Major                 | Resolved            | §5、§7.4、§16、§19、§20 が recipient / device / signer identity、session / generation、channel / direction を binding / revalidation する。 |
-| `SDR-001`〜`SDR-004`     | 過去 Medium           | Resolved / 再発なし | permission / capability、unknown / delivery、one-time signing、全体 inspection の責務を維持した。                                           |
+| ID                       | 重要度          | 状態                | 今回の状態根拠                                                                                                                  |
+| ------------------------ | --------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `DR-SF-001`〜`DR-SF-006` | 過去重大 / 主要 | 解消済み / 再発なし | 四条件判定条件、プロファイル結び付け、結果検証、並行する分離、代替経路禁止を再確認した。                                        |
+| `DR-SF-007`              | 主要            | 解消済み            | §7.4 がキャンセル判断権限、状態ごとの結果優先順位、`RESULT_UNKNOWN` / `CANCELLED` / `SUCCEEDED + DELIVERY_UNKNOWN` を定義した。 |
+| `DR-SF-008`              | 主要            | 解消済み            | §5、§7.4、§16、§19、§20 が受信者 / 端末 / 署名主体識別情報、セッション / 世代、チャネル / 方向を結び付け / 再検証する。         |
+| `SDR-001`〜`SDR-004`     | 過去 Medium     | 解消済み / 再発なし | 許可 / 対応能力、不明 / 配送、一回限りの署名、全体内容検査の責務を維持した。                                                    |
 
-## 7. Required Changes
+## 7. 必須の修正
 
-なし。Critical の New / Open / Reopened finding はない。
+なし。重大の新規 / 未決 / 再発指摘はない。
 
-## 8. Optional Improvements
+## 8. 任意の改善
 
 なし。
 
-## 9. Resolved Findings
+## 9. 解消済みの指摘
 
-`DR-SF-007` は `SIGNING` と cancel の race を、wallet-core outcome の知識に基づき `CANCELLED` / `RESULT_UNKNOWN` / known success に区別したことで解消した。`DR-SF-008` は request / Authorization / result の共通 binding tuple と Mobile / Relay flow の再検証へ recipient / device / channel を追加したことで解消した。
+`DR-SF-007` は `SIGNING` とキャンセルの競合を、wallet-core 結果の知識に基づき `CANCELLED` / `RESULT_UNKNOWN` / 既知の成功に区別したことで解消した。`DR-SF-008` は要求 / 認可 / 結果の共通結び付け組とモバイル / Relay フローの再検証へ受信者 / 端末 / チャネルを追加したことで解消した。
 
-## 10. Upstream Feedback
+## 10. 上流工程へのフィードバック
 
-なし。Requirements は必要な cancellation、handoff、result safety の根拠を提供している。
+なし。要件は必要なキャンセル、受け渡し、結果安全性の根拠を提供している。
 
-## 11. Deferred Findings
+## 11. 後続工程へ委譲する指摘
 
-- cancel の公開 API、ack field、transport、concurrency、result lookup / resend は下位仕様へ委譲する。
-- device identity、channel の concrete representation、Relay / OS routing、UI、wallet-core Binding および runtime tests は後続工程で確認する。
-- Mainnet release evidence の実装・運用適合性は release readiness / implementation review の対象である。
+- キャンセルの公開 API、受領確認フィールド、通信経路、並行処理、結果照会 / 再送は下位仕様へ委譲する。
+- 端末識別情報、チャネルの具体的な表現、Relay / OS 経路選択、UI、wallet-core バインディングおよび実行環境テストは後続工程で確認する。
+- Mainnet リリース証跡の実装・運用適合性はリリース準備状態 / 実装レビューの対象である。
 
-## 12. Scope and Traceability
+## 12. 対象範囲と追跡可能性
 
-Signing Flow の lifecycle / security invariant は Common Requirements、Interfaces、Security Design、Relay / Handoff、Signing Protocol へ追跡できる。共通 flow は ownership と outcome semantics を定め、具体的な API、wire、cryptography、transport implementation は下位へ委譲している。
+署名フローのライフサイクル / セキュリティ上の不変条件は共通の要件、インターフェース、セキュリティ設計、Relay / 受け渡し、署名プロトコルへ追跡できる。共通フローは所有責任と結果意味を定め、具体的な API、通信上の、暗号処理、通信経路実装は下位へ委譲している。
 
-## 13. Domain Checks
+## 13. ドメイン別の確認
 
-| 観点                              | 判定                                                                                                                                |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Main flows / state                | Pass。RECEIVED から SUCCEEDED、terminal、cancel race、delivery disposition の意味が相互に衝突しない。                               |
-| Authorization / signing authority | Pass。Signer が four-condition gate、target binding、pre-sign revalidation、result validation の owner である。                     |
-| Handoff / response safety         | Pass。intended recipient、participant、device / signer identity、channel / direction を再検証し、wrong-device response を拒否する。 |
-| Failure / retry / restart         | Pass。unknown、cancel、expiry、state loss、delivery failure 後の auto-resign / fallback を禁止している。                            |
-| Chain / network / secret boundary | Pass。Symbol / NEM、Mainnet / Testnet、wallet-core、Relay の境界に回帰がない。                                                      |
+| 観点                                   | 判定                                                                                                         |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Main フロー / 状態                     | 合格。RECEIVED から成功、終端、キャンセル競合、配送処理結果の区分の意味が相互に衝突しない。                  |
+| 認可 / 署名判断権限                    | 合格。署名主体が四条件判定条件、対象結び付け、署名前再検証、結果検証の責任主体である。                       |
+| 受け渡し / 応答安全性                  | 合格。意図した受信者、参加者、端末 / 署名主体識別情報、チャネル / 方向を再検証し、誤った端末応答を拒否する。 |
+| 失敗 / 再試行 / 再起動                 | 合格。不明、キャンセル、期限切れ、状態消失、配送失敗後の auto-resign / 代替経路を禁止している。              |
+| チェーン / ネットワーク / 秘密情報境界 | 合格。Symbol / NEM、Mainnet / Testnet、wallet-core、Relay の境界に回帰がない。                               |
 
-## 14. Validation Results
+## 14. 検証結果
 
 | 検証                                                                                                                                                    | 結果                                           |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | `pnpm exec prettier --check ...`                                                                                                                        | 無出力のまま完了しなかったため中断。           |
-| `./node_modules/.bin/prettier --check docs/design/architecture.md docs/design/interfaces.md docs/design/signing-flow.md docs/design/security-design.md` | PASS。                                         |
-| `git diff --check`                                                                                                                                      | PASS。                                         |
-| app / package lint、typecheck、test、build                                                                                                              | Not applicable。docs/design のみの変更である。 |
+| `./node_modules/.bin/prettier --check docs/design/architecture.md docs/design/interfaces.md docs/design/signing-flow.md docs/design/security-design.md` | 合格。                                         |
+| `git diff --check`                                                                                                                                      | 合格。                                         |
+| アプリ / パッケージ lint、typecheck、テスト、ビルド                                                                                                     | Not 適用可能な。docs/design のみの変更である。 |
 
-## 15. Review Gates
+## 15. レビュー判定基準
 
-| Gate                                         | 判定 | 根拠                                                                                      |
-| -------------------------------------------- | ---- | ----------------------------------------------------------------------------------------- |
-| 1. 目的と範囲                                | Pass | 共通 signing lifecycle と対象外の詳細実装を分離している。                                 |
-| 2. Context / responsibility / trust boundary | Pass | Signer、Relay、SDK、wallet-core、Mobile の境界が維持されている。                          |
-| 3. Dependencies / direction                  | Pass | transport は signing authority を持たず、wallet-core は Application approval を持たない。 |
-| 4. Main flows                                | Pass | cancel、signing、result validation、delivery、restart、retry を一意に扱える。             |
-| 5. Data ownership                            | Pass | Authorization、target、result、recipient / channel context を request-local に保持する。  |
-| 6. Security / interoperability               | Pass | wrong recipient、wrong device、wrong direction、stale generation を fail-closed とする。  |
-| 7. Upstream consistency                      | Pass | Requirements、Interfaces、Security、Relay / Handoff、Signing Protocol と整合する。        |
-| 8. Downstream implementability               | Pass | high-level outcome precedence は固定し、exact API / concurrency は適切に委譲している。    |
+| 判定条件                     | 判定 | 根拠                                                                               |
+| ---------------------------- | ---- | ---------------------------------------------------------------------------------- |
+| 1. 目的と範囲                | 合格 | 共通署名ライフサイクルと対象外の詳細実装を分離している。                           |
+| 2. 文脈 / 責務 / 信頼境界    | 合格 | 署名主体、Relay、SDK、wallet-core、モバイルの境界が維持されている。                |
+| 3. 依存関係 / 方向           | 合格 | 通信経路は署名判断権限を持たず、wallet-core はアプリケーション承認を持たない。     |
+| 4. Main フロー               | 合格 | キャンセル、署名、結果検証、配送、再起動、再試行を一意に扱える。                   |
+| 5. データ所有責任            | 合格 | 認可、対象、結果、受信者 / チャネル文脈を request-local に保持する。               |
+| 6. セキュリティ / 相互運用性 | 合格 | 誤った受信者、誤った端末、誤った方向、古くなった世代を安全側での終了とする。       |
+| 7. 上流整合性                | 合格 | 要件、インターフェース、セキュリティ、Relay / 受け渡し、署名プロトコルと整合する。 |
+| 8. 下流実装可能性            | 合格 | 上位の結果優先順位は固定し、厳密な API / 並行処理は適切に委譲している。            |
 
-## 16. Remaining Risks and Open Decisions
+## 16. 残存リスクと未決定事項
 
-公開 cancellation / delivery contract、具体的な Relay recovery、Mobile 実装、wallet-core Binding および runtime evidence は未確定・未確認である。ただしこれらを理由に cancel safety、recipient binding、four-condition gate を弱めてはならない。
+公開キャンセル / 配送契約、具体的な Relay 復旧、モバイル実装、wallet-core バインディングおよび実行環境根拠は未確定・未確認である。ただしこれらを理由にキャンセル安全性、受信者結び付け、四条件判定条件を弱めてはならない。
 
-## 17. Automatic Changes
+## 17. 自動変更
 
-本レビュー中に Signing Flow、Requirements、Specifications、実装、テスト、設定は変更していない。変更は本 review artifact の新規作成のみである。
+本レビュー中に署名フロー、要件、仕様書、実装、テスト、設定は変更していない。変更は本レビュー成果物の新規作成のみである。
 
-## 18. Final Decision
+## 18. 最終判断
 
 **`READY` — `SIGNING FLOW DESIGN READY`**

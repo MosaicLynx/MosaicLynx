@@ -1,203 +1,203 @@
-# MosaicLynx Mobile App Specification 修正後再レビュー
+# MosaicLynx モバイルアプリ仕様修正後再レビュー
 
-## 1. Review Target
+## 1. レビュー対象
 
-| 項目                 | 内容                                                                                                                                                                                                                          |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 対象 Specification   | [`docs/specifications/mobile-app.md`](../../specifications/mobile-app.md)                                                                                                                                                     |
-| 対象 revision        | `cca14ceed2bd04b1cce169329296ff58921cb6d5`                                                                                                                                                                                    |
-| 前回レビュー         | [`mobile-app-review-002.md`](./mobile-app-review-002.md)                                                                                                                                                                      |
-| 今回のレビュー成果物 | `docs/reviews/specifications/mobile-app-review-003.md`                                                                                                                                                                        |
-| 確認日               | 2026-08-29                                                                                                                                                                                                                    |
-| レビュー範囲         | 現行 Mobile App Specification 全文、MSR-001〜MSR-004 の completion condition、Requirements → Design → common Specification → Mobile-specific contract の追跡、security / interoperability / lifecycle / OPEN / phase boundary |
-| 対象外               | Mobile App、Relay、SDK の runtime、実機、release evaluator の実行検証。今回の変更対象はレビュー成果物だけである。                                                                                                             |
+| 項目                 | 内容                                                                                                                                                                       |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 対象仕様             | [`docs/specifications/mobile-app.md`](../../specifications/mobile-app.md)                                                                                                  |
+| 対象リビジョン       | `cca14ceed2bd04b1cce169329296ff58921cb6d5`                                                                                                                                 |
+| 前回レビュー         | [`mobile-app-review-002.md`](./mobile-app-review-002.md)                                                                                                                   |
+| 今回のレビュー成果物 | `docs/reviews/specifications/mobile-app-review-003.md`                                                                                                                     |
+| 確認日               | 2026-08-29                                                                                                                                                                 |
+| レビュー範囲         | 現行モバイルアプリ仕様全文、MSR-001〜MSR-004 の完了条件、要件 → 設計 → 共通の仕様 → モバイル固有の契約の追跡、セキュリティ / 相互運用性 / ライフサイクル / 未決 / 工程境界 |
+| 対象外               | モバイルアプリ、Relay、SDK の実行環境、実機、リリース評価器の実行検証。今回の変更対象はレビュー成果物だけである。                                                          |
 
-対象 revision はレビュー開始時点の `main` の HEAD と一致していた。前回 revision `436ebf2b6649ed39b9f9a0d35bc89bab29158a04` との差分は、対象 Specification の `§18 Security Invariants` item 17 の payload 境界修正である。差分だけで判定せず、現行本文全体と normative source を再照合した。
+対象リビジョンはレビュー開始時点の `main` の HEAD と一致していた。前回リビジョン `436ebf2b6649ed39b9f9a0d35bc89bab29158a04` との差分は、対象仕様の `§18 Security Invariants` 項目 17 のペイロード境界修正である。差分だけで判定せず、現行本文全体と規範的な送信元を再照合した。
 
-## 2. Execution Audit
+## 2. 実行記録
 
-| 観点                                     | 実施内容                                                                                                                                                                                                      | 状態 |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
-| Chair / Phase 0                          | 対象 revision、変更範囲、artifact 衝突、repository instructions、Source of Truth、前回 finding history を確認した。                                                                                           | 完了 |
-| Reviewer A: Contract の明確性と完全性    | scope、authority、input / output、response union、validation、serialization、error、state、OPEN、acceptance、phase boundary を現行本文と common Specification へ照合した。                                    | 完了 |
-| Reviewer B: Semantics と運用適合性       | Requirements / Design traceability、Mobile host / Signer / UI / wallet-core / OS / SDK / Relay / dApp / release authority、lifecycle、failure、recovery、Mainnet / Testnet、OPEN を照合した。                 | 完了 |
-| Reviewer C: Security と interoperability | Four Conditions、trusted inspection、TOCTOU、replay、state loss、secret boundary、E2E Relay boundary、`RESULT_UNKNOWN`、`deliveryDisposition`、serialization、Chain / Network 境界を adversarial に確認した。 | 完了 |
-| Phase 2 / Chair synthesis                | MSR-004 の修正を反証し、MSR-001〜MSR-003 の回帰、修正に起因する新規 contradiction、field / state mismatch、security / interoperability regression を確認した。                                                | 完了 |
-| Phase 3                                  | generic Review Gates と repository の docs-only validation policy を適用した。                                                                                                                                | 完了 |
-| Sub-agent                                | 使用していない。上記3観点をメインエージェントが別々の確認パスとして実施した。                                                                                                                                 | —    |
+| 観点                                   | 実施内容                                                                                                                                                                                                 | 状態 |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| レビュー統括 / 工程 0                  | 対象リビジョン、変更範囲、成果物衝突、リポジトリ作業規則、正本、前回指摘履歴を確認した。                                                                                                                 | 完了 |
+| レビュアー A: 契約の明確性と完全性     | 対象範囲、判断権限、入力 / 出力、応答共用体、検証、シリアライズ、エラー、状態、未決、受け入れ、工程境界を現行本文と共通の仕様へ照合した。                                                                | 完了 |
+| レビュアー B: 意味と運用適合性         | 要件 / 設計追跡可能性、モバイルホスト / 署名主体 / UI / wallet-core / OS / SDK / Relay / dApp / リリース判断権限、ライフサイクル、失敗、復旧、Mainnet / Testnet、未決を照合した。                        | 完了 |
+| レビュアー C: セキュリティと相互運用性 | 四つの条件、信頼された内容検査、TOCTOU、リプレイ、状態消失、秘密情報境界、E2E Relay 境界、`RESULT_UNKNOWN`、`deliveryDisposition`、シリアライズ、チェーン / ネットワーク境界を攻撃を想定したに確認した。 | 完了 |
+| 工程 2 / レビュー統括 synthesis        | MSR-004 の修正を反証し、MSR-001〜MSR-003 の回帰、修正に起因する新規矛盾、フィールド / 状態不一致、セキュリティ / 相互運用性回帰を確認した。                                                              | 完了 |
+| 工程 3                                 | 一般的なレビュー判定基準とリポジトリの文書のみ検証ポリシーを適用した。                                                                                                                                   | 完了 |
+| Sub-agent                              | 使用していない。上記3観点をメインエージェントが別々の確認パスとして実施した。                                                                                                                            | —    |
 
-## 3. Evidence Used
+## 3. 参照した根拠
 
 今回の判定は、前回レビューの結論を再利用せず、以下の現行資料を直接確認した。
 
-- 対象本文: Mobile App Specification `§1.1`、`§4`、`§6`〜`§21`。特に `§12` の response union、`§15`〜`§18` の secret / observability / Relay 境界、`§19.3` の OPEN、`§20`〜`§21` の acceptance / traceability。
-- 前回レビュー: [`mobile-app-review-002.md`](./mobile-app-review-002.md) は MSR-001〜MSR-004 の ID、finding history、completion condition の追跡に限定して参照した。前回の判定内容は今回の correctness の根拠にしていない。
-- Requirements: [共通要件](../../requirements/requirements.md) `CR-001`〜`CR-016`、`CR-NFR-001`〜`CR-NFR-013`、共通 acceptance、[Mobile App 要件](../../requirements/mobile-app.md) `MR-001`〜`MR-013` / `MR-AC-*` / `MR-OPEN-*`、[Relay 要件](../../requirements/relay.md)、[SDK 要件](../../requirements/sdk.md)。Browser Extension requirements は共通 Signer / Interface / Security contract の整合確認に限って参照した。
-- Design: [Architecture](../../design/architecture.md)、[Security Design](../../design/security-design.md)、[Signing Flow](../../design/signing-flow.md)、[Interfaces Design](../../design/interfaces.md)、[Mobile App Design](../../design/mobile-app.md)、[Relay Design](../../design/relay.md)、[SDK Design](../../design/sdk.md)。
-- Common / related Specifications: [Interfaces](../../specifications/interfaces.md) `§6.3`、`§9.4`〜`§9.7`、`§10.3`、`§11`〜`§13`、[Signing Protocol](../../specifications/signing-protocol.md) `§7`〜`§13`、`§19`〜`§20`、[Profile / Account](../../specifications/profile-account-spec.md)、[Chain Compatibility](../../specifications/chain-compatibility-spec.md)、[Web Transaction Handoff](../../specifications/web-transaction-handoff-spec.md) `§5`、`§7`〜`§13`、[SDK](../../specifications/sdk.md)、[Relay](../../specifications/relay.md)、[Browser Extension](../../specifications/browser-extension.md)。
-- Release / platform references: [ADR 0001](../../adr/0001-mainnet-evidence-lite.md)、[Mainnet release evidence](../../release/mainnet-release-evidence.md)、[Mobile store release](../../mobile/mobile-store-release.md)、[Mobile support](../../mobile/mobile-support.md)、[Mobile privacy](../../mobile/mobile-privacy.md)、`docs/evidence/evidence-policy.json`。
-- Repository / review policy: [`AGENTS.md`](../../../AGENTS.md)、[`project-context.md`](../../../.agents/project-context.md)、最新の `spec-review`、`review-common`、reviewers、review-gates、output-format。これらは作業規約・review method・artifact policy として適用し、製品仕様の normative authority にはしていない。
+- 対象本文: モバイルアプリ仕様 `§1.1`、`§4`、`§6`〜`§21`。特に `§12` の応答共用体、`§15`〜`§18` の秘密情報 / 観測可能性 / Relay 境界、`§19.3` の未決、`§20`〜`§21` の受け入れ / 追跡可能性。
+- 前回レビュー: [`mobile-app-review-002.md`](./mobile-app-review-002.md) は MSR-001〜MSR-004 の ID、指摘履歴、完了条件の追跡に限定して参照した。前回の判定内容は今回の正確性の根拠にしていない。
+- 要件: [共通要件](../../requirements/requirements.md) `CR-001`〜`CR-016`、`CR-NFR-001`〜`CR-NFR-013`、共通受け入れ、[モバイルアプリ要件](../../requirements/mobile-app.md) `MR-001`〜`MR-013` / `MR-AC-*` / `MR-OPEN-*`、[Relay 要件](../../requirements/relay.md)、[SDK 要件](../../requirements/sdk.md)。ブラウザ拡張機能要件は共通署名主体 / インターフェース / セキュリティ契約の整合確認に限って参照した。
+- 設計: [アーキテクチャ](../../design/architecture.md)、[セキュリティ設計](../../design/security-design.md)、[署名フロー](../../design/signing-flow.md)、[インターフェース設計](../../design/interfaces.md)、[モバイルアプリ設計](../../design/mobile-app.md)、[Relay 設計](../../design/relay.md)、[SDK 設計](../../design/sdk.md)。
+- 共通の / 関連する仕様書: [インターフェース](../../specifications/interfaces.md) `§6.3`、`§9.4`〜`§9.7`、`§10.3`、`§11`〜`§13`、[署名プロトコル](../../specifications/signing-protocol.md) `§7`〜`§13`、`§19`〜`§20`、[プロファイル / アカウント](../../specifications/profile-account-spec.md)、[チェーン互換性](../../specifications/chain-compatibility-spec.md)、[Web トランザクション受け渡し](../../specifications/web-transaction-handoff-spec.md) `§5`、`§7`〜`§13`、[SDK](../../specifications/sdk.md)、[Relay](../../specifications/relay.md)、[ブラウザ拡張機能](../../specifications/browser-extension.md)。
+- リリース / プラットフォーム参照資料: [ADR 0001](../../adr/0001-mainnet-evidence-lite.md)、[Mainnet リリース証跡](../../release/mainnet-release-evidence.md)、[モバイルストアリリース](../../mobile/mobile-store-release.md)、[モバイルサポート](../../mobile/mobile-support.md)、[モバイルプライバシー](../../mobile/mobile-privacy.md)、`docs/evidence/evidence-policy.json`。
+- リポジトリ / レビューポリシー: [`AGENTS.md`](../../../AGENTS.md)、[`project-context.md`](../../../.agents/project-context.md)、最新の `spec-review`、`review-common`、レビュアー、review-gates、output-format。これらは作業規約・レビューメソッド・成果物ポリシーとして適用し、製品仕様の規範の正本にはしていない。
 
 直接確認した主要な共通契約は次のとおりである。
 
-- Interfaces `§6.3` の `signed` / `dataSigned` / `resultUnknown` / `rejected` / `failed` union、`SignedTransaction { payload, hash, signerPublicKey }`、共通 exact state set、4条件、`RESULT_UNKNOWN`、`deliveryDisposition`。
-- Handoff `§5.1` / `§5.2.1` / `§7.2` の SDK public result と Relay response の mapping、`§7.5` の Mobile Mainnet conditions、`§8` の E2E encryption、`§12` の diagnostics allowlist。
-- Requirements / Signing Protocol / Relay Specification の secret non-exposure、Relay opaque boundary、trusted Signer-only result semantics、known-result recovery と re-sign の分離。
+- インターフェース `§6.3` の `signed` / `dataSigned` / `resultUnknown` / `rejected` / `failed` 共用体、`SignedTransaction { payload, hash, signerPublicKey }`、共通厳密な状態集合、4条件、`RESULT_UNKNOWN`、`deliveryDisposition`。
+- 受け渡し `§5.1` / `§5.2.1` / `§7.2` の SDK 公開結果と Relay 応答の対応付け、`§7.5` のモバイル Mainnet 条件、`§8` の E2E 暗号化、`§12` の診断情報許可リスト。
+- 要件 / 署名プロトコル / Relay 仕様の秘密情報外部への非露出、Relay 内容を解釈しない境界、信頼された署名主体のみの結果意味、確定済みの結果復旧と再署名の分離。
 
-## 4. Review Result
-
-`READY`
-
-## 5. Summary
-
-`§18 Security Invariants` item 17 は、前回の無限定な `raw payload` 禁止を、署名前の unsigned / untrusted request payload、内部処理用 raw bytes / payload、解析途中 buffer とその複製の不要な露出禁止へ限定した。同時に、common Specification が正常 response として要求・許可する public signed result は、既存 Handoff contract に従う normative response として SDK / dApp へ伝達できることを明記している。Relay への伝送は E2E encrypted response に限定され、Relay plaintext exposure も禁止されている。
-
-現行 `§12`、`§15`、`§16`、`§18` と Interfaces / Handoff の直接照合により、public signed result を禁止せず、secret と observability / auxiliary output の複製は引き続き禁止する response boundary が成立している。`signed`、`dataSigned`、`resultUnknown`、`rejected`、`failed` の union、required public result、`deliveryDisposition` の関係も崩れていない。
-
-MSR-001〜MSR-004 はすべて Resolved であり、新規 Critical / Major / Minor finding はない。Four Conditions、trusted inspection、Relay non-authority、`RESULT_UNKNOWN`、`deliveryDisposition`、known-result recovery、lifecycle invalidation、wallet-core / secret boundary、Mainnet fail-closed、Testnet-only continuation、OPEN および specification phase boundary に回帰は確認されなかった。
-
-## 6. Finding Status
-
-| ID        | Severity | Status   | 初出レビュー               | 今回の状態根拠                                                                                                                                                                                                                                                                                                                    |
-| --------- | -------- | -------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MSR-001` | Major    | Resolved | `mobile-app-review-001.md` | `§1.1` が文書順位ではなく contract ownership を authority の基準とし、common contract、Mobile-specific additional constraint、conflict 時の common authority、OPEN / cross-document issue の扱いを一意に定めている。`§12`、`§13`、`§17`、`§19`、`§21` もこの境界を維持している。                                                  |
-| `MSR-002` | Major    | Resolved | `mobile-app-review-001.md` | `§16` が log / warning / exception / diagnostics / analytics / telemetry / crash report / support output / Relay metadata 等の auxiliary output と normative Handoff response を分離し、common public result を正常 response に含められる一方、observability への複製を禁止している。                                             |
-| `MSR-003` | Minor    | Resolved | `mobile-app-review-001.md` | `§9.3`、`§13.1` が `AUTHENTICATING` を Mobile App 内部だけの local UI / authentication substep とし、common state、public / wire / response field、Relay、SDK、persistent common state、common transition から除外している。Authentication は Four Conditions の一つとして維持される。                                            |
-| `MSR-004` | Major    | Resolved | `mobile-app-review-002.md` | `§18` item 17 が secret、不要な public identity、unsigned / intermediate raw representation と normative public signed result を分離し、common field / shape は common Specification に委譲した。正常 public result の SDK / dApp 伝達、observability 複製禁止、Relay E2E encrypted response / plaintext 禁止を同時に確認できる。 |
-
-新規 finding はない。したがって `MSR-005` 以降の ID は発行していない。
-
-## 7. Required Changes
-
-なし。現行本文に未解消の `Critical` または `Major` finding はない。
-
-## 8. Optional Improvements
-
-なし。今回の全文再レビューで、gate を阻害する `Minor` / `Nit` finding も採用していない。
-
-## 9. Resolved Findings
-
-### `MSR-001`: authority precedence の自己矛盾 — Resolved
-
-現行 `§1.1` は、authority を文書全体の順位ではなく contract ownership で決める。共通 request / response、common field / state、error、signing result、`RESULT_UNKNOWN`、`deliveryDisposition`、serialization、Chain / Network semantics、Profile / Account semantics、Handoff、version / capability、release / evidence は、それぞれを所有する common Specification / policy が authority である。Mobile は Mobile-specific lifecycle、trusted host、platform boundary、validation、trusted UI、additional restriction、fail-closed condition を common contract と両立する追加制約として定めるだけで、override しない。
-
-`§1.1` は conflict 時に Mobile 側で選択・上書きせず、common Specification を authority とし、未解決の conflict を OPEN / cross-document issue として扱い、解消まで独自 field / state / error / version / capability を追加しないと定める。`§12` は common response union、`§13.1` は common exact state set、`§17` は release authority、`§19` は error mapping / delegation / OPEN、`§21` は Requirements → Design → existing Specification の traceability を維持している。completion condition を満たす。
-
-### `MSR-002`: diagnostics 禁止が normative response を禁止 — Resolved
-
-現行 `§16` は禁止対象を observability / auxiliary output と定義し、normative Handoff response と SDK / dApp へ伝える public result をその禁止対象から除外する。既存 contract が要求・許可する場合に限り、request correlation、signed transaction / signed data、signature、hash、signer public key、public Account identity、`deliveryDisposition` 等を正常 response に含められる。一方、同じ public result を log、diagnostics、telemetry、crash report、support output 等へ複製することは禁止される。
-
-`§12.1` は `signed` / `dataSigned` / `resultUnknown` / `rejected` / `failed` を既存 Handoff union に限定し、`§15.1` と `§16` は response に secret を含めない。Interfaces `§6.3` / `§9.6` および Handoff `§5.2.1` / `§7.2` の required public result と同時に成立するため、completion condition を満たす。
-
-### `MSR-003`: `AUTHENTICATING` の Mobile local substep 境界 — Resolved
-
-`§9.3` は request / signing lifecycle の表から `AUTHENTICATING` を除外し、`§13.1` は common exact state diagram を `RECEIVED → VALIDATED → INSPECTED → AWAITING_USER → AUTHORIZED → SIGNING → SUCCEEDED` と明示する。`AUTHENTICATING` は `AWAITING_USER` と `AUTHORIZED` の間の Mobile local UI / device authentication / user-presence substep であり、common state、public state、wire state、response field、Relay state、SDK contract、persistent common state に serialize / expose しない。
-
-local authentication が失敗、stale、revoked、locked または context mismatch となった場合は common failure / terminal semantics に従い、old Authentication / authorization を再利用しない。Authentication 自体は `§7.1` の Four Conditions の独立条件であり、completion condition を満たす。
-
-### `MSR-004`: `§18` の `raw payload` 禁止と normative signed response の境界 — Resolved
-
-現行 `§18` item 17 は、Mnemonic、private key、derived secret key、Profile password、decrypted Wallet Store、E2E secret、transport secret / credential、internal key reference、secret-bearing intermediate buffer、authorization secret、不要な public identity を external channel、Relay、SDK、log、diagnostics、persistent plain storage へ漏らさないと定める。これは共通 Requirements の secret boundary と一致する。
-
-同 item は、署名前の unsigned / untrusted request payload、内部処理用の intermediate raw bytes / payload、解析途中 buffer とその複製を、normative response に必要な public signed result でない限り、external channel、SDK、Relay、log、diagnostics、telemetry、crash report、support output、persistent plaintext storage へ不要に露出しないと限定する。そのうえで、common Specification が正常 response として要求・許可する public signed result は、既存 Handoff response contract に従う normative response として SDK / dApp へ伝達でき、具体的な field 名、必須性、shape は common Specification が authority で本書は新しい response field を追加しないと定める。
-
-この exception は §16 の observability 許可ではない。`§16` は normative response の全体または signed payload、transaction、hash、public key、address、requestId 等を observability / auxiliary output へ複製することを禁止する。さらに `§18` item 17 は Relay への伝送を既存 Handoff の E2E encrypted response に限定し、Relay に plaintext の transaction、message、signed result を公開しないと定める。
-
-直接照合した Interfaces `§6.3` / `§9.6`、Handoff `§5.1` / `§5.2.1` / `§7.2` により、`signed` は `signedTransaction`、`dataSigned` は `signedData`、`resultUnknown` は signed result / `deliveryDisposition` なし、`rejected` / `failed` は success result なしという union が成立する。よって MSR-004 の completion condition を満たし、Major finding は解消した。
-
-## 10. Deferred Findings
-
-正式な未解消 finding はない。`§19.3` の既存 OPEN は、今回の対象本文の defect ではなく、別 authority または下位仕様で決定すべき未決事項として Deferred のまま保持されている。
-
-現行 `§19.3` は、前回レビュー対象から OPEN を追加・削除・close・意味変更していない。保持されている主な項目は次のとおりである。
-
-- `MOB-OPEN-001`〜`008` / `MR-OPEN-001`〜`008`: platform support / distribution、追加 Deep Link・source proof、wallet-core Binding / OS wrapping、authentication policy、pending / reconnect / recovery、backup / migration、privacy policy、Mobile release evidence matrix。
-- `MOB-OPEN-009`、common `OPEN-006`、`OPEN-SDK-004`: Aggregate / Partial / Symbol / NEM cosignature の公開 operation、supported scope、result contract、SDK capability。
-- common Interfaces `OPEN-001`〜`OPEN-005`、`OPEN-RELAY-003` / `OPEN-RELAY-004`、SDK / Handoff の対応 OPEN: message expiry field、capability / version negotiation、permission expiry / revocation identifier、caller context、reconnect / retry mapping 等。
-
-これらは既存 Requirements / Design / Specification で未決または下位 authority へ委譲されており、Mobile Specification が独自 field、state、error、version、capability、blind signing、approval 省略、old authorization reuse、Relay authority または fail-open recovery を導入する理由にはなっていない。
-
-## 11. Scope and Traceability
-
-### Authority / responsibility
-
-`§1.1` と `§4` は、Application / UI、Mobile trusted host / Signer、trusted approval UI、chain integration、wallet-core、OS / platform、SDK、Relay、dApp / Web page、release authority を区別している。Mobile trusted host は Mobile 経路の request validation、Profile / Account、trusted UI、Four Conditions、lifecycle、wallet-core orchestration、result validation の authority だが、common response / state / error / serialization / release contract を上書きしない。
-
-`§9` は Relay を opaque / untrusted transport とし、Relay の structural validation と Mobile の E2E、Origin、semantic、Account、approval、署名検証を分離する。`§12`、`§14`、`§17` は、それぞれ Signer-originated result / disposition、lifecycle recovery、release gate の authority を Relay / SDK / OS / wallet-core と混同しない。
-
-### Requirements → Design → Specification
-
-`§21` の traceability table は、scope / responsibility、trust boundary / Relay、Profile / Account / Network binding、Four Conditions、inspection、handoff、result / delivery、lifecycle / state loss、secret / wallet-core、Mainnet gate を Requirements、Design、existing Specification へ対応付けている。MSR-004 の修正も `§21` の「共通 schema、公開 API、error code、Chain-specific byte 列、Relay endpoint を独自再定義しない」という境界と整合する。
-
-Browser Extension Specification は共通 Signer / Interface / Security contract の整合確認に限って扱われ、Browser 固有の caller、Chrome API、Provider UI、storage 契約を Mobile に要求していない。
-
-### Phase boundary
-
-`§1`〜`§2` は source code、class / file 構造、framework / library / database 選定、CI/CD、deployment procedure、test implementation を対象外とする。`§19.2` は UI layout、OS API call、Native / WASM host integration、buffer ownership、zeroization、secure storage adapter、database / storage library、queue algorithm、lifecycle hook、error presentation を implementation choice / 下位仕様へ委譲する。
-
-本仕様が固定するのは、実装・検証・相互運用に必要な state、transition、validation、failure semantics、lifecycle、request / response mapping、security invariant、acceptance criteria と、既存 Handoff / Chain / release contract の Mobile 適用である。React Native / Expo 等の framework、database / library、class / module / file、CI/CD、deployment、test implementation を固定していないため、phase boundary の逸脱はない。
-
-## 12. Domain Checks
-
-| Check                                               | 判定                | 根拠                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| --------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Purpose / scope / phase boundary                    | **Pass**            | `§1`〜`§2`、`§19.2` が Mobile 固有の external behavior と必要な security / lifecycle contract を定め、source / framework / database / CI/CD / deployment / test implementation を対象外または委譲している。                                                                                                                                                                                                               |
-| Authority / responsibility boundary                 | **Pass**            | `§1.1` が contract ownership を authority とし、common contract は既存 Specification / policy、Mobile は追加制約と定める。`§4` が Application / UI、trusted host / UI、wallet-core、OS、SDK、Relay、dApp、release authority を分離している。                                                                                                                                                                              |
-| Request / response contract                         | **Pass**            | `§12.1` は既存 union に限定し、Interfaces `§6.3` / `§9.6`、Handoff `§5.1` / `§5.2.1` / `§7.2` の required public result、correlation、success / error の依存関係と整合する。                                                                                                                                                                                                                                              |
-| MSR-004 secret / public signed result boundary      | **Pass**            | `§15.1`、`§16`、`§18` item 17 が secret、unsigned / intermediate representation、normative public signed result、observability replication、Relay plaintext を別々に扱う。                                                                                                                                                                                                                                                |
-| Four signing conditions                             | **Pass**            | `§7.1`、`§11.2`、`§18` items 3〜5、`§20` criterion 4 が Authentication、Signing-capable unlock、Account authorization、Explicit user approval を独立条件として同一 request / target / Profile / Account / Chain / Network context に bind し、一つでも欠ければ wallet-core / success を禁止する。                                                                                                                         |
-| Trusted inspection                                  | **Pass**            | `§10`〜`§11`、`§18` items 6〜8、`§20` criterion 5 が trusted Mobile foreground UI による full target inspection を要求し、external summary、notification、URL、Relay metadata、hash-only、Node lookup、dApp description、warning-only / raw fallback を代替にしていない。 Symbol Aggregate、NEM multisig / cosignature、embedded / inner context も表示不能時に拒否する。                                                 |
-| Input validation / canonicalization / serialization | **Pass**            | `§8`、`§10`、`§11`、`§18` items 1、4、9、21 が bounded input、unknown / duplicate / malformed、identity、integrity、expiry、Chain-specific parse、canonicalization、pre-sign revalidation、fail-closed を定め、exact encoding / field shape は common / Chain Specification に委譲している。                                                                                                                              |
-| Relay opaque boundary                               | **Pass**            | `§4.1`、`§9`、`§18` item 19、`§20` criterion 11 が Relay の structural / transport responsibility と Mobile / Signer の semantic、approval、signing、result、`RESULT_UNKNOWN`、`deliveryDisposition`、Mainnet gate authority を分離する。`§18` item 17 は Relay plaintext を明示的に禁止する。                                                                                                                            |
-| `RESULT_UNKNOWN`                                    | **Pass**            | `§12.2`、`§14.2`〜`§14.3`、`§18` item 12、`§19.1` は trusted Signer が signing generation 自体の成否を確定できない場合だけに限定し、network、Relay、ACK、HTTP、response absence、timeout、recipient offline、delivery failure から生成・推測しない。自動 re-sign / fallback もない。                                                                                                                                      |
-| `deliveryDisposition`                               | **Pass**            | `§12.3`、`§14.5`、`§18` items 13〜14、`§20` criterion 9 が known signed result に対する `PENDING` / `DELIVERED` / `DELIVERY_UNKNOWN` を Signer-side semantics とし、Relay state、retrieval、ACK、`consumed`、HTTP 2xx、purge から生成・推測・書換えしない。                                                                                                                                                               |
-| Recovery / re-sign boundary                         | **Pass**            | `§12.4`、`§14.2`〜`§14.5`、`§18` items 15〜16、`§20` criterion 10 が known result の resend / redelivery / retrieval / lookup と新しい signing generation を分離し、別 Account / Signer / Provider / transport への automatic fallback を禁止する。                                                                                                                                                                       |
-| Lifecycle / state loss / concurrency                | **Pass**            | `§6`、`§9.3`〜`§9.4`、`§13`〜`§14`、`§18` items 10〜11、`§20` criteria 2、7、12 が background、suspend、resume、device lock、process termination、OS kill、crash、network / Relay failure、generation / Profile / Account / permission change、duplicate、replay、timeout、cancellation、local / remote mismatch を扱う。 stale approval / Authentication / unlock / authorization / target / secret を自動再利用しない。 |
-| Common state set / `AUTHENTICATING`                 | **Pass**            | `§9.3`、`§13.1` が Interfaces / Signing Protocol の common exact state setを拡張せず、`AUTHENTICATING` を non-common、non-public、non-wire、non-Relay、non-SDK、non-persistent local substep と明記している。                                                                                                                                                                                                             |
-| Wallet-core / secret boundary                       | **Pass**            | `§2.2`、`§15`、`§18` items 17〜18、`§20` criteria 13〜14 が Mnemonic、private key、derived key、Profile password、decrypted Store、E2E / transport secret、credential、internal key reference、secret-bearing buffer の外部 / SDK / Relay / log / diagnostics / persistent plaintext への漏洩を禁止し、KDF / AEAD / Wallet Store encryption / raw signing を wallet-core 外で再実装しない。                               |
-| Mainnet gate / Testnet-only                         | **Pass**            | `§17`、`§18` item 20、`§20` criterion 15 が release authority の evidence gate と platform conditions の missing / invalid / expired / unknown で Mainnet signing を fail-closed にし、Mainnet failure によって安全な Testnet-only operation を不必要に停止しない。現行公開 Mobile build が Testnet-only であることも release docs と整合する。                                                                           |
-| Existing OPEN                                       | **Pass — deferred** | `§19.3` の MOB / MR / common / Relay / SDK OPEN は current normative source に残る未決事項を委譲し、今回の修正で追加・削除・close・意味変更されていない。OPEN は安全下限を弱める根拠になっていない。                                                                                                                                                                                                                      |
-| Interoperability / traceability / verifiability     | **Pass**            | `§20` criteria 4、8〜11、16 と `§21` が common result / delivery / state / security / release contract を追跡可能にする。MSR-004 解消後、common public signed result と observability prohibition を同時に検証できる。                                                                                                                                                                                                    |
-
-Adversarial check では、malicious dApp、forged external invocation、stale / tampered Relay response、request substitution、Account / Chain / Network substitution、Profile switch、resume after approval、process / state loss、duplicate / replay、delayed response、Relay compromise、misleading notification、OS lifecycle interruptionを確認した。現行本文は、fresh validation、同一 context binding、trusted UI、fail-closed、no automatic re-sign / fallback、Relay non-authority、secret isolation を維持している。
-
-## 13. Validation Results
-
-| Validation                                                    | 結果                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Target revision / worktree / changed-file audit               | **Pass**。`HEAD` と対象 revision `cca14ceed2bd04b1cce169329296ff58921cb6d5` が一致し、レビュー開始時点の worktree は clean だった。成果物作成後は review artifact だけを変更対象とする。                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| Review artifact Markdown formatter                            | `pnpm exec prettier --write docs/reviews/specifications/mobile-app-review-003.md` と `pnpm exec prettier --check docs/reviews/specifications/mobile-app-review-003.md` は、いずれも `[ERROR] unable to open database file` で失敗した。repository policy に従い `./node_modules/.bin/prettier --write docs/reviews/specifications/mobile-app-review-003.md` と `./node_modules/.bin/prettier --check docs/reviews/specifications/mobile-app-review-003.md` を実行し、いずれも **Pass**。同じ repository-local Prettier executable と同じ artifact path を対象にしたため formatter の代替確認はできたが、pnpm launcher 自体の database access は未検証のままである。 |
-| Whitespace / staged diff                                      | **Pass**。artifact だけを stage した状態で `git diff --cached --check` を実行し、whitespace error はなかった。`git diff --cached --name-status` も review artifact の追加だけであることを確認した。                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| Referenced paths                                              | **Pass**。本文、Requirements、Design、common / related Specification、ADR、release / mobile reference、review resources、repository instructions の参照先を確認した。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| Lint / typecheck / test / build / runtime / E2E / real-device | **Not validated**。今回の変更対象は review Markdown のみであり、Mobile runtime、source、package、Relay E2E、実機、release evaluator は対象外で実行していない。未実行を PASS とは扱わない。                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-
-## 14. Review Gates
-
-| Gate                           | 判定     | 根拠                                                                                                                                                                                                   | 対応 |
-| ------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
-| 1. Purpose / scope             | **Pass** | Mobile の対象、非責務、actor、platform / release boundary、common contract との関係を `§1`〜`§4`、`§19.2` で確認できる。                                                                               | —    |
-| 2. Contract                    | **Pass** | `§12` の既存 response union、`§18` item 17 の public signed result exception、secret / intermediate / observability / Relay plaintext boundary、common field authority が矛盾なく確認できる。          | —    |
-| 3. Processing / failure        | **Pass** | validation ordering、trusted inspection、Four Conditions、failure、unknown、delivery、recovery、retry / re-sign separation、duplicate / replay、lifecycle failure を `§8`〜`§14`、`§19` で確認できる。 | —    |
-| 4. Internal consistency        | **Pass** | MSR-001〜MSR-003 の authority / response / local state 境界と MSR-004 の payload boundary が、`§1.1`、`§9.3`、`§12`、`§13.1`、`§16`、`§18` の間で整合する。                                            | —    |
-| 5. Verifiability               | **Pass** | common Specification の required field / exact state / result semantics を authority として参照し、Mobile-specific acceptance / lifecycle / security invariant を `§20`〜`§21` で検証可能にしている。  | —    |
-| 6. Security / interoperability | **Pass** | secret boundary、trusted UI、Four Conditions、TOCTOU / replay、E2E opaque Relay、Signer-only unknown / disposition、public signed response の伝達と observability 非複製を確認できる。                 | —    |
-| 7. Upstream consistency        | **Pass** | Requirements、Design、Interfaces、Signing Protocol、Handoff、Profile / Account、Chain Compatibility、SDK、Relay、release policy と矛盾しない。Browser Extension 固有契約は Mobile へ持ち込んでいない。 | —    |
-
-すべての applicable generic gate を評価し、blocking failure、confirmation required 条件、未解消 Critical / Major finding はない。したがって Review Gate は `READY` である。
-
-## 15. Remaining Risks and Open Decisions
-
-- 現行 Mobile App は workspace に実装されていない将来 milestone である。本文の runtime 遵守、実機 OS capability、Relay E2E、release evidence evaluator の実行結果は今回確認していない。
-- `MOB-OPEN-*`、`MR-OPEN-*`、Interfaces / Handoff / Relay / SDK の既存 OPEN は残っている。これらは §19.3 の safe lower bound を弱めず、独自 contract を発明しない条件で下位 authority へ引き継ぐ必要がある。
-- 現行公開 Mobile build が Testnet-only であることは release / mobile policy と整合する。Mainnet は release authority の current evidence と platform conditions が揃うまで unavailable でなければならない。
-- `§18` item 17 の public signed result exception は common Handoff response に限定され、observability / auxiliary output または Relay plaintext の許可ではない。この境界を実装・運用資料で別表現にする場合も、common field / shape と E2E boundary を維持する必要がある。
-
-## 16. Automatic Changes
-
-なし。対象 Specification、Requirements、Design、他の Specification、ADR、source、test および過去の review artifact は変更していない。変更対象は本レビュー成果物だけである。
-
-## 17. Final Decision
+## 4. レビュー結果
 
 `READY`
 
-MSR-001、MSR-002、MSR-003、MSR-004 はすべて `Resolved`。新規 finding はなく、security / interoperability regression、cross-document inconsistency、Specification phase boundary の逸脱も確認されなかった。既存 OPEN は §19.3 のとおり Deferred のまま妥当であり、次工程へ進めるための Review Gate を満たす。
+## 5. 要約
+
+`§18 Security Invariants` 項目 17 は、前回の無限定な `raw payload` 禁止を、署名前の未署名 / 信頼されていない要求ペイロード、内部処理用生バイト列 / ペイロード、解析途中バッファーとその複製の不要な露出禁止へ限定した。同時に、共通の仕様が正常応答として要求・許可する公開署名済み結果は、既存受け渡し契約に従う規範的な応答として SDK / dApp へ伝達できることを明記している。Relay への伝送は E2E 暗号化された応答に限定され、Relay 平文露出も禁止されている。
+
+現行 `§12`、`§15`、`§16`、`§18` とインターフェース / 受け渡しの直接照合により、公開署名済み結果を禁止せず、秘密情報と観測可能性 / 補助的な出力の複製は引き続き禁止する応答境界が成立している。`signed`、`dataSigned`、`resultUnknown`、`rejected`、`failed` の共用体、必須公開結果、`deliveryDisposition` の関係も崩れていない。
+
+MSR-001〜MSR-004 はすべて解消済みであり、新規重大 / 主要 / 軽微指摘はない。四つの条件、信頼された内容検査、Relay 判断権限を持たないこと、`RESULT_UNKNOWN`、`deliveryDisposition`、確定済みの結果復旧、ライフサイクル無効化、wallet-core / 秘密情報境界、Mainnet 安全側での終了、Testnet 専用継続、未決および仕様工程境界に回帰は確認されなかった。
+
+## 6. 指摘の状態
+
+| ID        | 重要度 | 状態     | 初出レビュー               | 今回の状態根拠                                                                                                                                                                                                                                                        |
+| --------- | ------ | -------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MSR-001` | 主要   | 解消済み | `mobile-app-review-001.md` | `§1.1` が文書順位ではなく契約所有責任を判断権限の基準とし、共通の契約、モバイル固有の追加の制約、競合時の共通の判断権限、未決 / 文書間の課題の扱いを一意に定めている。`§12`、`§13`、`§17`、`§19`、`§21` もこの境界を維持している。                                    |
+| `MSR-002` | 主要   | 解消済み | `mobile-app-review-001.md` | `§16` がログ / 警告 / 例外 / 診断情報 / 利用状況分析 / 遠隔計測データ / 異常終了報告書 / サポート出力 / Relay メタデータ等の補助的な出力と規範的な受け渡し応答を分離し、共通の公開結果を正常応答に含められる一方、観測可能性への複製を禁止している。                  |
+| `MSR-003` | 軽微   | 解消済み | `mobile-app-review-001.md` | `§9.3`、`§13.1` が `AUTHENTICATING` をモバイルアプリ内部だけのローカル UI / 認証内部手順とし、共通の状態、公開 / 通信上の / 応答フィールド、Relay、SDK、永続的な共通の状態、共通の遷移から除外している。認証は四つの条件の一つとして維持される。                      |
+| `MSR-004` | 主要   | 解消済み | `mobile-app-review-002.md` | `§18` 項目 17 が秘密情報、不要な公開識別情報、未署名 / 中間の生の表現と規範的な公開署名済み結果を分離し、共通のフィールド / 構造は共通の仕様に委譲した。正常公開結果の SDK / dApp 伝達、観測可能性複製禁止、Relay E2E 暗号化された応答 / 平文禁止を同時に確認できる。 |
+
+新規指摘はない。したがって `MSR-005` 以降の ID は発行していない。
+
+## 7. 必須の修正
+
+なし。現行本文に未解消の `Critical` または `Major` 指摘はない。
+
+## 8. 任意の改善
+
+なし。今回の全文再レビューで、判定条件を阻害する `Minor` / `Nit` 指摘も採用していない。
+
+## 9. 解消済みの指摘
+
+### `MSR-001`: 判断権限優先順位の自己矛盾 — 解消済み
+
+現行 `§1.1` は、判断権限を文書全体の順位ではなく契約所有責任で決める。共通要求 / 応答、共通のフィールド / 状態、エラー、署名結果、`RESULT_UNKNOWN`、`deliveryDisposition`、シリアライズ、チェーン / ネットワーク意味、プロファイル / アカウント意味、受け渡し、バージョン / 対応能力、リリース / 根拠は、それぞれを所有する共通の仕様 / ポリシーが判断権限である。モバイルはモバイル固有のライフサイクル、信頼されたホスト、プラットフォーム境界、検証、信頼された UI、追加の制限、安全側での終了条件を共通の契約と両立する追加制約として定めるだけで、上書きしない。
+
+`§1.1` は競合時にモバイル側で選択・上書きせず、共通の仕様を判断権限とし、未解決の競合を未決 / 文書間の課題として扱い、解消まで独自フィールド / 状態 / エラー / バージョン / 対応能力を追加しないと定める。`§12` は共通の応答共用体、`§13.1` は共通の厳密な状態集合、`§17` はリリース判断権限、`§19` はエラー対応付け / 委譲 / 未決、`§21` は要件 → 設計 → 既存の仕様の追跡可能性を維持している。完了条件を満たす。
+
+### `MSR-002`: 診断情報禁止が規範的な応答を禁止 — 解消済み
+
+現行 `§16` は禁止対象を観測可能性 / 補助的な出力と定義し、規範的な受け渡し応答と SDK / dApp へ伝える公開結果をその禁止対象から除外する。既存契約が要求・許可する場合に限り、要求対応付け、署名済みトランザクション / 署名済みデータ、署名、ハッシュ、署名主体公開鍵、アカウントの公開識別情報、`deliveryDisposition` 等を正常応答に含められる。一方、同じ公開結果をログ、診断情報、遠隔計測データ、異常終了報告書、サポート出力等へ複製することは禁止される。
+
+`§12.1` は `signed` / `dataSigned` / `resultUnknown` / `rejected` / `failed` を既存受け渡し共用体に限定し、`§15.1` と `§16` は応答に秘密情報を含めない。インターフェース `§6.3` / `§9.6` および受け渡し `§5.2.1` / `§7.2` の必須公開結果と同時に成立するため、完了条件を満たす。
+
+### `MSR-003`: `AUTHENTICATING` のモバイルローカル内部手順境界 — 解消済み
+
+`§9.3` は要求 / 署名ライフサイクルの表から `AUTHENTICATING` を除外し、`§13.1` は共通の厳密な状態図を `RECEIVED → VALIDATED → INSPECTED → AWAITING_USER → AUTHORIZED → SIGNING → SUCCEEDED` と明示する。`AUTHENTICATING` は `AWAITING_USER` と `AUTHORIZED` の間のモバイルローカル UI / 端末認証 / 利用者の立ち会い内部手順であり、共通の状態、公開状態、通信上の状態、応答フィールド、Relay 状態、SDK 契約、永続的な共通の状態にシリアライズ / expose しない。
+
+ローカル認証が失敗、古くなった、失効済み、ロック済みまたは文脈不一致となった場合は共通の失敗 / 終端意味に従い、旧認証 / 認可を再利用しない。認証自体は `§7.1` の四つの条件の独立条件であり、完了条件を満たす。
+
+### `MSR-004`: `§18` の `raw payload` 禁止と規範的な署名済み応答の境界 — 解消済み
+
+現行 `§18` 項目 17 は、ニーモニック、秘密鍵、導出された秘密鍵、プロファイルパスワード、復号されたウォレットストア、E2E 秘密情報、通信経路秘密情報 / 認証情報、内部鍵参照、秘密情報を含む中間のバッファー、認可秘密情報、不要な公開識別情報を外部チャネル、Relay、SDK、ログ、診断情報、永続的な通常の保存領域へ漏らさないと定める。これは共通要件の秘密情報境界と一致する。
+
+同項目は、署名前の未署名 / 信頼されていない要求ペイロード、内部処理用の中間の生バイト列 / ペイロード、解析途中バッファーとその複製を、規範的な応答に必要な公開署名済み結果でない限り、外部チャネル、SDK、Relay、ログ、診断情報、遠隔計測データ、異常終了報告書、サポート出力、永続的な平文保存領域へ不要に露出しないと限定する。そのうえで、共通の仕様が正常応答として要求・許可する公開署名済み結果は、既存受け渡し応答契約に従う規範的な応答として SDK / dApp へ伝達でき、具体的なフィールド名、必須性、構造は共通の仕様が判断権限で本書は新しい応答フィールドを追加しないと定める。
+
+この例外は §16 の観測可能性許可ではない。`§16` は規範的な応答の全体または署名済みペイロード、トランザクション、ハッシュ、公開鍵、アドレス、requestId 等を観測可能性 / 補助的な出力へ複製することを禁止する。さらに `§18` 項目 17 は Relay への伝送を既存受け渡しの E2E 暗号化された応答に限定し、Relay に平文のトランザクション、メッセージ、署名済み結果を公開しないと定める。
+
+直接照合したインターフェース `§6.3` / `§9.6`、受け渡し `§5.1` / `§5.2.1` / `§7.2` により、`signed` は `signedTransaction`、`dataSigned` は `signedData`、`resultUnknown` は署名済み結果 / `deliveryDisposition` なし、`rejected` / `failed` は成功結果なしという共用体が成立する。よって MSR-004 の完了条件を満たし、主要指摘は解消した。
+
+## 10. 後続工程へ委譲する指摘
+
+正式な未解消指摘はない。`§19.3` の既存未決は、今回の対象本文の defect ではなく、別判断権限または下位仕様で決定すべき未決事項として後続工程へ委譲のまま保持されている。
+
+現行 `§19.3` は、前回レビュー対象から未決を追加・削除・終了・意味変更していない。保持されている主な項目は次のとおりである。
+
+- `MOB-OPEN-001`〜`008` / `MR-OPEN-001`〜`008`: プラットフォームサポート / 配布、追加ディープリンク・送信元証明、wallet-core バインディング / OS ラップ、認証ポリシー、保留中の / 再接続 / 復旧、バックアップ / 移行、プライバシーポリシー、モバイルリリース証跡対応表。
+- `MOB-OPEN-009`、共通の `OPEN-006`、`OPEN-SDK-004`: アグリゲート / 部分トランザクション / Symbol / NEM 連署署名の公開操作、対応済みの対象範囲、結果契約、SDK 対応能力。
+- 共通のインターフェース `OPEN-001`〜`OPEN-005`、`OPEN-RELAY-003` / `OPEN-RELAY-004`、SDK / 受け渡しの対応未決: メッセージ有効期限フィールド、対応能力 / バージョン協議、許可期限切れ / 失効識別子、呼び出し元文脈、再接続 / 再試行対応付け等。
+
+これらは既存要件 / 設計 / 仕様で未決または下位判断権限へ委譲されており、モバイル仕様が独自フィールド、状態、エラー、バージョン、対応能力、内容を確認しない署名、承認省略、旧認可再利用、Relay 判断権限または安全条件を満たさない継続復旧を導入する理由にはなっていない。
+
+## 11. 対象範囲と追跡可能性
+
+### 判断権限 / 責務
+
+`§1.1` と `§4` は、アプリケーション / UI、モバイル信頼されたホスト / 署名主体、信頼された承認 UI、チェーン統合、wallet-core、OS / プラットフォーム、SDK、Relay、dApp / Web ページ、リリース判断権限を区別している。モバイル信頼されたホストはモバイル経路の要求検証、プロファイル / アカウント、信頼された UI、四つの条件、ライフサイクル、wallet-core 処理の調整、結果検証の判断権限だが、共通の応答 / 状態 / エラー / シリアライズ / リリース契約を上書きしない。
+
+`§9` は Relay を内容を解釈しない / 信頼されていない通信経路とし、Relay の構造上の検証とモバイルの E2E、オリジン、意味上の、アカウント、承認、署名検証を分離する。`§12`、`§14`、`§17` は、それぞれ署名主体が生成した結果 / 処理結果の区分、ライフサイクル復旧、リリース判定の判断権限を Relay / SDK / OS / wallet-core と混同しない。
+
+### 要件 → 設計 → 仕様
+
+`§21` の追跡可能性表は、対象範囲 / 責務、信頼境界 / Relay、プロファイル / アカウント / ネットワーク結び付け、四つの条件、内容検査、受け渡し、結果 / 配送、ライフサイクル / 状態消失、秘密情報 / wallet-core、Mainnet 判定条件を要件、設計、既存の仕様へ対応付けている。MSR-004 の修正も `§21` の「共通スキーマ、公開 API、エラーコード、チェーン固有のバイト列、Relay エンドポイントを独自再定義しない」という境界と整合する。
+
+ブラウザ拡張機能仕様は共通署名主体 / インターフェース / セキュリティ契約の整合確認に限って扱われ、ブラウザ固有の呼び出し元、Chrome API、Provider UI、保存領域契約をモバイルに要求していない。
+
+### 工程境界
+
+`§1`〜`§2` は送信元コード、クラス / ファイル構造、基盤 / ライブラリ / データベース選定、CI/CD、配置手順、テスト実装を対象外とする。`§19.2` は UI 配置、OS API 呼び出し、ネイティブ / WASM ホスト統合、バッファー所有責任、ゼロ化、安全な保存領域アダプター、データベース / 保存領域ライブラリ、キューアルゴリズム、ライフサイクルフック、エラー表示を実装選択 / 下位仕様へ委譲する。
+
+本仕様が固定するのは、実装・検証・相互運用に必要な状態、遷移、検証、失敗意味、ライフサイクル、要求 / 応答対応付け、セキュリティ上の不変条件、受け入れ条件と、既存受け渡し / チェーン / リリース契約のモバイル適用である。React ネイティブ / Expo 等の基盤、データベース / ライブラリ、クラス / モジュール / ファイル、CI/CD、配置、テスト実装を固定していないため、工程境界の逸脱はない。
+
+## 12. ドメイン別の確認
+
+| 確認                                    | 判定                      | 根拠                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 目的 / 対象範囲 / 工程境界              | **合格**                  | `§1`〜`§2`、`§19.2` がモバイル固有の外部動作と必要なセキュリティ / ライフサイクル契約を定め、送信元 / 基盤 / データベース / CI/CD / 配置 / テスト実装を対象外または委譲している。                                                                                                                                                                                                               |
+| 判断権限 / 責務境界                     | **合格**                  | `§1.1` が契約所有責任を判断権限とし、共通の契約は既存仕様 / ポリシー、モバイルは追加制約と定める。`§4` がアプリケーション / UI、信頼されたホスト / UI、wallet-core、OS、SDK、Relay、dApp、リリース判断権限を分離している。                                                                                                                                                                      |
+| 要求 / 応答契約                         | **合格**                  | `§12.1` は既存共用体に限定し、インターフェース `§6.3` / `§9.6`、受け渡し `§5.1` / `§5.2.1` / `§7.2` の必須公開結果、対応付け、成功 / エラーの依存関係と整合する。                                                                                                                                                                                                                               |
+| MSR-004 秘密情報 / 公開署名済み結果境界 | **合格**                  | `§15.1`、`§16`、`§18` 項目 17 が秘密情報、未署名 / 中間の表現、規範的な公開署名済み結果、観測可能性 replication、Relay 平文を別々に扱う。                                                                                                                                                                                                                                                       |
+| 四つの署名条件                          | **合格**                  | `§7.1`、`§11.2`、`§18` 項目 3〜5、`§20` 条件 4 が認証、署名可能な状態へのロック解除、アカウントの利用認可、利用者による明示的な承認を独立条件として同一要求 / 対象 / プロファイル / アカウント / チェーン / ネットワーク文脈に bind し、一つでも欠ければ wallet-core / 成功を禁止する。                                                                                                         |
+| 信頼された内容検査                      | **合格**                  | `§10`〜`§11`、`§18` 項目 6〜8、`§20` 条件 5 が信頼されたモバイルフォアグラウンド UI による全体対象内容検査を要求し、外部要約、通知、URL、Relay メタデータ、ハッシュのみ、ノード照会、dApp 説明、警告のみ / 生の代替経路を代替にしていない。 Symbol アグリゲート、NEM マルチシグ / 連署署名、埋め込み / 内部文脈も表示不能時に拒否する。                                                         |
+| 入力検証 / 正規化 / シリアライズ        | **合格**                  | `§8`、`§10`、`§11`、`§18` 項目 1、4、9、21 が上限のある入力、不明 / 重複 / 不正な形式の、識別情報、完全性、期限切れ、チェーン固有の解析、正規化、署名前再検証、安全側での終了を定め、厳密なエンコーディング / フィールド構造は共通の / チェーン仕様に委譲している。                                                                                                                             |
+| Relay 内容を解釈しない境界              | **合格**                  | `§4.1`、`§9`、`§18` 項目 19、`§20` 条件 11 が Relay の構造上の / 通信経路責務とモバイル / 署名主体の意味上の、承認、署名、結果、`RESULT_UNKNOWN`、`deliveryDisposition`、Mainnet 判定条件判断権限を分離する。`§18` 項目 17 は Relay 平文を明示的に禁止する。                                                                                                                                    |
+| `RESULT_UNKNOWN`                        | **合格**                  | `§12.2`、`§14.2`〜`§14.3`、`§18` 項目 12、`§19.1` は信頼された署名主体が署名生成自体の成否を確定できない場合だけに限定し、ネットワーク、Relay、受領確認、HTTP、応答欠如、タイムアウト、受信者オフライン、配送失敗から生成・推測しない。自動再署名 / 代替経路もない。                                                                                                                            |
+| `deliveryDisposition`                   | **合格**                  | `§12.3`、`§14.5`、`§18` 項目 13〜14、`§20` 条件 9 が既知の署名済み結果に対する `PENDING` / `DELIVERED` / `DELIVERY_UNKNOWN` を署名主体側の意味とし、Relay 状態、取得、受領確認、`consumed`、HTTP 2xx、削除から生成・推測・書換えしない。                                                                                                                                                        |
+| 復旧 / 再署名境界                       | **合格**                  | `§12.4`、`§14.2`〜`§14.5`、`§18` 項目 15〜16、`§20` 条件 10 が既知の結果の再送 / 再配送 / 取得 / 照会と新しい署名生成を分離し、別アカウント / 署名主体 / Provider / 通信経路への自動代替経路を禁止する。                                                                                                                                                                                        |
+| ライフサイクル / 状態消失 / 並行処理    | **合格**                  | `§6`、`§9.3`〜`§9.4`、`§13`〜`§14`、`§18` 項目 10〜11、`§20` 条件 2、7、12 がバックグラウンド、中断、再開、端末ロック、プロセス終了、OS 強制終了、異常終了、ネットワーク / Relay 失敗、世代 / プロファイル / アカウント / 許可変更、重複、リプレイ、タイムアウト、キャンセル、ローカル / リモート不一致を扱う。 古くなった承認 / 認証 / ロック解除 / 認可 / 対象 / 秘密情報を自動再利用しない。 |
+| 共通の状態集合 / `AUTHENTICATING`       | **合格**                  | `§9.3`、`§13.1` がインターフェース / 署名プロトコルの共通の厳密な状態集合を拡張せず、`AUTHENTICATING` を non-common、non-public、non-wire、non-Relay、non-SDK、non-persistent ローカル内部手順と明記している。                                                                                                                                                                                  |
+| Wallet-core / 秘密情報境界              | **合格**                  | `§2.2`、`§15`、`§18` 項目 17〜18、`§20` 条件 13〜14 がニーモニック、秘密鍵、導出された鍵、プロファイルパスワード、復号されたストア、E2E / 通信経路秘密情報、認証情報、内部鍵参照、秘密情報を含むバッファーの外部 / SDK / Relay / ログ / 診断情報 / 永続的な平文への漏洩を禁止し、KDF / AEAD / ウォレットストア暗号化 / 生の署名を wallet-core 外で再実装しない。                                |
+| Mainnet 判定条件 / Testnet 専用         | **合格**                  | `§17`、`§18` 項目 20、`§20` 条件 15 がリリース判断権限の根拠判定条件とプラットフォーム条件の欠落 / 無効な / 期限切れ / 不明で Mainnet 署名を安全側での終了にし、Mainnet 失敗によって安全な Testnet 専用操作を不必要に停止しない。現行公開モバイルビルドが Testnet 専用であることもリリース docs と整合する。                                                                                    |
+| 既存の未決                              | **合格 — 後続工程へ委譲** | `§19.3` の MOB / MR / 共通の / Relay / SDK 未決は現在の規範的な送信元に残る未決事項を委譲し、今回の修正で追加・削除・終了・意味変更されていない。未決は安全下限を弱める根拠になっていない。                                                                                                                                                                                                     |
+| 相互運用性 / 追跡可能性 / 検証可能性    | **合格**                  | `§20` 条件 4、8〜11、16 と `§21` が共通の結果 / 配送 / 状態 / セキュリティ / リリース契約を追跡可能にする。MSR-004 解消後、共通の公開署名済み結果と観測可能性禁止を同時に検証できる。                                                                                                                                                                                                           |
+
+攻撃を想定した確認では、悪意のある dApp、forged 外部呼び出し、古くなった / 改ざんされた Relay 応答、要求差し替え、アカウント / チェーン / ネットワーク差し替え、プロファイル切り替え、再開 after 承認、プロセス / 状態消失、重複 / リプレイ、delayed 応答、Relay 侵害、misleading 通知、OS ライフサイクル中断を確認した。現行本文は、新鮮な検証、同一文脈結び付け、信頼された UI、安全側での終了、no 自動再署名 / 代替経路、Relay 判断権限を持たないこと、秘密情報の分離を維持している。
+
+## 13. 検証結果
+
+| 検証                                                              | 結果                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 対象リビジョン / 作業ツリー / changed-file 監査                   | **合格**。`HEAD` と対象リビジョン `cca14ceed2bd04b1cce169329296ff58921cb6d5` が一致し、レビュー開始時点の作業ツリーは未コミットの変更がないだった。成果物作成後はレビュー成果物だけを変更対象とする。                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| レビュー成果物 Markdown フォーマッター                            | `pnpm exec prettier --write docs/reviews/specifications/mobile-app-review-003.md` と `pnpm exec prettier --check docs/reviews/specifications/mobile-app-review-003.md` は、いずれも `[ERROR] unable to open database file` で失敗した。リポジトリポリシーに従い `./node_modules/.bin/prettier --write docs/reviews/specifications/mobile-app-review-003.md` と `./node_modules/.bin/prettier --check docs/reviews/specifications/mobile-app-review-003.md` を実行し、いずれも **合格**。同じリポジトリ内の Prettier 実行ファイルと同じ成果物パスを対象にしたためフォーマッターの代替確認はできたが、pnpm 起動プログラム自体のデータベースアクセスは未検証のままである。 |
+| 空白文字 / ステージ済み差分                                       | **合格**。成果物だけを段階した状態で `git diff --cached --check` を実行し、空白文字エラーはなかった。`git diff --cached --name-status` もレビュー成果物の追加だけであることを確認した。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Referenced パス                                                   | **合格**。本文、要件、設計、共通の / 関連する仕様、ADR、リリース / モバイル参照、レビューリソース、リポジトリ作業規則の参照先を確認した。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Lint / typecheck / テスト / ビルド / 実行環境 / E2E / real-device | **未検証**。今回の変更対象はレビュー Markdown のみであり、モバイル実行環境、送信元、パッケージ、Relay E2E、実機、リリース評価器は対象外で実行していない。未実行を合格とは扱わない。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+
+## 14. レビュー判定基準
+
+| 判定条件                     | 判定     | 根拠                                                                                                                                                                                                | 対応 |
+| ---------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| 1. 目的 / 対象範囲           | **合格** | モバイルの対象、非責務、主体、プラットフォーム / リリース境界、共通の契約との関係を `§1`〜`§4`、`§19.2` で確認できる。                                                                              | —    |
+| 2. 契約                      | **合格** | `§12` の既存応答共用体、`§18` 項目 17 の公開署名済み結果例外、秘密情報 / 中間の / 観測可能性 / Relay 平文境界、共通のフィールド判断権限が矛盾なく確認できる。                                       | —    |
+| 3. 処理 / 失敗               | **合格** | 検証順序、信頼された内容検査、四つの条件、失敗、不明、配送、復旧、再試行 / 再署名分離、重複 / リプレイ、ライフサイクル失敗を `§8`〜`§14`、`§19` で確認できる。                                      | —    |
+| 4. 内部整合性                | **合格** | MSR-001〜MSR-003 の判断権限 / 応答 / ローカル状態境界と MSR-004 のペイロード境界が、`§1.1`、`§9.3`、`§12`、`§13.1`、`§16`、`§18` の間で整合する。                                                   | —    |
+| 5. 検証可能性                | **合格** | 共通の仕様の必須フィールド / 厳密な状態 / 結果意味を判断権限として参照し、モバイル固有の受け入れ / ライフサイクル / セキュリティ上の不変条件を `§20`〜`§21` で検証可能にしている。                  | —    |
+| 6. セキュリティ / 相互運用性 | **合格** | 秘密情報境界、信頼された UI、四つの条件、TOCTOU / リプレイ、E2E 内容を解釈しない Relay、署名主体のみの不明 / 処理結果の区分、公開署名済み応答の伝達と観測可能性非複製を確認できる。                 | —    |
+| 7. 上流整合性                | **合格** | 要件、設計、インターフェース、署名プロトコル、受け渡し、プロファイル / アカウント、チェーン互換性、SDK、Relay、リリースポリシーと矛盾しない。ブラウザ拡張機能固有契約はモバイルへ持ち込んでいない。 | —    |
+
+すべての適用可能な一般的な判定条件を評価し、判定を妨げる失敗、確認必須条件、未解消重大 / 主要指摘はない。したがってレビュー判定条件は `READY` である。
+
+## 15. 残存リスクと未決定事項
+
+- 現行モバイルアプリはワークスペースに実装されていない将来マイルストーンである。本文の実行環境遵守、実機 OS 対応能力、Relay E2E、リリース証跡評価器の実行結果は今回確認していない。
+- `MOB-OPEN-*`、`MR-OPEN-*`、インターフェース / 受け渡し / Relay / SDK の既存未決は残っている。これらは §19.3 の安全な下位の結び付いたを弱めず、独自契約を発明しない条件で下位判断権限へ引き継ぐ必要がある。
+- 現行公開モバイルビルドが Testnet 専用であることはリリース / モバイルポリシーと整合する。Mainnet はリリース判断権限の現在の根拠とプラットフォーム条件が揃うまで利用不能でなければならない。
+- `§18` 項目 17 の公開署名済み結果例外は共通の受け渡し応答に限定され、観測可能性 / 補助的な出力または Relay 平文の許可ではない。この境界を実装・運用資料で別表現にする場合も、共通のフィールド / 構造と E2E 境界を維持する必要がある。
+
+## 16. 自動変更
+
+なし。対象仕様、要件、設計、他の仕様、ADR、送信元、テストおよび過去のレビュー成果物は変更していない。変更対象は本レビュー成果物だけである。
+
+## 17. 最終判断
+
+`READY`
+
+MSR-001、MSR-002、MSR-003、MSR-004 はすべて `Resolved`。新規指摘はなく、セキュリティ / 相互運用性回帰、文書間の不整合、仕様工程境界の逸脱も確認されなかった。既存未決は §19.3 のとおり後続工程へ委譲のまま妥当であり、次工程へ進めるためのレビュー判定条件を満たす。

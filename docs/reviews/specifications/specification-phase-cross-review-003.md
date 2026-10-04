@@ -1,147 +1,147 @@
-# Specification Phase Cross Review 003
+# 仕様工程横断レビュー 003
 
-## Review Target
+## レビュー対象
 
-- **対象:** Specification Phase cross-review-002 の `SPCR-005`、`SPCR-008`、`SPCR-009`、`SPCR-010` の解消確認
+- **対象:** 仕様工程 cross-review-002 の `SPCR-005`、`SPCR-008`、`SPCR-009`、`SPCR-010` の解消確認
 - **確認日:** 2026-09-20
 - **対象仕様:** `product-spec.md`、`profile-account-spec.md`、`chain-compatibility-spec.md`、`interfaces.md`、`web-transaction-handoff-spec.md`、`mobile-app.md`、`sdk.md`
-- **レビュー範囲:** Requirements → Design → Specification の traceability、Mainnet gate の current policy、Relay request / response の canonical authority、Mobile platform / backup の phase boundary
-- **未確認範囲:** Mobile App の実装・実機 E2E・Store 配布、release evaluator の実行、Relay integration、各仕様に対する実装適合性
+- **レビュー範囲:** 要件 → 設計 → 仕様の追跡可能性、Mainnet 判定条件の現在のポリシー、Relay 要求 / 応答の正規判断権限、モバイルプラットフォーム / バックアップの工程境界
+- **未確認範囲:** モバイルアプリの実装・実機 E2E・ストア配布、リリース評価器の実行、Relay 統合、各仕様に対する実装適合性
 
-## Execution Audit
+## 実行記録
 
-- Reviewer A として、Requirements / Design / Specification の追跡、API・wire・alias・owner・OPEN の一意性を確認した。
-- Reviewer B として、Product / Profile / Chain / Handoff / Mobile の責任境界、Mainnet / Testnet の外部結果、policy と下流引継ぎを確認した。
-- Reviewer C として、Relay opaque boundary、四条件、secret / wallet-core boundary、chain / network binding、fail-closed、未知・改ざん入力の仕様上の判定可能性を確認した。
-- サブエージェントは使用していない。Chair が3観点を独立に走査し、候補を統合した。
+- レビュアー A として、要件 / 設計 / 仕様の追跡、API・通信上の・別名・責任主体・未決の一意性を確認した。
+- レビュアー B として、プロダクト / プロファイル / チェーン / 受け渡し / モバイルの責任境界、Mainnet / Testnet の外部結果、ポリシーと下流引継ぎを確認した。
+- レビュアー C として、Relay 内容を解釈しない境界、四条件、秘密情報 / wallet-core 境界、チェーン / ネットワーク結び付け、安全側での終了、未知・改ざん入力の仕様上の判定可能性を確認した。
+- サブエージェントは使用していない。レビュー統括が3観点を独立に走査し、候補を統合した。
 
-## Evidence Used
+## 参照した根拠
 
-| 資料                                                                                                                                                                           | 用途                                                                           |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
-| `docs/reviews/specifications/specification-phase-cross-review-002.md`                                                                                                          | 旧 blocking finding の事実、required change、completion condition の確認       |
-| `docs/requirements/requirements.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/requirements/sdk.md`                                               | Requirement ID、Mainnet gate、Mobile platform / backup、Relay / SDK 責任の確認 |
-| `docs/design/architecture.md`、`docs/design/security-design.md`、`docs/design/signing-flow.md`、`docs/design/mobile-app.md`、`docs/design/interfaces.md`                       | 責務境界、四条件、Relay opaque、platform / backup の未決範囲の確認             |
-| `docs/specifications/product-spec.md`、`profile-account-spec.md`、`chain-compatibility-spec.md`、`interfaces.md`、`web-transaction-handoff-spec.md`、`mobile-app.md`、`sdk.md` | 修正後の normative contract、traceability、canonical owner / mirror の確認     |
-| `docs/adr/0001-mainnet-evidence-lite.md`、`docs/evidence/evidence-policy.json`、`docs/release/mainnet-release-evidence.md`                                                     | Lite policy の approval 数、same-approver policy、strict migration の確認      |
+| 資料                                                                                                                                                                           | 用途                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `docs/reviews/specifications/specification-phase-cross-review-002.md`                                                                                                          | 旧判定を妨げる指摘の事実、必須変更、完了条件の確認                                         |
+| `docs/requirements/requirements.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/requirements/sdk.md`                                               | 要求 ID、Mainnet 判定条件、モバイルプラットフォーム / バックアップ、Relay / SDK 責任の確認 |
+| `docs/design/architecture.md`、`docs/design/security-design.md`、`docs/design/signing-flow.md`、`docs/design/mobile-app.md`、`docs/design/interfaces.md`                       | 責務境界、四条件、Relay 内容を解釈しない、プラットフォーム / バックアップの未決範囲の確認  |
+| `docs/specifications/product-spec.md`、`profile-account-spec.md`、`chain-compatibility-spec.md`、`interfaces.md`、`web-transaction-handoff-spec.md`、`mobile-app.md`、`sdk.md` | 修正後の規範的な契約、追跡可能性、正本の管理主体 / 鏡像の確認                              |
+| `docs/adr/0001-mainnet-evidence-lite.md`、`docs/evidence/evidence-policy.json`、`docs/release/mainnet-release-evidence.md`                                                     | Lite ポリシーの承認数、same-approver ポリシー、strict 移行の確認                           |
 
-## Review Result
+## レビュー結果
 
 **READY**
 
-## Summary
+## 要約
 
-旧 cross-review の4件は、現行仕様上の contradiction / authority ambiguity としては解消された。Product、Profile、Chain、Handoff に Requirements → Design → Specification → canonical owner / OPEN の matrix が追加され、Interfaces §6 が common Relay envelope の canonical owner、Handoff §5.1 が SDK projection の canonical owner と明示された。
+旧横断レビューの4件は、現行仕様上の矛盾 / 判断権限曖昧さとしては解消された。プロダクト、プロファイル、チェーン、受け渡しに要件 → 設計 → 仕様 → 正本の管理主体 / 未決の対応表が追加され、インターフェース §6 が共通の Relay エンベロープの正本の管理主体、受け渡し §5.1 が SDK 投影の正本の管理主体と明示された。
 
-Mobile / Handoff は Mainnet gate の fail-closed、Testnet-only continuation、Origin proof、四条件および secret boundary を維持したまま、OS version、hardware、wrapping、attestation、direct signing、backup / restore の exact choice を OPEN / platform / release authority へ戻している。Product の evidence manifest は current Lite policy の release 1、security required 0、same approver multiple roles allowed と整合した。
+モバイル / 受け渡しは Mainnet 判定条件の安全側での終了、Testnet 専用継続、オリジン証明、四条件および秘密情報境界を維持したまま、OS バージョン、ハードウェア、ラップ、証明、直接の署名、バックアップ / 復元の厳密な選択を未決 / プラットフォーム / リリース判断権限へ戻している。プロダクトの根拠マニフェストは現在の Lite ポリシーのリリース 1、セキュリティ必須 0、同じ承認者複数の roles allowed と整合した。
 
-## Finding Status
+## 指摘の状態
 
-| Finding    | Severity | Status   | 初出レビュー                              | 今回の状態根拠                                                                                                                                                                                                             |
-| ---------- | -------- | -------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SPCR-005` | Major    | Resolved | `specification-phase-cross-review-002.md` | Product §20、Profile §28、Chain §9、Handoff §16 に Requirements → Design → Specification → owner / OPEN matrix があり、Interfaces §17、Mobile §21、SDK の既存 traceability と接続している。                                |
-| `SPCR-008` | Major    | Resolved | `specification-phase-cross-review-002.md` | Mobile §17.2、Handoff §7.5、Mobile §21、Handoff §16 が exact OS / hardware / backup choice を current gate から除外し、`MR-OPEN-003/006/008`、`MOB-OPEN-006/008`、`OPEN-PROFILE-001` と release authority へ委譲している。 |
-| `SPCR-009` | Major    | Resolved | `specification-phase-cross-review-002.md` | Interfaces §6 が common wire authority、Handoff §5.1 が SDK projection authority、Handoff §7.1 / §7.2 と SDK §5.1 が独立した Relay schema / union を再定義しないことを明示している。                                       |
-| `SPCR-010` | Major    | Resolved | `specification-phase-cross-review-002.md` | Product §19 が current Lite policy を明示し、`evidence-policy.json`、ADR 0001、Mainnet release evidence の release 1 / security 0 / same-approver 設定と一致している。                                                     |
+| 指摘       | 重要度 | 状態     | 初出レビュー                              | 今回の状態根拠                                                                                                                                                                                                                      |
+| ---------- | ------ | -------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SPCR-005` | 主要   | 解消済み | `specification-phase-cross-review-002.md` | プロダクト §20、プロファイル §28、チェーン §9、受け渡し §16 に要件 → 設計 → 仕様 → 責任主体 / 未決対応表があり、インターフェース §17、モバイル §21、SDK の既存追跡可能性と接続している。                                            |
+| `SPCR-008` | 主要   | 解消済み | `specification-phase-cross-review-002.md` | モバイル §17.2、受け渡し §7.5、モバイル §21、受け渡し §16 が厳密な OS / ハードウェア / バックアップ選択を現在の判定条件から除外し、`MR-OPEN-003/006/008`、`MOB-OPEN-006/008`、`OPEN-PROFILE-001` とリリース判断権限へ委譲している。 |
+| `SPCR-009` | 主要   | 解消済み | `specification-phase-cross-review-002.md` | インターフェース §6 が共通の通信上の判断権限、受け渡し §5.1 が SDK 投影判断権限、受け渡し §7.1 / §7.2 と SDK §5.1 が独立した Relay スキーマ / 共用体を再定義しないことを明示している。                                              |
+| `SPCR-010` | 主要   | 解消済み | `specification-phase-cross-review-002.md` | プロダクト §19 が現在の Lite ポリシーを明示し、`evidence-policy.json`、ADR 0001、Mainnet リリース証跡のリリース 1 / セキュリティ 0 / same-approver 設定と一致している。                                                             |
 
-## Required Changes
+## 必須の修正
 
-なし。現行 `spec-review` の Gate 不合格に対応する `SR` Critical finding はない。
+なし。現行 `spec-review` の判定条件不合格に対応する `SR` 重大指摘はない。
 
-## Optional Improvements
+## 任意の改善
 
-なし。既存の OPEN と実装・release 検証は Deferred Findings に整理した。
+なし。既存の未決と実装・リリース検証は後続工程へ委譲する指摘に整理した。
 
-## Resolved Findings
+## 解消済みの指摘
 
-### `SPCR-005` — Requirements → Design → Specification traceability
+### `SPCR-005` — 要件 → 設計 → 仕様追跡可能性
 
-- **対象箇所:** Product §20、Profile §28、Chain §9、Handoff §16。
-- **確認事実:** 各 matrix が Requirement ID、Design section、Specification section、canonical owner または OPEN を同じ行で示す。四条件、trusted inspection、wallet-core boundary、Relay boundary、request / response、result / delivery、recovery、Mainnet gate および Profile backup / platform OPEN が追跡可能である。
-- **完了条件:** 旧 finding が求めた4文書の explicit matrix と cross-document owner / OPEN が確認できるため、Resolved とする。
+- **対象箇所:** プロダクト §20、プロファイル §28、チェーン §9、受け渡し §16。
+- **確認事実:** 各対応表が要求 ID、設計節、仕様節、正本の管理主体または未決を同じ行で示す。四条件、信頼された内容検査、wallet-core 境界、Relay 境界、要求 / 応答、結果 / 配送、復旧、Mainnet 判定条件およびプロファイルバックアップ / プラットフォーム未決が追跡可能である。
+- **完了条件:** 旧指摘が求めた4文書の明示的な対応表と文書間の責任主体 / 未決が確認できるため、解消済みとする。
 
-### `SPCR-008` — Mobile Mainnet gate の premature platform / backup choice
+### `SPCR-008` — モバイル Mainnet 判定条件の時期尚早なプラットフォーム / バックアップ選択
 
-- **対象箇所:** Mobile §17.2、§20、§21、Handoff §7.5、§14.4、§16。
-- **確認事実:** exact OS version、hardware API、wrapping、attestation、support matrix、direct hardware signing、backup / restore verification は current v1 gate の具体条件として固定されていない。gate status または capability の missing / invalid / expired / unknown 時の Mainnet fail-closed、Testnet-only continuation、Origin proof、四条件および secret isolation は維持されている。
-- **完了条件:** upstream OPEN と current normative gate の contradiction が除去され、未決 choice は `MR-OPEN-003/006/008`、`MOB-OPEN-006/008`、`OPEN-PROFILE-001` および release authority へ戻されているため、Resolved とする。
+- **対象箇所:** モバイル §17.2、§20、§21、受け渡し §7.5、§14.4、§16。
+- **確認事実:** 厳密な OS バージョン、ハードウェア API、ラップ、証明、サポート対応表、直接のハードウェア署名、バックアップ / 復元検証は現在の v1 判定条件の具体条件として固定されていない。判定条件状態または対応能力の欠落 / 無効な / 期限切れ / 不明時の Mainnet 安全側での終了、Testnet 専用継続、オリジン証明、四条件および秘密情報の分離は維持されている。
+- **完了条件:** 上流未決と現在の規範的な判定条件の矛盾が除去され、未決選択は `MR-OPEN-003/006/008`、`MOB-OPEN-006/008`、`OPEN-PROFILE-001` およびリリース判断権限へ戻されているため、解消済みとする。
 
-### `SPCR-009` — Interfaces / Handoff / SDK contract authority
+### `SPCR-009` — インターフェース / 受け渡し / SDK 契約判断権限
 
-- **対象箇所:** Interfaces §6、Handoff §5.1、§7.1、§7.2、SDK §5.1。
-- **確認事実:** Interfaces §6 は `RelayRequestBase`、`RelayOperation`、`RelayResponseBase`、`RelayRequest`、`RelayResponse`、`PublicAccountIdentity`、`DeliveryDisposition` の common semantic / wire authority である。Handoff は operation-specific validation、crypto、HTTP、lifecycle と SDK public projection を担当し、SDK は Handoff の canonical public type を参照する。`MosaicLynxActiveAccount` と `MosaicLynxDeliveryDisposition` は projection / wire-identical mapping と明示されている。
-- **完了条件:** request / response の common declaration、SDK projection、consumer mapping の authority が一意で、別の union / alias を独立に実装する余地が除去されているため、Resolved とする。
+- **対象箇所:** インターフェース §6、受け渡し §5.1、§7.1、§7.2、SDK §5.1。
+- **確認事実:** インターフェース §6 は `RelayRequestBase`、`RelayOperation`、`RelayResponseBase`、`RelayRequest`、`RelayResponse`、`PublicAccountIdentity`、`DeliveryDisposition` の共通の意味上の / 通信上の判断権限である。受け渡しは操作固有の検証、暗号処理、HTTP、ライフサイクルと SDK 公開投影を担当し、SDK は受け渡しの正規公開型を参照する。`MosaicLynxActiveAccount` と `MosaicLynxDeliveryDisposition` は投影 / wire-identical 対応付けと明示されている。
+- **完了条件:** 要求 / 応答の共通の宣言、SDK 投影、利用主体対応付けの判断権限が一意で、別の共用体 / 別名を独立に実装する余地が除去されているため、解消済みとする。
 
-### `SPCR-010` — Lite evidence manifest approval policy
+### `SPCR-010` — Lite 根拠マニフェスト承認ポリシー
 
-- **対象箇所:** Product §19、§20、`docs/evidence/evidence-policy.json`、ADR 0001、Mainnet release evidence。
-- **確認事実:** Product は current Lite の release approval 1件、security approval required 0、same approver multiple roles allowed を明記し、strict policy の追加条件を移行後だけ適用する。current policy の approval count を Product が独自変更していない。
-- **完了条件:** current Lite の manifest description と policy / ADR / release evidence が一致し、strict migration の条件が Lite へ誤適用されないため、Resolved とする。
+- **対象箇所:** プロダクト §19、§20、`docs/evidence/evidence-policy.json`、ADR 0001、Mainnet リリース証跡。
+- **確認事実:** プロダクトは現在の Lite のリリース承認 1件、セキュリティ承認必須 0、同じ承認者複数の roles allowed を明記し、strict ポリシーの追加条件を移行後だけ適用する。現在のポリシーの承認回数をプロダクトが独自変更していない。
+- **完了条件:** 現在の Lite のマニフェスト説明とポリシー / ADR / リリース証跡が一致し、strict 移行の条件が Lite へ誤適用されないため、解消済みとする。
 
-## Upstream Feedback
+## 上流工程へのフィードバック
 
-なし。Mobile platform / backup、wallet-core Binding、capability report / Store 条件は、既存の上流 OPEN を normative に参照する形で current Specification の安全な境界を確定できる。OPEN 自体から新しい Requirement、Design Decision または仕様 contract は生成していない。
+なし。モバイルプラットフォーム / バックアップ、wallet-core バインディング、対応能力報告書 / ストア条件は、既存の上流未決を規範的なに参照する形で現在の仕様の安全な境界を確定できる。未決自体から新しい要求、設計判断または仕様契約は生成していない。
 
-## Deferred Findings
+## 後続工程へ委譲する指摘
 
-- `OPEN-001`〜`OPEN-005`、Aggregate / multisig / cosignature scope、permission expiry、caller context、transport recovery、wallet-core Binding の exact contract は既存 OPEN として未決であり、本レビューで close していない。
-- `OPEN-PROFILE-001`、`MR-OPEN-003/006/008`、`MOB-OPEN-006/008` は、Profile backup、OS / hardware integration、platform matrix、runtime enforcement、Store release の decision authority として維持する。
-- 本レビューは docs-only の仕様確認であり、Mobile 実装、実機、Relay integration、release evidence evaluator、Store、外部 node および full E2E の実行結果を保証しない。
+- `OPEN-001`〜`OPEN-005`、アグリゲート / マルチシグ / 連署署名対象範囲、許可期限切れ、呼び出し元文脈、通信経路復旧、wallet-core バインディングの厳密な契約は既存未決として未決であり、本レビューで終了していない。
+- `OPEN-PROFILE-001`、`MR-OPEN-003/006/008`、`MOB-OPEN-006/008` は、プロファイルバックアップ、OS / ハードウェア統合、プラットフォーム対応表、実行環境強制、ストアリリースの判断判断権限として維持する。
+- 本レビューは文書のみの仕様確認であり、モバイル実装、実機、Relay 統合、リリース証跡評価器、ストア、外部ノードおよび全体 E2E の実行結果を保証しない。
 
-## Scope and Traceability
+## 対象範囲と追跡可能性
 
-| 領域                                | Requirements / Design                                                                         | 現行 Specification / owner                                                                                            |
-| ----------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| 共通 request / response             | `CR-001`、`CR-006`、`RR-001/002`、Interfaces Design §6                                        | Interfaces §6 が wire/common owner。Handoff §7、SDK、Browser、Mobile、Relay は参照のみ                                |
-| 四条件・trusted inspection          | `CR-002`、`CR-003`、`CR-004`、`CR-016`、Signing Flow §4、§8〜§16、Security Design §7〜§11     | Product §20、Profile §28、Chain §9、Handoff §16、Mobile §21 が追跡。Signer / wallet-core / Relay の責任を分離         |
-| Relay / secret boundary             | `CR-008`、`CR-010`、`CR-011`、`RR-003`、`RR-008`、Architecture §8〜§9、Security Design §3〜§6 | Handoff §7〜§9、§13〜§16、Mobile §16、§25、SDK §5.3〜§5.4。Relay は opaque、wallet-core が secret / raw signing owner |
-| Chain / network / canonical bytes   | `CR-005`、`CR-007-TX`、`CR-007-MSG`、`CR-NFR-005`、Signing Flow §8〜§15                       | Chain §2〜§8 が chain-specific owner。Profile association、Interfaces、Handoff、Signer は本書へ参照                   |
-| Mainnet gate / Lite policy          | `CR-NFR-006`、`CR-AC-008`、`MR-013`、Architecture §3、§16、ADR 0001                           | Product §19、Mobile §17、Handoff §7.5、Profile §28、Chain §9 が current policy と release authority を参照            |
-| Backup / platform future capability | `CR-014`、`MR-008`、`MR-009`、Mobile Design §27                                               | Profile `OPEN-PROFILE-001`、`MR-OPEN-003/006/008`、`MOB-OPEN-006/008`。current Mainnet gate の exact choice ではない  |
+| 領域                                        | 要件 / 設計                                                                                      | 現行仕様 / 責任主体                                                                                                               |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| 共通要求 / 応答                             | `CR-001`、`CR-006`、`RR-001/002`、インターフェース設計 §6                                        | インターフェース §6 が wire/common 責任主体。受け渡し §7、SDK、ブラウザ、モバイル、Relay は参照のみ                               |
+| 四条件・信頼された内容検査                  | `CR-002`、`CR-003`、`CR-004`、`CR-016`、署名フロー §4、§8〜§16、セキュリティ設計 §7〜§11         | プロダクト §20、プロファイル §28、チェーン §9、受け渡し §16、モバイル §21 が追跡。署名主体 / wallet-core / Relay の責任を分離     |
+| Relay / 秘密情報境界                        | `CR-008`、`CR-010`、`CR-011`、`RR-003`、`RR-008`、アーキテクチャ §8〜§9、セキュリティ設計 §3〜§6 | 受け渡し §7〜§9、§13〜§16、モバイル §16、§25、SDK §5.3〜§5.4。Relay は内容を解釈しない、wallet-core が秘密情報 / 生の署名責任主体 |
+| チェーン / ネットワーク / 正規バイト列      | `CR-005`、`CR-007-TX`、`CR-007-MSG`、`CR-NFR-005`、署名フロー §8〜§15                            | チェーン §2〜§8 がチェーン固有の責任主体。プロファイル関連付け、インターフェース、受け渡し、署名主体は本書へ参照                  |
+| Mainnet 判定条件 / Lite ポリシー            | `CR-NFR-006`、`CR-AC-008`、`MR-013`、アーキテクチャ §3、§16、ADR 0001                            | プロダクト §19、モバイル §17、受け渡し §7.5、プロファイル §28、チェーン §9 が現在のポリシーとリリース判断権限を参照               |
+| バックアップ / プラットフォーム将来対応能力 | `CR-014`、`MR-008`、`MR-009`、モバイル設計 §27                                                   | プロファイル `OPEN-PROFILE-001`、`MR-OPEN-003/006/008`、`MOB-OPEN-006/008`。現在の Mainnet 判定条件の厳密な選択ではない           |
 
-## Domain Checks
+## ドメイン別の確認
 
-| Check                            | 判定 | 根拠                                                                                                                                                   |
-| -------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| API / data contract              | Pass | Interfaces §6 の common wire owner、Handoff §7 の operation mapping、Handoff §5.1 / SDK §5.1 の public projection が分離されている。                   |
-| Validation / error / state       | Pass | Handoff §7.2、§9〜§14、Mobile §17、§20 が correlation、unknown、delivery、lifecycle、fail-closed を維持している。                                      |
-| Security / secret boundary       | Pass | Relay の opaque 性、四条件、wallet-core ownership、Mainnet gate の fail-closed、unknown / tampered input の安全側処理が各仕様に残っている。            |
-| Chain / network interoperability | Pass | Chain §2〜§8 と固定 vector / canonical re-serialization の責任を変更していない。Symbol / NEM、Mainnet / Testnet の境界を traceability へ明記している。 |
-| OPEN / phase boundary            | Pass | 未決の OS、hardware、backup、capability、recovery、cosignature choice を current contract に昇格していない。                                           |
-| Security testability             | Pass | fixed vector、negative input、fail-closed、policy、traceability の検証根拠を既存仕様から追跡できる。実装テスト実行は本レビュー範囲外である。           |
+| 確認                              | 判定 | 根拠                                                                                                                                                  |
+| --------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API / データ契約                  | 合格 | インターフェース §6 の共通の通信上の責任主体、受け渡し §7 の操作対応付け、受け渡し §5.1 / SDK §5.1 の公開投影が分離されている。                       |
+| 検証 / エラー / 状態              | 合格 | 受け渡し §7.2、§9〜§14、モバイル §17、§20 が対応付け、不明、配送、ライフサイクル、安全側での終了を維持している。                                      |
+| セキュリティ / 秘密情報境界       | 合格 | Relay の内容を解釈しない性、四条件、wallet-core 所有責任、Mainnet 判定条件の安全側での終了、不明 / 改ざんされた入力の安全側処理が各仕様に残っている。 |
+| チェーン / ネットワーク相互運用性 | 合格 | チェーン §2〜§8 と固定ベクター / 正規 re-serialization の責任を変更していない。Symbol / NEM、Mainnet / Testnet の境界を追跡可能性へ明記している。     |
+| 未決 / 工程境界                   | 合格 | 未決の OS、ハードウェア、バックアップ、対応能力、復旧、連署署名選択を現在の契約に昇格していない。                                                     |
+| セキュリティテスト可能性          | 合格 | 固定ベクター、negative 入力、安全側での終了、ポリシー、追跡可能性の検証根拠を既存仕様から追跡できる。実装テスト実行は本レビュー範囲外である。         |
 
-## Validation Results
+## 検証結果
 
-| Validation                                                                     | Result                            |
-| ------------------------------------------------------------------------------ | --------------------------------- |
-| `./node_modules/.bin/prettier --check`（変更した7仕様書、明示パス）            | PASS                              |
-| `git diff --check`                                                             | PASS                              |
-| 参照先 file / heading / policy key の存在確認                                  | PASS                              |
-| `SDK-001` の誤参照確認（`SDK-FR-005` / `SDK-FR-008` へ修正済み）               | PASS                              |
-| package / app test、lint、typecheck、build、Relay integration、Mobile 実機 E2E | Not validated（docs-only review） |
+| 検証                                                                             | 結果                       |
+| -------------------------------------------------------------------------------- | -------------------------- |
+| `./node_modules/.bin/prettier --check`（変更した7仕様書、明示パス）              | 合格                       |
+| `git diff --check`                                                               | 合格                       |
+| 参照先ファイル / 見出し / ポリシー鍵の存在確認                                   | 合格                       |
+| `SDK-001` の誤参照確認（`SDK-FR-005` / `SDK-FR-008` へ修正済み）                 | 合格                       |
+| パッケージ / アプリテスト、lint、typecheck、ビルド、Relay 統合、モバイル実機 E2E | 未検証（文書のみレビュー） |
 
-## Review Gates
+## レビュー判定基準
 
-| Gate                  | 判定 | 根拠                                                                                                          | 対応 ID                                     |
-| --------------------- | ---- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| 1. 目的と範囲         | Pass | Product、Profile、Chain、Handoff、Mobile、SDK の owner と対象外が追跡可能。                                   | なし                                        |
-| 2. 契約               | Pass | common envelope と SDK projection の canonical authority が一意。                                             | `SPCR-009` Resolved                         |
-| 3. 処理と例外         | Pass | fail-closed、unknown、delivery、recovery、Mainnet / Testnet の外部結果が維持されている。                      | `SPCR-008` Resolved                         |
-| 4. 内部整合性         | Pass | Lite policy、Mobile / Handoff platform boundary、common response union の矛盾を除去。                         | `SPCR-008`、`SPCR-009`、`SPCR-010` Resolved |
-| 5. 検証可能性         | Pass | 4文書の Requirements → Design → Specification → owner / OPEN matrix を確認。                                  | `SPCR-005` Resolved                         |
-| 6. 安全性と相互運用性 | Pass | Chain-specific bytes、secret boundary、Relay opaque、four conditions、tampered input の責任を変更していない。 | なし                                        |
-| 7. 上流整合性         | Pass | current evidence policy と upstream Mobile / Profile OPEN を参照し、未決 choice を固定していない。            | `SPCR-008`、`SPCR-010` Resolved             |
+| 判定条件              | 判定 | 根拠                                                                                                               | 対応 ID                                     |
+| --------------------- | ---- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| 1. 目的と範囲         | 合格 | プロダクト、プロファイル、チェーン、受け渡し、モバイル、SDK の責任主体と対象外が追跡可能。                         | なし                                        |
+| 2. 契約               | 合格 | 共通のエンベロープと SDK 投影の正規判断権限が一意。                                                                | `SPCR-009` 解消済み                         |
+| 3. 処理と例外         | 合格 | 安全側での終了、不明、配送、復旧、Mainnet / Testnet の外部結果が維持されている。                                   | `SPCR-008` 解消済み                         |
+| 4. 内部整合性         | 合格 | Lite ポリシー、モバイル / 受け渡しプラットフォーム境界、共通の応答共用体の矛盾を除去。                             | `SPCR-008`、`SPCR-009`、`SPCR-010` 解消済み |
+| 5. 検証可能性         | 合格 | 4文書の要件 → 設計 → 仕様 → 責任主体 / 未決対応表を確認。                                                          | `SPCR-005` 解消済み                         |
+| 6. 安全性と相互運用性 | 合格 | チェーン固有のバイト列、秘密情報境界、Relay 内容を解釈しない、四つの条件、改ざんされた入力の責任を変更していない。 | なし                                        |
+| 7. 上流整合性         | 合格 | 現在の根拠ポリシーと上流モバイル / プロファイル未決を参照し、未決選択を固定していない。                            | `SPCR-008`、`SPCR-010` 解消済み             |
 
-## Remaining Risks and Open Decisions
+## 残存リスクと未決定事項
 
-- `READY` は仕様フェーズの判定であり、未解決 OPEN の close、Mobile / Relay 実装、実機 capability、release evidence の生成・署名・検証を意味しない。
-- `MOB-OPEN-003/006/008`、`MR-OPEN-003/006/008` および `OPEN-PROFILE-001` が解消される際は、current Mainnet gate の fail-closed、Testnet-only continuation、Origin proof、四条件および secret boundary を維持したまま、全 mirror と traceability を同一 revision で再確認する。
-- `evidence-policy.json` の strict migration は別の承認済み policy change であり、本レビューで変更していない。
+- `READY` は仕様フェーズの判定であり、未解決未決の終了、モバイル / Relay 実装、実機対応能力、リリース証跡の生成・署名・検証を意味しない。
+- `MOB-OPEN-003/006/008`、`MR-OPEN-003/006/008` および `OPEN-PROFILE-001` が解消される際は、現在の Mainnet 判定条件の安全側での終了、Testnet 専用継続、オリジン証明、四条件および秘密情報境界を維持したまま、全鏡像と追跡可能性を同一リビジョンで再確認する。
+- `evidence-policy.json` の strict 移行は別の承認済みポリシー変更であり、本レビューで変更していない。
 
-## Automatic Changes
+## 自動変更
 
-レビュー中に対象仕様、Requirements、Design、implementation、test、fixture または既存 review artifact を自動変更していない。本レビュー成果物だけを新規作成した。
+レビュー中に対象仕様、要件、設計、実装、テスト、フィクスチャまたは既存レビュー成果物を自動変更していない。本レビュー成果物だけを新規作成した。
 
-## Final Decision
+## 最終判断
 
 **READY**

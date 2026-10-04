@@ -1,23 +1,23 @@
-# Implementation Review: Profile Chain 単一化
+# 実装レビュー: プロファイルチェーン単一化
 
-## Review Target
+## レビュー対象
 
 - 対象: `2bdaba9`、`3b2f32e`、`59ac1af` とその変更範囲（`packages/core`、`packages/profile-backup`、`apps/extension`）
 - 確認日: 2026-09-20
-- 範囲: Profile / Account の単一 Chain 境界、Vault 保存・読込、backup 検証、Provider / Approval / UI の Chain binding、関連テスト
-- 対象外: `_snwc`、Mobile の未実装コード、Relay / SDK の無変更領域、外部 node / browser 実 runtime
+- 範囲: プロファイル / アカウントの単一チェーン境界、Vault 保存・読込、バックアップ検証、Provider / 承認 / UI のチェーン結び付け、関連テスト
+- 対象外: `_snwc`、モバイルの未実装コード、Relay / SDK の無変更領域、外部ノード / ブラウザ実実行環境
 - 成果物: 本レビュー
 
-## Execution Audit
+## 実行記録
 
-サブエージェントは使用せず、Review Board Chair が次の4パスを独立して実施した。
+サブエージェントは使用せず、レビュー Board レビュー統括が次の4パスを独立して実施した。
 
-- Reviewer A（仕様適合性）: Profile.chain、Account.chain / identity、permission、旧 store の扱いを Requirements / Specification / Design と照合
-- Reviewer B（Security）: Profile-local authorization、Vault / secret path、storage validation、Provider / Approval 境界を確認
-- Reviewer C（相互運用性）: Symbol / NEM、Mainnet / Testnet、chain-specific identity、既存 chain adapter / backup 契約を確認
-- Reviewer D（品質・テスト）: TypeScript、保存状態、malformed / wrong chain、関連 unit test と validation script を確認
+- レビュアー A（仕様適合性）: Profile.chain、Account.chain / 識別情報、許可、旧ストアの扱いを要件 / 仕様 / 設計と照合
+- レビュアー B（セキュリティ）: プロファイル内の認可、Vault / 秘密情報パス、保存領域検証、Provider / 承認境界を確認
+- レビュアー C（相互運用性）: Symbol / NEM、Mainnet / Testnet、チェーン固有の識別情報、既存チェーンアダプター / バックアップ契約を確認
+- レビュアー D（品質・テスト）: TypeScript、保存状態、不正な形式の / 誤ったチェーン、関連単体テストと検証スクリプトを確認
 
-## Evidence Used
+## 参照した根拠
 
 - `docs/requirements/requirements.md` `CR-017`、`CR-AC-020`
 - `docs/specifications/profile-account-spec.md` §3、§4、§11、§12、§26
@@ -28,96 +28,96 @@
 - `packages/core/src/domain.ts`、`packages/core/src/use-cases.ts`、`packages/core/src/ports.ts`
 - `packages/profile-backup/src/index.ts`
 - `apps/extension/src/vault.ts`、`apps/extension/src/background/`、`apps/extension/src/approval/`、`apps/extension/src/popup/`
-- 関連 unit test と package manifest / TypeScript 設定
+- 関連単体テストとパッケージマニフェスト / TypeScript 設定
 
-## Review Result
+## レビュー結果
 
 `REVISE IMPLEMENTATION`
 
-## Summary
+## 要約
 
-Profile / Account、Vault、Provider、Approval、UI の通常経路は `Profile.chain` と単一 `Account.identity` に移行され、同一 Profile 内の Chain 切替および旧 mixed store の自動 migration も除去されている。一方、Core の `PermissionService.grant` が Profile の固定 Chain / Network を検証せず権限を保存できるため、Core の公開 domain service 単体では permission invariant が成立しない。
+プロファイル / アカウント、Vault、Provider、承認、UI の通常経路は `Profile.chain` と単一 `Account.identity` に移行され、同一プロファイル内のチェーン切替および旧混在したストアの自動移行も除去されている。一方、コアの `PermissionService.grant` がプロファイルの固定チェーン / ネットワークを検証せず権限を保存できるため、コアの公開ドメインサービス単体では許可不変条件が成立しない。
 
-## Finding Status
+## 指摘の状態
 
-| ID     | Severity | Status     | 初出レビュー | 状態根拠                                                                             |
-| ------ | -------- | ---------- | ------------ | ------------------------------------------------------------------------------------ |
-| IR-001 | HIGH     | New / Open | 2026-09-20   | `PermissionService.grant` が Profile を参照せず arbitrary scope を保存する実装を確認 |
+| ID     | 重要度 | 状態        | 初出レビュー | 状態根拠                                                                             |
+| ------ | ------ | ----------- | ------------ | ------------------------------------------------------------------------------------ |
+| IR-001 | HIGH   | 新規 / 未決 | 2026-09-20   | `PermissionService.grant` がプロファイルを参照せず任意の対象範囲を保存する実装を確認 |
 
-## Required Changes
+## 必須の修正
 
-### IR-001: Core PermissionService が Profile の固定 Chain / Network を検証しない
+### IR-001: コア PermissionService がプロファイルの固定チェーン / ネットワークを検証しない
 
 - 対象: `packages/core/src/use-cases.ts:139-166`
-- 発生条件 / 事実: `PermissionService.grant(origin, profileId, scope, accountIds)` は `profileId` に対応する Profile を取得せず、Profile が Symbol でも NEM scope、または異なる Network scope の `PermissionGrant` を保存できる。
-- 根拠: `CR-017`、`CR-AC-020`、`docs/specifications/profile-account-spec.md` §3、§11、`docs/design/interfaces.md` §6 / §8 は Account / permission / authorization を Profile の固定 Chain / Network と一致させることを要求する。
-- 問題: Core の公開 permission service が単一 Chain invariant を保証しない。現在の Extension 直接経路は `assertEnabledScope` と filter で防いでいるが、同じ Core service または repository を利用する Signer が grant を信頼すると、異なる Chain の authorization state が同一 Profile に関連付く。
-- 影響: Profile-local permission の integrity / authorization 境界が破れ、downstream の誤った Account / Scope binding を誘発する。現在の実装で直ちに署名が成立することまでは確認していないため、影響は permission state の不正保存から downstream に波及する範囲に限定して評価した。
-- Severity 根拠: 現実的な Core service 呼出しで Profile-local authorization state を cross-chain に汚染でき、単一 Chain の security invariant に直接影響するため `HIGH` とする。
-- 必要な最小修正: `PermissionService` が Profile repository を参照し、Profile 未存在、scope.network 不一致、scope.chain 不一致を保存前に拒否する。拒否時に permission repository を変更しないこと。
-- 完了条件 / 再確認: mismatch chain、mismatch network、missing Profile の各テストが保存されないことを確認し、既存の valid grant と Extension test が成功することを再実行する。
+- 発生条件 / 事実: `PermissionService.grant(origin, profileId, scope, accountIds)` は `profileId` に対応するプロファイルを取得せず、プロファイルが Symbol でも NEM 対象範囲、または異なるネットワーク対象範囲の `PermissionGrant` を保存できる。
+- 根拠: `CR-017`、`CR-AC-020`、`docs/specifications/profile-account-spec.md` §3、§11、`docs/design/interfaces.md` §6 / §8 はアカウント / 許可 / 認可をプロファイルの固定チェーン / ネットワークと一致させることを要求する。
+- 問題: コアの公開許可サービスが単一チェーン不変条件を保証しない。現在の拡張機能直接経路は `assertEnabledScope` と filter で防いでいるが、同じコアサービスまたはリポジトリを利用する署名主体が許可付与を信頼すると、異なるチェーンの認可状態が同一プロファイルに関連付く。
+- 影響: プロファイル内の許可の完全性 / 認可境界が破れ、下流の誤ったアカウント / 対象範囲結び付けを誘発する。現在の実装で直ちに署名が成立することまでは確認していないため、影響は許可状態の不正保存から下流に波及する範囲に限定して評価した。
+- 重要度根拠: 現実的なコアサービス呼出しでプロファイル内の認可状態をチェーン間のに汚染でき、単一チェーンのセキュリティ上の不変条件に直接影響するため `HIGH` とする。
+- 必要な最小修正: `PermissionService` がプロファイルリポジトリを参照し、プロファイル未存在、scope.network 不一致、scope.chain 不一致を保存前に拒否する。拒否時に許可リポジトリを変更しないこと。
+- 完了条件 / 再確認: 不一致チェーン、不一致ネットワーク、欠落プロファイルの各テストが保存されないことを確認し、既存の有効な許可付与と拡張機能テストが成功することを再実行する。
 
-## Optional Improvements
-
-なし。
-
-## Resolved Findings
+## 任意の改善
 
 なし。
 
-## Upstream Feedback
+## 解消済みの指摘
 
-なし。単一 Chain の要求・設計・仕様は実装判定に必要な範囲で確定している。
+なし。
 
-## Deferred Findings
+## 上流工程へのフィードバック
 
-- Browser 実 runtime の UI 操作、Service Worker 再起動、Extension reload 後の storage 実挙動は local unit test の対象外であり、別途 E2E / release readiness で確認する。
-- `_snwc` の native / WASM Binding は変更対象外のため、Binding 内部の実装レビューは行っていない。
+なし。単一チェーンの要求・設計・仕様は実装判定に必要な範囲で確定している。
 
-## Scope and Traceability
+## 後続工程へ委譲する指摘
 
-`CR-017` / `CR-AC-020` → Profile / Account Specification §3 / §11 → Architecture §6.6 / Interfaces §6 / Security Design §6・§16 → Core domain / Extension Vault / Provider / Approval の変更を追跡した。Core の Profile / Account validation、Extension の Profile scope filter、single identity projection、backup plaintext validation は確認済みである。IR-001 はそのうち Core permission service の Profile binding 欠落に限定する。
+- ブラウザ実実行環境の UI 操作、サービスワーカー再起動、拡張機能再読み込み後の保存領域実挙動はローカル単体テストの対象外であり、別途 E2E / リリース準備状態で確認する。
+- `_snwc` のネイティブ / WASM バインディングは変更対象外のため、バインディング内部の実装レビューは行っていない。
 
-## Domain Checks
+## 対象範囲と追跡可能性
 
-- Specification Conformance: Profile / Account の単一 Chain、Profile 固定 Chain、旧 mixed store 非互換、UI 表示および Provider projection を確認。IR-001 は permission service の例外。
-- Security: Profile / Account / permission binding、storage rejection、approval signer identity、Vault の secret path を確認。秘密情報のログ・例外漏えいは確認されなかった。wallet-core の内部鍵処理と Binding は対象外。
-- Interoperability: `deriveSharedAccount` の既存 fixed vector を変更せず、保存する identity を Profile.chain に限定した。Symbol / NEM および Mainnet / Testnet の選択境界を確認。
-- Error / abnormal paths: old schema、mixed account、wrong chain scope、backup identity mismatch、wrong network の既存テストと実装を確認。IR-001 の mismatch permission test は未実装。
-- Test quality: Core、profile-backup、Extension の targeted test / typecheck は通過。ただし Core PermissionService の Profile scope mismatch test が不足している。
+`CR-017` / `CR-AC-020` → プロファイル / アカウント仕様 §3 / §11 → アーキテクチャ §6.6 / インターフェース §6 / セキュリティ設計 §6・§16 → コアドメイン / 拡張機能 Vault / Provider / 承認の変更を追跡した。コアのプロファイル / アカウント検証、拡張機能のプロファイル対象範囲 filter、単一の識別情報投影、バックアップ平文検証は確認済みである。IR-001 はそのうちコア許可サービスのプロファイル結び付け欠落に限定する。
 
-## Validation Results
+## ドメイン別の確認
 
-- `pnpm --filter @mosaiclynx/core typecheck`: PASS
-- `pnpm --filter @mosaiclynx/core test`: PASS（5 tests）
-- `pnpm --filter @mosaiclynx/profile-backup typecheck`: PASS
-- `pnpm --filter @mosaiclynx/profile-backup test`: PASS（3 tests）
-- `pnpm --filter @mosaiclynx/extension typecheck`: PASS
-- `pnpm --filter @mosaiclynx/extension test`: PASS（10 files / 29 tests）
-- 対象変更ファイルの Prettier check: PASS
-- `git diff --check`: PASS
-- 未実行: root lint、root test / build、Extension build、Browser E2E、external node / Binding runtime。IR-001 修正後に必要範囲を再実行する。
+- 仕様適合性: プロファイル / アカウントの単一チェーン、プロファイル固定チェーン、旧混在したストア非互換、UI 表示および Provider 投影を確認。IR-001 は許可サービスの例外。
+- セキュリティ: プロファイル / アカウント / 許可結び付け、保存領域拒否、承認署名主体識別情報、Vault の秘密情報パスを確認。秘密情報のログ・例外漏えいは確認されなかった。wallet-core の内部鍵処理とバインディングは対象外。
+- 相互運用性: `deriveSharedAccount` の既存固定ベクターを変更せず、保存する識別情報を Profile.chain に限定した。Symbol / NEM および Mainnet / Testnet の選択境界を確認。
+- エラー / abnormal パス: 旧スキーマ、混在したアカウント、誤ったチェーン対象範囲、バックアップ識別情報不一致、誤ったネットワークの既存テストと実装を確認。IR-001 の不一致許可テストは未実装。
+- テスト品質: コア、profile-backup、拡張機能の targeted テスト / typecheck は通過。ただしコア PermissionService のプロファイル対象範囲不一致テストが不足している。
 
-## Review Gates
+## 検証結果
 
-| Gate                     | 判定 | 根拠                                                                                         |
-| ------------------------ | ---- | -------------------------------------------------------------------------------------------- |
-| 仕様適合性               | FAIL | IR-001: Core permission service が Profile scope を固定しない                                |
-| Security                 | FAIL | IR-001: Profile-local authorization state を cross-chain に保存可能                          |
-| 相互運用性               | PASS | chain adapter の fixed vector と network / chain projection は変更せず、単一 identity を選択 |
-| 異常系                   | FAIL | mismatch permission の保存拒否が Core service で未検証                                       |
-| テスト十分性             | FAIL | IR-001 を独立検出する Core test がない                                                       |
-| 実装品質・runtime safety | PASS | 型、依存方向、変更対象の storage / UI 境界に追加の blocking defect は確認なし                |
+- `pnpm --filter @mosaiclynx/core typecheck`: 合格
+- `pnpm --filter @mosaiclynx/core test`: 合格（5 テスト）
+- `pnpm --filter @mosaiclynx/profile-backup typecheck`: 合格
+- `pnpm --filter @mosaiclynx/profile-backup test`: 合格（3 テスト）
+- `pnpm --filter @mosaiclynx/extension typecheck`: 合格
+- `pnpm --filter @mosaiclynx/extension test`: 合格（10 ファイル / 29 テスト）
+- 対象変更ファイルの Prettier 確認: 合格
+- `git diff --check`: 合格
+- 未実行: ルート lint、ルートテスト / ビルド、拡張機能ビルド、ブラウザ E2E、外部ノード / バインディング実行環境。IR-001 修正後に必要範囲を再実行する。
 
-## Remaining Risks and Open Decisions
+## レビュー判定基準
 
-- IR-001 が解消されるまで、Core `PermissionService` を Profile permission の trusted writer として利用できない。
-- Browser E2E、Extension lifecycle、release evidence は本レビューの targeted validation では未確認。
+| 判定条件                 | 判定   | 根拠                                                                                        |
+| ------------------------ | ------ | ------------------------------------------------------------------------------------------- |
+| 仕様適合性               | 不合格 | IR-001: コア許可サービスがプロファイル対象範囲を固定しない                                  |
+| セキュリティ             | 不合格 | IR-001: プロファイル内の認可状態をチェーン間のに保存可能                                    |
+| 相互運用性               | 合格   | チェーンアダプターの固定ベクターとネットワーク / チェーン投影は変更せず、単一識別情報を選択 |
+| 異常系                   | 不合格 | 不一致許可の保存拒否がコアサービスで未検証                                                  |
+| テスト十分性             | 不合格 | IR-001 を独立検出するコアテストがない                                                       |
+| 実装品質・実行環境安全性 | 合格   | 型、依存方向、変更対象の保存領域 / UI 境界に追加の判定を妨げる defect は確認なし            |
 
-## Automatic Changes
+## 残存リスクと未決定事項
+
+- IR-001 が解消されるまで、コア `PermissionService` をプロファイル許可の信頼された writer として利用できない。
+- ブラウザ E2E、拡張機能ライフサイクル、リリース証跡は本レビューの targeted 検証では未確認。
+
+## 自動変更
 
 なし。レビュー中はレビュー成果物以外を変更していない。
 
-## Final Decision
+## 最終判断
 
 `REVISE IMPLEMENTATION`

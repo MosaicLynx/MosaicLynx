@@ -1,4 +1,4 @@
-# MosaicLynx Signing Flow Design Review
+# MosaicLynx 署名フロー設計レビュー
 
 ## レビュー情報
 
@@ -6,27 +6,27 @@
 - 前回レビュー: [`signing-flow-review-001.md`](./signing-flow-review-001.md)
 - 確認日: 2026-08-26
 - 判定: `READY`
-- レビュー範囲: 前回 `SDR-001`〜`SDR-004` の対応確認、Signing Operation Model、Aggregate Complete / Bonded、cosignature、Partial、NEM multisig、message signing、State Machine、Authorization / TOCTOU、RESULT_UNKNOWN / delivery disposition、Retry / Replay、Wallet Core / Relay / Node 境界、Security Invariants、OPEN の回帰確認。
+- レビュー範囲: 前回 `SDR-001`〜`SDR-004` の対応確認、署名操作モデル、アグリゲート完了 / Bonded、連署署名、部分トランザクション、NEM マルチシグ、メッセージ署名、状態遷移、認可 / TOCTOU、RESULT_UNKNOWN / 配送処理結果の区分、再試行 / リプレイ、wallet-core / Relay / ノード境界、セキュリティ上の不変条件、未決の回帰確認。
 - 変更範囲: 本レビュー成果物のみ。対象設計、要件、仕様、ADR、コードは変更していない。
 - 参照資料: `docs/design/architecture.md`、`docs/design/security-design.md`、`docs/requirements/requirements.md`、`docs/requirements/browser-extension.md`、`docs/requirements/mobile-app.md`、`docs/requirements/relay.md`、`docs/requirements/sdk.md`、`docs/specifications/product-spec.md`、`docs/specifications/web-transaction-handoff-spec.md`、`docs/specifications/chain-compatibility-spec.md`、`docs/specifications/profile-account-spec.md`、`docs/release/threat-model.md`、`docs/release/release-process.md`、`docs/release/mainnet-release-evidence.md`、`docs/adr/0001-mainnet-evidence-lite.md`、`_snwc/docs/requirements/requirements.md`、`_snwc/docs/specifications/specification.md`、`_snwc/docs/decisions/binding-implementation.md`
 
 ## 総評
 
-前回レビューの `SDR-001`〜`SDR-004` は適切に反映されている。Authorization は permission scope / revision と protocol / capability context を含む binding tuple へ拡張され、署名直前の比較も承認時 context との一致を要求している。`signing operation` は logical signing target に対する一回限りの Authorization 消費として定義され、内部 API call、署名検証、result delivery および resend / lookup と区別された。
+前回レビューの `SDR-001`〜`SDR-004` は適切に反映されている。認可は許可対象範囲 / リビジョンとプロトコル / 対応能力文脈を含む結び付け組へ拡張され、署名直前の比較も承認時文脈との一致を要求している。`signing operation` は論理的な署名対象に対する一回限りの認可消費として定義され、内部 API 呼び出し、署名検証、結果配送および再送 / 照会と区別された。
 
-また、署名生成の成否不明である `RESULT_UNKNOWN` と、署名済み result の配送成否不明である `DELIVERY_UNKNOWN` が分離された。`DELIVERY_UNKNOWN` から result の resend / retrieval / lookup だけを許可し、再署名を禁止するため、前回の二重署名リスクに対する状態上の不足も解消されている。cosignature の「同等の全体表現」についても、外部補助情報や hash + summary を排除し、parent 全体の再構成・検証・表示を要求する条件が明記された。
+また、署名生成の成否不明である `RESULT_UNKNOWN` と、署名済み結果の配送成否不明である `DELIVERY_UNKNOWN` が分離された。`DELIVERY_UNKNOWN` から結果の再送 / 取得 / 照会だけを許可し、再署名を禁止するため、前回の二重署名リスクに対する状態上の不足も解消されている。連署署名の「同等の全体表現」についても、外部補助情報やハッシュ + 要約を排除し、親全体の再構成・検証・表示を要求する条件が明記された。
 
-現行設計は、Browser Extension / Mobile / SDK / Relay に共通する署名基本設計として、下位仕様へ進められる状態である。公開 API、wire schema、具体的な delivery lookup、Chain-specific schema、platform capability などの OPEN を勝手に確定していない点も維持されている。
+現行設計は、ブラウザ拡張機能 / モバイル / SDK / Relay に共通する署名基本設計として、下位仕様へ進められる状態である。公開 API、通信上のスキーマ、具体的な配送照会、チェーン固有のスキーマ、プラットフォーム対応能力などの未決を勝手に確定していない点も維持されている。
 
 ## 良い点
 
-- Authorization tuple に caller、session、operation、Account、Chain、Network、permission context、protocol / capability context、signing target、transaction context、inspection result、freshness が含まれ、承認時の permission scope / revision と capability context への binding が明示された。
-- `1 request = 1 confirmation = 1 authentication = 1 signing operation` の適用単位が logical signing target と一回限りの Authorization に固定された。Wallet Core 内部処理や result delivery が追加の signing operation と誤解されない。
-- `RESULT_UNKNOWN` は署名生成自体の成否不明に限定され、確定済み result の配送失敗には `DELIVERY_UNKNOWN` を使う構成になった。既存 result の再配送と新しい署名生成が明確に分離されている。
-- cosignature の hash-only 拒否に加え、hash + summary、external summary、部分 field、hash + external lookup を「同等の全体表現」から明示的に除外している。
-- Aggregate inspection は outer / embedded transaction、asset effect、authority / permission、transactions hash、existing cosignature、expected role を対象とし、unknown / unsupported / 表示不能を fail closed にしている。
-- Partial は共通 signing primitive ではなく chain / network / handoff context として扱われ、Node lookup による parent 補完を署名条件にしていない。
-- NEM multisig は Symbol Aggregate と構造・hash・address・signing bytes を共有せず、共通化を lifecycle、approval、binding、correlation、fail closed に限定している。
+- 認可組に呼び出し元、セッション、操作、アカウント、チェーン、ネットワーク、許可文脈、プロトコル / 対応能力文脈、署名対象、トランザクション文脈、内容検査結果、鮮度が含まれ、承認時の許可対象範囲 / リビジョンと対応能力文脈への結び付けが明示された。
+- `1 request = 1 confirmation = 1 authentication = 1 signing operation` の適用単位が論理的な署名対象と一回限りの認可に固定された。wallet-core 内部処理や結果配送が追加の署名操作と誤解されない。
+- `RESULT_UNKNOWN` は署名生成自体の成否不明に限定され、確定済み結果の配送失敗には `DELIVERY_UNKNOWN` を使う構成になった。既存結果の再配送と新しい署名生成が明確に分離されている。
+- 連署署名のハッシュのみ拒否に加え、ハッシュ + 要約、外部要約、部分フィールド、ハッシュ + 外部照会を「同等の全体表現」から明示的に除外している。
+- アグリゲート内容検査は外側 / 埋め込みトランザクション、資産影響、判断権限 / 許可、トランザクションハッシュ、既存の連署署名、期待される役割を対象とし、不明 / 未対応の / 表示不能を不合格終了済みにしている。
+- 部分トランザクションは共通署名基本機構ではなくチェーン / ネットワーク / 受け渡し文脈として扱われ、ノード照会による親補完を署名条件にしていない。
+- NEM マルチシグは Symbol アグリゲートと構造・ハッシュ・アドレス・署名バイト列を共有せず、共通化をライフサイクル、承認、結び付け、対応付け、不合格終了済みに限定している。
 
 ## 指摘一覧
 
@@ -34,68 +34,68 @@
 
 ### 前回指摘の対応状況
 
-| ID        | Severity | 対応確認                                                                                                                                                                                     |
-| --------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SDR-001` | MEDIUM   | 解消。§4、§5、§16、§23 が permission context と protocol / capability context を Authorization binding および失効条件へ明示的に含め、承認時 revision / context との一致を要求している。      |
-| `SDR-002` | MEDIUM   | 解消。§7.3〜§7.4、§20.3、§21 が `RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` を分離し、確定済み result の resend / lookup のみを許可して再署名を禁止している。                                     |
-| `SDR-003` | MEDIUM   | 解消。§4、§16、§23 が `signing operation` を logical signing target に対する一回限りの signing decision と定義し、内部 API call、verification、delivery、resend / lookup を除外している。    |
-| `SDR-004` | LOW      | 解消。§11.2 が parent 全体の security-relevant field、canonical hash / parent binding、全体 inspection を要求し、hash-only、summary、partial field、external lookup を明示的に拒否している。 |
+| ID        | 重要度 | 対応確認                                                                                                                                                                                    |
+| --------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SDR-001` | MEDIUM | 解消。§4、§5、§16、§23 が許可文脈とプロトコル / 対応能力文脈を認可との結び付けおよび失効条件へ明示的に含め、承認時リビジョン / 文脈との一致を要求している。                                 |
+| `SDR-002` | MEDIUM | 解消。§7.3〜§7.4、§20.3、§21 が `RESULT_UNKNOWN` と `DELIVERY_UNKNOWN` を分離し、確定済み結果の再送 / 照会のみを許可して再署名を禁止している。                                              |
+| `SDR-003` | MEDIUM | 解消。§4、§16、§23 が `signing operation` を論理的な署名対象に対する一回限りの署名判断と定義し、内部 API 呼び出し、検証、配送、再送 / 照会を除外している。                                  |
+| `SDR-004` | LOW    | 解消。§11.2 が親全体のセキュリティに関わるフィールド、正規ハッシュ / 親結び付け、全体内容検査を要求し、ハッシュのみ、要約、部分トランザクションフィールド、外部照会を明示的に拒否している。 |
 
-## Aggregate / Cosignature / Partial 評価
-
-適合と評価する。
-
-- Aggregate Complete / Bonded は共通 operation を不必要に増やさず、`TRANSACTION_SIGN` または `COSIGNATURE_SIGN` の chain-specific context として扱っている。outer、embedded、signer、recipient、asset、fee、deadline、namespace、metadata、authority / permission、transactions hash、existing cosignature および expected role を確認対象とし、全体確認不能時は署名しない。
-- Cosignature の signing target は detached cosignature bytes ではなく、parent 全体と selected cosigner の関係である。parent contents、hash binding、Chain / Network、expected cosigner、duplicate / already signed、stale / expiry、result correlation を確認し、hash-only や外部 summary による blind signing を排除している。
-- Partial は状態・context として扱われ、Partial であることだけでは署名できない。Signer に渡された情報だけで全体を検証・表示できない場合は fail closed し、Node の検索・監視・補完を必須前提にしていない。
-- NEM multisig は wrapper / inner transaction、multisig role、hash、address、network、signing bytes を NEM-specific integration に残しており、Symbol Aggregate への不適切な変換はない。
-
-## State Machine 評価
-
-適合と評価する。`RECEIVED → VALIDATED → INSPECTED → AWAITING_USER → AUTHORIZED → SIGNING → SUCCEEDED` の責任境界、`AUTHORIZED` の短寿命、`AUTHORIZED → SIGNING` 前の target / context 再検証、terminal state からの reopen / 再署名禁止、lifecycle loss 後の Authorization 破棄が維持されている。
-
-署名 lifecycle と result delivery disposition が分離され、`SUCCEEDED + DELIVERY_UNKNOWN` は signing state の再開や新しい signature 生成へ遷移できない。`RESULT_UNKNOWN` は Wallet Core / Binding 呼び出し中など署名生成自体が不明な場合に限定されている。
-
-## Authorization / TOCTOU 評価
-
-適合と評価する。Authorization tuple に permission scope / revision と protocol / capability context が追加され、署名直前は現在値の存在だけでなく、承認時に binding した context との一致を要求している。permission revoke、scope / revision change、protocol / capability change、operation capability change は既存 Authorization を `INVALIDATED` にする。
-
-Confirmation model と target の不変性、caller、session、Account、Chain、Network、operation、signer、expected signer、parent、embedded / inner transaction、message、canonicalization、signature state の再検証も一貫している。Browser observed context、Mobile handoff context、Relay generation の扱いにも回帰はない。
-
-## RESULT_UNKNOWN / Retry 評価
-
-適合と評価する。署名生成自体の結果が不明な場合は `RESULT_UNKNOWN` とし、成功・未署名のいずれとも断定せず、自動再署名を禁止している。署名済みだが配送成否だけが不明な場合は `DELIVERY_UNKNOWN` とし、既存 result の resend / retrieval / lookup だけを候補とする。
-
-同じ request identity の duplicate、内容違いの tampering、期限切れ、replay、Relay state loss、late delivery および stale request は追加署名を発生させない。Relay delivery retry と signing retry も分離されている。
-
-## Wallet Core / Relay / Node 境界評価
+## アグリゲート / 連署署名 / 部分トランザクション評価
 
 適合と評価する。
 
-- Wallet Core は Wallet Store、key management、secret processing、raw signing を担い、MosaicLynx は caller / permission、inspection、confirmation、authentication、Authorization、target revalidation、orchestration、result validation を担う。
-- Relay は opaque / untrusted transport に留まり、inspection、approval、signing target の生成・補完・差し替え、signature generation、announce、semantic success 判定を担わない。
-- Node は署名成立の必須条件ではなく、Aggregate / Partial parent の検索・監視・補完を署名フローの前提にしていない。
-- Provider / Content Script / dApp の自己申告 caller を trusted signer とせず、Browser Extension の privileged layer または Mobile App が観測・検証した context を最終根拠にしている。
+- アグリゲート完了 / Bonded は共通操作を不必要に増やさず、`TRANSACTION_SIGN` または `COSIGNATURE_SIGN` のチェーン固有の文脈として扱っている。外側、埋め込み、署名主体、受信者、資産、手数料、期限、名前空間、メタデータ、判断権限 / 許可、トランザクションハッシュ、既存の連署署名および期待される役割を確認対象とし、全体確認不能時は署名しない。
+- 連署署名の署名対象は分離された連署署名バイト列ではなく、親全体と選択済みの連署者の関係である。親内容、ハッシュ結び付け、チェーン / ネットワーク、期待される連署者、重複 / 既に署名済み、古くなった / 期限切れ、結果対応付けを確認し、ハッシュのみや外部要約による内容を確認しない署名を排除している。
+- 部分トランザクションは状態・文脈として扱われ、部分トランザクションであることだけでは署名できない。署名主体に渡された情報だけで全体を検証・表示できない場合は不合格終了済みし、ノードの検索・監視・補完を必須前提にしていない。
+- NEM マルチシグはラッパー / 内部トランザクション、マルチシグ役割、ハッシュ、アドレス、ネットワーク、署名バイト列を NEM 固有の統合に残しており、Symbol アグリゲートへの不適切な変換はない。
 
-## OPEN事項
+## 状態遷移評価
 
-既存 OPEN は適切に維持されている。本レビューでは解決しない。
+適合と評価する。`RECEIVED → VALIDATED → INSPECTED → AWAITING_USER → AUTHORIZED → SIGNING → SUCCEEDED` の責任境界、`AUTHORIZED` の短寿命、`AUTHORIZED → SIGNING` 前の対象 / 文脈再検証、終端状態からの再発 / 再署名禁止、ライフサイクル消失後の認可破棄が維持されている。
+
+署名ライフサイクルと結果配送処理結果の区分が分離され、`SUCCEEDED + DELIVERY_UNKNOWN` は署名状態の再開や新しい署名生成へ遷移できない。`RESULT_UNKNOWN` は wallet-core / バインディング呼び出し中など署名生成自体が不明な場合に限定されている。
+
+## 認可 / TOCTOU 評価
+
+適合と評価する。認可組に許可対象範囲 / リビジョンとプロトコル / 対応能力文脈が追加され、署名直前は現在値の存在だけでなく、承認時に結び付けした文脈との一致を要求している。許可失効、対象範囲 / リビジョン変更、プロトコル / 対応能力変更、操作対応能力変更は既存認可を `INVALIDATED` にする。
+
+確認モデルと対象の不変性、呼び出し元、セッション、アカウント、チェーン、ネットワーク、操作、署名主体、期待される署名主体、親、埋め込み / 内部トランザクション、メッセージ、正規化、署名状態の再検証も一貫している。ブラウザ観測された文脈、モバイル受け渡し文脈、Relay 世代の扱いにも回帰はない。
+
+## RESULT_UNKNOWN / 再試行評価
+
+適合と評価する。署名生成自体の結果が不明な場合は `RESULT_UNKNOWN` とし、成功・未署名のいずれとも断定せず、自動再署名を禁止している。署名済みだが配送成否だけが不明な場合は `DELIVERY_UNKNOWN` とし、既存結果の再送 / 取得 / 照会だけを候補とする。
+
+同じ要求識別情報の重複、内容違いの改ざん、期限切れ、リプレイ、Relay 状態消失、遅延した配送および古くなった要求は追加署名を発生させない。Relay 配送再試行と署名再試行も分離されている。
+
+## wallet-core / Relay / ノード境界評価
+
+適合と評価する。
+
+- wallet-core はウォレットストア、鍵管理、秘密情報処理、生の署名を担い、MosaicLynx は呼び出し元 / 許可、内容検査、確認、認証、認可、対象再検証、処理の調整、結果検証を担う。
+- Relay は内容を解釈しない / 信頼されていない通信経路に留まり、内容検査、承認、署名対象の生成・補完・差し替え、署名生成、アナウンス、意味上の成功判定を担わない。
+- ノードは署名成立の必須条件ではなく、アグリゲート / 部分トランザクション親の検索・監視・補完を署名フローの前提にしていない。
+- Provider / コンテンツスクリプト / dApp の自己申告呼び出し元を信頼された署名主体とせず、ブラウザ拡張機能の特権を持つ層またはモバイルアプリが観測・検証した文脈を最終根拠にしている。
+
+## 未決事項
+
+既存未決は適切に維持されている。本レビューでは解決しない。
 
 - `SDK-OPEN-002`、`SDK-OPEN-003`、`SDK-OPEN-004`、`SDK-OPEN-006`、`SDK-OPEN-007`
 - `MR-OPEN-002`、`MR-OPEN-003`、`MR-OPEN-005`、`MR-OPEN-006`
 - `CR-OPEN-001`、`CR-OPEN-002`
-- Aggregate Complete / Bonded、Partial、Symbol cosignature、NEM multisig / cosignature の公開 operation、format、supported scope
-- `DELIVERY_UNKNOWN` に対する具体的な result resend / retrieval / lookup 契約
+- アグリゲート完了 / Bonded、部分トランザクション、Symbol 連署署名、NEM マルチシグ / 連署署名の公開操作、形式、対応済みの対象範囲
+- `DELIVERY_UNKNOWN` に対する具体的な結果再送 / 取得 / 照会契約
 
-これらの OPEN を理由に、blind signing、confirmation / authentication の省略、古い Authorization の再利用、Relay の署名判断または Wallet Core への承認責任移管を許可していない。
+これらの未決を理由に、内容を確認しない署名、確認 / 認証の省略、古い認可の再利用、Relay の署名判断または wallet-core への承認責任移管を許可していない。
 
 ## 最終判定
 
 `READY`
 
-前回の全指摘が解消され、BLOCKER / HIGH / MEDIUM / LOW の新規指摘は確認されなかった。署名フローの基本設計は、Aggregate / cosignature / Partial、NEM multisig、message signing、State Machine、Authorization / TOCTOU、RESULT_UNKNOWN / delivery failure、Wallet Core / Relay / Node の責任境界を安全に下位仕様へ引き継げる状態である。
+前回の全指摘が解消され、阻害要因 / HIGH / MEDIUM / LOW の新規指摘は確認されなかった。署名フローの基本設計は、アグリゲート / 連署署名 / 部分トランザクション、NEM マルチシグ、メッセージ署名、状態遷移、認可 / TOCTOU、RESULT_UNKNOWN / 配送失敗、wallet-core / Relay / ノードの責任境界を安全に下位仕様へ引き継げる状態である。
 
-## Validation
+## 検証
 
 - `git diff --check`: レビュー成果物作成後に実行する。
-- Markdown formatter / lint: `prettier --check` をレビュー成果物に対して実行する。
+- Markdown フォーマッター / lint: `prettier --check` をレビュー成果物に対して実行する。

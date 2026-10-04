@@ -2,423 +2,423 @@
 
 ## 1. 目的
 
-本書は、Browser Extension、Mobile App、Relay、SDK および `symbol-nem-wallet-core` を含む MosaicLynx 全体で共有するセキュリティ原則、信頼境界、秘密情報の責任分界、署名承認ルールおよび安全側の失敗条件を定める共通設計書である。
+本書は、ブラウザ拡張機能、モバイルアプリ、Relay、SDK および `symbol-nem-wallet-core` を含む MosaicLynx 全体で共有するセキュリティ原則、信頼境界、秘密情報の責任分界、署名承認ルールおよび安全側の失敗条件を定める共通設計書である。
 
-MosaicLynx は秘密鍵を扱う署名器であるため、可用性や利便性よりも、秘密情報の保護、利用者の明示的な意思確認、署名対象の完全性および fail-closed を優先する。本書の MUST / MUST NOT は、下位設計・実装・運用が必ず満たす共通の安全条件である。
+MosaicLynx は秘密鍵を扱う署名器であるため、可用性や利便性よりも、秘密情報の保護、利用者の明示的な意思確認、署名対象の完全性および安全側での終了を優先する。本書の MUST / MUST NOT は、下位設計・実装・運用が必ず満たす共通の安全条件である。
 
-本書は暗号方式、API、画面遷移、データ形式または実装コードを定めるものではない。下位設計が未確定の事項は、本書の原則を弱めない範囲で委譲または OPEN とする。
+本書は暗号方式、API、画面遷移、データ形式または実装コードを定めるものではない。下位設計が未確定の事項は、本書の原則を弱めない範囲で委譲または未決とする。
 
 ## 2. 適用範囲と責務の境界
 
 ### 2.1 適用範囲
 
-対象は、次の主体をまたぐ署名要求と署名結果の End-to-End 境界である。
+対象は、次の主体をまたぐ署名要求と署名結果のエンドツーエンド境界である。
 
-- Browser Extension とその Provider / privileged layer
-- Mobile App とその外部受け渡し境界
+- ブラウザ拡張機能とその Provider / 特権を持つ層
+- モバイルアプリとその外部受け渡し境界
 - `@mosaiclynx/sdk` を含む SDK
 - Relay とその短期受け渡し状態
-- Symbol / NEM の transaction inspection と署名 orchestration
+- Symbol / NEM のトランザクション内容検査と署名処理の調整
 - `symbol-nem-wallet-core` との秘密情報処理境界
-- Profile、Account、permission、session、backup および release のセキュリティ責任
+- プロファイル、アカウント、許可、セッション、バックアップおよびリリースのセキュリティ責任
 
-現在のワークスペースに Mobile App の実装は存在しない。Mobile に関する本書の記述は共通設計上の責任と安全条件であり、実装済み機能や検証済み capability を意味しない。
+現在のワークスペースにモバイルアプリの実装は存在しない。モバイルに関する本書の記述は共通設計上の責任と安全条件であり、実装済み機能や検証済み対応能力を意味しない。
 
 ### 2.2 本書で決めない事項
 
 次は本書の対象外であり、対応する下位設計へ委譲する。
 
-- Wallet Core の暗号アルゴリズム、KDF、DEK / KEK、Wallet Store 内部形式、メモリ消去実装
-- Browser Extension / Mobile 固有の OS API、画面遷移、UI レイアウト、具体的なタイムアウト値
-- Relay のプロトコル詳細、wire format、Redis key、TTL、キャッシュ方式および実装構造
-- SDK の具体的 API 名、wire 契約、transport 選択順および error code
-- Symbol / NEM の transaction schema、byte 列、対応 type / version の詳細仕様
-- GitHub Actions の SHA pin、SBOM、成果物署名などの release operation 詳細
+- wallet-core の暗号アルゴリズム、KDF、DEK / KEK、ウォレットストア内部形式、メモリ消去実装
+- ブラウザ拡張機能 / モバイル固有の OS API、画面遷移、UI レイアウト、具体的なタイムアウト値
+- Relay のプロトコル詳細、通信上の形式、Redis 鍵、TTL、キャッシュ方式および実装構造
+- SDK の具体的 API 名、通信上の契約、通信経路選択順およびエラーコード
+- Symbol / NEM のトランザクションスキーマ、バイト列、対応型 / バージョンの詳細仕様
+- GitHub Actions の SHA pin、SBOM、成果物署名などのリリース操作詳細
 
-これらを理由に、署名確認、認証、秘密情報分離、完全性検証または replay 防止を省略してはならない。
+これらを理由に、署名確認、認証、秘密情報分離、完全性検証またはリプレイ防止を省略してはならない。
 
 ### 2.3 用語と規範
 
 - **MUST / MUST NOT**: 必須または禁止する安全条件。
 - **SHOULD / SHOULD NOT**: 原則として満たす条件。満たせない場合は理由と影響を記録する。
 - **MAY**: 安全条件を弱めない範囲で許容される事項。
-- **Signer**: Browser Extension または Mobile App。署名対象の解析、表示、承認、認証および Wallet Core 呼び出しを担う。
-- **Wallet Core**: 鍵管理、Wallet Store、秘密情報を使用する暗号処理および raw byte signing の正本である `symbol-nem-wallet-core`。
+- **署名主体**: ブラウザ拡張機能またはモバイルアプリ。署名対象の解析、表示、承認、認証および wallet-core 呼び出しを担う。
+- **wallet-core**: 鍵管理、ウォレットストア、秘密情報を使用する暗号処理および生バイト署名の正本である `symbol-nem-wallet-core`。
 
 ## 3. 前提・責任分界
 
 ### 3.1 信頼の前提
 
-Wallet Core、Browser Extension 本体および Mobile App 本体は、設計上の trusted component とする。ただし、trusted component に届く入力や、そこから得る外部由来の値まで自動的に信頼してよいという意味ではない。
+wallet-core、ブラウザ拡張機能本体およびモバイルアプリ本体は、設計上の信頼されたコンポーネントとする。ただし、信頼されたコンポーネントに届く入力や、そこから得る外部由来の値まで自動的に信頼してよいという意味ではない。
 
-OS Secure Storage は限定的に信頼する。保存場所としての機密性・完全性・可用性の保証範囲、端末状態、バックアップ、復元および OS の認証 capability は platform ごとに評価し、OS の存在だけで秘密鍵保護を保証したり、署名承認を代行させたりしない。
+OS 安全な保存領域は限定的に信頼する。保存場所としての機密性・完全性・可用性の保証範囲、端末状態、バックアップ、復元および OS の認証対応能力はプラットフォームごとに評価し、OS の存在だけで秘密鍵保護を保証したり、署名承認を代行させたりしない。
 
-SDK、dApp / Web page、Deep Link 入力、Relay、Symbol / NEM ノード、外部 API は信頼しない。署名器の外部から入るデータは、経路、形式、送信元の自己申告、表示文言を問わずすべて untrusted input として扱う。
+SDK、dApp / Web ページ、ディープリンク入力、Relay、Symbol / NEM ノード、外部 API は信頼しない。署名器の外部から入るデータは、経路、形式、送信元の自己申告、表示文言を問わずすべて信頼されていない入力として扱う。
 
 ### 3.2 主体ごとの責任
 
-| 主体                           | 担う責任                                                                                                                    | 担わない責任                                                                                       |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Browser Extension / Mobile App | 外部入力の検証、caller / permission / session、署名対象の解析・表示、利用者承認、再認証、署名 orchestration、結果の対応確認 | Wallet Core の暗号・KDF・Wallet Store 内部仕様の再実装                                             |
-| Wallet Core                    | 鍵管理、暗号処理、Wallet Store 契約、公開 identity、承認済み raw bytes の署名                                               | 利用者向け表示、dApp 接続、permission、承認判断、Relay、OS 固有 UI                                 |
-| SDK                            | 外部アプリとの受け渡し、結果 correlation、公開契約、失敗の安全な伝達                                                        | 秘密情報の取得・保存・復号、最終的な意味解析、表示、認証、署名                                     |
-| Relay                          | E2E protected な opaque 要求・結果の配送と短期状態の構造検証                                                                | 平文・E2E session secret / derived encryption material、意味解釈、署名、認証、承認の代行、announce |
-| dApp / Web page                | 要求の発行、受信結果の独立検証、必要な network 処理                                                                         | 秘密情報の取得、Signer の認証・承認の省略                                                          |
-| Node / 外部 API                | 補助的な network 情報の提供                                                                                                 | 署名可否、承認、署名結果の正当性の単独根拠                                                         |
+| 主体                              | 担う責任                                                                                                                 | 担わない責任                                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| ブラウザ拡張機能 / モバイルアプリ | 外部入力の検証、呼び出し元 / 許可 / セッション、署名対象の解析・表示、利用者承認、再認証、署名処理の調整、結果の対応確認 | wallet-core の暗号・KDF・ウォレットストア内部仕様の再実装                                         |
+| wallet-core                       | 鍵管理、暗号処理、ウォレットストア契約、公開識別情報、承認済み生バイト列の署名                                           | 利用者向け表示、dApp 接続、許可、承認判断、Relay、OS 固有 UI                                      |
+| SDK                               | 外部アプリとの受け渡し、結果対応付け、公開契約、失敗の安全な伝達                                                         | 秘密情報の取得・保存・復号、最終的な意味解析、表示、認証、署名                                    |
+| Relay                             | E2E 保護されたな内容を解釈しない要求・結果の配送と短期状態の構造検証                                                     | 平文・E2E セッション秘密情報 / 導出された暗号化資料、意味解釈、署名、認証、承認の代行、アナウンス |
+| dApp / Web ページ                 | 要求の発行、受信結果の独立検証、必要なネットワーク処理                                                                   | 秘密情報の取得、署名主体の認証・承認の省略                                                        |
+| ノード / 外部 API                 | 補助的なネットワーク情報の提供                                                                                           | 署名可否、承認、署名結果の正当性の単独根拠                                                        |
 
 Relay や SDK が侵害されても、秘密鍵を取得できず、利用者の確認・再認証を経ない署名へ直結しない構造を MUST とする。
 
-Relay 経路の message confidentiality は、Relay が復号できない E2E protected opaque envelope を前提とする。E2E session secret またはそこから得られる encryption material は SDK / Mobile App 等の client-side owner に属し、Relay は受領、復号、永続化、hash 化、導出またはログ出力を行わない。Relay endpoint authorization credential は E2E secret とは別の最小権限の transport credential として扱い、署名権限や復号権限を与えない。
+Relay 経路のメッセージ機密性は、Relay が復号できない E2E 保護された内容を解釈しないエンベロープを前提とする。E2E セッション秘密情報またはそこから得られる暗号化資料は SDK / モバイルアプリ等のクライアント側の責任主体に属し、Relay は受領、復号、永続化、ハッシュ化、導出またはログ出力を行わない。Relay エンドポイント認可認証情報は E2E 秘密情報とは別の最小権限の通信経路認証情報として扱い、署名権限や復号権限を与えない。
 
-## 4. Threat Model
+## 4. 脅威モデル
 
 ### 4.1 保護対象
 
-- private key、mnemonic、復号用鍵、パスコード由来の秘密情報
-- Wallet Store、復号済み秘密情報および署名用の一時データ
-- 利用者が確認した署名対象と、実際に署名する payload の一致
-- Account、Chain、Network、caller、permission、session および request の対応
-- 署名承認、認証状態、署名結果および replay 防止状態
-- 接続元と公開を許可した Account の関係
-- 秘密情報・Sensitive 情報の confidentiality、integrity、retention
+- 秘密鍵、ニーモニック、復号用鍵、パスコード由来の秘密情報
+- ウォレットストア、復号済み秘密情報および署名用の一時データ
+- 利用者が確認した署名対象と、実際に署名するペイロードの一致
+- アカウント、チェーン、ネットワーク、呼び出し元、許可、セッションおよび要求の対応
+- 署名承認、認証状態、署名結果およびリプレイ防止状態
+- 接続元と公開を許可したアカウントの関係
+- 秘密情報・機微な情報の機密性、完全性、保持
 
 ### 4.2 想定攻撃者
 
-- 悪意のある dApp、Web page、Provider 利用コードまたは SDK 利用者
-- 侵害・改ざんされた SDK、Relay、Deep Link、外部 API または node
-- 悪意のある node response、古い要求の再送、要求の差し替え、結果の取り違えを試みる主体
+- 悪意のある dApp、Web ページ、Provider 利用コードまたは SDK 利用者
+- 侵害・改ざんされた SDK、Relay、ディープリンク、外部 API またはノード
+- 悪意のあるノード応答、古い要求の再送、要求の差し替え、結果の取り違えを試みる主体
 - phishing 用のアプリ名、アイコン、HTML、Markdown、説明文または URL を提示する主体
-- 不正な同時要求、別 Account / Network への状態流用、認証後の payload 差し替えを試みる主体
+- 不正な同時要求、別アカウント / ネットワークへの状態流用、認証後のペイロード差し替えを試みる主体
 
-本書は、正規配布物や trusted host 本体そのものが完全に侵害された場合の全面的な保証を主張しない。その場合は Software Integrity と Incident Recovery の境界で検知、署名停止、session 無効化および鍵移行を行う。
+本書は、正規配布物や信頼されたホスト本体そのものが完全に侵害された場合の全面的な保証を主張しない。その場合はソフトウェア完全性と事故復旧の境界で検知、署名停止、セッション無効化および鍵移行を行う。
 
-### 4.3 主要 attack surface と緩和
+### 4.3 主要攻撃接点と緩和
 
-| Attack surface                         | 主要脅威                                       | 共通の緩和                                                                                |
-| -------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Provider、SDK、Deep Link、Relay        | 要求の改ざん、差し替え、replay、caller 偽装    | 完全性、期限、requestId、caller、permission、Chain / Network / Account を Signer で再検証 |
-| Confirmation / Authentication UI       | phishing、外部文言による誤認、認証の横取り     | MosaicLynx 自身の UI、外部 HTML / Markdown の不使用、署名ごとの再認証                     |
-| Transaction inspection                 | 未知 type、parse 差異、表示と payload の不一致 | chain-specific parse / validate、表示内容の生成、canonical 対応確認、解析不能時の拒否     |
-| Wallet Core Binding / host memory      | 秘密情報の不要な複製、長期保持、誤った暗号実装 | Wallet Core を正本とし、host の一時 lifecycle と公開境界を管理、内部暗号を再実装しない    |
-| Storage、backup、clipboard、screenshot | Secret の漏えい、削除後の復元                  | 暗号化形式、明示操作、再認証、最小保持、clipboard / preview / temp file の制限            |
-| Node / 外部 API                        | 悪意のある補助情報、wrong network、可用性依存  | node を信頼せず、ローカル解析を署名判断の根拠とし、失敗時は fail closed                   |
-| Update / migration / release           | 改ざん、依存関係経由の侵害、平文退避           | 正規配布、改ざん検出、version 管理、厳格なレビュー、平文 migration の禁止                 |
+| 攻撃接点                                                   | 主要脅威                                           | 共通の緩和                                                                                        |
+| ---------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Provider、SDK、ディープリンク、Relay                       | 要求の改ざん、差し替え、リプレイ、呼び出し元偽装   | 完全性、期限、requestId、呼び出し元、許可、チェーン / ネットワーク / アカウントを署名主体で再検証 |
+| 確認 / 認証 UI                                             | phishing、外部文言による誤認、認証の横取り         | MosaicLynx 自身の UI、外部 HTML / Markdown の不使用、署名ごとの再認証                             |
+| トランザクション内容検査                                   | 未知型、解析差異、表示とペイロードの不一致         | チェーン固有の解析 / 検証、表示内容の生成、正規対応確認、解析不能時の拒否                         |
+| wallet-core バインディング / ホストメモリ                  | 秘密情報の不要な複製、長期保持、誤った暗号実装     | wallet-core を正本とし、ホストの一時ライフサイクルと公開境界を管理、内部暗号を再実装しない        |
+| 保存領域、バックアップ、クリップボード、スクリーンショット | 秘密情報の漏えい、削除後の復元                     | 暗号化形式、明示操作、再認証、最小保持、クリップボード / プレビュー / 一時領域ファイルの制限      |
+| ノード / 外部 API                                          | 悪意のある補助情報、誤ったネットワーク、可用性依存 | ノードを信頼せず、ローカル解析を署名判断の根拠とし、失敗時は不合格終了済み                        |
+| 更新 / 移行 / リリース                                     | 改ざん、依存関係経由の侵害、平文退避               | 正規配布、改ざん検出、バージョン管理、厳格なレビュー、平文移行の禁止                              |
 
-## 5. Trust Boundary
+## 5. 信頼境界
 
 ```text
 外部・信頼しない領域
-  dApp / Web page / SDK / Provider / Deep Link / Relay / Node / 外部 API / network
-                    │ すべて untrusted input
+  dApp / Web ページ / SDK / Provider / ディープリンク / Relay / ノード / 外部 API / ネットワーク
+                    │ すべて信頼されていない入力
                     ▼
-MosaicLynx trusted host boundary
-  Browser Extension 本体 / Mobile App 本体
-  caller・permission・session・request integrity
-  Chain・Network・Account の整合性
-  transaction inspection・表示・明示承認・再認証
-                    │ approved raw payload のみ
+MosaicLynx 信頼されたホスト境界
+  ブラウザ拡張機能本体 / モバイルアプリ本体
+  呼び出し元・許可・セッション・要求完全性
+  チェーン・ネットワーク・アカウントの整合性
+  トランザクション内容検査・表示・明示承認・再認証
+                    │ 承認済み生のペイロードのみ
                     ▼
-Wallet Core logical / API boundary
-  鍵管理・Wallet Store 契約・秘密情報を使用する暗号処理・raw signing
+wallet-core 論理的な / API 境界
+  鍵管理・ウォレットストア契約・秘密情報を使用する暗号処理・生の署名
 ```
 
-Wallet Core を信頼することは、Application の承認を Wallet Core に代行させることを意味しない。Wallet Core は契約に従って秘密情報処理と署名を実行し、利用者の意思確認、caller、permission、表示および fail-closed は MosaicLynx host の責任である。Binding 自体が host runtime、WASM memory、JavaScript buffer、別 process または hardware から秘密情報を自動的に隔離・消去することも前提にしない。
+wallet-core を信頼することは、アプリケーションの承認を wallet-core に代行させることを意味しない。wallet-core は契約に従って秘密情報処理と署名を実行し、利用者の意思確認、呼び出し元、許可、表示および安全側での終了は MosaicLynx ホストの責任である。バインディング自体がホスト実行環境、WASM メモリ、JavaScript バッファー、別プロセスまたはハードウェアから秘密情報を自動的に隔離・消去することも前提にしない。
 
-## 6. Key Lifecycle
+## 6. 鍵ライフサイクル
 
-### 6.1 保持主体と生成・import
+### 6.1 保持主体と生成・インポート
 
-- private key と mnemonic は wallet-core のみが扱う。Browser Extension / Mobile App は opaque encrypted Store を保存するが、平文秘密を取得・保持しない。
-- SDK、dApp、Relay、外部 API に private key、mnemonic、復号鍵または password を渡してはならない。
-- Wallet Core は暗号処理中に秘密鍵を扱うが、平文の秘密情報を永続保存しない。永続化する場合は Wallet Core が提供する安全な暗号化形式を host の保管領域で扱う。
-- 現行 MosaicLynx UI の Mnemonic 新規作成・復元、raw private-key import / export は非対応。事前 provision 済み opaque Store と秘密を返さない正式 API だけを利用する。統合正本は [Wallet-core Integration](../specifications/wallet-core-integration.md)。外部 requester からの自動 Store 登録も禁止する。
+- 秘密鍵とニーモニックは wallet-core のみが扱う。ブラウザ拡張機能 / モバイルアプリは内容を解釈しない暗号化されたストアを保存するが、平文秘密を取得・保持しない。
+- SDK、dApp、Relay、外部 API に秘密鍵、ニーモニック、復号鍵またはパスワードを渡してはならない。
+- wallet-core は暗号処理中に秘密鍵を扱うが、平文の秘密情報を永続保存しない。永続化する場合は wallet-core が提供する安全な暗号化形式をホストの保管領域で扱う。
+- 現行 MosaicLynx UI のニーモニック新規作成・復元、生の秘密鍵インポート / エクスポートは非対応。事前準備済みの内容を解釈しないストアと秘密を返さない正式 API だけを利用する。統合正本は [Wallet-core 統合](../specifications/wallet-core-integration.md)。外部要求元からの自動ストア登録も禁止する。
 
-Symbol と NEM の Account / Key Identity は別々に管理する。Application Profile は一つの Chain と Profile が固定する Network に属し、Account、default Account、permission および signing authorization はその Chain に一致するものだけを関連付ける。Symbol と NEM の両方を利用する場合は Chain ごとに別 Profile を使用し、同一 Profile の Chain を切り替えたり、異なる Chain の Account / permission を混在させたりしない。mnemonic から導出する場合は対象 Chain を明示し、その Chain に対応する導出契約を使用する。Symbol 用に導出した秘密鍵を NEM 用として、または NEM 用に導出した秘密鍵を Symbol 用として暗黙に利用する Account model は採用しない。具体的な導出 path、algorithm、library、address 導出および Wallet Store 形式は Wallet Core / Chain integration へ委譲する。
+Symbol と NEM のアカウント / 鍵識別情報は別々に管理する。アプリケーションプロファイルは一つのチェーンとプロファイルが固定するネットワークに属し、アカウント、既定アカウント、許可および署名認可はそのチェーンに一致するものだけを関連付ける。Symbol と NEM の両方を利用する場合はチェーンごとに別プロファイルを使用し、同一プロファイルのチェーンを切り替えたり、異なるチェーンのアカウント / 許可を混在させたりしない。ニーモニックから導出する場合は対象チェーンを明示し、そのチェーンに対応する導出契約を使用する。Symbol 用に導出した秘密鍵を NEM 用として、または NEM 用に導出した秘密鍵を Symbol 用として暗黙に利用するアカウントモデルは採用しない。具体的な導出パス、アルゴリズム、ライブラリ、アドレス導出およびウォレットストア形式は wallet-core / チェーン統合へ委譲する。
 
 ### 6.2 保存・処理・破棄
 
-- private key / mnemonic を平文で永続保存してはならない。
-- Browser Extension / Mobile App は Wallet Core の暗号仕様を独自再実装せず、固定された契約を利用する。
-- 平文秘密鍵をアプリ全体の共有状態、Provider、Content Script、長寿命 object、URL、通知または長期 cache に保持してはならない。
-- 署名、復号、export 等の処理が終わったら、復号済み秘密情報を可能な限り速やかに破棄する。
-- lock、session 期限切れ、revoke、account 削除時は、復号済み秘密情報、一時認証状態、該当 session および不要な cache を無効化・削除する。
-- cryptographic erasure を基本とし、物理的完全消去を保証できない storage の性質を隠さない。
+- 秘密鍵 / ニーモニックを平文で永続保存してはならない。
+- ブラウザ拡張機能 / モバイルアプリは wallet-core の暗号仕様を独自再実装せず、固定された契約を利用する。
+- 平文秘密鍵をアプリ全体の共有状態、Provider、コンテンツスクリプト、長寿命オブジェクト、URL、通知または長期キャッシュに保持してはならない。
+- 署名、復号、エクスポート等の処理が終わったら、復号済み秘密情報を可能な限り速やかに破棄する。
+- ロック、セッション期限切れ、失効、アカウント削除時は、復号済み秘密情報、一時認証状態、該当セッションおよび不要なキャッシュを無効化・削除する。
+- 暗号学的な erasure を基本とし、物理的完全消去を保証できない保存領域の性質を隠さない。
 
-Wallet Core の KDF、AEAD、salt、nonce、DEK / KEK、Wallet Store schema および zeroization の具体仕様は Wallet Core の責務であり、本書では再設計しない。
+wallet-core の KDF、AEAD、ソルト、ノンス、DEK / KEK、ウォレットストアスキーマおよびゼロ化の具体仕様は wallet-core の責務であり、本書では再設計しない。
 
-### 6.3 Backup / export への入口
+### 6.3 バックアップ / エクスポートへの入口
 
-backup / export は利用者の明示操作時だけ実行でき、外部要求から起動してはならない。実行前に再認証し、秘密情報の表示・出力は専用の trusted UI で行う。形式、暗号化および migration は §13 と Wallet Core / platform 下位設計に従う。
+バックアップ / エクスポートは利用者の明示操作時だけ実行でき、外部要求から起動してはならない。実行前に再認証し、秘密情報の表示・出力は専用の信頼された UI で行う。形式、暗号化および移行は §13 と wallet-core / プラットフォーム下位設計に従う。
 
-## 7. Lock / Authentication Model
+## 7. ロック / 認証モデル
 
 ### 7.1 共通状態
 
-- Browser Extension / Mobile App は、起動、再起動、reload、process recreation、Browser Extension の extension reload または browser restart 後に MUST `LOCKED` とする。利用者の明示認証なしに `UNLOCKED`、署名可能状態または以前の認証済み状態へ移行・復帰してはならない。
-- 利用者認証後だけ UNLOCKED とする。
-- 明示的な lock と、一定時間の非操作等による自動 lock を提供する。具体的な時間値は platform 設計へ委譲する。
-- Browser Extension はブラウザ再起動・拡張機能再ロード時に lock する。
-- 外部の署名要求を受信しただけで unlock してはならない。unlock は利用者主体の操作とする。
-- 署名ごとに再認証を必須とし、自動署名を許可しない。接続済み permission、既存 session または直前の認証を別 request に流用してはならない。
-- lock 時は復号済み秘密情報と一時認証状態を破棄する。
+- ブラウザ拡張機能 / モバイルアプリは、起動、再起動、再読み込み、プロセス再作成、ブラウザ拡張機能の拡張機能再読み込みまたはブラウザ再起動後に MUST `LOCKED` とする。利用者の明示認証なしに `UNLOCKED`、署名可能状態または以前の認証済み状態へ移行・復帰してはならない。
+- 利用者認証後だけロック解除済みとする。
+- 明示的なロックと、一定時間の非操作等による自動ロックを提供する。具体的な時間値はプラットフォーム設計へ委譲する。
+- ブラウザ拡張機能はブラウザ再起動・拡張機能再ロード時にロックする。
+- 外部の署名要求を受信しただけでロック解除してはならない。ロック解除は利用者主体の操作とする。
+- 署名ごとに再認証を必須とし、自動署名を許可しない。接続済み許可、既存セッションまたは直前の認証を別要求に流用してはならない。
+- ロック時は復号済み秘密情報と一時認証状態を破棄する。
 
-### 7.2 Platform 差異
+### 7.2 プラットフォーム差異
 
-- Browser Extension は利用開始前にパスコード設定を必須とし、パスコード未設定では利用開始できない。署名ごとにパスコードを再入力する。
-- Mobile は PIN / パスコードを利用でき、生体認証も利用できる。生体認証の具体的な API、credential 保管、fallback および lifecycle は Mobile 設計へ委譲する。
+- ブラウザ拡張機能は利用開始前にパスコード設定を必須とし、パスコード未設定では利用開始できない。署名ごとにパスコードを再入力する。
+- モバイルは PIN / パスコードを利用でき、生体認証も利用できる。生体認証の具体的な API、認証情報保管、代替経路およびライフサイクルはモバイル設計へ委譲する。
 
-### 7.3 Brute-force protection
+### 7.3 総当たり攻撃保護
 
-- パスコード照合を単純な高速 hash だけで実装せず、鍵導出・照合方式は Wallet Core の契約に従う。
+- パスコード照合を単純な高速ハッシュだけで実装せず、鍵導出・照合方式は wallet-core の契約に従う。
 - 認証失敗を無制限かつ高速に試行できないようにし、連続失敗には段階的な待機時間を設ける。
 - アプリ再起動だけで失敗状態を容易にリセットできないようにする。
 - 認証失敗を理由に秘密鍵を自動削除せず、エラー文言から内部状態を推測できないようにする。
-- Mobile は利用可能な OS 認証・rate limit を優先できる。dApp、SDK、Relay は認証試行を直接実行できない。
+- モバイルは利用可能な OS 認証・頻度上限を優先できる。dApp、SDK、Relay は認証試行を直接実行できない。
 
-## 8. Signing Authorization / Blind Signing
+## 8. 署名認可 / 内容を確認しない署名
 
 ### 8.1 承認の必須条件
 
-署名前に、Signer 自身が署名対象を解析・検証し、trusted UI で利用者に表示して確認を求める。外部アプリが渡す表示用文言、app 名、icon、説明文または raw payload の自己申告を署名判断の根拠にしてはならない。
+署名前に、署名主体自身が署名対象を解析・検証し、信頼された UI で利用者に表示して確認を求める。外部アプリが渡す表示用文言、アプリ名、アイコン、説明文または生のペイロードの自己申告を署名判断の根拠にしてはならない。
 
-MosaicLynx 自身が署名対象から確認情報を生成し、利用者が確認した内容と Wallet Core に渡す実際の payload が一致することを、署名直前にも検証する。確認情報の生成後に payload、caller、Account、Chain または Network が変化した場合、承認を無効化して再確認する。
+MosaicLynx 自身が署名対象から確認情報を生成し、利用者が確認した内容と wallet-core に渡す実際のペイロードが一致することを、署名直前にも検証する。確認情報の生成後にペイロード、呼び出し元、アカウント、チェーンまたはネットワークが変化した場合、承認を無効化して再確認する。
 
-署名対象に存在する security-relevant field は、対象 Chain / operation に応じてすべて利用者が確認可能でなければならない。Signer は適用可能な field を解析し、意味を解釈し、trusted UI に表示できない場合は署名してはならない。field を意図的に省略・隠蔽してはならない。具体的な field 一覧、表示順および UI は Chain integration / platform 設計へ委譲する。
+署名対象に存在するセキュリティに関わるフィールドは、対象チェーン / 操作に応じてすべて利用者が確認可能でなければならない。署名主体は適用可能なフィールドを解析し、意味を解釈し、信頼された UI に表示できない場合は署名してはならない。フィールドを意図的に省略・隠蔽してはならない。具体的なフィールド一覧、表示順および UI はチェーン統合 / プラットフォーム設計へ委譲する。
 
 外部から取得する補助情報がなくても、署名対象そのものから判断できる重要情報は必ず表示する。補助情報の取得失敗を理由に、署名対象の事実を誤って表示してはならない。必須の確認情報を安全に生成・表示できない場合は署名しない。
 
-例として、対象 Chain / operation に適用される次の情報を確認可能にする。
+例として、対象チェーン / 操作に適用される次の情報を確認可能にする。
 
-- Network、Transaction type、Recipient、Amount / Mosaic、Fee、Deadline、Message
-- Aggregate 内部 Transaction
-- Metadata の変更内容、権限変更、その他の資産・状態変更に関わる情報
+- ネットワーク、トランザクション型、受信者、数量 / Mosaic、手数料、期限、メッセージ
+- アグリゲート内部トランザクション
+- メタデータの変更内容、権限変更、その他の資産・状態変更に関わる情報
 
 解釈できないフィールド、省略された危険な情報、取得できなかった必須情報を隠してはならない。
 
-### 8.2 Blind Signing
+### 8.2 内容を確認しない署名
 
-- Blind Signing は原則禁止する。
+- 内容を確認しない署名は原則禁止する。
 - MosaicLynx が解析し、安全に表示できない署名対象には署名しない。
-- 未知の Transaction Type、対象外 version、parse / validate 不能な raw payload は拒否する。
-- raw payload だけの要求も、安全に解釈できなければ拒否する。
-- 通常モードで警告だけを表示して bypass できる経路を設けない。
-- 将来 developer mode を設ける場合は、本書を変更せず別途脅威分析・設計・承認を行う。
+- 未知のトランザクション型、対象外バージョン、解析 / 検証不能な生のペイロードは拒否する。
+- 生のペイロードだけの要求も、安全に解釈できなければ拒否する。
+- 通常モードで警告だけを表示して迂回できる経路を設けない。
+- 将来開発者方式を設ける場合は、本書を変更せず別途脅威分析・設計・承認を行う。
 
-### 8.3 Message signing の共通原則
+### 8.3 メッセージ署名の共通原則
 
-Message signing では、対象 protocol / operation が要求する署名文脈を維持しなければならない。適用される security context には、検証済み caller / origin、Account、Chain / Network、purpose / operation、message contents、freshness information、nonce および domain separation が含まれる。すべての operation が全項目を要求するとは限らないが、対象 operation が要求する文脈を MosaicLynx が検証・表示できない場合は署名しない。
+メッセージ署名では、対象プロトコル / 操作が要求する署名文脈を維持しなければならない。適用されるセキュリティ文脈には、検証済み呼び出し元 / オリジン、アカウント、チェーン / ネットワーク、目的 / 操作、メッセージ内容、鮮度情報、ノンスおよびドメイン分離が含まれる。すべての操作が全項目を要求するとは限らないが、対象操作が要求する文脈を MosaicLynx が検証・表示できない場合は署名しない。
 
-ここでいう message-level の署名文脈は、request-level の `requestId` / `createdAt` / `expiresAt` による受け渡し要求の相関・期限・replay 防止とは別のセキュリティ層である。signed message 自体の replay、cross-domain および cross-purpose protection も、対象 protocol / operation の文脈として維持・検証する。具体的な API、wire schema、encoding、nonce format、domain separator の値、expiresAt の値および serialized message format は既存仕様と下位設計へ委譲する。
+ここでいうメッセージ単位の署名文脈は、要求単位の `requestId` / `createdAt` / `expiresAt` による受け渡し要求の相関・期限・リプレイ防止とは別のセキュリティ層である。署名済みメッセージ自体のリプレイ、ドメイン間のおよび目的間の保護も、対象プロトコル / 操作の文脈として維持・検証する。具体的な API、通信上のスキーマ、エンコーディング、ノンス形式、ドメイン区切り文字の値、expiresAt の値およびシリアライズ済みのメッセージ形式は既存仕様と下位設計へ委譲する。
 
-## 9. External Request / Permission Model
+## 9. 外部要求 / 許可モデル
 
-- 接続元ごとに permission を分離し、Browser Extension は origin 単位を基本とする。
-- Mobile は Deep Link、Relay、アプリ識別子等の識別可能な caller 単位で扱う。外部が自己申告した文字列だけで caller verified としてはならない。
-- 接続時に利用者が利用 Account を選択し、接続元へ公開するのは許可した Account の公開情報だけとする。
+- 接続元ごとに許可を分離し、ブラウザ拡張機能はオリジン単位を基本とする。
+- モバイルはディープリンク、Relay、アプリ識別子等の識別可能な呼び出し元単位で扱う。外部が自己申告した文字列だけで呼び出し元検証済みとしてはならない。
+- 接続時に利用者が利用アカウントを選択し、接続元へ公開するのは許可したアカウントの公開情報だけとする。
 - 接続許可と署名許可は別物である。接続済みでも署名は毎回確認・再認証する。
-- permission は利用者が revoke でき、revoke 時点で無効化する。
-- 外部側から Account、scope、Chain、Network または権限範囲を勝手に拡張できない。
-- account、caller、session、permission、Chain / Network を署名要求ごとに明示的に紐付ける。
+- 許可は利用者が失効でき、失効時点で無効化する。
+- 外部側からアカウント、対象範囲、チェーン、ネットワークまたは権限範囲を勝手に拡張できない。
+- アカウント、呼び出し元、セッション、許可、チェーン / ネットワークを署名要求ごとに明示的に紐付ける。
 
-## 10. Replay / Concurrent Request
+## 10. リプレイ / 並行する要求
 
-### 10.1 Replay protection
+### 10.1 リプレイ保護
 
-外部署名要求には requestId、createdAt、expiresAt を持たせる。期限切れ要求は拒否し、処理済み requestId は再処理しない。同一 requestId で内容が異なる要求は改ざんまたは衝突として拒否する。Relay、Deep Link、SDK など経路によらず同じ原則を適用し、署名結果を元 requestId に紐付ける。保存期間・cache 方式・永続性は下位設計へ委譲する。
+外部署名要求には requestId、createdAt、expiresAt を持たせる。期限切れ要求は拒否し、処理済み requestId は再処理しない。同一 requestId で内容が異なる要求は改ざんまたは衝突として拒否する。Relay、ディープリンク、SDK など経路によらず同じ原則を適用し、署名結果を元 requestId に紐付ける。保存期間・キャッシュ方式・永続性は下位設計へ委譲する。
 
-### 10.2 Concurrent request / approval isolation
+### 10.2 並行する要求 / 承認分離
 
-- request ごとに独立した requestId と状態を持つ。
-- 同時要求を混在させず、confirmation UI に caller、Account、Network、transaction を request 単位で明示する。
-- ある request の承認結果、認証結果、署名結果を別 request に流用しない。
-- パスコード入力後に署名対象を別 request へ差し替えない。
-- confirmation 開始後に payload が変更された場合は承認を無効化し、再確認する。
-- 1回の利用者承認を複数 request に適用しない。
-- account ごと、接続元ごと、Network ごとに状態を分離する。別 Account / Network へ切り替えたとき、以前の署名要求・一時認証・承認状態を継続しない。
-- Browser Extension の複数タブ要求、Mobile の複数 Relay / Deep Link 要求をそれぞれ独立した request / session として扱う。
-- ある接続元の permission、session または承認状態を別の接続元へ流用しない。
+- 要求ごとに独立した requestId と状態を持つ。
+- 同時要求を混在させず、確認 UI に呼び出し元、アカウント、ネットワーク、トランザクションを要求単位で明示する。
+- ある要求の承認結果、認証結果、署名結果を別要求に流用しない。
+- パスコード入力後に署名対象を別要求へ差し替えない。
+- 確認開始後にペイロードが変更された場合は承認を無効化し、再確認する。
+- 1回の利用者承認を複数要求に適用しない。
+- アカウントごと、接続元ごと、ネットワークごとに状態を分離する。別アカウント / ネットワークへ切り替えたとき、以前の署名要求・一時認証・承認状態を継続しない。
+- ブラウザ拡張機能の複数タブ要求、モバイルの複数 Relay / ディープリンク要求をそれぞれ独立した要求 / セッションとして扱う。
+- ある接続元の許可、セッションまたは承認状態を別の接続元へ流用しない。
 
 不変原則は次のとおりである。
 
-> 1 request = 1 confirmation = 1 authentication = 1 signing operation
+> 1 要求 = 1 確認 = 1 認証 = 1 署名操作
 
-## 11. Relay / Node / External API Trust Model
+## 11. Relay / ノード / 外部 API 信頼モデル
 
 ### 11.1 Relay
 
-Relay は信頼しない。Relay は配送のみを担当し、private key / mnemonic を受け取らず、Relay 側で署名、transaction の意味解釈、承認または認証を行わない。
+Relay は信頼しない。Relay は配送のみを担当し、秘密鍵 / ニーモニックを受け取らず、Relay 側で署名、トランザクションの意味解釈、承認または認証を行わない。
 
-Relay から届くデータはすべて untrusted input として Signer が再検証する。Relay が要求を書き換え、差し替え、遅延、重複または結果を取り違えても、完全性・requestId・期限・caller・permission・payload の検証により検出または拒否できなければならない。Relay 障害・侵害だけでは資産移動が成立してはならない。
+Relay から届くデータはすべて信頼されていない入力として署名主体が再検証する。Relay が要求を書き換え、差し替え、遅延、重複または結果を取り違えても、完全性・requestId・期限・呼び出し元・許可・ペイロードの検証により検出または拒否できなければならない。Relay 障害・侵害だけでは資産移動が成立してはならない。
 
-TLS を必須とし、Relay 上の metadata、transport credential の検証用情報および opaque envelope の保持は必要最小限とする。TLS、opaque envelope、認証、credential representation、期限、サイズ、回数、状態遷移、保存期間および protocol format の詳細は Relay / Handoff 設計へ委譲する。
+TLS を必須とし、Relay 上のメタデータ、通信経路認証情報の検証用情報および内容を解釈しないエンベロープの保持は必要最小限とする。TLS、内容を解釈しないエンベロープ、認証、認証情報表現、期限、サイズ、回数、状態遷移、保存期間およびプロトコル形式の詳細は Relay / 受け渡し設計へ委譲する。
 
-### 11.2 Node / network
+### 11.2 ノード / ネットワーク
 
-Symbol / NEM ノードは信頼しない。node response、dApp / node から渡された payload、fee、metadata、namespace、mosaic 情報等は外部入力または補助情報として検証する。
+Symbol / NEM ノードは信頼しない。ノード応答、dApp / ノードから渡されたペイロード、手数料、メタデータ、名前空間、mosaic 情報等は外部入力または補助情報として検証する。
 
-- Network Type / Network ID の不一致を検出して拒否する。
-- payload をそのまま表示・署名せず、Wallet Core および chain-specific inspection の parse / validate 結果を確認 UI に使う。
+- ネットワーク型 / ネットワーク ID の不一致を検出して拒否する。
+- ペイロードをそのまま表示・署名せず、wallet-core およびチェーン固有の内容検査の解析 / 検証結果を確認 UI に使う。
 - 補助情報の取得失敗が署名内容の誤認や検証省略につながらないようにする。
-- node が悪意を持っていても、利用者が確認していない内容への署名が成立しない構造にする。
+- ノードが悪意を持っていても、利用者が確認していない内容への署名が成立しない構造にする。
 - HTTPS を利用可能な通信では原則 HTTPS を使用する。可用性障害を理由に検証を省略しない。
 
 ### 11.3 SDK / 外部 API
 
-SDK と外部 API は信頼しない。SDK は秘密情報、認証、最終的な署名判断または表示を扱わず、外部からの要求と結果を Signer が検証できる境界で受け渡す。外部 API の応答は補助情報に留め、署名可否の単独の根拠にしない。
+SDK と外部 API は信頼しない。SDK は秘密情報、認証、最終的な署名判断または表示を扱わず、外部からの要求と結果を署名主体が検証できる境界で受け渡す。外部 API の応答は補助情報に留め、署名可否の単独の根拠にしない。
 
-## 12. Sensitive Data / Logging / Retention
+## 12. 機微なデータ / ログ出力 / 保持
 
 ### 12.1 情報分類
 
-| 分類      | 例                                                                                                                  | 取扱い                                                                                                                                                    |
-| --------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Secret    | private key、mnemonic、復号用鍵、E2E session secret、そこから得られる encryption material、パスコード由来の秘密情報 | 必要な期間だけ client-side の trusted boundary / Wallet Core 境界で扱う。Relay を含む untrusted boundary への受領・復号・ログ出力・永続平文保存を禁止する |
-| Sensitive | Account と caller の紐付け、permission、session、Relay の一時識別情報                                               | 必要最小限のみ保持し、外部送信・ログ出力は原則行わない。期限切れ・revoke・lock で無効化する                                                               |
-| Public    | address、public key、network、公開済みオンチェーン情報                                                              | 公開可能だが、目的なく記録・公開しない。Secret / Sensitive と結び付く文脈は保護する                                                                       |
+| 分類     | 例                                                                                                           | 取扱い                                                                                                                                                  |
+| -------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 秘密情報 | 秘密鍵、ニーモニック、復号用鍵、E2E セッション秘密情報、そこから得られる暗号化資料、パスコード由来の秘密情報 | 必要な期間だけクライアント側の信頼された境界 / wallet-core 境界で扱う。Relay を含む信頼されていない境界への受領・復号・ログ出力・永続平文保存を禁止する |
+| 機微な   | アカウントと呼び出し元の紐付け、許可、セッション、Relay の一時識別情報                                       | 必要最小限のみ保持し、外部送信・ログ出力は原則行わない。期限切れ・失効・ロックで無効化する                                                              |
+| 公開     | アドレス、公開鍵、ネットワーク、公開済みオンチェーン情報                                                     | 公開可能だが、目的なく記録・公開しない。秘密情報 / 機微なと結び付く文脈は保護する                                                                       |
 
-### 12.2 Logging / telemetry
+### 12.2 ログ出力 / 遠隔計測データ
 
-- Secret を log、warning、例外、Telemetry、Crash Report、analytics、通知、URL または clipboard に出してはならない。
-- Sensitive も原則ログ出力せず、必要な診断は最小限の正規化された分類だけにする。
-- transaction payload 全文ログを原則禁止する。Public 情報でも不要なら記録しない。
+- 秘密情報をログ、警告、例外、遠隔計測データ、異常終了報告書、利用状況分析、通知、URL またはクリップボードに出してはならない。
+- 機微なも原則ログ出力せず、必要な診断は最小限の正規化された分類だけにする。
+- トランザクションペイロード全文ログを原則禁止する。公開情報でも不要なら記録しない。
 - エラーは秘密情報や内部状態を含まない形に正規化する。
-- Debug build でも private key、mnemonic、password、復号済み Store を出力できる仕組みを作らない。
-- Telemetry に秘密情報・取引内容を送信しない。
+- デバッグビルドでも秘密鍵、ニーモニック、パスワード、復号済みストアを出力できる仕組みを作らない。
+- 遠隔計測データに秘密情報・取引内容を送信しない。
 
-### 12.3 Retention / secure deletion
+### 12.3 保持 / 安全な削除
 
-wallet-core が内部 Secret を処理・破棄し、MosaicLynx は復号済み private key / mnemonic を取得しない。処理済み request は replay 防止に必要な最小情報だけ保持する。session は期限切れ、revoke、lock で無効化し、Relay 一時データも必要最小期間で削除する。
+wallet-core が内部秘密情報を処理・破棄し、MosaicLynx は復号済み秘密鍵 / ニーモニックを取得しない。処理済み要求はリプレイ防止に必要な最小情報だけ保持する。セッションは期限切れ、失効、ロックで無効化し、Relay 一時データも必要最小期間で削除する。
 
-account 削除時は関連する Secret、session、permission を削除する。cache、temp file、backup、log から削除済み Secret を復元できる状態にしてはならない。物理的完全消去を保証できない storage では cryptographic erasure を基本とする。
+アカウント削除時は関連する秘密情報、セッション、許可を削除する。キャッシュ、一時領域ファイル、バックアップ、ログから削除済み秘密情報を復元できる状態にしてはならない。物理的完全消去を保証できない保存領域では暗号学的な erasure を基本とする。
 
-## 13. Backup / Export / Clipboard / Screenshot
+## 13. バックアップ / エクスポート / クリップボード / スクリーンショット
 
-### 13.1 Backup / export
+### 13.1 バックアップ / エクスポート
 
-- backup / export は利用者の明示操作時のみ実行し、外部アプリ、SDK、dApp から実行できないようにする。
-- 実行前に再認証する。private key / mnemonic の取得・表示・export は現行 MosaicLynx では禁止し、将来の secret-free な正式統合契約なしで追加しない。
-- 平文ファイルをデフォルトの export 形式にしない。Wallet Core の暗号化 Wallet Store 等が利用可能なら優先する。
-- export 失敗時に平文一時ファイルを残さない。Cloud Backup へ自動保存しない。
-- 暗号仕様、Wallet Store の内部形式、migration および復元整合性は Wallet Core / platform 下位設計の責務とする。
+- バックアップ / エクスポートは利用者の明示操作時のみ実行し、外部アプリ、SDK、dApp から実行できないようにする。
+- 実行前に再認証する。秘密鍵 / ニーモニックの取得・表示・エクスポートは現行 MosaicLynx では禁止し、将来の秘密情報を含まないな正式統合契約なしで追加しない。
+- 平文ファイルをデフォルトのエクスポート形式にしない。wallet-core の暗号化ウォレットストア等が利用可能なら優先する。
+- エクスポート失敗時に平文一時ファイルを残さない。Cloud バックアップへ自動保存しない。
+- 暗号仕様、ウォレットストアの内部形式、移行および復元整合性は wallet-core / プラットフォーム下位設計の責務とする。
 
-### 13.2 Clipboard / screenshot
+### 13.2 クリップボード / スクリーンショット
 
-- private key / mnemonic の clipboard コピーは禁止する。MosaicLynx が secret を取得する例外経路を設けない。
-- password を clipboard に保存しない。
-- address / public key は通常通りコピーできるが、Secret と混同しない。
-- Mobile では、パスコード / PIN / 生体認証等の認証画面、署名確認画面、transaction / message 承認画面、および caller / Account / Chain / Network / Amount 等の署名文脈を表示する画面を Sensitive UI として扱う。下位 Mobile 設計は、これらの画面について screenshot、screen recording、screen sharing、recent apps preview、notification、OS preview / task switcher その他の platform 固有の画面露出経路を必ず評価しなければならない。
-- Mobile の Sensitive UI では、OS が防止可能な範囲で保護を利用する。OS が完全に防止できない範囲について、画面露出を完全に防止できると設計または UI で誤認させてはならない。具体的な対象画面、OS API および保護方法は Mobile 設計へ委譲する。
-- Browser Extension では screenshot 防止を保証しない。
-- private key / mnemonic を recent apps preview、通知、履歴または temp UI に残さない。
-- private key / mnemonic の QR 表示は非対応とする。
+- 秘密鍵 / ニーモニックのクリップボードコピーは禁止する。MosaicLynx が秘密情報を取得する例外経路を設けない。
+- パスワードをクリップボードに保存しない。
+- アドレス / 公開鍵は通常通りコピーできるが、秘密情報と混同しない。
+- モバイルでは、パスコード / PIN / 生体認証等の認証画面、署名確認画面、トランザクション / メッセージ承認画面、および呼び出し元 / アカウント / チェーン / ネットワーク / 数量等の署名文脈を表示する画面を機微な UI として扱う。下位モバイル設計は、これらの画面についてスクリーンショット、画面録画、画面共有、直近のアプリプレビュー、通知、OS プレビュー / タスク switcher その他のプラットフォーム固有の画面露出経路を必ず評価しなければならない。
+- モバイルの機微な UI では、OS が防止可能な範囲で保護を利用する。OS が完全に防止できない範囲について、画面露出を完全に防止できると設計または UI で誤認させてはならない。具体的な対象画面、OS API および保護方法はモバイル設計へ委譲する。
+- ブラウザ拡張機能ではスクリーンショット防止を保証しない。
+- 秘密鍵 / ニーモニックを直近のアプリプレビュー、通知、履歴または一時領域 UI に残さない。
+- 秘密鍵 / ニーモニックの QR 表示は非対応とする。
 
-## 14. Sensitive UI / Anti-Phishing
+## 14. 機微な UI / フィッシング対策
 
 - パスコード入力画面と署名確認画面は、外部コンテンツから明確に分離する。
-- Browser Extension の重要操作は Extension 自身が所有する UI で行う。Mobile の承認・認証も Mobile App 自身の画面で行う。
-- dApp が渡した HTML、Markdown、任意 UI、app 名、icon、説明文をそのまま確認画面へ表示しない。
-- caller / origin は MosaicLynx 自身が取得・検証した値を表示する。外部自己申告の表示名だけを信頼しない。
-- パスコード入力欄を Web page 側へ提供しない。
-- Deep Link、Relay が指定した文言、外部アプリの branding によって信頼表示を作らない。
+- ブラウザ拡張機能の重要操作は拡張機能自身が所有する UI で行う。モバイルの承認・認証もモバイルアプリ自身の画面で行う。
+- dApp が渡した HTML、Markdown、任意 UI、アプリ名、アイコン、説明文をそのまま確認画面へ表示しない。
+- 呼び出し元 / オリジンは MosaicLynx 自身が取得・検証した値を表示する。外部自己申告の表示名だけを信頼しない。
+- パスコード入力欄を Web ページ側へ提供しない。
+- ディープリンク、Relay が指定した文言、外部アプリのブランド表示によって信頼表示を作らない。
 - セキュリティ重要 UI は一貫したデザインで MosaicLynx の操作として識別できるようにする。
 
-## 15. Fail-Closed / Incident Recovery
+## 15. 安全側での終了 / 事故復旧
 
-### 15.1 Fail-closed
+### 15.1 安全側での終了
 
 次のいずれかを確認できない場合は署名しない。
 
-- transaction / message の parse、validate、表示可能性
-- 未知 transaction type、未対応 version、対象 Chain / Network
-- network 判定、Account、caller、permission、session
-- request の期限、requestId、完全性、重複および内容整合性
-- 利用者の確認内容と実際の payload の一致
-- 利用者認証、Wallet Core validation、署名結果の対応
+- トランザクション / メッセージの解析、検証、表示可能性
+- 未知トランザクション型、未対応バージョン、対象チェーン / ネットワーク
+- ネットワーク判定、アカウント、呼び出し元、許可、セッション
+- 要求の期限、requestId、完全性、重複および内容整合性
+- 利用者の確認内容と実際のペイロードの一致
+- 利用者認証、wallet-core 検証、署名結果の対応
 
-Wallet Core が `error`、validation failure、warning、binding error、Store integrity / verification failure、または安全な署名処理の成立を保証できないその他の非成功状態を返した場合、Signer は署名処理を継続してはならない。その場合、署名結果を成功として返さず、warning を UI 警告だけで bypass して署名を継続せず、error / diagnostic に Secret を含めない。復旧後も以前の署名承認を流用してはならない。
+wallet-core が `error`、検証失敗、警告、結び付けエラー、ストア完全性 / 検証失敗、または安全な署名処理の成立を保証できないその他の非成功状態を返した場合、署名主体は署名処理を継続してはならない。その場合、署名結果を成功として返さず、警告を UI 警告だけで迂回して署名を継続せず、エラー / 診断に秘密情報を含めない。復旧後も以前の署名承認を流用してはならない。
 
-Relay、Node、外部 API の障害を理由に検証を省略せず、必須情報を危険な推測値で補完しない。内部例外、復号失敗、部分的な UI 状態または result unknown では処理を中断し、復旧後に以前の承認状態を使い回さない。
+Relay、ノード、外部 API の障害を理由に検証を省略せず、必須情報を危険な推測値で補完しない。内部例外、復号失敗、部分的な UI 状態または結果不明では処理を中断し、復旧後に以前の承認状態を使い回さない。
 
-### 15.2 Security incident / recovery
+### 15.2 セキュリティ事故 / 復旧
 
-セキュリティ異常を検知・疑義判定した場合は、署名可能状態を解除し、UNLOCKED / 一時認証状態を破棄し、session を無効化可能にする。必要に応じて permission を revoke し、処理中の署名要求を中断する。再承認なしに処理を再開してはならない。
+セキュリティ異常を検知・疑義判定した場合は、署名可能状態を解除し、ロック解除済み / 一時認証状態を破棄し、セッションを無効化可能にする。必要に応じて許可を失効し、処理中の署名要求を中断する。再承認なしに処理を再開してはならない。
 
-侵害疑いだけを理由に秘密鍵を自動削除してはならない。鍵漏洩疑いがある場合は、ユーザーが Account 移行・鍵更新を行えるよう促す。Relay / 外部サービスの侵害だけで private key 更新が必須になる構造にはしない。復旧後も以前の認証・署名承認状態を復元しない。詳細な incident response 手順は運用設計へ委譲する。
+侵害疑いだけを理由に秘密鍵を自動削除してはならない。鍵漏洩疑いがある場合は、ユーザーがアカウント移行・鍵更新を行えるよう促す。Relay / 外部サービスの侵害だけで秘密鍵更新が必須になる構造にはしない。復旧後も以前の認証・署名承認状態を復元しない。詳細な事故応答手順は運用設計へ委譲する。
 
-## 16. Software Integrity / Update Policy
+## 16. ソフトウェア完全性 / 更新ポリシー
 
-- Browser Extension / Mobile App は正規配布経路から更新する。
-- リリース成果物は改ざん検出可能な形で管理し、Wallet Core のバージョンを明示的に管理する。
-- セキュリティ重要依存関係を不用意に無制限の version range で取り込まない。
-- CI/CD から配布までの supply chain を保護する。
+- ブラウザ拡張機能 / モバイルアプリは正規配布経路から更新する。
+- リリース成果物は改ざん検出可能な形で管理し、wallet-core のバージョンを明示的に管理する。
+- セキュリティ重要依存関係を不用意に無制限のバージョン範囲で取り込まない。
+- CI/CD から配布までの供給チェーンを保護する。
 - 署名・鍵管理・認証変更は通常機能より厳格にレビューする。
 - セキュリティ更新不能な旧版を無期限に許容しない。
-- migration で Secret を平文退避せず、移行後に暗号データの互換性・完全性を検証する。
-- 開発版、debug 版、正式版を明確に分離する。
-- Mainnet capability は、適用される current release policy / evidence gate が成立した場合だけ有効化する。必須 evidence の欠落・不整合・期限切れ・検証不能、承認・署名・trusted key の失敗または policy 判定不能では Mainnet を有効化せず、Testnet-only または unavailable の安全側状態を維持する。
+- 移行で秘密情報を平文退避せず、移行後に暗号データの互換性・完全性を検証する。
+- 開発版、デバッグ版、正式版を明確に分離する。
+- Mainnet 対応能力は、適用される現在のリリースポリシー / 根拠判定条件が成立した場合だけ有効化する。必須根拠の欠落・不整合・期限切れ・検証不能、承認・署名・信頼された鍵の失敗またはポリシー判定不能では Mainnet を有効化せず、Testnet 専用または利用不能の安全側状態を維持する。
 
-具体的な GitHub Actions SHA pin、SBOM、成果物署名、evidence policy、trusted key、build embedding、runtime evaluator、配布停止および旧版廃止の手順は [Mainnet release evidence](../release/mainnet-release-evidence.md) と release / operation 設計へ委譲する。本書の原則を満たさない build capability を、UI を隠すだけで有効化してはならない。
+具体的な GitHub Actions SHA pin、SBOM、成果物署名、根拠ポリシー、信頼された鍵、ビルド埋め込み、実行環境評価器、配布停止および旧版廃止の手順は [Mainnet リリース証跡](../release/mainnet-release-evidence.md) とリリース / 操作設計へ委譲する。本書の原則を満たさないビルド対応能力を、UI を隠すだけで有効化してはならない。
 
-## 17. Security Invariants
+## 17. セキュリティ上の不変条件
 
 以下は、実装・下位設計・運用を通じて破ってはならない MUST である。
 
-1. 秘密鍵・mnemonic その他の Secret を untrusted external boundary に渡さない。例として SDK、dApp / Web page、Provider、Content Script、Deep Link、Relay、Node、外部 API、URL、log / telemetry / diagnostics を含むが、これらに限らない。
+1. 秘密鍵・ニーモニックその他の秘密情報を信頼されていない外部境界に渡さない。例として SDK、dApp / Web ページ、Provider、コンテンツスクリプト、ディープリンク、Relay、ノード、外部 API、URL、ログ / 遠隔計測データ / 診断情報を含むが、これらに限らない。
 2. 秘密情報を平文で永続保存しない。
-3. 外部入力はすべて untrusted input として扱う。
+3. 外部入力はすべて信頼されていない入力として扱う。
 4. 署名内容を解析・検証・表示できない場合は署名しない。
-5. ユーザーが確認した内容と実際に署名する payload を一致させる。
+5. ユーザーが確認した内容と実際に署名するペイロードを一致させる。
 6. `1 request = 1 confirmation = 1 authentication = 1 signing` とする。
 7. 署名ごとにユーザー認証を必須とし、自動署名を許可しない。
-8. 外部連携経路・補助サービス・untrusted component の単独侵害だけでは、秘密鍵取得または無確認署名を成立させない。
-9. Secret を log / telemetry / crash report に出力しない。
-10. 安全性を確認できない場合は Fail Closed とする。
+8. 外部連携経路・補助サービス・信頼されていないコンポーネントの単独侵害だけでは、秘密鍵取得または無確認署名を成立させない。
+9. 秘密情報をログ / 遠隔計測データ / 異常終了報告書に出力しない。
+10. 安全性を確認できない場合は不合格終了済みとする。
 11. 認証・署名確認 UI は MosaicLynx 自身が制御する。
 12. セキュリティ異常時は署名可能状態を解除し、以前の承認状態を再利用しない。
-13. Mainnet capability は current release policy / evidence gate に従って fail-closed にし、evidence または policy を判定できない場合は Mainnet を有効化しない。
-14. 一つの Application Profile は一つの Chain に固定し、異なる Chain の Account、permission、approval、authentication、signing authorization または result を同じ Profile context に関連付けない。両 Chain の利用は Chain ごとに分離された Profile context とする。
+13. Mainnet 対応能力は現在のリリースポリシー / 根拠判定条件に従って安全側での終了にし、根拠またはポリシーを判定できない場合は Mainnet を有効化しない。
+14. 一つのアプリケーションプロファイルは一つのチェーンに固定し、異なるチェーンのアカウント、許可、承認、認証、署名認可または結果を同じプロファイル文脈に関連付けない。両チェーンの利用はチェーンごとに分離されたプロファイル文脈とする。
 
 ## 18. 下位設計への委譲事項
 
-| 対象                | 委譲する事項                                                                                                                      | 維持すべき共通条件                                                                                         |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Wallet Core         | 暗号アルゴリズム、KDF、DEK / KEK、Wallet Store 内部仕様、秘密情報の一時処理、raw signing                                          | host が暗号を再実装せず、承認済み payload だけを渡し、平文 Secret を永続化しない                           |
-| Browser Extension   | Chrome API、origin 観測、privileged layer、UI、再ロード、Storage、具体的な自動 lock 時間、clipboard / screenshot の platform 限界 | Browser 本体 UI、per-origin permission、毎回再認証、外部コンテンツ分離、再起動時 lock                      |
-| Mobile App          | Deep Link / App Link、OS Secure Storage、生体認証、PIN、lifecycle、screen capture、preview、Sensitive UI の画面露出 policy、UI    | caller 検証、毎回の確認・再認証、OS を限定的に信頼、未確認要求の再開禁止、Sensitive UI の露出リスク評価    |
-| Relay               | protocol format、opaque envelope、TLS、認証、TTL、サイズ、回数、Redis、保存・削除                                                 | Relay を信頼せず、平文・E2E session secret / derived encryption material、承認、署名・意味解釈を持たせない |
-| SDK / Provider      | API、wire format、transport、caller binding、error mapping、retry                                                                 | Secret を扱わず、認証・承認・semantic inspection・fail-closed を Signer から奪わない                       |
-| Chain integration   | Symbol / NEM の対応 type / version、parse、validate、表示、canonicalization                                                       | chain と network を混同せず、unknown / parse failure / 表示不能を拒否する                                  |
-| Release / Operation | CI/CD、SHA pin、SBOM、成果物署名、release evidence / policy、Mainnet evaluator、incident response、旧版廃止                       | 改ざん検出、Mainnet gate の fail-closed、厳格な security review、侵害時の署名停止、平文 migration 禁止     |
+| 対象             | 委譲する事項                                                                                                                                      | 維持すべき共通条件                                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| wallet-core      | 暗号アルゴリズム、KDF、DEK / KEK、ウォレットストア内部仕様、秘密情報の一時処理、生の署名                                                          | ホストが暗号を再実装せず、承認済みペイロードだけを渡し、平文秘密情報を永続化しない                       |
+| ブラウザ拡張機能 | Chrome API、オリジン観測、特権を持つ層、UI、再ロード、保存領域、具体的な自動ロック時間、クリップボード / スクリーンショットのプラットフォーム限界 | ブラウザ本体 UI、per-origin 許可、毎回再認証、外部コンテンツ分離、再起動時ロック                         |
+| モバイルアプリ   | ディープリンク / App Link、OS 安全な保存領域、生体認証、PIN、ライフサイクル、画面取得、プレビュー、機微な UI の画面露出ポリシー、UI               | 呼び出し元検証、毎回の確認・再認証、OS を限定的に信頼、未確認要求の再開禁止、機微な UI の露出リスク評価  |
+| Relay            | プロトコル形式、内容を解釈しないエンベロープ、TLS、認証、TTL、サイズ、回数、Redis、保存・削除                                                     | Relay を信頼せず、平文・E2E セッション秘密情報 / 導出された暗号化資料、承認、署名・意味解釈を持たせない  |
+| SDK / Provider   | API、通信上の形式、通信経路、呼び出し元結び付け、エラー対応付け、再試行                                                                           | 秘密情報を扱わず、認証・承認・意味上の内容検査・安全側での終了を署名主体から奪わない                     |
+| チェーン統合     | Symbol / NEM の対応型 / バージョン、解析、検証、表示、正規化                                                                                      | チェーンとネットワークを混同せず、不明 / 解析失敗 / 表示不能を拒否する                                   |
+| リリース / 操作  | CI/CD、SHA pin、SBOM、成果物署名、リリース証跡 / ポリシー、Mainnet 評価器、事故応答、旧版廃止                                                     | 改ざん検出、Mainnet 判定条件の安全側での終了、厳格なセキュリティレビュー、侵害時の署名停止、平文移行禁止 |
 
 ## 19. 未決事項
 
 本書の確定方針を弱める判断は、次の未決事項を理由に行ってはならない。
 
-- `CR-OPEN-001` / `CR-OPEN-002`: 固定済み Wallet Core Binding の host integration、React Native 連携、秘密 byte の一時 lifecycle、OS 保護、error mapping、migration。
-- `MR-OPEN-002` / `MR-OPEN-003` / `MR-OPEN-005` / `MR-OPEN-006`: Mobile の受信経路、OS 保護、Binding integration、lifecycle、backup / migration。
-- `SDK-OPEN-002` / `SDK-OPEN-003` / `SDK-OPEN-004` / `SDK-OPEN-006` / `SDK-OPEN-007`: aggregate / cosignature の公開範囲、transport 選択と代替経路、transaction construction、version policy、caller / Origin binding。
-- 共通要件 `OPEN-003`: Android / iOS / Relay の milestone 完了条件と platform 固有依存。
-- Symbol / NEM の対応 transaction type / version、aggregate / multisig / cosignature を含む semantic inspection の範囲。
-- Profile 全体 backup / restore の platform ごとの責任分担と Wallet Core opaque Store の移行方法。
+- `CR-OPEN-001` / `CR-OPEN-002`: 固定済み wallet-core バインディングのホスト統合、React ネイティブ連携、秘密バイトの一時ライフサイクル、OS 保護、エラー対応付け、移行。
+- `MR-OPEN-002` / `MR-OPEN-003` / `MR-OPEN-005` / `MR-OPEN-006`: モバイルの受信経路、OS 保護、バインディング統合、ライフサイクル、バックアップ / 移行。
+- `SDK-OPEN-002` / `SDK-OPEN-003` / `SDK-OPEN-004` / `SDK-OPEN-006` / `SDK-OPEN-007`: アグリゲート / 連署署名の公開範囲、通信経路選択と代替経路、トランザクション組み立て、バージョンポリシー、呼び出し元 / オリジンとの結び付け。
+- 共通要件 `OPEN-003`: Android / iOS / Relay のマイルストーン完了条件とプラットフォーム固有依存。
+- Symbol / NEM の対応トランザクション型 / バージョン、アグリゲート / マルチシグ / 連署署名を含む意味上の内容検査の範囲。
+- プロファイル全体バックアップ / 復元のプラットフォームごとの責任分担と wallet-core 内容を解釈しないストアの移行方法。
 
-既存資料との整合について、次を OPEN として記録する。
+既存資料との整合について、次を未決として記録する。
 
-- **SEC-OPEN-002**: 同仕様 §22 は生体認証を将来 capability と記載している。本書は Mobile で生体認証を利用可能とするため、Mobile の capability、fallback および Profile 仕様の位置付けを整合させる必要がある。
-- **SEC-OPEN-004**: 共通要件と既存 handoff 仕様で定義済みの message signing 契約を前提とし、platform 側の表示受け入れ条件および既存 handoff 契約との最終整合だけを確認対象とする。解析不能な message を署名しない原則は変更しない。具体 API、wire schema、encoding および serialized message format は本書で再定義しない。
+- **SEC-OPEN-002**: 同仕様 §22 は生体認証を将来対応能力と記載している。本書はモバイルで生体認証を利用可能とするため、モバイルの対応能力、代替経路およびプロファイル仕様の位置付けを整合させる必要がある。
+- **SEC-OPEN-004**: 共通要件と既存受け渡し仕様で定義済みのメッセージ署名契約を前提とし、プラットフォーム側の表示受け入れ条件および既存受け渡し契約との最終整合だけを確認対象とする。解析不能なメッセージを署名しない原則は変更しない。具体 API、通信上のスキーマ、エンコーディングおよびシリアライズ済みのメッセージ形式は本書で再定義しない。
 
 次は解決済み事項である。
 
-- **SEC-OPEN-001（解決済み）**: Profile / Account 仕様 §20 を署名ごとの再認証に固定し、`while-unlocked` による署名時認証の省略を有効な実装条件から除外した。UNLOCKED は profile の利用状態であり、signing authentication の代替ではない。
-- **SEC-OPEN-003（解決済み）**: Symbol / NEM は別 Profile の別 Key Identity として扱い、mnemonic からは対象 Chain を明示して Chain ごとの導出契約を利用する。具体的な導出仕様は Wallet Core / Chain integration に委譲し、一つの Account の秘密鍵を Symbol / NEM で暗黙共用する Account model は採用しない。
+- **SEC-OPEN-001（解決済み）**: プロファイル / アカウント仕様 §20 を署名ごとの再認証に固定し、`while-unlocked` による署名時認証の省略を有効な実装条件から除外した。ロック解除済みはプロファイルの利用状態であり、署名認証の代替ではない。
+- **SEC-OPEN-003（解決済み）**: Symbol / NEM は別プロファイルの別鍵識別情報として扱い、ニーモニックからは対象チェーンを明示してチェーンごとの導出契約を利用する。具体的な導出仕様は wallet-core / チェーン統合に委譲し、一つのアカウントの秘密鍵を Symbol / NEM で暗黙共用するアカウントモデルは採用しない。
 
 ## 関連資料
 
 - [MosaicLynx アーキテクチャ設計](./architecture.md)
 - [MosaicLynx 共通要件定義書](../requirements/requirements.md)
-- [Profile / Account 仕様](../specifications/profile-account-spec.md)
-- [Web Transaction Handoff 仕様](../specifications/web-transaction-handoff-spec.md)
-- [Chain Compatibility 仕様](../specifications/chain-compatibility-spec.md)
-- [Product Specification](../specifications/product-spec.md)
-- [Release Threat Model](../release/threat-model.md)
+- [プロファイル / アカウント仕様](../specifications/profile-account-spec.md)
+- [Web トランザクション受け渡し仕様](../specifications/web-transaction-handoff-spec.md)
+- [チェーン互換性仕様](../specifications/chain-compatibility-spec.md)
+- [プロダクト仕様](../specifications/product-spec.md)
+- [リリース脅威モデル](../release/threat-model.md)
 - `_snwc/docs/requirements/requirements.md`
 - `_snwc/docs/specifications/specification.md`

@@ -1,135 +1,135 @@
-# Architecture Design Review 007
+# アーキテクチャ設計レビュー 007
 
-## Review Target
+## レビュー対象
 
-- **対象:** [Architecture Design](../../design/architecture.md) の単一 Chain Profile 境界反映
+- **対象:** [アーキテクチャ設計](../../design/architecture.md) の単一チェーンプロファイル境界反映
 - **確認日:** 2026-09-20
 - **対象コミット:** `204b4c2`
 - **関連確認:** `security-design.md`、`interfaces.md`、`browser-extension.md`、`mobile-app.md`、`signing-flow.md` の同一方針への整合
-- **レビュー範囲:** `CR-017` / `CR-AC-020` の設計追跡、Profile / Account / permission の責務、Chain / Network separation、signing authority、Profile switch lifecycle、Browser / Mobile host、wallet-core / Chain integration 境界、下流 handoff
-- **未確認範囲:** API、wire format、暗号パラメータ、wallet-core 内部契約、具体的 error code、実装・テスト・fixture・runtime、既存データの migration / backward compatibility
+- **レビュー範囲:** `CR-017` / `CR-AC-020` の設計追跡、プロファイル / アカウント / 許可の責務、チェーン / ネットワーク分離、署名判断権限、プロファイル切り替えライフサイクル、ブラウザ / モバイルホスト、wallet-core / チェーン統合境界、下流受け渡し
+- **未確認範囲:** API、通信上の形式、暗号パラメータ、wallet-core 内部契約、具体的エラーコード、実装・テスト・フィクスチャ・実行環境、既存データの移行 / 後方互換性
 
-## Execution Audit
+## 実行記録
 
-サブエージェントは使用せず、Review Board Chair が次の4パスを独立に実施した。
+サブエージェントは使用せず、レビュー Board レビュー統括が次の4パスを独立に実施した。
 
-| Pass            | 確認結果                                                                                                                                                            |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Reviewer A 相当 | Architecture、Security、Interfaces、Browser、Mobile、Signing Flow の Profile / Account、component responsibility、dependency direction、trust boundary を確認した。 |
-| Reviewer B 相当 | Mnemonic、private key、Wallet Store、signing authority、Profile-local context、Account authorization、Chain / Network separation、fail-closed を確認した。          |
-| Reviewer C 相当 | Profile creation / switch、pending request、approval、authentication、authorization、restart / lifecycle invalidation および別 Chain 利用時の運用境界を確認した。   |
-| Reviewer D 相当 | `CR-017` / `CR-AC-020`、Profile / Account Specification、Chain Compatibility、Browser / Mobile downstream handoff、traceability table を確認した。                  |
+| 合格              | 確認結果                                                                                                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| レビュアー A 相当 | アーキテクチャ、セキュリティ、インターフェース、ブラウザ、モバイル、署名フローのプロファイル / アカウント、コンポーネント責務、依存関係方向、信頼境界を確認した。 |
+| レビュアー B 相当 | ニーモニック、秘密鍵、ウォレットストア、署名判断権限、プロファイル内の文脈、アカウントの利用認可、チェーン / ネットワーク分離、安全側での終了を確認した。         |
+| レビュアー C 相当 | プロファイル作成 / 切り替え、保留中の要求、承認、認証、認可、再起動 / ライフサイクル無効化および別チェーン利用時の運用境界を確認した。                            |
+| レビュアー D 相当 | `CR-017` / `CR-AC-020`、プロファイル / アカウント仕様、チェーン互換性、ブラウザ / モバイル下流受け渡し、追跡可能性表を確認した。                                  |
 
-## Evidence Used
+## 参照した根拠
 
-| 資料                                                                                                             | 確認目的                                                                                       |
-| ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `docs/requirements/requirements.md`                                                                              | `CR-017`、`CR-AC-020`、単一 Chain Profile、別 Profile 利用、no-mixed state の根拠              |
-| `docs/reviews/requirements/requirements-review-007.md`                                                           | Requirements `READY`、`REQ7-001` の下流引継ぎ、既存 migration / compatibility を追加しない判断 |
-| `docs/specifications/profile-account-spec.md`、`product-spec.md`、`chain-compatibility-spec.md`、`mobile-app.md` | Profile.chain、Account、permission、Chain-specific identity、backup scope の下流契約           |
-| `docs/design/architecture.md`                                                                                    | 対象 Design の責務、依存、trust boundary、Profile invariant、§17.1 traceability                |
-| `docs/design/security-design.md`、`interfaces.md`、`browser-extension.md`、`mobile-app.md`、`signing-flow.md`    | 関連設計の security invariant、Profile-local context、Signer authority、lifecycle、下流整合    |
-| `architecture-review-006.md`、既存関連 Design Review                                                             | 過去の判定状態の continuity 確認のみ。過去 finding を自動的に継承していない                    |
+| 資料                                                                                                             | 確認目的                                                                                             |
+| ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `docs/requirements/requirements.md`                                                                              | `CR-017`、`CR-AC-020`、単一チェーンプロファイル、別プロファイル利用、no-mixed 状態の根拠             |
+| `docs/reviews/requirements/requirements-review-007.md`                                                           | 要件 `READY`、`REQ7-001` の下流引継ぎ、既存移行 / 互換性を追加しない判断                             |
+| `docs/specifications/profile-account-spec.md`、`product-spec.md`、`chain-compatibility-spec.md`、`mobile-app.md` | Profile.chain、アカウント、許可、チェーン固有の識別情報、バックアップ対象範囲の下流契約              |
+| `docs/design/architecture.md`                                                                                    | 対象設計の責務、依存、信頼境界、プロファイル不変条件、§17.1 追跡可能性                               |
+| `docs/design/security-design.md`、`interfaces.md`、`browser-extension.md`、`mobile-app.md`、`signing-flow.md`    | 関連設計のセキュリティ上の不変条件、プロファイル内の文脈、署名主体判断権限、ライフサイクル、下流整合 |
+| `architecture-review-006.md`、既存関連設計レビュー                                                               | 過去の判定状態の継続性確認のみ。過去指摘を自動的に継承していない                                     |
 
-## Review Result
+## レビュー結果
 
 **READY**
 
-## Summary
+## 要約
 
-Architecture は、Application Profile を作成時に一つの Chain / Network へ固定し、Account、default Account、permission、approval、authentication、signing authorization および result を同一 Profile の Chain に限定する設計へ更新されている。Symbol と NEM の両方を利用する場合は Chain ごとに別 Profile を使用し、Profile switch 時には旧 context を失効させる責任が Application / Signer にあることが確認できる。
+アーキテクチャは、アプリケーションプロファイルを作成時に一つのチェーン / ネットワークへ固定し、アカウント、既定アカウント、許可、承認、認証、署名認可および結果を同一プロファイルのチェーンに限定する設計へ更新されている。Symbol と NEM の両方を利用する場合はチェーンごとに別プロファイルを使用し、プロファイル切り替え時には旧文脈を失効させる責任がアプリケーション / 署名主体にあることが確認できる。
 
-Security、Interfaces、Browser、Mobile、Signing Flow も同じ Profile-local context と Account authorization の境界へ追跡されており、wallet-core の cryptographic identity / secret ownership、Chain integration の semantic inspection、Signer の approval / signing authority を混同していない。Critical、Major、Minor の新規 formal finding は確認しなかった。
+セキュリティ、インターフェース、ブラウザ、モバイル、署名フローも同じプロファイル内の文脈とアカウントの利用認可の境界へ追跡されており、wallet-core の暗号学的な識別情報 / 秘密情報所有責任、チェーン統合の意味上の内容検査、署名主体の承認 / 署名判断権限を混同していない。重大、主要、軽微の新規正式な指摘は確認しなかった。
 
-## Finding Status
+## 指摘の状態
 
-| ID   | Severity | Status | 初出レビュー | 今回の状態根拠                                                      |
-| ---- | -------- | ------ | ------------ | ------------------------------------------------------------------- |
-| なし | —        | —      | —            | Gate 不合格または任意改善として登録する新規 formal finding はない。 |
+| ID   | 重要度 | 状態 | 初出レビュー | 今回の状態根拠                                                   |
+| ---- | ------ | ---- | ------------ | ---------------------------------------------------------------- |
+| なし | —      | —    | —            | 判定条件不合格または任意改善として登録する新規正式な指摘はない。 |
 
-## Required Changes
+## 必須の修正
 
-なし。Critical の New / Open / Reopened finding はない。
+なし。重大の新規 / 未決 / 再発指摘はない。
 
-## Optional Improvements
+## 任意の改善
 
 なし。
 
-## Resolved Findings
+## 解消済みの指摘
 
-### Requirements `REQ7-001` の Design 反映
+### 要件 `REQ7-001` の設計反映
 
-- **対象箇所:** Architecture §3、§6.6、§13、§17.1、Security Design §6、§17、Interfaces §3.3、§6、Browser Extension Design §5.4、Mobile App Design §9、Signing Flow §3、§9、§23、§24。
-- **確認事実:** Application Profile の固定 Chain / Network、異なる Chain の Account / permission / authorization の関連付け禁止、両 Chain 利用時の別 Profile、Profile switch に伴う lifecycle invalidation が責務・invariant として定義されている。
-- **完了条件:** Specification の `Profile.chain`、単一 Account、別 Profile 利用、no-mixed acceptance と各 Design の Profile-local context / signer gate が相互に追跡できるため、Requirements Review からの Design 引継ぎを解消した。
+- **対象箇所:** アーキテクチャ §3、§6.6、§13、§17.1、セキュリティ設計 §6、§17、インターフェース §3.3、§6、ブラウザ拡張機能設計 §5.4、モバイルアプリ設計 §9、署名フロー §3、§9、§23、§24。
+- **確認事実:** アプリケーションプロファイルの固定チェーン / ネットワーク、異なるチェーンのアカウント / 許可 / 認可の関連付け禁止、両チェーン利用時の別プロファイル、プロファイル切り替えに伴うライフサイクル無効化が責務・不変条件として定義されている。
+- **完了条件:** 仕様の `Profile.chain`、単一アカウント、別プロファイル利用、no-mixed 受け入れと各設計のプロファイル内の文脈 / 署名主体判定条件が相互に追跡できるため、要件レビューからの設計引継ぎを解消した。
 
-## Upstream Feedback
+## 上流工程へのフィードバック
 
-なし。Requirements は `CR-017` / `CR-AC-020` と `CR-AC-020` の拒否・no-success 条件を提供しており、現行 Design を安全に評価できる。
+なし。要件は `CR-017` / `CR-AC-020` と `CR-AC-020` の拒否・成功を確定しない条件を提供しており、現行設計を安全に評価できる。
 
-## Deferred Findings
+## 後続工程へ委譲する指摘
 
-- 実装工程で、Profile 作成時の Chain 固定、Profile.chain と Account.chain の一致、異なる Chain の Account / permission の保存・authorization 拒否、Profile switch に伴う pending authorization の失効を確認する。
-- wallet-core Profile / Store と Application Profile の対応、opaque Store の migration、具体的な Binding ownership / error mapping は既存外部契約と OPEN に委譲する。Application が wallet-core Store の内部を解釈しない境界は維持する。
-- API、wire、暗号、具体的 error、parser、runtime lifecycle、既存データ migration / backward compatibility は本 Design Review の対象外であり、下位工程で確認する。既存 mixed Profile / backup の互換機能は現行開発範囲に追加しない。
+- 実装工程で、プロファイル作成時のチェーン固定、Profile.chain と Account.chain の一致、異なるチェーンのアカウント / 許可の保存・認可拒否、プロファイル切り替えに伴う保留中の認可の失効を確認する。
+- wallet-core プロファイル / ストアとアプリケーションプロファイルの対応、内容を解釈しないストアの移行、具体的なバインディング所有責任 / エラー対応付けは既存外部契約と未決に委譲する。アプリケーションが wallet-core ストアの内部を解釈しない境界は維持する。
+- API、通信上の、暗号、具体的エラー、パーサー、実行環境ライフサイクル、既存データ移行 / 後方互換性は本設計レビューの対象外であり、下位工程で確認する。既存混在したプロファイル / バックアップの互換機能は現行開発範囲に追加しない。
 
-## Scope and Traceability
+## 対象範囲と追跡可能性
 
-| 領域                                   | Requirements / Specification                                                                                        | Design の適用                                                                                                                                                 |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Profile の単一 Chain 境界              | `CR-017`、`CR-AC-020`、`profile-account-spec.md` §3、§11、§26、`product-spec.md` §4、§18                            | Architecture §3、§6.6、§13、§17.1、Security Design §6、§17                                                                                                    |
-| Account / permission / signing context | `CR-005`、`CR-009`、`CR-016`、`CR-017`、`CR-AC-020`、Profile / Account Specification §11、Product Specification §10 | Interfaces §3.3、§6、Browser Extension §5.4、Mobile App §9、Signing Flow §9、§16、§23                                                                         |
-| Chain-specific identity                | Chain Compatibility Specification §2、Architecture §6.7、§13                                                        | wallet-core は cryptographic identity / secret / raw signing owner、Chain integration は semantic inspection、Signer は Profile / Account authorization owner |
-| Lifecycle / stale context              | `CR-NFR-009`〜`CR-NFR-011`、`CR-AC-013`、`CR-AC-014`、Interfaces / Signing Flow の lifecycle invariant              | Architecture §6.9、Interfaces §6、Browser Extension §7、Mobile App §14〜§16、Signing Flow §7、§21、§23                                                        |
-| Backup / migration boundary            | `CR-014`、`OPEN-PROFILE-001`                                                                                        | Architecture §2.2、§17、Mobile / Profile Design の OPEN。現行 Profile 境界を弱める migration / compatibility を設計へ追加しない                               |
+| 領域                            | 要件 / 仕様                                                                                                 | 設計の適用                                                                                                                                            |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| プロファイルの単一チェーン境界  | `CR-017`、`CR-AC-020`、`profile-account-spec.md` §3、§11、§26、`product-spec.md` §4、§18                    | アーキテクチャ §3、§6.6、§13、§17.1、セキュリティ設計 §6、§17                                                                                         |
+| アカウント / 許可 / 署名文脈    | `CR-005`、`CR-009`、`CR-016`、`CR-017`、`CR-AC-020`、プロファイル / アカウント仕様 §11、プロダクト仕様 §10  | インターフェース §3.3、§6、ブラウザ拡張機能 §5.4、モバイルアプリ §9、署名フロー §9、§16、§23                                                          |
+| チェーン固有の識別情報          | チェーン互換性仕様 §2、アーキテクチャ §6.7、§13                                                             | wallet-core は暗号学的な識別情報 / 秘密情報 / 生の署名責任主体、チェーン統合は意味上の内容検査、署名主体はプロファイル / アカウントの利用認可責任主体 |
+| ライフサイクル / 古くなった文脈 | `CR-NFR-009`〜`CR-NFR-011`、`CR-AC-013`、`CR-AC-014`、インターフェース / 署名フローのライフサイクル不変条件 | アーキテクチャ §6.9、インターフェース §6、ブラウザ拡張機能 §7、モバイルアプリ §14〜§16、署名フロー §7、§21、§23                                       |
+| バックアップ / 移行境界         | `CR-014`、`OPEN-PROFILE-001`                                                                                | アーキテクチャ §2.2、§17、モバイル / プロファイル設計の未決。現行プロファイル境界を弱める移行 / 互換性を設計へ追加しない                              |
 
-## Domain Checks
+## ドメイン別の確認
 
-| 観点                                      | 判定 | 根拠                                                                                                                                                                                                                         |
-| ----------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Context / responsibility / trust boundary | Pass | Application / Signer が Profile、Account、permission、approval、authorization を所有し、wallet-core は cryptographic identity、Wallet Store、secret processing、raw signing を所有する。Relay と SDK は authority ではない。 |
-| Dependencies / direction                  | Pass | Application / host から chain integration / wallet-core へ責務が流れ、wallet-core へ UI、caller、permission、approval の責務を逆流させていない。                                                                             |
-| Main flows / lifecycle                    | Pass | Profile switch、lock、Account / permission change、Chain / Network change で pending authorization / approval / result context を失効させ、古い context を別 Profile へ流用しない。                                          |
-| Protected assets / secret ownership       | Pass | Mnemonic、private key、Profile password、decrypted Store は untrusted boundary へ出さず、Profile の metadata / permission と wallet-core の opaque Store / secret ownership を分離している。                                 |
-| Authentication / signing authority        | Pass | Profile.chain と Account / permission / authorization の一致を Application / Signer が確認し、四条件を同一 context へ binding する。wallet-core success は代替条件ではない。                                                 |
-| Failure / fail-closed                     | Pass | wrong Chain、stale、unknown、mismatch、解析不能および security failure は Signer が署名・success result へ進めない設計である。                                                                                               |
-| Chain / network separation                | Pass | Symbol / NEM、Mainnet / Testnet、Profile、Account、Chain-specific identity を同一 Profile に暗黙統合せず、両 Chain は別 Profile context へ分離する。                                                                         |
-| Downstream handoff                        | Pass | Profile.chain、単一 Profile、Account.chain 一致、別 Profile、Profile switch invalidation が Specification と実装検証へ引き渡せる。詳細 API / wire / crypto は正しい owner へ委譲されている。                                 |
+| 観点                              | 判定 | 根拠                                                                                                                                                                                                     |
+| --------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 文脈 / 責務 / 信頼境界            | 合格 | アプリケーション / 署名主体がプロファイル、アカウント、許可、承認、認可を所有し、wallet-core は暗号学的な識別情報、ウォレットストア、秘密情報処理、生の署名を所有する。Relay と SDK は判断権限ではない。 |
+| 依存関係 / 方向                   | 合格 | アプリケーション / ホストからチェーン統合 / wallet-core へ責務が流れ、wallet-core へ UI、呼び出し元、許可、承認の責務を逆流させていない。                                                                |
+| Main フロー / ライフサイクル      | 合格 | プロファイル切り替え、ロック、アカウント / 許可変更、チェーン / ネットワーク変更で保留中の認可 / 承認 / 結果文脈を失効させ、古い文脈を別プロファイルへ流用しない。                                       |
+| 保護された資産 / 秘密情報所有責任 | 合格 | ニーモニック、秘密鍵、プロファイルパスワード、復号されたストアは信頼されていない境界へ出さず、プロファイルのメタデータ / 許可と wallet-core の内容を解釈しないストア / 秘密情報所有責任を分離している。  |
+| 認証 / 署名判断権限               | 合格 | Profile.chain とアカウント / 許可 / 認可の一致をアプリケーション / 署名主体が確認し、四条件を同一文脈へ結び付けする。wallet-core 成功は代替条件ではない。                                                |
+| 失敗 / 安全側での終了             | 合格 | 誤ったチェーン、古くなった、不明、不一致、解析不能およびセキュリティ失敗は署名主体が署名・成功結果へ進めない設計である。                                                                                 |
+| チェーン / ネットワーク分離       | 合格 | Symbol / NEM、Mainnet / Testnet、プロファイル、アカウント、チェーン固有の識別情報を同一プロファイルに暗黙統合せず、両チェーンは別プロファイル文脈へ分離する。                                            |
+| 下流受け渡し                      | 合格 | Profile.chain、単一プロファイル、Account.chain 一致、別プロファイル、プロファイル切り替え無効化が仕様と実装検証へ引き渡せる。詳細 API / 通信上の / 暗号処理は正しい責任主体へ委譲されている。            |
 
-## Validation Results
+## 検証結果
 
-| 検証                                                | 結果                                                                                                                                                  |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Target revision / worktree audit                    | **Pass**。対象コミット `204b4c2` の Design 差分を確認し、レビュー成果物作成前の worktree は clean だった。                                            |
-| Design document formatting                          | **Pass**。`./node_modules/.bin/prettier --write` / `--check` を Architecture、Security、Interfaces、Browser、Mobile、Signing Flow の6文書へ実行した。 |
-| Whitespace                                          | **Pass**。`git diff --check` を実行した。                                                                                                             |
-| App / package lint、typecheck、test、build、runtime | **Not applicable / skipped**。Design 文書だけの変更であり、実装適合性は Implementation Review で確認する。                                            |
+| 検証                                                          | 結果                                                                                                                                                             |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 対象リビジョン / 作業ツリー監査                               | **合格**。対象コミット `204b4c2` の設計差分を確認し、レビュー成果物作成前の作業ツリーは未コミットの変更がないだった。                                            |
+| 設計文書整形                                                  | **合格**。`./node_modules/.bin/prettier --write` / `--check` をアーキテクチャ、セキュリティ、インターフェース、ブラウザ、モバイル、署名フローの6文書へ実行した。 |
+| 空白文字                                                      | **合格**。`git diff --check` を実行した。                                                                                                                        |
+| アプリ / パッケージ lint、typecheck、テスト、ビルド、実行環境 | **Not 適用可能な / skipped**。設計文書だけの変更であり、実装適合性は実装レビューで確認する。                                                                     |
 
-## Review Gates
+## レビュー判定基準
 
-| Gate                           | 判定     | 根拠                                                                                                                                                      | 対応 |
-| ------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
-| 1. 目的と範囲                  | **Pass** | Profile / Account / Signer の責務と、backup / migration / wallet-core の対象外境界が維持されている。                                                      | —    |
-| 2. Context / responsibility    | **Pass** | Application Profile、Signer、chain integration、wallet-core、SDK、Relay の authority と非 authority が明確である。                                        | —    |
-| 3. Dependencies / direction    | **Pass** | cryptographic identity / secret ownership は wallet-core、semantic inspection は chain integration、approval / authorization は Signer に分離されている。 | —    |
-| 4. Main flows                  | **Pass** | Profile selection、Profile switch、approval、pre-sign binding、stale / restart / lifecycle loss の責任を追跡できる。                                      | —    |
-| 5. Data ownership              | **Pass** | Application metadata / permission、public identity、opaque Store、Mnemonic / private key の境界と lifecycle owner が確認できる。                          | —    |
-| 6. Security / interoperability | **Pass** | single Chain Profile、wrong Chain / Network 防止、four-condition gate、Relay non-authority、wallet-core boundary が維持されている。                       | —    |
-| 7. Upstream consistency        | **Pass** | `CR-017` / `CR-AC-020`、Requirements Review `READY`、Specification Review `READY` および既存 Design の責任境界と整合する。                                | —    |
-| 8. Downstream implementability | **Pass** | Profile.chain、Account.chain 一致、別 Profile、no-mixed authorization、Profile switch invalidation が実装・検証へ引き渡せる。                             | —    |
+| 判定条件                     | 判定     | 根拠                                                                                                                                            | 対応 |
+| ---------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| 1. 目的と範囲                | **合格** | プロファイル / アカウント / 署名主体の責務と、バックアップ / 移行 / wallet-core の対象外境界が維持されている。                                  | —    |
+| 2. 文脈 / 責務               | **合格** | アプリケーションプロファイル、署名主体、チェーン統合、wallet-core、SDK、Relay の判断権限と非判断権限が明確である。                              | —    |
+| 3. 依存関係 / 方向           | **合格** | 暗号学的な識別情報 / 秘密情報所有責任は wallet-core、意味上の内容検査はチェーン統合、承認 / 認可は署名主体に分離されている。                    | —    |
+| 4. Main フロー               | **合格** | プロファイル選択、プロファイル切り替え、承認、署名前結び付け、古くなった / 再起動 / ライフサイクル消失の責任を追跡できる。                      | —    |
+| 5. データ所有責任            | **合格** | アプリケーションメタデータ / 許可、公開識別情報、内容を解釈しないストア、ニーモニック / 秘密鍵の境界とライフサイクル責任主体が確認できる。      | —    |
+| 6. セキュリティ / 相互運用性 | **合格** | 単一のチェーンプロファイル、誤ったチェーン / ネットワーク防止、四条件判定条件、Relay 判断権限を持たないこと、wallet-core 境界が維持されている。 | —    |
+| 7. 上流整合性                | **合格** | `CR-017` / `CR-AC-020`、要件レビュー `READY`、仕様レビュー `READY` および既存設計の責任境界と整合する。                                         | —    |
+| 8. 下流実装可能性            | **合格** | Profile.chain、Account.chain 一致、別プロファイル、no-mixed 認可、プロファイル切り替え無効化が実装・検証へ引き渡せる。                          | —    |
 
-## Remaining Risks and Open Decisions
+## 残存リスクと未決定事項
 
-- 現行実装が旧 mixed Profile model をどこまで保持しているか、実装適合性は未確認である。
-- wallet-core の opaque Store と Application Profile の exact mapping、Binding error / ownership、backup / migration は既存 OPEN / 外部契約へ委譲する。
-- Mobile App は現在の workspace に実装されておらず、Mobile Design の runtime 適合、実機、OS capability は未検証である。
+- 現行実装が旧混在したプロファイルモデルをどこまで保持しているか、実装適合性は未確認である。
+- wallet-core の内容を解釈しないストアとアプリケーションプロファイルの厳密な対応付け、バインディングエラー / 所有責任、バックアップ / 移行は既存未決 / 外部契約へ委譲する。
+- モバイルアプリは現在のワークスペースに実装されておらず、モバイル設計の実行環境適合、実機、OS 対応能力は未検証である。
 
-## Automatic Changes
+## 自動変更
 
-なし。レビュー中は Design、Requirements、Specification、実装およびテストを変更していない。レビュー成果物のみ新規作成する。
+なし。レビュー中は設計、要件、仕様、実装およびテストを変更していない。レビュー成果物のみ新規作成する。
 
-## Final Decision
+## 最終判断
 
 `READY`
 
-単一 Chain Profile の設計判断は責務、trust boundary、lifecycle、security invariant、Chain / Network separation および下流 handoff へ一貫して反映されている。Critical finding なしで Implementation 工程へ進める。
+単一チェーンプロファイルの設計判断は責務、信頼境界、ライフサイクル、セキュリティ上の不変条件、チェーン / ネットワーク分離および下流受け渡しへ一貫して反映されている。重大指摘なしで実装工程へ進める。

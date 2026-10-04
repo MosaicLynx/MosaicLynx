@@ -1,215 +1,215 @@
-# MosaicLynx 共通セキュリティ設計 Fresh Full Review 005
+# MosaicLynx 共通セキュリティ設計新鮮な全体レビュー 005
 
-## 1. Review Target
+## 1. レビュー対象
 
 - 対象: [`docs/design/security-design.md`](../../design/security-design.md)
-- Review ID: `security-design-review-005`
+- レビュー ID: `security-design-review-005`
 - 確認日: 2026-09-04
-- 種別: 復元後の `design-review` Skill による初回レビュー相当の fresh full review
-- 変更範囲: 本 review artifact の新規作成のみ。Security Design 本文、Architecture、Requirements、Specification、実装および設定は変更していない。
+- 種別: 復元後の `design-review` スキルによる初回レビュー相当の新鮮な全体レビュー
+- 変更範囲: 本レビュー成果物の新規作成のみ。セキュリティ設計本文、アーキテクチャ、要件、仕様、実装および設定は変更していない。
 - 過去レビュー: [`security-design-review-001.md`](./security-design-review-001.md)、[`security-design-review-002.md`](./security-design-review-002.md)、[`security-design-review-003.md`](./security-design-review-003.md)、[`security-design-review-004.md`](./security-design-review-004.md)
 
-過去の判定や finding は continuity 確認にのみ使用し、Review Gate は現行 Security Design と上流資料、Architecture、関連 Design / Specification、ADR および wallet-core の外部契約を独立に照合して判定した。API、wire format、暗号パラメータ、parser、Binding の ABI、zeroize 実装、UI pixel design、具体的な OS API、実装コードおよびテスト方式は本レビューの finding 範囲外とした。
+過去の判定や指摘は継続性確認にのみ使用し、レビュー判定条件は現行セキュリティ設計と上流資料、アーキテクチャ、関連設計 / 仕様、ADR および wallet-core の外部契約を独立に照合して判定した。API、通信上の形式、暗号パラメータ、パーサー、バインディングの ABI、ゼロ化実装、UI pixel 設計、具体的な OS API、実装コードおよびテスト方式は本レビューの指摘範囲外とした。
 
-## 2. Execution Audit
+## 2. 実行記録
 
-`.agents/skills/design-review/SKILL.md`、共通 review playbook、reviewers、security checklist、review gates、output format、`.agents/project-context.md` および root `AGENTS.md` を確認した。Repository に Security Design 専用の別 Review Skill は存在せず、`design-review` Skill の Reviewer B と security checklist が Security Design の正式な security review 手順である。
+`.agents/skills/design-review/SKILL.md`、共通レビュー作業手順、レビュアー、セキュリティ確認項目、レビュー判定基準、出力形式、`.agents/project-context.md` およびルート `AGENTS.md` を確認した。リポジトリにセキュリティ設計専用の別レビュースキルは存在せず、`design-review` スキルのレビュアー B とセキュリティ確認項目がセキュリティ設計の正式なセキュリティレビュー手順である。
 
-サブエージェントは使用せず、Reviewer A〜D を次の4つの独立した self-review path として実施した。
+サブエージェントは使用せず、レビュアー A〜D を次の4つの独立した自己確認パスとして実施した。
 
-| Path                          | 確認内容                                                                                                                                | 結果                                                                                                                           |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| A: structure / responsibility | 目的、範囲、Application、Browser Extension、Mobile App、SDK、Relay、Node、OS、wallet-core、user の責任分界                              | 基本責務と trusted signer の所有は成立。Relay / SDK / Node への権限逆流なし                                                    |
-| B: security primary           | asset、attacker、trust boundary、secret ownership / lifecycle、authentication、authorization、approval、replay、fail-closed、invariants | 主要 security boundary は成立。Mainnet gate と Relay E2E secret separation の表現に Minor finding                              |
-| C: flow / operations          | lock / restart、署名前再確認、request substitution、stale / duplicate / concurrent、result、backup、incident recovery                   | 安全側の状態遷移と承認再利用禁止は成立。下位 open item は適切に defer                                                          |
-| D: traceability / downstream  | Concept、Requirements、Architecture、ADR、関連 Design / Specification、wallet-core 外部契約、release responsibility                     | Mainnet 要件の Security Design §16 への追跡が generic delegation に留まる。Relay の E2E 要件も target 上の責任記述を明確化可能 |
+| パス                    | 確認内容                                                                                                              | 結果                                                                                                               |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| A: 構造 / 責務          | 目的、範囲、アプリケーション、ブラウザ拡張機能、モバイルアプリ、SDK、Relay、ノード、OS、wallet-core、利用者の責任分界 | 基本責務と信頼された署名主体の所有は成立。Relay / SDK / ノードへの権限逆流なし                                     |
+| B: セキュリティ primary | 資産、攻撃者、信頼境界、秘密情報所有責任 / ライフサイクル、認証、認可、承認、リプレイ、安全側での終了、不変条件       | 主要セキュリティ境界は成立。Mainnet 判定条件と Relay E2E 秘密情報分離の表現に軽微指摘                              |
+| C: フロー / 操作        | ロック / 再起動、署名前再確認、要求差し替え、古くなった / 重複 / 並行する、結果、バックアップ、事故復旧               | 安全側の状態遷移と承認再利用禁止は成立。下位未決項目は適切に委譲                                                   |
+| D: 追跡可能性 / 下流    | コンセプト、要件、アーキテクチャ、ADR、関連設計 / 仕様、wallet-core 外部契約、リリース責務                            | Mainnet 要件のセキュリティ設計 §16 への追跡が一般的な委譲に留まる。Relay の E2E 要件も対象上の責任記述を明確化可能 |
 
-候補は、要求または既存設計判断への traceability、Design-level の ownership / boundary / invariant か、下位実装だけでは解消できないか、具体的な asset / impact があるかで反証した。結果として Critical / Major はなく、Minor 2件を optional improvement として統合した。
+候補は、要求または既存設計判断への追跡可能性、Design-level の所有責任 / 境界 / 不変条件か、下位実装だけでは解消できないか、具体的な資産 / 影響があるかで反証した。結果として重大 / 主要はなく、軽微 2件を任意改善として統合した。
 
-## 3. Evidence Used
+## 3. 参照した根拠
 
-| 資料                                                                                                                                                                                                                                                                                                                                                             | 使用目的                                                                                                                                                                                                                                       |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`docs/design/security-design.md`](../../design/security-design.md)                                                                                                                                                                                                                                                                                              | Review target。Threat Model、Trust Boundary、Key / Secret lifecycle、Lock、Signing Authorization、Permission、Replay、Relay / Node、Sensitive Data、Backup、Fail-closed、Software Integrity、Security Invariants、委譲および SEC-OPEN-* を確認 |
-| [`security-design-review-001.md`](./security-design-review-001.md)、[`security-design-review-002.md`](./security-design-review-002.md)、[`security-design-review-003.md`](./security-design-review-003.md)、[`security-design-review-004.md`](./security-design-review-004.md)                                                                                   | 既存 `SD-SEC-*` / `SD-REVIEW-*` の continuity と再発確認。過去 READY 判定は今回の Gate 根拠として継承していない                                                                                                                                |
-| [`docs/concept/concept-sheet.md`](../../concept/concept-sheet.md)                                                                                                                                                                                                                                                                                                | Signer、明示承認、Relay 非署名、秘密情報分離および保証範囲を確認                                                                                                                                                                               |
-| [`docs/requirements/requirements.md`](../../requirements/requirements.md)、[`browser-extension.md`](../../requirements/browser-extension.md)、[`mobile-app.md`](../../requirements/mobile-app.md)、[`relay.md`](../../requirements/relay.md)、[`sdk.md`](../../requirements/sdk.md)                                                                              | Common、Browser、Mobile、Relay、SDK の security requirement、Mainnet gate、secret separation、caller / request binding、結果対応および open item を確認                                                                                        |
-| [`docs/design/architecture.md`](../../design/architecture.md)、[`architecture-review-005.md`](./architecture-review-005.md)                                                                                                                                                                                                                                      | 最新 Architecture の trusted signer、§6.9 共通4条件、E2E Relay boundary、Mainnet gate、§17.1 traceability と `DR-003` の影響を独立確認                                                                                                         |
-| [`docs/design/signing-flow.md`](../../design/signing-flow.md)、[`interfaces.md`](../../design/interfaces.md)、[`browser-extension.md`](../../design/browser-extension.md)、[`mobile-app.md`](../../design/mobile-app.md)、[`relay.md`](../../design/relay.md)、[`sdk.md`](../../design/sdk.md)                                                                   | Signing、approval、caller / permission、host lifecycle、Relay opaque transport、SDK non-privilege の責任境界を照合                                                                                                                             |
-| [`profile-account-spec.md`](../../specifications/profile-account-spec.md)、[`chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md)、[`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md)、[`product-spec.md`](../../specifications/product-spec.md)                                               | Profile / Account、署名ごとの認証、Symbol / NEM 分離、message context、Relay E2E、backup と Mainnet capability の下位契約を確認                                                                                                                |
-| [`0001-mainnet-evidence-lite.md`](../../adr/0001-mainnet-evidence-lite.md)、[`mainnet-release-evidence.md`](../../release/mainnet-release-evidence.md)、[`release-process.md`](../../release/release-process.md)、[`threat-model.md`](../../release/threat-model.md)                                                                                             | Mainnet capability、release evidence / policy、fail-closed、software integrity および保証境界を確認                                                                                                                                            |
-| [`_snwc/docs/design/security.md`](../../../_snwc/docs/design/security.md)、[`_snwc/docs/design/architecture.md`](../../../_snwc/docs/design/architecture.md)、[`_snwc/docs/requirements/requirements.md`](../../../_snwc/docs/requirements/requirements.md)、[`_snwc/docs/specifications/specification.md`](../../../_snwc/docs/specifications/specification.md) | wallet-core の secret / Store / raw signing ownership、Application-level approval / authentication 非担当、Binding の論理境界および external contract を確認                                                                                   |
+| 資料                                                                                                                                                                                                                                                                                                                                                             | 使用目的                                                                                                                                                                                                                                  |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`docs/design/security-design.md`](../../design/security-design.md)                                                                                                                                                                                                                                                                                              | レビュー対象。脅威モデル、信頼境界、鍵 / 秘密情報ライフサイクル、ロック、署名認可、許可、リプレイ、Relay / ノード、機微なデータ、バックアップ、安全側での終了、ソフトウェア完全性、セキュリティ上の不変条件、委譲および SEC-OPEN-* を確認 |
+| [`security-design-review-001.md`](./security-design-review-001.md)、[`security-design-review-002.md`](./security-design-review-002.md)、[`security-design-review-003.md`](./security-design-review-003.md)、[`security-design-review-004.md`](./security-design-review-004.md)                                                                                   | 既存 `SD-SEC-*` / `SD-REVIEW-*` の継続性と再発確認。過去 READY 判定は今回の判定条件根拠として継承していない                                                                                                                               |
+| [`docs/concept/concept-sheet.md`](../../concept/concept-sheet.md)                                                                                                                                                                                                                                                                                                | 署名主体、明示承認、Relay 非署名、秘密情報分離および保証範囲を確認                                                                                                                                                                        |
+| [`docs/requirements/requirements.md`](../../requirements/requirements.md)、[`browser-extension.md`](../../requirements/browser-extension.md)、[`mobile-app.md`](../../requirements/mobile-app.md)、[`relay.md`](../../requirements/relay.md)、[`sdk.md`](../../requirements/sdk.md)                                                                              | 共通の、ブラウザ、モバイル、Relay、SDK のセキュリティ要求、Mainnet 判定条件、秘密情報分離、呼び出し元 / 要求結び付け、結果対応および未決項目を確認                                                                                        |
+| [`docs/design/architecture.md`](../../design/architecture.md)、[`architecture-review-005.md`](./architecture-review-005.md)                                                                                                                                                                                                                                      | 最新アーキテクチャの信頼された署名主体、§6.9 共通4条件、E2E Relay 境界、Mainnet 判定条件、§17.1 追跡可能性と `DR-003` の影響を独立確認                                                                                                    |
+| [`docs/design/signing-flow.md`](../../design/signing-flow.md)、[`interfaces.md`](../../design/interfaces.md)、[`browser-extension.md`](../../design/browser-extension.md)、[`mobile-app.md`](../../design/mobile-app.md)、[`relay.md`](../../design/relay.md)、[`sdk.md`](../../design/sdk.md)                                                                   | 署名、承認、呼び出し元 / 許可、ホストライフサイクル、Relay 内容を解釈しない通信経路、SDK non-privilege の責任境界を照合                                                                                                                   |
+| [`profile-account-spec.md`](../../specifications/profile-account-spec.md)、[`chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md)、[`web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md)、[`product-spec.md`](../../specifications/product-spec.md)                                               | プロファイル / アカウント、署名ごとの認証、Symbol / NEM 分離、メッセージ文脈、Relay E2E、バックアップと Mainnet 対応能力の下位契約を確認                                                                                                  |
+| [`0001-mainnet-evidence-lite.md`](../../adr/0001-mainnet-evidence-lite.md)、[`mainnet-release-evidence.md`](../../release/mainnet-release-evidence.md)、[`release-process.md`](../../release/release-process.md)、[`threat-model.md`](../../release/threat-model.md)                                                                                             | Mainnet 対応能力、リリース証跡 / ポリシー、安全側での終了、ソフトウェア完全性および保証境界を確認                                                                                                                                         |
+| [`_snwc/docs/design/security.md`](../../../_snwc/docs/design/security.md)、[`_snwc/docs/design/architecture.md`](../../../_snwc/docs/design/architecture.md)、[`_snwc/docs/requirements/requirements.md`](../../../_snwc/docs/requirements/requirements.md)、[`_snwc/docs/specifications/specification.md`](../../../_snwc/docs/specifications/specification.md) | wallet-core の秘密情報 / ストア / 生の署名所有責任、アプリケーションレベルの承認 / 認証非担当、バインディングの論理境界および外部契約を確認                                                                                               |
 
-チェックアウト済み `_snwc` には、repository 内の一部資料が参照する `docs/decisions/binding-implementation.md` は存在しなかった。そのため当該ファイルの内容を根拠にせず、現存する wallet-core design / requirements / specification と MosaicLynx Architecture の記述だけを使用した。
+チェックアウト済み `_snwc` には、リポジトリ内の一部資料が参照する `docs/decisions/binding-implementation.md` は存在しなかった。そのため当該ファイルの内容を根拠にせず、現存する wallet-core 設計 / 要件 / 仕様と MosaicLynx アーキテクチャの記述だけを使用した。
 
-## 4. Review Result
+## 4. レビュー結果
 
-**Review Gate: `READY`**
+**レビュー判定条件: `READY`**
 
-Critical 0、Major 0、Minor 2（いずれも New / Open）である。`design-review` Skill は Critical がない場合、Major / Minor を Optional Improvements として引き継ぎ可能としているため、Gate は `READY` とする。2件は release / Relay の高位 security policy の明示性を改善するもので、private key compromise、untrusted signer、authorization bypass または trust boundary collapse を直接成立させる欠陥ではない。
+重大 0、主要 0、軽微 2（いずれも新規 / 未決）である。`design-review` スキルは重大がない場合、主要 / 軽微を任意の改善として引き継ぎ可能としているため、判定条件は `READY` とする。2件はリリース / Relay の高位セキュリティポリシーの明示性を改善するもので、秘密鍵侵害、信頼されていない署名主体、認可迂回または信頼境界 collapse を直接成立させる欠陥ではない。
 
-## 5. Summary
+## 5. 要約
 
-- Browser Extension と Mobile App の trusted host が trusted signer であり、SDK、dApp / Web page、Provider、Deep Link、Relay、Node、external API および OS は最終的な signing authority ではない。trusted component と trusted input の混同はない。
-- private key、mnemonic、derived / decryption secret、password-derived secret、Wallet Store、temporary signing data、authentication / session state の所有、lock / revoke / expiry / incident 時の無効化が、host と wallet-core の境界に沿って定義されている。秘密鍵保有と user approval は明確に分離されている。
-- Signer 自身の trusted UI、全 security-relevant field の確認可能性、reviewed payload と実 payload の一致、Account / Chain / Network / caller / permission / session binding、署名ごとの再認証、`1 request = 1 confirmation = 1 authentication = 1 signing operation` が定義され、blind signing、unknown state、stale / duplicate / substituted request は拒否される。
-- Relay は opaque delivery と短期状態に限定され、Node は補助情報源に限定される。Relay / Node / SDK の侵害だけで key acquisition や unconfirmed signing に到達しない。Relay の E2E confidentiality と E2E secret / transport credential の分離は下位資料では明確だが、target 本文の高位方針としては `DR-SEC-002` を記録する。
-- Requirements、Architecture、release evidence の Mainnet fail-closed は成立しているが、target §16 が generic な release delegation に留まり、common Security Design 自身の traceability が弱い。この点を `DR-SEC-001` とした。
+- ブラウザ拡張機能とモバイルアプリの信頼されたホストが信頼された署名主体であり、SDK、dApp / Web ページ、Provider、ディープリンク、Relay、ノード、外部 API および OS は最終的な署名判断権限ではない。信頼されたコンポーネントと信頼された入力の混同はない。
+- 秘密鍵、ニーモニック、導出された / 復号秘密情報、password-derived 秘密情報、ウォレットストア、一時的な署名データ、認証 / セッション状態の所有、ロック / 失効 / 期限切れ / 事故時の無効化が、ホストと wallet-core の境界に沿って定義されている。秘密鍵保有と利用者承認は明確に分離されている。
+- 署名主体自身の信頼された UI、全セキュリティに関わるフィールドの確認可能性、レビュー対象のペイロードと実ペイロードの一致、アカウント / チェーン / ネットワーク / 呼び出し元 / 許可 / セッション結び付け、署名ごとの再認証、`1 request = 1 confirmation = 1 authentication = 1 signing operation` が定義され、内容を確認しない署名、不明状態、古くなった / 重複 / substituted 要求は拒否される。
+- Relay は内容を解釈しない配送と短期状態に限定され、ノードは補助情報源に限定される。Relay / ノード / SDK の侵害だけで鍵取得や unconfirmed 署名に到達しない。Relay の E2E 機密性と E2E 秘密情報 / 通信経路認証情報の分離は下位資料では明確だが、対象本文の高位方針としては `DR-SEC-002` を記録する。
+- 要件、アーキテクチャ、リリース証跡の Mainnet 安全側での終了は成立しているが、対象 §16 が一般的なリリース委譲に留まり、共通のセキュリティ設計自身の追跡可能性が弱い。この点を `DR-SEC-001` とした。
 
-## 6. Finding Status
+## 6. 指摘の状態
 
-| ID              | Severity      | Status     | 初出 / continuity            | 今回の状態                                                                                                                                 |
-| --------------- | ------------- | ---------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `SD-SEC-001`    | 過去 `MEDIUM` | Resolved   | `security-design-review-001` | §8.1 が適用可能な security-relevant field の確認可能性と、表示不能時の拒否を明示                                                           |
-| `SD-SEC-002`    | 過去 `MEDIUM` | Resolved   | `security-design-review-001` | §15.1 が Wallet Core error、validation failure、warning、binding error、Store integrity / verification failureを fail-closed に接続        |
-| `SD-SEC-003`    | 過去 `MEDIUM` | Resolved   | `security-design-review-001` | §8.3 が message-level context と request-level replay protection を分離し、caller / purpose / nonce / freshness / domain separation を定義 |
-| `SD-SEC-004`    | 過去 `MEDIUM` | Resolved   | `security-design-review-001` | Invariant 1 / 8 が Provider、Content Script、URL、Deep Link、Node 等を含む untrusted boundary を包括                                       |
-| `SD-SEC-005`    | 過去 `MEDIUM` | Resolved   | `security-design-review-001` | Profile §20 が `every-signature` に固定され、`while-unlocked` を signing authentication の代替にしない                                     |
-| `SD-REVIEW-001` | 過去 `MEDIUM` | Resolved   | `security-design-review-002` | §7.1 が全 Signer の startup / restart / reload 後 `LOCKED` を MUST 化                                                                      |
-| `SD-REVIEW-002` | 過去 `LOW`    | Resolved   | `security-design-review-002` | §13.2 / §18 が認証・署名確認・transaction / message context を Mobile Sensitive UI として下流へ引継ぎ                                      |
-| `SD-REVIEW-003` | 過去 `MEDIUM` | Resolved   | `security-design-review-002` | §6.1 / §19 が Symbol / NEM を別 Key Identity とし、Chain-specific derivation を要求                                                        |
-| `DR-SEC-001`    | Minor         | New / Open | `security-design-review-005` | Mainnet capability の evidence / policy fail-closed が target §16 で明示されず、generic release delegation から一意に追跡できない          |
-| `DR-SEC-002`    | Minor         | New / Open | `security-design-review-005` | Relay path の E2E message confidentiality と E2E session secret / transport credential の分離が target 上で十分明示されない                |
+| ID              | 重要度        | 状態        | 初出 / 継続性                | 今回の状態                                                                                                          |
+| --------------- | ------------- | ----------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `SD-SEC-001`    | 過去 `MEDIUM` | 解消済み    | `security-design-review-001` | §8.1 が適用可能なセキュリティに関わるフィールドの確認可能性と、表示不能時の拒否を明示                               |
+| `SD-SEC-002`    | 過去 `MEDIUM` | 解消済み    | `security-design-review-001` | §15.1 が wallet-core エラー、検証失敗、警告、結び付けエラー、ストア完全性 / 検証失敗を安全側での終了に接続          |
+| `SD-SEC-003`    | 過去 `MEDIUM` | 解消済み    | `security-design-review-001` | §8.3 がメッセージ単位の文脈と要求単位のリプレイ保護を分離し、呼び出し元 / 目的 / ノンス / 鮮度 / ドメイン分離を定義 |
+| `SD-SEC-004`    | 過去 `MEDIUM` | 解消済み    | `security-design-review-001` | 不変条件 1 / 8 が Provider、コンテンツスクリプト、URL、ディープリンク、ノード等を含む信頼されていない境界を包括     |
+| `SD-SEC-005`    | 過去 `MEDIUM` | 解消済み    | `security-design-review-001` | プロファイル §20 が `every-signature` に固定され、`while-unlocked` を署名認証の代替にしない                         |
+| `SD-REVIEW-001` | 過去 `MEDIUM` | 解消済み    | `security-design-review-002` | §7.1 が全署名主体の起動 / 再起動 / 再読み込み後 `LOCKED` を MUST 化                                                 |
+| `SD-REVIEW-002` | 過去 `LOW`    | 解消済み    | `security-design-review-002` | §13.2 / §18 が認証・署名確認・トランザクション / メッセージ文脈をモバイル機微な UI として下流へ引継ぎ               |
+| `SD-REVIEW-003` | 過去 `MEDIUM` | 解消済み    | `security-design-review-002` | §6.1 / §19 が Symbol / NEM を別鍵識別情報とし、チェーン固有の導出を要求                                             |
+| `DR-SEC-001`    | 軽微          | 新規 / 未決 | `security-design-review-005` | Mainnet 対応能力の根拠 / ポリシー安全側での終了が対象 §16 で明示されず、一般的なリリース委譲から一意に追跡できない  |
+| `DR-SEC-002`    | 軽微          | 新規 / 未決 | `security-design-review-005` | Relay パスの E2E メッセージ機密性と E2E セッション秘密情報 / 通信経路認証情報の分離が対象上で十分明示されない       |
 
-`SEC-OPEN-001` と `SEC-OPEN-003` は target 本文で解決済みである。`SEC-OPEN-002`（Mobile biometric capability / fallback / lifecycle）と `SEC-OPEN-004`（既存 message handoff contract と platform display acceptance の最終整合）は Open のままだが、共通 security invariant を弱めない下流委譲であり formal finding ではない。Architecture の `DR-003` は message signing の traceability drift であり、target §8.3 と handoff specification が security boundary を既に定めているため、本 review の finding へ連鎖させない。
+`SEC-OPEN-001` と `SEC-OPEN-003` は対象本文で解決済みである。`SEC-OPEN-002`（モバイル生体認証対応能力 / 代替経路 / ライフサイクル）と `SEC-OPEN-004`（既存メッセージ受け渡し契約とプラットフォーム表示受け入れの最終整合）は未決のままだが、共通セキュリティ上の不変条件を弱めない下流委譲であり正式な指摘ではない。アーキテクチャの `DR-003` はメッセージ署名の追跡可能性乖離であり、対象 §8.3 と受け渡し仕様がセキュリティ境界を既に定めているため、本レビューの指摘へ連鎖させない。
 
-## 7. Required Changes
+## 7. 必須の修正
 
-なし。Critical の New / Open / Reopened finding はない。
+なし。重大の新規 / 未決 / 再発指摘はない。
 
-## 8. Optional Improvements
+## 8. 任意の改善
 
-### `DR-SEC-001` — Mainnet capability の release gate traceability
+### `DR-SEC-001` — Mainnet 対応能力のリリース判定追跡可能性
 
-- **Severity:** Minor
-- **Status:** New / Open
-- **Location:** [`security-design.md`](../../design/security-design.md) §16、§18 `Release / Operation`、関連資料列挙
-- **Problem:** target §16 は正規配布、改ざん検出、version / dependency、レビュー、migration および generic な `release gate` の委譲を定めるが、`Mainnet capability`、適用 policy / evidence、判定不能時の Testnet-only / unavailable への fail-closed を明示していない。Requirements `CR-NFR-006` / `CR-AC-008`、Browser `BR-013`、Mobile `MR-013`、Architecture §16 / §17.1、ADR および release evidence はこの gate を明示しているため、target の common security policy からは追跡が途切れる。
-- **Security impact:** platform または release 側が generic な release gate を Mainnet capability gate と解釈しない構成を選べ、evidence 欠落・期限切れ・検証不能・policy 不明時に Mainnet signing capability が有効化される余地が残る。これは release assurance と Mainnet fail-closed invariant の不整合である。ただし現行 Architecture / release source は正しい gate を定めており、直接の key compromise や signing authority 取得を示すものではないため Minor とする。
-- **Evidence:** Requirements `CR-NFR-006` / `CR-AC-008` は Mainnet gate 不成立時に有効化しないことを要求する。Architecture §16 は evidence / policy 判定不能で fail-open にしないとし、§17.1 は release evidence を責任主体・正本として追跡する。[`mainnet-release-evidence.md`](../../release/mainnet-release-evidence.md) は各 platform を fail-closed とし、evidence 検証失敗時に Testnet-only とする。target §16.1 相当にはこれらを参照する Mainnet-specific statement がない。
-- **Required correction:** §16 または同等の共通 release principle に、Mainnet capability は適用される release policy / evidence gate が成立した場合だけ有効化し、missing / inconsistent / expired / unverifiable evidence、approval / signature / trusted-key failure または policy unknown では有効化しないことを明記する。Testnet-only 継続を妨げないことと、詳細を release / operation docs へ委譲することも明示する。
-- **Scope boundary:** CI command、SHA pin、SBOM schema、manifest format、trusted key storage、runtime implementation、具体的な platform capability evaluator は本 finding の要求に含めない。
-- **Completion / reconfirmation:** target が Mainnet capability、evidence / policy gate、判定不能時の fail-closed、および release source への参照を high-level に持ち、既存の release operation 詳細を重複定義していないことを再確認する。
+- **重要度:** 軽微
+- **状態:** 新規 / 未決
+- **対象箇所:** [`security-design.md`](../../design/security-design.md) §16、§18 `Release / Operation`、関連資料列挙
+- **問題:** 対象 §16 は正規配布、改ざん検出、バージョン / 依存関係、レビュー、移行および一般的な `release gate` の委譲を定めるが、`Mainnet capability`、適用ポリシー / 根拠、判定不能時の Testnet 専用 / 利用不能への安全側での終了を明示していない。要件 `CR-NFR-006` / `CR-AC-008`、ブラウザ `BR-013`、モバイル `MR-013`、アーキテクチャ §16 / §17.1、ADR およびリリース証跡はこの判定条件を明示しているため、対象の共通のセキュリティポリシーからは追跡が途切れる。
+- **セキュリティ影響:** プラットフォームまたはリリース側が一般的なリリース判定を Mainnet 対応能力判定条件と解釈しない構成を選べ、根拠欠落・期限切れ・検証不能・ポリシー不明時に Mainnet 署名対応能力が有効化される余地が残る。これはリリース assurance と Mainnet 安全側での終了不変条件の不整合である。ただし現行アーキテクチャ / リリース送信元は正しい判定条件を定めており、直接の鍵侵害や署名判断権限取得を示すものではないため軽微とする。
+- **根拠:** 要件 `CR-NFR-006` / `CR-AC-008` は Mainnet 判定条件不成立時に有効化しないことを要求する。アーキテクチャ §16 は根拠 / ポリシー判定不能で安全条件を満たさない継続にしないとし、§17.1 はリリース証跡を責任主体・正本として追跡する。[`mainnet-release-evidence.md`](../../release/mainnet-release-evidence.md) は各プラットフォームを安全側での終了とし、根拠検証失敗時に Testnet 専用とする。対象 §16.1 相当にはこれらを参照する Mainnet-specific statement がない。
+- **必須修正:** §16 または同等の共通リリース原則に、Mainnet 対応能力は適用されるリリースポリシー / 根拠判定条件が成立した場合だけ有効化し、欠落 / 不整合の / 期限切れ / 検証不能の根拠、承認 / 署名 / trusted-key 失敗またはポリシー不明では有効化しないことを明記する。Testnet 専用継続を妨げないことと、詳細をリリース / 操作 docs へ委譲することも明示する。
+- **対象範囲境界:** CI コマンド、SHA pin、SBOM スキーマ、マニフェスト形式、信頼された鍵保存領域、実行環境実装、具体的なプラットフォーム対応能力評価器は本指摘の要求に含めない。
+- **完了 / 再確認:** 対象が Mainnet 対応能力、根拠 / ポリシー判定条件、判定不能時の安全側での終了、およびリリース送信元への参照を上位のに持ち、既存のリリース操作詳細を重複定義していないことを再確認する。
 
-### `DR-SEC-002` — Relay の E2E confidentiality と secret class の明示
+### `DR-SEC-002` — Relay の E2E 機密性と秘密情報クラスの明示
 
-- **Severity:** Minor
-- **Status:** New / Open
-- **Location:** [`security-design.md`](../../design/security-design.md) §3.2 Relay、§11.1、§12.1、§18 Relay、§19 remaining open items
-- **Problem:** target は Relay を untrusted とし「暗号化された要求・結果」「opaque envelope」「TLS」を示し、private key / mnemonic を Relay に渡さない。しかし、Relay が E2E ciphertext のみを扱い、E2E session / derived encryption secret を受領・復号・保持しないこと、ならびに Relay endpoint authorization credential と E2E secret が別分類・別責任であることを target 本文で明示していない。`§12.1` の Sensitive 例も Relay temporary identifier に留まる。このままでは TLS 終端で plaintext を扱う transport と、Relay を opaque に保つ E2E architecture の双方が generic wording 上は成立し得る。
-- **Security impact:** Relay operator / compromise が transaction / message contents または E2E decrypting material を取得できる構成を、Signer boundary を壊さずに選択できてしまう。これは Relay を confidentiality boundary として過信する metadata / content exposure のリスクである。既存の Signer-side integrity / inspection / approval により直接の signing authority または private key exposure へは直結しないため Minor とする。
-- **Evidence:** Requirements `RR-003` / `RR-008` は Relay の opaque delivery と秘密情報・平文・E2E 境界を定める。Architecture §6.5、§9 は E2E opaque envelope と Relay credential / E2E session secret の分離を明示する。Handoff Specification §7.3、§8、§13 は `appToken` と `sessionSecret` を別分類とし、Relay が plaintext / E2E secret を扱わないことを定める。一方、target §11.1 / §18 は opaque / encrypted と TLS を委譲するが、この distinction を明示していない。
-- **Required correction:** Relay security principle に、Relay path の message confidentiality は E2E protected opaque envelope を前提とし、Relay は plaintext を復号せず、E2E session / derived encryption secret を受領・保管・ログ出力しないことを明記する。Relay transport authorization credential は E2E secret と別の最小権限情報として扱い、metadata / credential の retention と logging を最小化する方針も示す。暗号方式、key derivation、HTTP header、wire format、TTL の値は下位仕様へ委譲する。
-- **Scope boundary:** AES / HKDF / AEAD、key length、nonce、fragment、HTTP / Redis API、credential schema、具体的 metadata allowlist、ログ設定実装は本 finding の要求に含めない。
-- **Completion / reconfirmation:** target §11 / §12 / §18 が、E2E secret と transport credential の所有主体、Relay の復号不能・非保持、message confidentiality と metadata minimization の high-level policy を一意に示し、既存 Handoff / Relay specification と矛盾しないことを再確認する。
+- **重要度:** 軽微
+- **状態:** 新規 / 未決
+- **対象箇所:** [`security-design.md`](../../design/security-design.md) §3.2 Relay、§11.1、§12.1、§18 Relay、§19 残存する未決項目
+- **問題:** 対象は Relay を信頼されていないとし「暗号化された要求・結果」「内容を解釈しないエンベロープ」「TLS」を示し、秘密鍵 / ニーモニックを Relay に渡さない。しかし、Relay が E2E 暗号文のみを扱い、E2E セッション / 導出された暗号化秘密情報を受領・復号・保持しないこと、ならびに Relay エンドポイント認可認証情報と E2E 秘密情報が別分類・別責任であることを対象本文で明示していない。`§12.1` の機微な例も Relay 一時的な識別子に留まる。このままでは TLS 終端で平文を扱う通信経路と、Relay を内容を解釈せずに保つ E2E アーキテクチャの双方が一般的な表現上は成立し得る。
+- **セキュリティ影響:** Relay 運用者 / 侵害がトランザクション / メッセージ内容または E2E decrypting 資料を取得できる構成を、署名主体境界を壊さずに選択できてしまう。これは Relay を機密性境界として過信するメタデータ / 内容露出のリスクである。既存の署名主体側の完全性 / 内容検査 / 承認により直接の署名判断権限または秘密鍵露出へは直結しないため軽微とする。
+- **根拠:** 要件 `RR-003` / `RR-008` は Relay の内容を解釈しない配送と秘密情報・平文・E2E 境界を定める。アーキテクチャ §6.5、§9 は E2E 内容を解釈しないエンベロープと Relay 認証情報 / E2E セッション秘密情報の分離を明示する。受け渡し仕様 §7.3、§8、§13 は `appToken` と `sessionSecret` を別分類とし、Relay が平文 / E2E 秘密情報を扱わないことを定める。一方、対象 §11.1 / §18 は内容を解釈しない / 暗号化されたと TLS を委譲するが、この区別を明示していない。
+- **必須修正:** Relay セキュリティ原則に、Relay パスのメッセージ機密性は E2E 保護された内容を解釈しないエンベロープを前提とし、Relay は平文を復号せず、E2E セッション / 導出された暗号化秘密情報を受領・保管・ログ出力しないことを明記する。Relay 通信経路認可認証情報は E2E 秘密情報と別の最小権限情報として扱い、メタデータ / 認証情報の保持とログ出力を最小化する方針も示す。暗号方式、鍵導出、HTTP ヘッダー、通信上の形式、TTL の値は下位仕様へ委譲する。
+- **対象範囲境界:** AES / HKDF / AEAD、鍵長さ、ノンス、フラグメント、HTTP / Redis API、認証情報スキーマ、具体的メタデータ許可リスト、ログ設定実装は本指摘の要求に含めない。
+- **完了 / 再確認:** 対象 §11 / §12 / §18 が、E2E 秘密情報と通信経路認証情報の所有主体、Relay の復号不能・非保持、メッセージ機密性とメタデータ minimization の上位のポリシーを一意に示し、既存受け渡し / Relay 仕様と矛盾しないことを再確認する。
 
-## 9. Resolved Findings
+## 9. 解消済みの指摘
 
-過去の全 formal finding は、今回の本文照合で次のとおり resolved と再確認した。
+過去の全正式な指摘は、今回の本文照合で次のとおり解消済みと再確認した。
 
-- `SD-SEC-001`: §8.1 の「適用可能な security-relevant field をすべて確認可能にし、表示不能なら署名しない」により解消。
-- `SD-SEC-002`: §15.1 の Wallet Core error / warning / binding / Store integrity failure を success や warning-only bypass へ進めない条件により解消。
-- `SD-SEC-003`: §8.3 が message-level context と request-level correlation / expiry / replay を分離し、message replay / cross-domain / cross-purpose の維持を要求するため解消。
-- `SD-SEC-004`: §17 Invariant 1 / 8 が SDK、dApp、Provider、Content Script、Deep Link、Relay、Node、API、URL、log / telemetry / diagnostics を含む untrusted boundary と単独侵害影響を明示するため解消。
-- `SD-SEC-005`: §7.1 / §7.2 と Profile §20 の `every-signature` により、UNLOCKED、permission、session、直前の認証を署名ごとの認証の代替にしないため解消。
-- `SD-REVIEW-001`: startup、restart、reload、process recreation、extension reload、browser restart 後の全 Signer `LOCKED` が §7.1 にあるため解消。
-- `SD-REVIEW-002`: §13.2 が Secret 画面だけでなく authentication、signing confirmation、transaction / message context を Mobile Sensitive UI として下流へ引き継ぐため解消。
-- `SD-REVIEW-003`: §6.1 / §19 が Symbol / NEM を別 Key Identity とし、対象 Chain を明示して chain-specific derivation を使うため解消。
+- `SD-SEC-001`: §8.1 の「適用可能なセキュリティに関わるフィールドをすべて確認可能にし、表示不能なら署名しない」により解消。
+- `SD-SEC-002`: §15.1 の wallet-core エラー / 警告 / 結び付け / ストア完全性失敗を成功や警告のみ迂回へ進めない条件により解消。
+- `SD-SEC-003`: §8.3 がメッセージ単位の文脈と要求単位の対応付け / 期限切れ / リプレイを分離し、メッセージリプレイ / ドメイン間の / 目的間の維持を要求するため解消。
+- `SD-SEC-004`: §17 不変条件 1 / 8 が SDK、dApp、Provider、コンテンツスクリプト、ディープリンク、Relay、ノード、API、URL、ログ / 遠隔計測データ / 診断情報を含む信頼されていない境界と単独侵害影響を明示するため解消。
+- `SD-SEC-005`: §7.1 / §7.2 とプロファイル §20 の `every-signature` により、ロック解除済み、許可、セッション、直前の認証を署名ごとの認証の代替にしないため解消。
+- `SD-REVIEW-001`: 起動、再起動、再読み込み、プロセス再作成、拡張機能再読み込み、ブラウザ再起動後の全署名主体 `LOCKED` が §7.1 にあるため解消。
+- `SD-REVIEW-002`: §13.2 が秘密情報画面だけでなく認証、署名確認、トランザクション / メッセージ文脈をモバイル機微な UI として下流へ引き継ぐため解消。
+- `SD-REVIEW-003`: §6.1 / §19 が Symbol / NEM を別鍵識別情報とし、対象チェーンを明示してチェーン固有の導出を使うため解消。
 
-## 10. Upstream Feedback
+## 10. 上流工程へのフィードバック
 
-なし。Common、Browser、Mobile、Relay、SDK Requirements は、Mainnet gate、E2E confidentiality、secret separation、approval、replay、結果対応および guarantee boundary を十分に定義している。今回の2件は Requirements の不足ではなく、既存要求・Architecture・下位仕様を Security Design の高位 policy へ明示的に接続する target 側の改善である。
+なし。共通の、ブラウザ、モバイル、Relay、SDK 要件は、Mainnet 判定条件、E2E 機密性、秘密情報分離、承認、リプレイ、結果対応および保証境界を十分に定義している。今回の2件は要件の不足ではなく、既存要求・アーキテクチャ・下位仕様をセキュリティ設計の高位ポリシーへ明示的に接続する対象側の改善である。
 
-## 11. Deferred Findings
+## 11. 後続工程へ委譲する指摘
 
-- `SEC-OPEN-002`: Mobile biometric capability、fallback、credential、lifecycle の具体的な責任と Profile §22 との整合。署名ごとの再認証と OS authentication / wallet authorization の分離は target で確認済みであり、具体 API は Mobile design / specification へ委譲する。
-- `SEC-OPEN-004`: 既存 handoff の message signing contract と platform display acceptance の最終整合。target §8.3 の policy を API / schema / encoding / serialized format として重複定義しない。
-- Common `CR-OPEN-001` / `CR-OPEN-002`、Mobile の host / OS / lifecycle / backup、Relay の protocol / TTL / state / retention、SDK の transport / caller binding、chain の supported type / version、Profile-wide backup / restore は、それぞれの既存正本へ委譲する。Backup は explicit user action、reauthentication、trusted UI、wrong state での無傷な検証という高位責任を満たすが、format や merge / overwrite の詳細を本レビューで決めない。
-- Architecture `DR-003`: Architecture §17 と既存 handoff specification の message signing status drift。target §8.3 が message security context を定めており、現時点で Security Design の trust boundary / authorization gap にはならない。Architecture 側の traceability 同期は Architecture review の Open item として継続する。
-- `_snwc` の checkout に存在しない binding decision の exact historical text は未確認である。ただし現存する wallet-core design / requirements / specification と Architecture が、Core の secret / Store / raw signing と host の UI / permission / approval / lifecycle を分離しているため、今回の high-level security finding はこの欠落資料に依存しない。
+- `SEC-OPEN-002`: モバイル生体認証対応能力、代替経路、認証情報、ライフサイクルの具体的な責任とプロファイル §22 との整合。署名ごとの再認証と OS 認証 / ウォレット認可の分離は対象で確認済みであり、具体 API はモバイル設計 / 仕様へ委譲する。
+- `SEC-OPEN-004`: 既存受け渡しのメッセージ署名契約とプラットフォーム表示受け入れの最終整合。対象 §8.3 のポリシーを API / スキーマ / エンコーディング / シリアライズ済みの形式として重複定義しない。
+- 共通の `CR-OPEN-001` / `CR-OPEN-002`、モバイルのホスト / OS / ライフサイクル / バックアップ、Relay のプロトコル / TTL / 状態 / 保持、SDK の通信経路 / 呼び出し元結び付け、チェーンの対応済みの型 / バージョン、Profile-wide バックアップ / 復元は、それぞれの既存正本へ委譲する。バックアップは明示的な利用者対応、reauthentication、信頼された UI、誤った状態での無傷な検証という高位責任を満たすが、形式や統合 / 上書きの詳細を本レビューで決めない。
+- アーキテクチャ `DR-003`: アーキテクチャ §17 と既存受け渡し仕様のメッセージ署名状態乖離。対象 §8.3 がメッセージセキュリティ文脈を定めており、現時点でセキュリティ設計の信頼境界 / 認可不足にはならない。アーキテクチャ側の追跡可能性同期はアーキテクチャレビューの未決項目として継続する。
+- `_snwc` のチェックアウトに存在しない結び付け判断の厳密な historical テキストは未確認である。ただし現存する wallet-core 設計 / 要件 / 仕様とアーキテクチャが、コアの秘密情報 / ストア / 生の署名とホストの UI / 許可 / 承認 / ライフサイクルを分離しているため、今回の上位のセキュリティ指摘はこの欠落資料に依存しない。
 
-## 12. Scope and Traceability
+## 12. 対象範囲と追跡可能性
 
-| 上流要求 / 判断                                                                                                                          | Security Design 対応                | 評価                                                                                                                                                                                           |
-| ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Common purpose、`CR-002`、`CR-007`、`CR-008`、`CR-010`、`CR-012`、`CR-013`、`CR-015`、`CR-016`、`CR-NFR-001`〜`005`、`CR-NFR-007`〜`013` | §1〜§10、§12〜§18                   | Pass。目的、secret separation、chain / network、four conditions、result binding、fail-closed、untrusted input、user judgment を追跡できる                                                      |
-| `CR-NFR-006` / `CR-AC-008` Mainnet release gate                                                                                          | §2.1、§4.3、§16、§18                | `DR-SEC-001`。release responsibility はあるが、Mainnet capability と evidence / policy fail-closed が target に明記されない                                                                    |
-| Browser `BR-*`、特に `BR-013`                                                                                                            | §2、§3、§5、§7〜§10、§13〜§18       | Pass。Browser privileged signer、origin / permission、trusted UI、restart lock、Mainnet gate を関連 Architecture / release source と整合。ただし共通 target の Mainnet wording は `DR-SEC-001` |
-| Mobile `MR-*`、特に `MR-013`                                                                                                             | §2、§3、§5、§7、§13、§14、§18、§19  | Pass。Mobile trusted host、external handoff、OS limited trust、Sensitive UI、Mainnet gate、未実装範囲を混同しない。biometric details は `SEC-OPEN-002`                                         |
-| Relay `RR-003`〜`RR-009`、`RR-NFR-*`                                                                                                     | §3、§4、§5、§10〜§12、§15、§17、§18 | `DR-SEC-002`。Relay non-privilege、opaque delivery、integrity、expiry、replay、retention は対応するが E2E secret / transport credential distinction の明示を要する                             |
-| SDK `SDK-*`                                                                                                                              | §3、§5、§8〜§10、§15、§17、§18      | Pass。SDK は non-Signer、secret / auth / approval / final inspection を持たず、correlation と safe propagation の責任を持つ                                                                    |
-| Architecture §6.5、§6.9、§9、§16、§17.1                                                                                                  | §3、§5、§6〜§11、§15〜§18           | Pass。trusted signer、four conditions、wallet-core、Relay E2E、Mainnet gate、delegation は整合。Architecture `DR-003` は security boundary に影響しない                                        |
-| Profile / Account、Chain Compatibility、Web Handoff Specification                                                                        | §6〜§11、§13、§15、§18、§19         | Pass。every-signature、fixed Profile Network、Symbol / NEM separation、message context、handoff result / replay を下位正本へ委譲                                                               |
-| ADR 0001、Mainnet release evidence、release threat model                                                                                 | §4.2、§4.3、§15.2、§16、§18         | `DR-SEC-001`。release integrity / incident boundary はあるが Mainnet gate の common-level traceability を補強すべき                                                                            |
-| wallet-core external contract                                                                                                            | §3、§5、§6、§7、§8、§15、§18        | Pass。Core は secret / Store / crypto / raw signing の正本、Application / host は UI / permission / authentication / approval / orchestration の owner。binding detail を過剰要求しない        |
+| 上流要求 / 判断                                                                                                                      | セキュリティ設計対応                | 評価                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 共通の目的、`CR-002`、`CR-007`、`CR-008`、`CR-010`、`CR-012`、`CR-013`、`CR-015`、`CR-016`、`CR-NFR-001`〜`005`、`CR-NFR-007`〜`013` | §1〜§10、§12〜§18                   | 合格。目的、秘密情報分離、チェーン / ネットワーク、四つの条件、結果との結び付け、安全側での終了、信頼されていない入力、利用者 judgment を追跡できる                                       |
+| `CR-NFR-006` / `CR-AC-008` Mainnet リリース判定                                                                                      | §2.1、§4.3、§16、§18                | `DR-SEC-001`。リリース責務はあるが、Mainnet 対応能力と根拠 / ポリシー安全側での終了が対象に明記されない                                                                                   |
+| ブラウザ `BR-*`、特に `BR-013`                                                                                                       | §2、§3、§5、§7〜§10、§13〜§18       | 合格。ブラウザ特権を持つ署名主体、オリジン / 許可、信頼された UI、再起動ロック、Mainnet 判定条件を関連アーキテクチャ / リリース送信元と整合。ただし共通対象の Mainnet 表現は `DR-SEC-001` |
+| モバイル `MR-*`、特に `MR-013`                                                                                                       | §2、§3、§5、§7、§13、§14、§18、§19  | 合格。モバイル信頼されたホスト、外部受け渡し、OS limited 信頼、機微な UI、Mainnet 判定条件、未実装範囲を混同しない。生体認証詳細は `SEC-OPEN-002`                                         |
+| Relay `RR-003`〜`RR-009`、`RR-NFR-*`                                                                                                 | §3、§4、§5、§10〜§12、§15、§17、§18 | `DR-SEC-002`。Relay non-privilege、内容を解釈しない配送、完全性、期限切れ、リプレイ、保持は対応するが E2E 秘密情報 / 通信経路認証情報区別の明示を要する                                   |
+| SDK `SDK-*`                                                                                                                          | §3、§5、§8〜§10、§15、§17、§18      | 合格。SDK は署名主体ではないこと、秘密情報 / 認証 / 承認 / 最終内容検査を持たず、対応付けと安全な propagation の責任を持つ                                                                |
+| アーキテクチャ §6.5、§6.9、§9、§16、§17.1                                                                                            | §3、§5、§6〜§11、§15〜§18           | 合格。信頼された署名主体、四つの条件、wallet-core、Relay E2E、Mainnet 判定条件、委譲は整合。アーキテクチャ `DR-003` はセキュリティ境界に影響しない                                        |
+| プロファイル / アカウント、チェーン互換性、Web 受け渡し仕様                                                                          | §6〜§11、§13、§15、§18、§19         | 合格。every-signature、固定プロファイルネットワーク、Symbol / NEM 分離、メッセージ文脈、受け渡し結果 / リプレイを下位正本へ委譲                                                           |
+| ADR 0001、Mainnet リリース証跡、リリース脅威モデル                                                                                   | §4.2、§4.3、§15.2、§16、§18         | `DR-SEC-001`。リリース完全性 / 事故境界はあるが Mainnet 判定条件の common-level 追跡可能性を補強すべき                                                                                    |
+| wallet-core 外部契約                                                                                                                 | §3、§5、§6、§7、§8、§15、§18        | 合格。コアは秘密情報 / ストア / 暗号処理 / 生の署名の正本、アプリケーション / ホストは UI / 許可 / 認証 / 承認 / 処理の調整の責任主体。結び付け詳細を過剰要求しない                       |
 
-## 13. Domain Checks
+## 13. ドメイン別の確認
 
-| 観点                                  | 評価と根拠                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Threat Model                       | Pass。§4 が private key / mnemonic / Store / payload equality / Account-context / approval state / sensitive retention を asset とし、malicious dApp、SDK / Relay / node compromise、replay、substitution、phishing、concurrency を attacker capability としている。trusted host 本体の全面侵害は保証外と明示し、万能攻撃者へ拡張していない。local storage、OS / browser boundary は限定的 trust として扱う。                             |
-| 2. Trust Boundary                     | Pass。Web ↔ SDK、SDK ↔ Extension / Mobile、UI ↔ wallet-core、wallet-core ↔ OS / storage、Mobile ↔ Relay、Relay ↔ Node / network、untrusted request ↔ signer を §3 / §5 / §11 / §18 で区別する。trusted signer と authorization owner は host。`DR-SEC-002` は Relay の E2E secret wording の改善であり boundary collapse ではない。                                                                                                       |
-| 3. Key / Secret Lifecycle             | Pass。private key、mnemonic、derived / decryption secret、password-derived secret、Wallet Store、temporary signing data、authentication / session stateについて generation / import、storage、use、exposure、export、deletion、lock / unlock、memory、backup / recovery の高位 owner と lifecycle が §6〜§7、§12〜§13、§15、§18 にある。zeroize や具体 API は下位委譲で妥当。E2E secret の Relay 非保持だけ `DR-SEC-002` で明示性を補う。 |
-| 4. Authentication / Lock              | Pass。startup / restart / reload 後 `LOCKED`、explicit unlock、auto-lock、external request による unlock 禁止、署名ごとの再認証、OS authentication は限定 capability、dApp / SDK / Relay は auth 不可。`SEC-OPEN-002` は biometric capability の詳細だけで、OS auth と wallet authorization の混同はない。                                                                                                                                |
-| 5. Signing Authorization / Approval   | Pass。発生元、trusted display、target-derived display、Account、Chain / Network、recipient / amount / fee / deadline / message、aggregate inner transaction、cosignature / permission effects の適用可能 field、approve / reject、blind signing、stale、payload substitution、result binding を §8〜§10、§15、§17 で確認できる。秘密鍵保有は approval の代替でない。                                                                      |
-| 6. Permission Model                   | Pass。Browser origin-per-connection、Mobile caller / handoff identity、Account selection、connection と signing permission の分離、revoke 即時性、external expansion 禁止、caller / account / chain / network / session binding を §9 に定める。具体 schema は下位委譲で、unknown / stale permission の再利用は禁止される。                                                                                                               |
-| 7. Replay / Request Binding           | Pass。requestId、createdAt、expiresAt、processed-ID、same-ID different-content reject、caller / permission / session / Account / Chain / Network / payload context、concurrent isolation、one-to-one operation、response correlation を §8.3、§9、§10、§15 で定める。具体的 byte representation は要求していない。                                                                                                                        |
-| 8. Relay Security                     | Pass with `DR-SEC-002` optional improvement。Relay は secret、signing、semantic interpretation、approval、auth authority を持たず、integrity / expiry / duplicate / result mix-up と availability failure を分離する。Requirements / Architecture / Handoff は E2E opaque を明確にするため、target §11 の E2E secret / transport credential wording を合わせるべき。                                                                      |
-| 9. Node / Blockchain Boundary         | Pass。Node / API は untrusted auxiliary source。malicious / stale / inconsistent / unavailable response、wrong network、forged status を signing authority とせず、Network mismatch / parse failure を拒否し、availability failure で validation を skip しない。single node availability improvement は要求していない。                                                                                                                  |
-| 10. Sensitive Data                    | Pass。Secret / Sensitive / Public を区分し、public blockchain data も wallet 内部の Account-caller association、permission、session、Relay identifier と同一視しない。logs、exceptions、warnings、telemetry、crash、analytics、notifications、URL、clipboard、retention、deletion を §12〜§13 で扱う。Relay E2E secret の分類明示だけ `DR-SEC-002`。                                                                                      |
-| 11. Backup / Recovery                 | Pass at Security Design level。explicit user action、reauth、trusted UI、plaintext export / cloud auto-save 禁止、failed export の temp cleanup、wrong / invalid state での安全側責任を確認。Profile full backup / restore format、merge、overwrite、wrong account の具体契約は `CR-014` と Profile open item へ defer し、過剰要求しない。                                                                                               |
-| 12. Anti-Phishing / Trusted UI        | Pass。own UI、external HTML / Markdown / branding / Deep Link / Relay text の不使用、caller / origin の own verified value、Web password field 禁止、consistent security UI を §8、§13、§14 で定める。pixel-level layout は下位委譲。                                                                                                                                                                                                     |
-| 13. Fail-Closed                       | Pass。unknown / unsupported / malformed / inconsistent binding、missing permission、expired / duplicate / modified request、parse / display / crypto / core / store / binding / result verification failure、Relay / Node outage、internal exception、decryption failure、partial UI、result unknown で no sign / no success。availability と security failure を区別している。                                                           |
-| 14. Software / Supply-Chain Integrity | Pass with `DR-SEC-001` optional improvement。official distribution、tamper detection、version / dependency management、review、migration、debug / production separation、incident boundary を §4.3、§15.2、§16、§18 で定める。具体 CI / SBOM / artifact operation は正しく委譲されるが、Mainnet evidence gate の common statement が必要。                                                                                                |
-| 15. Security Invariants               | Pass。§17 の12 invariantを全件確認した。secret no external boundary / plaintext persistence、untrusted input、inspect-before-sign、reviewed payload equality、one-to-one operation、per-sign auth、external compromise non-escalation、no secret logs、fail-closed、own UI、incident invalidation が Architecture / Requirements と整合する。Mainnet gate は別途 `DR-SEC-001` の traceability gap。                                       |
-| 16. Responsibility Boundary           | Pass。Application / trusted host が caller、permission、inspection、display、auth、approval、orchestration、wallet-core が secret / Store / crypto / raw signing、SDK が handoff / correlation、Relay が opaque delivery、Node が auxiliary data、OS が限定保護、user が explicit judgment を担う。最終判断主体は host Signer と明確で、空白・重複・矛盾は確認されない。                                                                  |
+| 観点                                      | 評価と根拠                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. 脅威モデル                             | 合格。§4 が秘密鍵 / ニーモニック / ストア / ペイロード等価性 / Account-context / 承認状態 / 機微な保持を資産とし、悪意のある dApp、SDK / Relay / ノード侵害、リプレイ、差し替え、phishing、並行処理を攻撃者対応能力としている。信頼されたホスト本体の全面侵害は保証外と明示し、万能攻撃者へ拡張していない。ローカル保存領域、OS / ブラウザ境界は限定的信頼として扱う。                                                                |
+| 2. 信頼境界                               | 合格。Web ↔ SDK、SDK ↔ 拡張機能 / モバイル、UI ↔ wallet-core、wallet-core ↔ OS / 保存領域、モバイル ↔ Relay、Relay ↔ ノード / ネットワーク、信頼されていない要求 ↔ 署名主体を §3 / §5 / §11 / §18 で区別する。信頼された署名主体と認可責任主体はホスト。`DR-SEC-002` は Relay の E2E 秘密情報表現の改善であり境界 collapse ではない。                                                                                                 |
+| 3. 鍵 / 秘密情報ライフサイクル            | 合格。秘密鍵、ニーモニック、導出された / 復号秘密情報、password-derived 秘密情報、ウォレットストア、一時的な署名データ、認証 / セッション状態について世代 / インポート、保存領域、use、露出、エクスポート、削除、ロック / ロック解除、メモリ、バックアップ / 復旧の高位責任主体とライフサイクルが §6〜§7、§12〜§13、§15、§18 にある。ゼロ化や具体 API は下位委譲で妥当。E2E 秘密情報の Relay 非保持だけ `DR-SEC-002` で明示性を補う。 |
+| 4. 認証 / ロック                          | 合格。起動 / 再起動 / 再読み込み後 `LOCKED`、明示的なロック解除、auto-lock、外部要求によるロック解除禁止、署名ごとの再認証、OS 認証は限定対応能力、dApp / SDK / Relay は認証不可。`SEC-OPEN-002` は生体認証対応能力の詳細だけで、OS 認証とウォレット認可の混同はない。                                                                                                                                                                |
+| 5. 署名認可 / 承認                        | 合格。発生元、信頼された表示、対象から導出した表示、アカウント、チェーン / ネットワーク、受信者 / 数量 / 手数料 / 期限 / メッセージ、アグリゲート内部トランザクション、連署署名 / 許可 effects の適用可能フィールド、承認 / 拒否、内容を確認しない署名、古くなった、ペイロード差し替え、結果との結び付けを §8〜§10、§15、§17 で確認できる。秘密鍵保有は承認の代替でない。                                                             |
+| 6. 許可モデル                             | 合格。ブラウザ origin-per-connection、モバイル呼び出し元 / 受け渡し識別情報、アカウント選択、接続と署名許可の分離、失効即時性、外部 expansion 禁止、呼び出し元 / アカウント / チェーン / ネットワーク / セッション結び付けを §9 に定める。具体スキーマは下位委譲で、不明 / 古くなった許可の再利用は禁止される。                                                                                                                       |
+| 7. リプレイ / 要求バインディング          | 合格。requestId、createdAt、expiresAt、processed-ID、same-ID different-content 拒否、呼び出し元 / 許可 / セッション / アカウント / チェーン / ネットワーク / ペイロード文脈、並行する分離、一対一操作、応答対応付けを §8.3、§9、§10、§15 で定める。具体的バイト表現は要求していない。                                                                                                                                                 |
+| 8. Relay セキュリティ                     | 合格 with `DR-SEC-002` 任意改善。Relay は秘密情報、署名、意味上の解釈、承認、認証判断権限を持たず、完全性 / 期限切れ / 重複 / 結果 mix-up と利用可能性失敗を分離する。要件 / アーキテクチャ / 受け渡しは E2E 内容を解釈しないを明確にするため、対象 §11 の E2E 秘密情報 / 通信経路認証情報表現を合わせるべき。                                                                                                                        |
+| 9. ノード / ブロックチェーン境界          | 合格。ノード / API は信頼されていない補助的な送信元。悪意のある / 古くなった / 不整合の / 利用不能応答、誤ったネットワーク、forged 状態を署名判断権限とせず、ネットワーク不一致 / 解析失敗を拒否し、利用可能性失敗で検証を skip しない。単一のノード利用可能性改善は要求していない。                                                                                                                                                  |
+| 10. 機微なデータ                          | 合格。秘密情報 / 機微な / 公開を区分し、公開ブロックチェーンデータもウォレット内部の Account-caller 関連付け、許可、セッション、Relay 識別子と同一視しない。ログ、exceptions、警告、遠隔計測データ、異常終了、利用状況分析、notifications、URL、クリップボード、保持、削除を §12〜§13 で扱う。Relay E2E 秘密情報の分類明示だけ `DR-SEC-002`。                                                                                         |
+| 11. バックアップ / 復旧                   | 合格 at セキュリティ設計 level。明示的な利用者対応、reauth、信頼された UI、平文エクスポート / cloud auto-save 禁止、失敗エクスポートの一時領域後処理、誤った / 無効な状態での安全側責任を確認。プロファイル全体バックアップ / 復元形式、統合、上書き、誤ったアカウントの具体契約は `CR-014` とプロファイル未決項目へ委譲し、過剰要求しない。                                                                                          |
+| 12. フィッシング対策 / 信頼された UI      | 合格。自身の UI、外部 HTML / Markdown / ブランド表示 / ディープリンク / Relay テキストの不使用、呼び出し元 / オリジンの自身の検証済み値、Web パスワードフィールド禁止、整合したセキュリティ UI を §8、§13、§14 で定める。pixel-level 配置は下位委譲。                                                                                                                                                                                 |
+| 13. 安全側での終了                        | 合格。不明 / 未対応の / 不正な形式の / 不整合の結び付け、欠落許可、期限切れ / 重複 / modified 要求、解析 / 表示 / 暗号処理 / コア / ストア / 結び付け / 結果検証失敗、Relay / ノード障害、内部例外、復号失敗、部分トランザクション UI、結果不明で no 署名 / no 成功。利用可能性とセキュリティ失敗を区別している。                                                                                                                     |
+| 14. ソフトウェア / サプライチェーン完全性 | 合格 with `DR-SEC-001` 任意改善。official 配布、tamper 検出、バージョン / 依存関係管理、レビュー、移行、デバッグ / 本番環境分離、事故境界を §4.3、§15.2、§16、§18 で定める。具体 CI / SBOM / 成果物操作は正しく委譲されるが、Mainnet 根拠判定条件の共通の statement が必要。                                                                                                                                                          |
+| 15. セキュリティ上の不変条件              | 合格。§17 の12 不変条件を全件確認した。秘密情報 no 外部境界 / 平文永続化、信頼されていない入力、inspect-before-sign、レビュー対象のペイロード等価性、一対一操作、per-sign 認証、外部侵害 non-escalation、no 秘密情報ログ、安全側での終了、自身の UI、事故無効化がアーキテクチャ / 要件と整合する。Mainnet 判定条件は別途 `DR-SEC-001` の追跡可能性不足。                                                                              |
+| 16. 責務境界                              | 合格。アプリケーション / 信頼されたホストが呼び出し元、許可、内容検査、表示、認証、承認、処理の調整、wallet-core が秘密情報 / ストア / 暗号処理 / 生の署名、SDK が受け渡し / 対応付け、Relay が内容を解釈しない配送、ノードが補助的なデータ、OS が限定保護、利用者が明示的な judgment を担う。最終判断主体はホスト署名主体と明確で、空白・重複・矛盾は確認されない。                                                                  |
 
-## 14. Validation Results
+## 14. 検証結果
 
-| 検証                                                                                     | 結果                                                                                                                          |
-| ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm exec prettier --write docs/reviews/design/security-design-review-005.md`           | `ERR_SQLITE_ERROR: unable to open database file` で失敗。pnpm launcher の environment error と確認                            |
-| `./node_modules/.bin/prettier --write docs/reviews/design/security-design-review-005.md` | PASS。上記 environment error の代替として local executable を実行                                                             |
-| `pnpm exec prettier --check docs/reviews/design/security-design-review-005.md`           | `ERR_SQLITE_ERROR: unable to open database file` で失敗。pnpm launcher の environment error と確認                            |
-| `./node_modules/.bin/prettier --check docs/reviews/design/security-design-review-005.md` | PASS。artifact 単体の Markdown formatting を確認                                                                              |
-| Internal link check                                                                      | PASS。artifact 内の相対リンクを抽出し、既存 target path を確認。存在しない `_snwc` binding decision はリンク化していない      |
-| Finding ID / continuity check                                                            | PASS。`SD-SEC-001`〜`005`、`SD-REVIEW-001`〜`003` の resolved status と `DR-SEC-001` / `DR-SEC-002` の detail / status を照合 |
-| Severity / status / gate check                                                           | PASS。Critical 0、Major 0、Minor 2、Required Changes なし、Optional Improvements 2、`READY` の整合を確認                      |
-| Requirements / Architecture / Security Invariants traceability check                     | PASS。Common、Browser、Mobile、Relay、SDK、Architecture `DR-003`、Mainnet gate、§17 の12 invariantを artifact に追跡          |
-| Change scope                                                                             | PASS。`git status` / `git diff --name-only` で review artifact 以外の変更がないことを確認                                     |
-| `git diff --check`                                                                       | PASS。commit 前後の whitespace error なし                                                                                     |
+| 検証                                                                                     | 結果                                                                                                                     |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm exec prettier --write docs/reviews/design/security-design-review-005.md`           | `ERR_SQLITE_ERROR: unable to open database file` で失敗。pnpm 起動プログラムの環境エラーと確認                           |
+| `./node_modules/.bin/prettier --write docs/reviews/design/security-design-review-005.md` | 合格。上記環境エラーの代替としてローカル実行ファイルを実行                                                               |
+| `pnpm exec prettier --check docs/reviews/design/security-design-review-005.md`           | `ERR_SQLITE_ERROR: unable to open database file` で失敗。pnpm 起動プログラムの環境エラーと確認                           |
+| `./node_modules/.bin/prettier --check docs/reviews/design/security-design-review-005.md` | 合格。成果物単体の Markdown 整形を確認                                                                                   |
+| 内部リンク確認                                                                           | 合格。成果物内の相対リンクを抽出し、既存対象パスを確認。存在しない `_snwc` 結び付け判断はリンク化していない              |
+| 指摘 ID / 継続性確認                                                                     | 合格。`SD-SEC-001`〜`005`、`SD-REVIEW-001`〜`003` の解消済み状態と `DR-SEC-001` / `DR-SEC-002` の詳細 / 状態を照合       |
+| 重要度 / 状態 / 判定条件確認                                                             | 合格。重大 0、主要 0、軽微 2、必須の修正なし、任意の改善 2、`READY` の整合を確認                                         |
+| 要件 / アーキテクチャ / セキュリティ上の不変条件追跡可能性確認                           | 合格。共通の、ブラウザ、モバイル、Relay、SDK、アーキテクチャ `DR-003`、Mainnet 判定条件、§17 の12 不変条件を成果物に追跡 |
+| 変更対象範囲                                                                             | 合格。`git status` / `git diff --name-only` でレビュー成果物以外の変更がないことを確認                                   |
+| `git diff --check`                                                                       | 合格。コミット前後の空白文字エラーなし                                                                                   |
 
-Not validated: docs-only review artifact のため、`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build`、package / app の実装検証は実行対象外とした。pnpm formatter は環境エラーで失敗したため、repository-local Prettier で同等の artifact formatting / check を実行した。`_snwc` の absent binding decision の exact content は未確認である。
+未検証: 文書のみレビュー成果物のため、`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build`、パッケージ / アプリの実装検証は実行対象外とした。pnpm フォーマッターは環境エラーで失敗したため、リポジトリ内の Prettier で同等の成果物整形 / 確認を実行した。`_snwc` の存在しない結び付け判断の厳密な内容は未確認である。
 
-## 15. Review Gates
+## 15. レビュー判定基準
 
-| Gate                                         | 判定 | 根拠                                                                                                                                                    | 対応 ID                    |
-| -------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| 1. 目的と範囲                                | Pass | §1〜§2 が共通 security policy、対象主体、Mobile 未実装の境界、下位詳細の委譲を定める                                                                    | なし                       |
-| 2. Context / responsibility / trust boundary | Pass | §3〜§5、§11、§18 が trusted signer、untrusted input、wallet-core、OS、Relay、Node、SDK の境界を定める                                                   | なし                       |
-| 3. Dependencies / direction                  | Pass | SDK / Relay / Node / OS / wallet-core の責任逆流を禁止し、crypto / protocol / OS detail を正しい owner へ委譲する                                       | なし                       |
-| 4. Main flows                                | Pass | §7〜§11、§15 が request、inspection、approval、auth、sign、result、replay、restart、incident の安全側条件を定める                                       | なし                       |
-| 5. Data ownership                            | Pass | §6、§12、§13、§18 が secret、sensitive metadata、public identity、Wallet Store、temporary state の owner / retention を定める                           | `DR-SEC-002`               |
-| 6. Security / interoperability               | Pass | §3、§6〜§11、§14〜§18 が four conditions、chain / network separation、Relay / Node non-authority、fail-closed、invariants を定める                      | `DR-SEC-001`, `DR-SEC-002` |
-| 7. Upstream consistency                      | Pass | Requirements、Architecture、Profile、Handoff、wallet-core、ADR / release evidence と重大な意味矛盾なし。Mainnet / Relay の明示性は optional improvement | `DR-SEC-001`, `DR-SEC-002` |
-| 8. Downstream implementability               | Pass | high-level ownership / invariants と委譲先は一意。下位仕様が E2E Relay / Mainnet gate の詳細を実装でき、target の2件は Critical ではない                | `DR-SEC-001`, `DR-SEC-002` |
+| 判定条件                     | 判定 | 根拠                                                                                                                                    | 対応 ID                    |
+| ---------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| 1. 目的と範囲                | 合格 | §1〜§2 が共通セキュリティポリシー、対象主体、モバイル未実装の境界、下位詳細の委譲を定める                                               | なし                       |
+| 2. 文脈 / 責務 / 信頼境界    | 合格 | §3〜§5、§11、§18 が信頼された署名主体、信頼されていない入力、wallet-core、OS、Relay、ノード、SDK の境界を定める                         | なし                       |
+| 3. 依存関係 / 方向           | 合格 | SDK / Relay / ノード / OS / wallet-core の責任逆流を禁止し、暗号処理 / プロトコル / OS 詳細を正しい責任主体へ委譲する                   | なし                       |
+| 4. Main フロー               | 合格 | §7〜§11、§15 が要求、内容検査、承認、認証、署名、結果、リプレイ、再起動、事故の安全側条件を定める                                       | なし                       |
+| 5. データ所有責任            | 合格 | §6、§12、§13、§18 が秘密情報、機微なメタデータ、公開識別情報、ウォレットストア、一時的な状態の責任主体 / 保持を定める                   | `DR-SEC-002`               |
+| 6. セキュリティ / 相互運用性 | 合格 | §3、§6〜§11、§14〜§18 が四つの条件、チェーン / ネットワーク分離、Relay / ノード判断権限を持たないこと、安全側での終了、不変条件を定める | `DR-SEC-001`, `DR-SEC-002` |
+| 7. 上流整合性                | 合格 | 要件、アーキテクチャ、プロファイル、受け渡し、wallet-core、ADR / リリース証跡と重大な意味矛盾なし。Mainnet / Relay の明示性は任意改善   | `DR-SEC-001`, `DR-SEC-002` |
+| 8. 下流実装可能性            | 合格 | 上位の所有責任 / 不変条件と委譲先は一意。下位仕様が E2E Relay / Mainnet 判定条件の詳細を実装でき、対象の2件は重大ではない               | `DR-SEC-001`, `DR-SEC-002` |
 
-全8 Gate は Pass。`DR-SEC-001` / `DR-SEC-002` は Minor の Optional Improvements であり、formal gate failure ではない。
+全8 判定条件は合格。`DR-SEC-001` / `DR-SEC-002` は軽微の任意の改善であり、正式な判定条件失敗ではない。
 
-## 16. Remaining Risks and Open Decisions
+## 16. 残存リスクと未決定事項
 
-- Mobile App は current workspace に未実装であり、Mobile OS protection、biometric capability、Binding integration、lifecycle、backup / migration は下流 open item のままである。
-- Relay / E2E の具体 protocol、credential、retention、state、storage、metadata policy、および SDK の transport / caller binding は下位正本で確認する。`DR-SEC-002` が解消されるまで、target 単独では TLS-only と E2E opaque の区別を読み手が補う必要がある。
-- Mainnet release evidence の evaluator、trusted key、artifact、policy、build embedding、runtime enforcement の具体運用は release / operation の責務である。`DR-SEC-001` はその詳細を要求せず、target の high-level fail-closed traceability だけを求める。
-- `SEC-OPEN-002`、`SEC-OPEN-004`、Profile-wide backup、chain supported scope、wallet-core host Binding は、既存の共通 invariant を弱めない範囲で下流へ引き継ぐ。
-- 現行実装、tests、fixtures が全 platform / milestone の要求を満たすかは本レビュー対象外であり、Implementation / Release Readiness Review で確認する。
+- モバイルアプリは現在のワークスペースに未実装であり、モバイル OS 保護、生体認証対応能力、バインディング統合、ライフサイクル、バックアップ / 移行は下流未決項目のままである。
+- Relay / E2E の具体プロトコル、認証情報、保持、状態、保存領域、メタデータポリシー、および SDK の通信経路 / 呼び出し元結び付けは下位正本で確認する。`DR-SEC-002` が解消されるまで、対象単独では TLS-only と E2E 内容を解釈しないの区別を読み手が補う必要がある。
+- Mainnet リリース証跡の評価器、信頼された鍵、成果物、ポリシー、ビルド埋め込み、実行環境強制の具体運用はリリース / 操作の責務である。`DR-SEC-001` はその詳細を要求せず、対象の上位の安全側での終了追跡可能性だけを求める。
+- `SEC-OPEN-002`、`SEC-OPEN-004`、Profile-wide バックアップ、チェーン対応済みの対象範囲、wallet-core ホストバインディングは、既存の共通不変条件を弱めない範囲で下流へ引き継ぐ。
+- 現行実装、テスト、フィクスチャが全プラットフォーム / マイルストーンの要求を満たすかは本レビュー対象外であり、実装 / リリース準備状態レビューで確認する。
 
-## 17. Automatic Changes
+## 17. 自動変更
 
-レビュー中に Security Design、Architecture、Requirements、Specification、実装コード、テスト、README、設定は変更していない。変更は本 review artifact の新規作成のみである。
+レビュー中にセキュリティ設計、アーキテクチャ、要件、仕様、実装コード、テスト、README、設定は変更していない。変更は本レビュー成果物の新規作成のみである。
 
-## 18. Final Decision
+## 18. 最終判断
 
 **`READY` — `SECURITY DESIGN READY`**
 
-Critical / Major の未解決 finding はなく、Minor 2件は Optional Improvements として明示的に引き継いだ。主要な Threat Model、Trust Boundary、Secret ownership / lifecycle、Signing Authorization、Permission / Replay、Relay / Node boundary、Security Invariants、Requirements traceability および Architecture / 他 Design の responsibility boundary は Security Design として成立している。
+重大 / 主要の未解決指摘はなく、軽微 2件は任意の改善として明示的に引き継いだ。主要な脅威モデル、信頼境界、秘密情報所有責任 / ライフサイクル、署名認可、許可 / リプレイ、Relay / ノード境界、セキュリティ上の不変条件、要件追跡可能性およびアーキテクチャ / 他設計の責務境界はセキュリティ設計として成立している。

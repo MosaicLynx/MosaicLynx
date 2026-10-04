@@ -1,13 +1,13 @@
-# ADR 0001: Lite evidence policy before strict operation
+# ADR 0001: Strict 運用前の Lite 証跡ポリシー
 
-## Decision
+## 決定
 
-Adopt a 30-day Lite gate for the initial Mainnet release: one release approval, signed JCS manifest, source/artifact/lockfile/SBOM digests, SDK integrity, compatibility metadata, and passing unit/integration/E2E evidence. The same evaluator supports a stricter policy with independent release and security approvers.
+初回 Mainnet リリースには、有効期間30日の Lite 判定を採用する。1件のリリース承認、署名付き JCS マニフェスト、ソース・成果物・ロックファイル・SBOM のダイジェスト、SDK の完全性、互換性メタデータ、および成功した単体・統合・E2E テストの証跡を必要とする。同じ評価器で、独立したリリース承認者とセキュリティ承認者を必要とする、より厳格なポリシーにも対応する。
 
-## Context
+## 背景
 
-The prior product specification §19 made two-person approval, reproducible builds, fuzzing, audits and key ceremonies mandatory. This is not sustainable for the present single-maintainer project, while permitting Mainnet with no proof is unacceptable.
+従来のプロダクト仕様 §19 は、二名による承認、再現可能ビルド、ファジング、監査、鍵セレモニーを必須としていた。これらは現在の単独保守体制では継続困難である一方、証跡なしで Mainnet を許可することも受け入れられない。
 
-## Consequences
+## 影響
 
-The strict requirements remain the target policy and must be enabled before team or high-assurance operation. The 30-day expiry creates recurring release work but prevents stale evidence from enabling a new build. Ed25519 was chosen because the project already uses that signature family for origin proofs and Node.js Web Crypto supports detached verification without adding a signing dependency.
+Strict の要件は引き続き目標ポリシーとし、チーム運用または高い保証水準を必要とする運用へ移行する前に有効化しなければならない。有効期間を30日とすることで定期的なリリース作業は必要になるが、古い証跡による新しいビルドの有効化を防げる。Ed25519 を選択した理由は、要求元証明に同系統の署名を既に使用しており、Node.js Web Crypto で署名用の依存関係を追加せずに分離署名を検証できるためである。

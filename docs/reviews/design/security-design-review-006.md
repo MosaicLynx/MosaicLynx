@@ -1,121 +1,121 @@
-# Security Design Review 006
+# セキュリティ設計レビュー 006
 
-## 1. Review Target
+## 1. レビュー対象
 
-- 対象: [Security Design](../../design/security-design.md)
+- 対象: [セキュリティ設計](../../design/security-design.md)
 - 確認日: 2026-09-20
 - 成果物: `docs/reviews/design/security-design-review-006.md`
-- レビュー範囲: protected asset、trust boundary、Relay E2E confidentiality、E2E secret / transport credential の所有、Mainnet capability release gate、fail-closed、security invariants、下位委譲。
-- 未確認範囲: 暗号方式・パラメータ、credential schema、runtime evaluator、build embedding、実装、ログ設定、テストおよび実際の release evidence。
+- レビュー範囲: 保護された資産、信頼境界、Relay E2E 機密性、E2E 秘密情報 / 通信経路認証情報の所有、Mainnet 対応能力リリース判定、安全側での終了、セキュリティ上の不変条件、下位委譲。
+- 未確認範囲: 暗号方式・パラメータ、認証情報スキーマ、実行環境評価器、ビルド埋め込み、実装、ログ設定、テストおよび実際のリリース証跡。
 
-## 2. Execution Audit
+## 2. 実行記録
 
-サブエージェントは使用せず、Review Board Chair が4つの独立 self-review pass を実施した。
+サブエージェントは使用せず、レビュー Board レビュー統括が4つの独立自己確認合格を実施した。
 
-| Pass            | 確認結果                                                                                                                                            |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Reviewer A 相当 | Browser / Mobile Signer、SDK、Relay、wallet-core、Release / Operation の責務と依存方向を確認。E2E secret と transport credential の責務逆流はない。 |
-| Reviewer B 相当 | protected asset、Relay trust boundary、E2E confidentiality、Mainnet fail-closed、secret lifecycle、security invariant を確認。                      |
-| Reviewer C 相当 | release failure、evidence missing / invalid / expired / unknown、Relay outage / retention / logging の安全側責任を確認。                            |
-| Reviewer D 相当 | Requirements、Architecture、ADR、Mainnet release evidence、Relay / Handoff Specification への traceability と委譲境界を確認。                       |
+| 合格              | 確認結果                                                                                                                                      |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| レビュアー A 相当 | ブラウザ / モバイル署名主体、SDK、Relay、wallet-core、リリース / 操作の責務と依存方向を確認。E2E 秘密情報と通信経路認証情報の責務逆流はない。 |
+| レビュアー B 相当 | 保護された資産、Relay 信頼境界、E2E 機密性、Mainnet 安全側での終了、秘密情報ライフサイクル、セキュリティ上の不変条件を確認。                  |
+| レビュアー C 相当 | リリース失敗、根拠欠落 / 無効な / 期限切れ / 不明、Relay 障害 / 保持 / ログ出力の安全側責任を確認。                                           |
+| レビュアー D 相当 | 要件、アーキテクチャ、ADR、Mainnet リリース証跡、Relay / 受け渡し仕様への追跡可能性と委譲境界を確認。                                         |
 
-## 3. Evidence Used
+## 3. 参照した根拠
 
-| 資料                                               | 確認目的                                                                          |
-| -------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Security Design §3、§11、§12、§15〜§18             | 対象本文の trust boundary、secret ownership、Relay、release gate、invariants。    |
-| Common Requirements `CR-NFR-006` / `CR-AC-008`     | Mainnet capability の evidence / policy gate と fail-closed。                     |
-| Relay Requirements `RR-003`、`RR-008`、`RR-AC-006` | opaque envelope、E2E secret 非保持、transport credential 分離。                   |
-| Architecture §6.5、§9、§16、§17.1                  | Relay credential / E2E secret、Mainnet gate、責任主体の既存設計。                 |
-| Mainnet Evidence Lite ADR / release evidence       | current release policy、evidence failure、Testnet-only / unavailable の運用根拠。 |
-| Relay / Handoff Specification                      | `appToken` / `webToken` と `sessionSecret` の分類・境界の補助確認。               |
-| `security-design-review-005.md`                    | `DR-SEC-001` / `DR-SEC-002` の required correction と continuity を確認。         |
+| 資料                                       | 確認目的                                                                 |
+| ------------------------------------------ | ------------------------------------------------------------------------ |
+| セキュリティ設計 §3、§11、§12、§15〜§18    | 対象本文の信頼境界、秘密情報所有責任、Relay、リリース判定、不変条件。    |
+| 共通の要件 `CR-NFR-006` / `CR-AC-008`      | Mainnet 対応能力の根拠 / ポリシー判定条件と安全側での終了。              |
+| Relay 要件 `RR-003`、`RR-008`、`RR-AC-006` | 内容を解釈しないエンベロープ、E2E 秘密情報非保持、通信経路認証情報分離。 |
+| アーキテクチャ §6.5、§9、§16、§17.1        | Relay 認証情報 / E2E 秘密情報、Mainnet 判定条件、責任主体の既存設計。    |
+| Mainnet 根拠 Lite ADR / リリース証跡       | 現在のリリースポリシー、根拠失敗、Testnet 専用 / 利用不能の運用根拠。    |
+| Relay / 受け渡し仕様                       | `appToken` / `webToken` と `sessionSecret` の分類・境界の補助確認。      |
+| `security-design-review-005.md`            | `DR-SEC-001` / `DR-SEC-002` の必須修正と継続性を確認。                   |
 
-## 4. Review Result
+## 4. レビュー結果
 
 `READY`
 
-## 5. Summary
+## 5. 要約
 
-Security Design は Mainnet capability を current release policy / evidence gate に結び付け、evidence 欠落・不整合・期限切れ・検証不能、承認・署名・trusted key failure、policy unknown では Mainnet を有効化しないことを明示した。Testnet-only または unavailable の安全側継続と release evidence への委譲も追跡できる。
+セキュリティ設計は Mainnet 対応能力を現在のリリースポリシー / 根拠判定条件に結び付け、根拠欠落・不整合・期限切れ・検証不能、承認・署名・信頼された鍵失敗、ポリシー不明では Mainnet を有効化しないことを明示した。Testnet 専用または利用不能の安全側継続とリリース証跡への委譲も追跡できる。
 
-Relay については、message confidentiality を Relay が復号できない E2E protected opaque envelope とし、E2E session secret / derived encryption material と endpoint authorization credential を別分類・別所有とした。Relay は E2E secret を受領・復号・保持・hash 化・導出・ログ出力せず、credential と metadata も最小限に扱う。Critical、Major、Minor の新規 finding は確認しなかった。
+Relay については、メッセージ機密性を Relay が復号できない E2E 保護された内容を解釈しないエンベロープとし、E2E セッション秘密情報 / 導出された暗号化資料とエンドポイント認可認証情報を別分類・別所有とした。Relay は E2E 秘密情報を受領・復号・保持・ハッシュ化・導出・ログ出力せず、認証情報とメタデータも最小限に扱う。重大、主要、軽微の新規指摘は確認しなかった。
 
-## 6. Finding Status
+## 6. 指摘の状態
 
-| ID                               | Severity          | Status              | 今回の状態根拠                                                                                                     |
-| -------------------------------- | ----------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `SD-SEC-001`〜`SD-SEC-005`       | 過去 Medium       | Resolved / 再発なし | displayability、Wallet Core failure、message context、untrusted boundary、per-sign authentication を維持している。 |
-| `SD-REVIEW-001`〜`SD-REVIEW-003` | 過去 Medium / Low | Resolved / 再発なし | startup lock、Sensitive UI、Symbol / NEM Key Identity separation を維持している。                                  |
-| `DR-SEC-001`                     | Minor             | Resolved            | §16、§17、§18 が Mainnet evidence / policy gate、fail-closed、release source を明示した。                          |
-| `DR-SEC-002`                     | Minor             | Resolved            | §3.2、§11.1、§12.1、§18 が E2E opaque、secret class、credential separation、Relay non-decryption を明示した。      |
+| ID                               | 重要度            | 状態                | 今回の状態根拠                                                                                                   |
+| -------------------------------- | ----------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `SD-SEC-001`〜`SD-SEC-005`       | 過去 Medium       | 解消済み / 再発なし | 表示可能性、wallet-core 失敗、メッセージ文脈、信頼されていない境界、per-sign 認証を維持している。                |
+| `SD-REVIEW-001`〜`SD-REVIEW-003` | 過去 Medium / Low | 解消済み / 再発なし | 起動ロック、機微な UI、Symbol / NEM 鍵識別情報分離を維持している。                                               |
+| `DR-SEC-001`                     | 軽微              | 解消済み            | §16、§17、§18 が Mainnet 根拠 / ポリシー判定条件、安全側での終了、リリース送信元を明示した。                     |
+| `DR-SEC-002`                     | 軽微              | 解消済み            | §3.2、§11.1、§12.1、§18 が E2E 内容を解釈しない、秘密情報クラス、認証情報分離、Relay non-decryption を明示した。 |
 
-## 7. Required Changes
+## 7. 必須の修正
 
-なし。Critical の New / Open / Reopened finding はない。
+なし。重大の新規 / 未決 / 再発指摘はない。
 
-## 8. Optional Improvements
+## 8. 任意の改善
 
 なし。
 
-## 9. Resolved Findings
+## 9. 解消済みの指摘
 
-`DR-SEC-001` は Mainnet capability と release evidence / policy の high-level gate、判定不能時の fail-closed、Testnet-only / unavailable、release evidence source の追跡を追加したことで解消した。`DR-SEC-002` は E2E secret と transport credential を別の security class / owner とし、Relay を ciphertext-only の opaque boundary と明示したことで解消した。
+`DR-SEC-001` は Mainnet 対応能力とリリース証跡 / ポリシーの上位の判定条件、判定不能時の安全側での終了、Testnet 専用 / 利用不能、リリース証跡送信元の追跡を追加したことで解消した。`DR-SEC-002` は E2E 秘密情報と通信経路認証情報を別のセキュリティクラス / 責任主体とし、Relay を ciphertext-only の内容を解釈しない境界と明示したことで解消した。
 
-## 10. Upstream Feedback
+## 10. 上流工程へのフィードバック
 
-なし。Mainnet release gate と Relay E2E confidentiality に関する Requirements / ADR は現行 Design を安全に評価できる。
+なし。Mainnet リリース判定と Relay E2E 機密性に関する要件 / ADR は現行設計を安全に評価できる。
 
-## 11. Deferred Findings
+## 11. 後続工程へ委譲する指摘
 
-- AES / KDF / AEAD、key length、nonce、credential representation、HTTP header、wire format、TTL、Redis、runtime evaluator は下位仕様・実装・運用へ委譲する。
-- evidence の収集、署名、trusted key rotation、build embedding、配布停止および実際の release artifact は Release Readiness Review の対象である。
-- Mobile biometric capability、host Binding、backup / migration、current workspace の実装有無は既存 OPEN として維持する。
+- AES / KDF / AEAD、鍵長さ、ノンス、認証情報表現、HTTP ヘッダー、通信上の形式、TTL、Redis、実行環境評価器は下位仕様・実装・運用へ委譲する。
+- 根拠の収集、署名、信頼された鍵ローテーション、ビルド埋め込み、配布停止および実際のリリース成果物はリリース準備状態レビューの対象である。
+- モバイル生体認証対応能力、ホストバインディング、バックアップ / 移行、現在のワークスペースの実装有無は既存未決として維持する。
 
-## 12. Scope and Traceability
+## 12. 対象範囲と追跡可能性
 
-Common Requirements と ADR の Mainnet gate は Security Design §16〜§18、Architecture §16 / §17.1 および release evidence へ追跡できる。Relay Requirements の opaque / E2E 条件は Security Design §3.2、§11.1、§12.1、§17、§18 と Relay / Handoff 下位資料へ接続している。Design は暗号・wire・runtime implementation を新たに決定していない。
+共通の要件と ADR の Mainnet 判定条件はセキュリティ設計 §16〜§18、アーキテクチャ §16 / §17.1 およびリリース証跡へ追跡できる。Relay 要件の内容を解釈しない / E2E 条件はセキュリティ設計 §3.2、§11.1、§12.1、§17、§18 と Relay / 受け渡し下位資料へ接続している。設計は暗号・通信上の・実行環境実装を新たに決定していない。
 
-## 13. Domain Checks
+## 13. ドメイン別の確認
 
-| 観点                                     | 判定                                                                                                                                            |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Protected assets / trust boundary        | Pass。private key、Wallet Store、E2E secret、transport credential、Relay、Signer、wallet-core の境界を識別できる。                              |
-| Secret ownership / lifecycle             | Pass。E2E secret は client-side、Relay credential は transport authorization、private key は wallet-core / trusted host boundary の責任である。 |
-| Authentication / signing authority       | Pass。Relay、SDK、Node、OS が four-condition gate や signing authority を代替しない。                                                           |
-| Failure / fail-closed                    | Pass。Mainnet evidence unknown / invalid と Relay opaque / state failure を安全側へ接続している。                                               |
-| Security invariants / downstream handoff | Pass。Mainnet gate、E2E confidentiality、no secret logging / persistence を下位へ委譲できる。                                                   |
+| 観点                                    | 判定                                                                                                                          |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 保護された資産 / 信頼境界               | 合格。秘密鍵、ウォレットストア、E2E 秘密情報、通信経路認証情報、Relay、署名主体、wallet-core の境界を識別できる。             |
+| 秘密情報所有責任 / ライフサイクル       | 合格。E2E 秘密情報はクライアント側の、Relay 認証情報は通信経路認可、秘密鍵は wallet-core / 信頼されたホスト境界の責任である。 |
+| 認証 / 署名判断権限                     | 合格。Relay、SDK、ノード、OS が四条件判定条件や署名判断権限を代替しない。                                                     |
+| 失敗 / 安全側での終了                   | 合格。Mainnet 根拠不明 / 無効なと Relay 内容を解釈しない / 状態失敗を安全側へ接続している。                                   |
+| セキュリティ上の不変条件 / 下流受け渡し | 合格。Mainnet 判定条件、E2E 機密性、no 秘密情報ログ出力 / 永続化を下位へ委譲できる。                                          |
 
-## 14. Validation Results
+## 14. 検証結果
 
 | 検証                                                                                                                                                    | 結果                                           |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | `pnpm exec prettier --check ...`                                                                                                                        | 無出力のまま完了しなかったため中断。           |
-| `./node_modules/.bin/prettier --check docs/design/architecture.md docs/design/interfaces.md docs/design/signing-flow.md docs/design/security-design.md` | PASS。                                         |
-| `git diff --check`                                                                                                                                      | PASS。                                         |
-| app / package lint、typecheck、test、build                                                                                                              | Not applicable。docs/design のみの変更である。 |
+| `./node_modules/.bin/prettier --check docs/design/architecture.md docs/design/interfaces.md docs/design/signing-flow.md docs/design/security-design.md` | 合格。                                         |
+| `git diff --check`                                                                                                                                      | 合格。                                         |
+| アプリ / パッケージ lint、typecheck、テスト、ビルド                                                                                                     | Not 適用可能な。docs/design のみの変更である。 |
 
-## 15. Review Gates
+## 15. レビュー判定基準
 
-| Gate                                         | 判定 | 根拠                                                                                             |
-| -------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------ |
-| 1. 目的と範囲                                | Pass | 共通 security policy と下位委譲の範囲を維持している。                                            |
-| 2. Context / responsibility / trust boundary | Pass | Relay、Signer、wallet-core、SDK、Release / Operation の trust boundary が明確である。            |
-| 3. Dependencies / direction                  | Pass | Relay / SDK が E2E secret、signing authority、Mainnet gate を代替しない。                        |
-| 4. Main flows                                | Pass | signing、Relay、release failure、incident / recovery の安全側責任が追跡できる。                  |
-| 5. Data ownership                            | Pass | E2E secret、transport credential、metadata、opaque envelope の所有・保持・logging が区別される。 |
-| 6. Security / interoperability               | Pass | Mainnet / Testnet、Relay E2E、four-condition gate、chain boundary を弱めていない。               |
-| 7. Upstream consistency                      | Pass | Requirements、ADR、Architecture、Relay / Handoff と整合する。                                    |
-| 8. Downstream implementability               | Pass | high-level policy を固定し、crypto / wire / runtime detail は正しい owner へ委譲している。       |
+| 判定条件                     | 判定 | 根拠                                                                                                         |
+| ---------------------------- | ---- | ------------------------------------------------------------------------------------------------------------ |
+| 1. 目的と範囲                | 合格 | 共通セキュリティポリシーと下位委譲の範囲を維持している。                                                     |
+| 2. 文脈 / 責務 / 信頼境界    | 合格 | Relay、署名主体、wallet-core、SDK、リリース / 操作の信頼境界が明確である。                                   |
+| 3. 依存関係 / 方向           | 合格 | Relay / SDK が E2E 秘密情報、署名判断権限、Mainnet 判定条件を代替しない。                                    |
+| 4. Main フロー               | 合格 | 署名、Relay、リリース失敗、事故 / 復旧の安全側責任が追跡できる。                                             |
+| 5. データ所有責任            | 合格 | E2E 秘密情報、通信経路認証情報、メタデータ、内容を解釈しないエンベロープの所有・保持・ログ出力が区別される。 |
+| 6. セキュリティ / 相互運用性 | 合格 | Mainnet / Testnet、Relay E2E、四条件判定条件、チェーン境界を弱めていない。                                   |
+| 7. 上流整合性                | 合格 | 要件、ADR、アーキテクチャ、Relay / 受け渡しと整合する。                                                      |
+| 8. 下流実装可能性            | 合格 | 上位のポリシーを固定し、暗号処理 / 通信上の / 実行環境詳細は正しい責任主体へ委譲している。                   |
 
-## 16. Remaining Risks and Open Decisions
+## 16. 残存リスクと未決定事項
 
-実際の Mainnet evidence evaluator、trusted key、build embedding、Relay protocol / retention、Mobile 実装および runtime secret handling は未検証である。これらは Design の残存 security boundary を変更しないが、Implementation / Release Readiness Review で確認が必要である。
+実際の Mainnet 根拠評価器、信頼された鍵、ビルド埋め込み、Relay プロトコル / 保持、モバイル実装および実行環境秘密情報処理は未検証である。これらは設計の残存セキュリティ境界を変更しないが、実装 / リリース準備状態レビューで確認が必要である。
 
-## 17. Automatic Changes
+## 17. 自動変更
 
-本レビュー中に Security Design、Requirements、Specifications、実装、テスト、設定は変更していない。変更は本 review artifact の新規作成のみである。
+本レビュー中にセキュリティ設計、要件、仕様書、実装、テスト、設定は変更していない。変更は本レビュー成果物の新規作成のみである。
 
-## 18. Final Decision
+## 18. 最終判断
 
 **`READY` — `SECURITY DESIGN READY`**

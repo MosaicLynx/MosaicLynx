@@ -1,121 +1,121 @@
-# Architecture Design Review 006
+# アーキテクチャ設計レビュー 006
 
-## 1. Review Target
+## 1. レビュー対象
 
-- 対象: [Architecture Design](../../design/architecture.md)
+- 対象: [アーキテクチャ設計](../../design/architecture.md)
 - 確認日: 2026-09-20
 - 成果物: `docs/reviews/design/architecture-review-006.md`
-- レビュー範囲: Architecture の目的、責務境界、trust boundary、主要 signing / handoff flow、Mainnet gate、下流委譲および §17.1 の traceability。
-- 未確認範囲: API、wire format、暗号パラメータ、具体的 error code、parser、UI / OS API、実装・テストの動作正しさ。
+- レビュー範囲: アーキテクチャの目的、責務境界、信頼境界、主要署名 / 受け渡しフロー、Mainnet 判定条件、下流委譲および §17.1 の追跡可能性。
+- 未確認範囲: API、通信上の形式、暗号パラメータ、具体的エラーコード、パーサー、UI / OS API、実装・テストの動作正しさ。
 
-## 2. Execution Audit
+## 2. 実行記録
 
-サブエージェントは使用せず、Review Board Chair が次の4パスを独立に実施した。
+サブエージェントは使用せず、レビュー Board レビュー統括が次の4パスを独立に実施した。
 
-| Pass            | 確認結果                                                                                                                                                             |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Reviewer A 相当 | Signer、SDK、Relay、wallet-core、chain integration、Release / Operation の責務と依存方向を確認。新たな責務逆流はない。                                               |
-| Reviewer B 相当 | secret boundary、four-condition gate、Relay opaque boundary、Mainnet fail-closed を確認。設計上の trust boundary は成立している。                                    |
-| Reviewer C 相当 | request、cancel、result、delivery unknown、lifecycle loss、handoff および retry の委譲境界を確認。cancel の高位意味は Signing Flow / Interfaces へ一意に追跡できる。 |
-| Reviewer D 相当 | Requirements、既存 Design、Handoff Specification、Signing Protocol および §17.1 の traceability を確認。旧 `DR-003` は解消済み。                                     |
+| 合格              | 確認結果                                                                                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| レビュアー A 相当 | 署名主体、SDK、Relay、wallet-core、チェーン統合、リリース / 操作の責務と依存方向を確認。新たな責務逆流はない。                                                      |
+| レビュアー B 相当 | 秘密情報境界、四条件判定条件、Relay 内容を解釈しない境界、Mainnet 安全側での終了を確認。設計上の信頼境界は成立している。                                            |
+| レビュアー C 相当 | 要求、キャンセル、結果、配送不明、ライフサイクル消失、受け渡しおよび再試行の委譲境界を確認。キャンセルの高位意味は署名フロー / インターフェースへ一意に追跡できる。 |
+| レビュアー D 相当 | 要件、既存設計、受け渡し仕様、署名プロトコルおよび §17.1 の追跡可能性を確認。旧 `DR-003` は解消済み。                                                               |
 
-## 3. Evidence Used
+## 3. 参照した根拠
 
-| 資料                                                   | 確認目的                                                                               |
-| ------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| Architecture Design §6、§8〜§17.1                      | 対象本文、責務、trust boundary、Mainnet gate、下流引継ぎ。                             |
-| Common / Browser / Mobile / Relay / SDK Requirements   | Architecture が満たすべき upstream responsibility と release / handoff 要求。          |
-| Interfaces、Signing Flow、Security Design              | Architecture から委譲する共通 context、cancel、recipient/channel、security invariant。 |
-| Web Transaction Handoff Specification §2、§5.2、§5.2.1 | v1 message signing の現行下流契約との互換性確認。                                      |
-| Signing Protocol §15〜§16、§19〜§21                    | message signing、cancel race、delivery disposition、Mainnet gate の補助確認。          |
-| `architecture-review-005.md`                           | `DR-003` の continuity 確認のみ。過去の Gate は継承していない。                        |
+| 資料                                              | 確認目的                                                                                      |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| アーキテクチャ設計 §6、§8〜§17.1                  | 対象本文、責務、信頼境界、Mainnet 判定条件、下流引継ぎ。                                      |
+| 共通の / ブラウザ / モバイル / Relay / SDK 要件   | アーキテクチャが満たすべき上流責務とリリース / 受け渡し要求。                                 |
+| インターフェース、署名フロー、セキュリティ設計    | アーキテクチャから委譲する共通文脈、キャンセル、recipient/channel、セキュリティ上の不変条件。 |
+| Web トランザクション受け渡し仕様 §2、§5.2、§5.2.1 | v1 メッセージ署名の現行下流契約との互換性確認。                                               |
+| 署名プロトコル §15〜§16、§19〜§21                 | メッセージ署名、キャンセル競合、配送処理結果の区分、Mainnet 判定条件の補助確認。              |
+| `architecture-review-005.md`                      | `DR-003` の継続性確認のみ。過去の判定条件は継承していない。                                   |
 
-## 4. Review Result
+## 4. レビュー結果
 
 `READY`
 
-## 5. Summary
+## 5. 要約
 
-Architecture は、Browser Extension / Mobile App を Signer、SDK を非特権連携、Relay を opaque transport、wallet-core を秘密情報・raw signing の主体として分離している。今回の修正により、message signing の v1 契約が既存 Handoff Specification / Signing Protocol へ追跡され、未決事項として誤読される状態が解消された。
+アーキテクチャは、ブラウザ拡張機能 / モバイルアプリを署名主体、SDK を非特権連携、Relay を内容を解釈しない通信経路、wallet-core を秘密情報・生の署名の主体として分離している。今回の修正により、メッセージ署名の v1 契約が既存受け渡し仕様 / 署名プロトコルへ追跡され、未決事項として誤読される状態が解消された。
 
-Mainnet capability の fail-closed、Relay の E2E opaque 境界、cancel / recipient binding の詳細責任は、共通 Design と下位資料の責任分界を越えていない。Critical、Major、Minor の新規 finding は確認しなかった。
+Mainnet 対応能力の安全側での終了、Relay の E2E 内容を解釈しない境界、キャンセル / 受信者結び付けの詳細責任は、共通設計と下位資料の責任分界を越えていない。重大、主要、軽微の新規指摘は確認しなかった。
 
-## 6. Finding Status
+## 6. 指摘の状態
 
-| ID       | Severity      | Status   | 今回の状態根拠                                                                                                  |
-| -------- | ------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
-| `AR-001` | Legacy MEDIUM | Resolved | 固定 v1 Binding と host integration の境界を維持している。                                                      |
-| `AR-002` | Legacy MEDIUM | Resolved | Binding と runtime / process / hardware isolation を混同していない。                                            |
-| `DR-001` | Critical      | Resolved | 共通4条件と pre-sign revalidation が維持されている。                                                            |
-| `DR-002` | Major         | Resolved | §17.1 が責務、正本、責任主体、委譲境界を追跡している。                                                          |
-| `DR-003` | Minor         | Resolved | §17 の message signing 記述を現行 Handoff Specification / Signing Protocol と同期し、§17.1 に追跡行を追加した。 |
+| ID       | 重要度        | 状態     | 今回の状態根拠                                                                                  |
+| -------- | ------------- | -------- | ----------------------------------------------------------------------------------------------- |
+| `AR-001` | 旧式の MEDIUM | 解消済み | 固定 v1 バインディングとホスト統合の境界を維持している。                                        |
+| `AR-002` | 旧式の MEDIUM | 解消済み | バインディングと実行環境 / プロセス / ハードウェア分離を混同していない。                        |
+| `DR-001` | 重大          | 解消済み | 共通4条件と署名前再検証が維持されている。                                                       |
+| `DR-002` | 主要          | 解消済み | §17.1 が責務、正本、責任主体、委譲境界を追跡している。                                          |
+| `DR-003` | 軽微          | 解消済み | §17 のメッセージ署名記述を現行受け渡し仕様 / 署名プロトコルと同期し、§17.1 に追跡行を追加した。 |
 
-## 7. Required Changes
+## 7. 必須の修正
 
-なし。Critical の New / Open / Reopened finding はない。
+なし。重大の新規 / 未決 / 再発指摘はない。
 
-## 8. Optional Improvements
+## 8. 任意の改善
 
 なし。
 
-## 9. Resolved Findings
+## 9. 解消済みの指摘
 
-`DR-003` は、Architecture が message signing の format / operation / result / handoff 契約を未決として扱わず、既存の v1 下流正本へ引き継ぐ記述へ更新されたことで解消した。Architecture は API、wire、encoding、serialized message format を再定義していない。
+`DR-003` は、アーキテクチャがメッセージ署名の形式 / 操作 / 結果 / 受け渡し契約を未決として扱わず、既存の v1 下流正本へ引き継ぐ記述へ更新されたことで解消した。アーキテクチャは API、通信上の、エンコーディング、シリアライズ済みのメッセージ形式を再定義していない。
 
-## 10. Upstream Feedback
+## 10. 上流工程へのフィードバック
 
-なし。Requirements の不足・曖昧さ・矛盾は今回確認しなかった。
+なし。要件の不足・曖昧さ・矛盾は今回確認しなかった。
 
-## 11. Deferred Findings
+## 11. 後続工程へ委譲する指摘
 
-- Mobile の OS lifecycle、host Binding、backup / migration および具体 handoff は既存の `MR-OPEN-*` と下位設計へ委譲する。
-- Mainnet evidence の収集、署名、trusted key、build embedding、runtime evaluator は release / operation の責務として委譲する。
-- API、wire、暗号、具体的 error mapping、実装および runtime evidence は本レビュー対象外である。
+- モバイルの OS ライフサイクル、ホストバインディング、バックアップ / 移行および具体受け渡しは既存の `MR-OPEN-*` と下位設計へ委譲する。
+- Mainnet 根拠の収集、署名、信頼された鍵、ビルド埋め込み、実行環境評価器はリリース / 操作の責務として委譲する。
+- API、通信上の、暗号、具体的エラー対応付け、実装および実行環境根拠は本レビュー対象外である。
 
-## 12. Scope and Traceability
+## 12. 対象範囲と追跡可能性
 
-Architecture §17 / §17.1 から、共通 security、signing lifecycle、Interfaces、Browser、Mobile、Relay、SDK、Chain Compatibility、Profile / Account、wallet-core、Mainnet release evidence および v1 message signing へ一意に追跡できる。cancel race と recipient / channel binding は Interfaces / Signing Flow が意味を所有し、Architecture は責務境界と委譲先だけを示す構造である。
+アーキテクチャ §17 / §17.1 から、共通セキュリティ、署名ライフサイクル、インターフェース、ブラウザ、モバイル、Relay、SDK、チェーン互換性、プロファイル / アカウント、wallet-core、Mainnet リリース証跡および v1 メッセージ署名へ一意に追跡できる。キャンセル競合と受信者 / チャネル結び付けはインターフェース / 署名フローが意味を所有し、アーキテクチャは責務境界と委譲先だけを示す構造である。
 
-## 13. Domain Checks
+## 13. ドメイン別の確認
 
-| 観点                                      | 判定                                                                                                                 |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Context / responsibility / trust boundary | Pass。Signer、SDK、Relay、wallet-core、Node、Release / Operation の authority と非 authority が分離されている。      |
-| Dependencies / direction                  | Pass。SDK / Relay / host adapter から wallet-core の secret ownership へ責務が逆流していない。                       |
-| Main flows / failure                      | Pass。cancel、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、restart、stale、duplicate、fallback 禁止が下流へ接続されている。 |
-| Secret ownership / Mainnet                | Pass。E2E secret と transport credential、Mainnet evidence gate の責任が追跡できる。                                 |
-| Downstream handoff                        | Pass。message signing の既存契約を含め、下流設計・仕様へ必要な抽象判断が渡る。                                       |
+| 観点                       | 判定                                                                                                                   |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| 文脈 / 責務 / 信頼境界     | 合格。署名主体、SDK、Relay、wallet-core、ノード、リリース / 操作の判断権限と非判断権限が分離されている。               |
+| 依存関係 / 方向            | 合格。SDK / Relay / ホストアダプターから wallet-core の秘密情報所有責任へ責務が逆流していない。                        |
+| Main フロー / 失敗         | 合格。キャンセル、`RESULT_UNKNOWN`、`DELIVERY_UNKNOWN`、再起動、古くなった、重複、代替経路禁止が下流へ接続されている。 |
+| 秘密情報所有責任 / Mainnet | 合格。E2E 秘密情報と通信経路認証情報、Mainnet 根拠判定条件の責任が追跡できる。                                         |
+| 下流受け渡し               | 合格。メッセージ署名の既存契約を含め、下流設計・仕様へ必要な抽象判断が渡る。                                           |
 
-## 14. Validation Results
+## 14. 検証結果
 
-| 検証                                                                                                                                                    | 結果                                                                              |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `pnpm exec prettier --check docs/design/architecture.md docs/design/interfaces.md docs/design/signing-flow.md docs/design/security-design.md`           | 15秒以上無出力で完了しなかったため中断。環境側の pnpm launcher 未完了として扱う。 |
-| `./node_modules/.bin/prettier --check docs/design/architecture.md docs/design/interfaces.md docs/design/signing-flow.md docs/design/security-design.md` | PASS。                                                                            |
-| `git diff --check`                                                                                                                                      | PASS。                                                                            |
-| app / package lint、typecheck、test、build                                                                                                              | Not applicable。docs/design のみの変更であり実装変更はない。                      |
+| 検証                                                                                                                                                    | 結果                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `pnpm exec prettier --check docs/design/architecture.md docs/design/interfaces.md docs/design/signing-flow.md docs/design/security-design.md`           | 15秒以上無出力で完了しなかったため中断。環境側の pnpm 起動プログラム未完了として扱う。 |
+| `./node_modules/.bin/prettier --check docs/design/architecture.md docs/design/interfaces.md docs/design/signing-flow.md docs/design/security-design.md` | 合格。                                                                                 |
+| `git diff --check`                                                                                                                                      | 合格。                                                                                 |
+| アプリ / パッケージ lint、typecheck、テスト、ビルド                                                                                                     | Not 適用可能な。docs/design のみの変更であり実装変更はない。                           |
 
-## 15. Review Gates
+## 15. レビュー判定基準
 
-| Gate                                         | 判定 | 根拠                                                                                            |
-| -------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------- |
-| 1. 目的と範囲                                | Pass | Architecture の対象、対象外、未決事項が維持されている。                                         |
-| 2. Context / responsibility / trust boundary | Pass | Signer、SDK、Relay、wallet-core、Release / Operation の責務が明確である。                       |
-| 3. Dependencies / direction                  | Pass | 依存方向と秘密情報境界に逆流がない。                                                            |
-| 4. Main flows                                | Pass | signing、handoff、cancel、result unknown、delivery unknown、lifecycle loss を下流へ引き継げる。 |
-| 5. Data ownership                            | Pass | Profile、Account、E2E secret、transport credential、opaque Relay data の所有を混同していない。  |
-| 6. Security / interoperability               | Pass | Chain / Network、Mainnet gate、four-condition gate、Relay non-authority が維持されている。      |
-| 7. Upstream consistency                      | Pass | Requirements、ADR、release evidence、既存 Design と矛盾しない。                                 |
-| 8. Downstream implementability               | Pass | message signing の下流正本と残存する詳細委譲を区別している。                                    |
+| 判定条件                     | 判定 | 根拠                                                                                                            |
+| ---------------------------- | ---- | --------------------------------------------------------------------------------------------------------------- |
+| 1. 目的と範囲                | 合格 | アーキテクチャの対象、対象外、未決事項が維持されている。                                                        |
+| 2. 文脈 / 責務 / 信頼境界    | 合格 | 署名主体、SDK、Relay、wallet-core、リリース / 操作の責務が明確である。                                          |
+| 3. 依存関係 / 方向           | 合格 | 依存方向と秘密情報境界に逆流がない。                                                                            |
+| 4. Main フロー               | 合格 | 署名、受け渡し、キャンセル、結果不明、配送不明、ライフサイクル消失を下流へ引き継げる。                          |
+| 5. データ所有責任            | 合格 | プロファイル、アカウント、E2E 秘密情報、通信経路認証情報、内容を解釈しない Relay データの所有を混同していない。 |
+| 6. セキュリティ / 相互運用性 | 合格 | チェーン / ネットワーク、Mainnet 判定条件、四条件判定条件、Relay 判断権限を持たないことが維持されている。       |
+| 7. 上流整合性                | 合格 | 要件、ADR、リリース証跡、既存設計と矛盾しない。                                                                 |
+| 8. 下流実装可能性            | 合格 | メッセージ署名の下流正本と残存する詳細委譲を区別している。                                                      |
 
-## 16. Remaining Risks and Open Decisions
+## 16. 残存リスクと未決定事項
 
-Mobile 実装、具体的な handoff / Relay protocol、wallet-core host integration、release evidence evaluator および実装・テストの適合性は別工程で確認する。これらの未決事項は Architecture の共通 security boundary を弱めない。
+モバイル実装、具体的な受け渡し / Relay プロトコル、wallet-core ホスト統合、リリース証跡評価器および実装・テストの適合性は別工程で確認する。これらの未決事項はアーキテクチャの共通セキュリティ境界を弱めない。
 
-## 17. Automatic Changes
+## 17. 自動変更
 
-本レビュー中に Architecture、Requirements、Specifications、実装、テスト、設定は変更していない。変更は本 review artifact の新規作成のみである。
+本レビュー中にアーキテクチャ、要件、仕様書、実装、テスト、設定は変更していない。変更は本レビュー成果物の新規作成のみである。
 
-## 18. Final Decision
+## 18. 最終判断
 
 **`READY` — `ARCHITECTURE DESIGN READY`**

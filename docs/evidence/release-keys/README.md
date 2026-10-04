@@ -1,3 +1,3 @@
-# Release public keys
+# リリース公開鍵
 
-Store only public Ed25519 SPKI keys here or in `docs/evidence/evidence-policy.json`. Record key ID, purpose, creation date, expiry and revocation status. Keep PKCS#8 private signing keys on an offline device; never paste one into an issue, log, CI variable dump, manifest, or this directory.
+このディレクトリ、または `docs/evidence/evidence-policy.json` には、Ed25519 の SPKI 公開鍵のみを保存する。鍵 ID、用途、作成日、有効期限、失効状態を記録する。PKCS#8 形式の署名用秘密鍵はオフラインの端末で保管し、Issue、ログ、CI の変数ダンプ、マニフェスト、このディレクトリへ貼り付けてはならない。

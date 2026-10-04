@@ -1,191 +1,191 @@
-# Architecture Design Review 004
+# アーキテクチャ設計レビュー 004
 
-## 1. Review Target
+## 1. レビュー対象
 
 - 対象: [`docs/design/architecture.md`](../../design/architecture.md)
 - 前回レビュー: [`architecture-review-003.md`](./architecture-review-003.md)
-- Review ID: `architecture-review-004`
+- レビュー ID: `architecture-review-004`
 - 確認日: 2026-08-27
-- 種別: `design-review` Skill による Architecture 再レビュー
-- 変更範囲: 本レビュー成果物のみ。Architecture、要件、仕様、ADR、個別 Design、wallet-core、実装およびテストは変更していない。
-- 主目的: 前回 `DR-001` / `DR-002` の修正確認、`AR-001` / `AR-002` の再発確認、および修正に伴う Critical / Major の重大回帰確認。
+- 種別: `design-review` スキルによるアーキテクチャ再レビュー
+- 変更範囲: 本レビュー成果物のみ。アーキテクチャ、要件、仕様、ADR、個別設計、wallet-core、実装およびテストは変更していない。
+- 主目的: 前回 `DR-001` / `DR-002` の修正確認、`AR-001` / `AR-002` の再発確認、および修正に伴う重大 / 主要の重大回帰確認。
 
-下流資料は Architecture の責務、用語、traceability および明白な矛盾の確認に限定して参照した。API、wire format、schema、concrete state machine、暗号パラメータ、DB / Redis schema、UI layout、platform API および実装構造の不足は、本レビューの Architecture finding としていない。
+下流資料はアーキテクチャの責務、用語、追跡可能性および明白な矛盾の確認に限定して参照した。API、通信上の形式、スキーマ、具体的な状態遷移、暗号パラメータ、DB / Redis スキーマ、UI 配置、プラットフォーム API および実装構造の不足は、本レビューのアーキテクチャ指摘としていない。
 
-## 2. Execution Audit
+## 2. 実行記録
 
-最新の `design-review` Skill、共通 review playbook、reviewers、review gates、output format および `.agents/project-context.md` を確認した。サブエージェントは使用せず、playbook の Reviewer A〜D を独立した走査として実施した。
+最新の `design-review` スキル、共通レビュー作業手順、レビュアー、レビュー判定基準、出力形式および `.agents/project-context.md` を確認した。サブエージェントは使用せず、作業手順のレビュアー A〜D を独立した走査として実施した。
 
-| Path                          | 確認内容                                                                                                     | 結果                                                                      |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| A: structure / responsibility | Context、コンポーネント責務、依存方向、データ所有、Browser / Mobile / Relay / SDK / wallet-core の境界       | 主要責務と依存方向は成立。SDK / Relay / wallet-core の責任逆流なし        |
-| B: security / trust boundary  | 共通署名ゲート、認証、unlock、Account authorization、explicit approval、secret、fail-closed、chain / network | `DR-001` の修正を確認。4条件は Browser / Mobile に共通適用される          |
-| C: flow / operations          | 署名前再確認、approval / target binding、lifecycle、stale、失効、result unknown、結果返却、再起動・再試行    | 主要フローと安全側の結果条件は成立                                        |
-| D: traceability / downstream  | Concept / Requirements、ADR、§17.1 の authoritative downstream、owner、委譲境界、open item                   | `DR-002` の修正を確認。各 Architecture-level 責務に一意の下流委譲先がある |
+| パス                       | 確認内容                                                                                                                | 結果                                                                        |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| A: 構造 / 責務             | 文脈、コンポーネント責務、依存方向、データ所有、ブラウザ / モバイル / Relay / SDK / wallet-core の境界                  | 主要責務と依存方向は成立。SDK / Relay / wallet-core の責任逆流なし          |
+| B: セキュリティ / 信頼境界 | 共通署名ゲート、認証、ロック解除、アカウントの利用認可、明示的な承認、秘密情報、安全側での終了、チェーン / ネットワーク | `DR-001` の修正を確認。4条件はブラウザ / モバイルに共通適用される           |
+| C: フロー / 操作           | 署名前再確認、承認 / 対象結び付け、ライフサイクル、古くなった、失効、結果不明、結果返却、再起動・再試行                 | 主要フローと安全側の結果条件は成立                                          |
+| D: 追跡可能性 / 下流       | コンセプト / 要件、ADR、§17.1 の正本となる下流、責任主体、委譲境界、未決項目                                            | `DR-002` の修正を確認。各アーキテクチャレベルの責務に一意の下流委譲先がある |
 
-## 3. Evidence Used
+## 3. 参照した根拠
 
 | 資料                                                                                                                                                                                                                                                                                             | 使用目的                                                                                                                                           |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`docs/design/architecture.md`](../../design/architecture.md)                                                                                                                                                                                                                                    | Review target。§1〜§18 の目的、範囲、Context、責務、trust boundary、secret、主要フロー、open item、§17.1 traceability を確認                       |
-| [`docs/reviews/design/architecture-review-003.md`](./architecture-review-003.md)                                                                                                                                                                                                                 | `DR-001` / `DR-002` の初出内容と、今回の status 判定対象を確認。前回の Review Gate は今回の判定根拠に継承していない                                |
-| [`docs/concept/concept-sheet.md`](../../concept/concept-sheet.md)                                                                                                                                                                                                                                | 目的、対象利用者、v1 milestone、Signer / Relay の責任境界、認証・Account authorization・明示承認の上流方針を確認                                   |
+| [`docs/design/architecture.md`](../../design/architecture.md)                                                                                                                                                                                                                                    | レビュー対象。§1〜§18 の目的、範囲、文脈、責務、信頼境界、秘密情報、主要フロー、未決項目、§17.1 追跡可能性を確認                                   |
+| [`docs/reviews/design/architecture-review-003.md`](./architecture-review-003.md)                                                                                                                                                                                                                 | `DR-001` / `DR-002` の初出内容と、今回の状態判定対象を確認。前回のレビュー判定条件は今回の判定根拠に継承していない                                 |
+| [`docs/concept/concept-sheet.md`](../../concept/concept-sheet.md)                                                                                                                                                                                                                                | 目的、対象利用者、v1 マイルストーン、署名主体 / Relay の責任境界、認証・アカウントの利用認可・明示承認の上流方針を確認                             |
 | [`docs/requirements/requirements.md`](../../requirements/requirements.md)                                                                                                                                                                                                                        | `CR-010`、`CR-011`、`CR-013`、`CR-015`、`CR-016`、`CR-NFR-003`、`CR-NFR-004`、`CR-NFR-013`、`CR-AC-017`〜`CR-AC-019`、`CR-OPEN-001` / `002` を確認 |
-| [`docs/requirements/browser-extension.md`](../../requirements/browser-extension.md)                                                                                                                                                                                                              | Browser caller context、privileged layer、permission、approval、lifecycle、wallet-core 境界および Mainnet gate を確認                              |
-| [`docs/requirements/mobile-app.md`](../../requirements/mobile-app.md)                                                                                                                                                                                                                            | Mobile host、auth / lock、handoff、Profile / Account、OS lifecycle、backup と wallet-core の責任境界を確認                                         |
-| [`docs/requirements/relay.md`](../../requirements/relay.md)                                                                                                                                                                                                                                      | Relay の opaque transport、structural validation、stale / duplicate / state loss および `RR-OPEN-001` / `002` を確認                               |
-| [`docs/requirements/sdk.md`](../../requirements/sdk.md)                                                                                                                                                                                                                                          | SDK の非特権境界、Signer 非該当、auth / authorization / unlock の非代替、結果対応および SDK open item を確認                                       |
-| [`docs/design/security-design.md`](../../design/security-design.md)                                                                                                                                                                                                                              | 共通 Trust Boundary、Lock / Authentication、Signing Authorization、Fail-Closed、Security Invariants と委譲先を確認                                 |
-| [`docs/design/signing-flow.md`](../../design/signing-flow.md)                                                                                                                                                                                                                                    | Signing lifecycle、authorization / target binding、署名前再検証、結果検証および flow invariant を確認                                              |
-| [`docs/design/interfaces.md`](../../design/interfaces.md)                                                                                                                                                                                                                                        | request / response の概念責務、各境界の validator / trusted authority、wallet-core / Relay / Signer の役割を確認                                   |
-| [`docs/design/browser-extension.md`](../../design/browser-extension.md)                                                                                                                                                                                                                          | Browser Extension の privileged host、trusted UI、permission、lifecycle、wallet-core 境界を確認                                                    |
-| [`docs/design/mobile-app.md`](../../design/mobile-app.md)                                                                                                                                                                                                                                        | Mobile trusted host、device authentication、OS lifecycle、handoff、wallet-core 境界および下流委譲を確認                                            |
-| [`docs/design/relay.md`](../../design/relay.md)                                                                                                                                                                                                                                                  | Relay の opaque / untrusted transport、structural validation、state loss、open item、下流委譲を確認                                                |
-| [`docs/design/sdk.md`](../../design/sdk.md)                                                                                                                                                                                                                                                      | SDK の非特権 integration、transport / correlation、Signer 非代替、open item、下流委譲を確認                                                        |
-| [`docs/specifications/chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md)                                                                                                                                                                                            | Symbol / NEM、Mainnet / Testnet、chain-specific inspection、署名対象 bytes の正本と Architecture の境界を確認                                      |
-| [`docs/specifications/profile-account-spec.md`](../../specifications/profile-account-spec.md)                                                                                                                                                                                                    | Application Profile / Account、Network、署名時認証、backup / restore の具体化先を確認                                                              |
-| [`docs/specifications/web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md)                                                                                                                                                                                    | SDK / Extension / Mobile / Relay handoff の下流責務、結果対応および具体契約の委譲先を確認                                                          |
-| [`docs/specifications/product-spec.md`](../../specifications/product-spec.md)                                                                                                                                                                                                                    | Browser Extension の署名、Provider、chain / network、Mainnet gate の整合を確認                                                                     |
-| [`docs/adr/0001-mainnet-evidence-lite.md`](../../adr/0001-mainnet-evidence-lite.md)                                                                                                                                                                                                              | Mainnet release evidence の Lite gate と fail-closed 方針を確認                                                                                    |
-| [`_snwc/README.md`](../../../_snwc/README.md)、[`wallet-core requirements`](../../../_snwc/docs/requirements/requirements.md)、[`wallet-core specification`](../../../_snwc/docs/specifications/specification.md)、[`Binding decision`](../../../_snwc/docs/decisions/binding-implementation.md) | wallet-core の Wallet Store、password、raw signing、固定 Binding、WASM / Native の境界、Application-level approval / authentication 非担当を確認   |
-| [`Mainnet release evidence`](../../release/mainnet-release-evidence.md)                                                                                                                                                                                                                          | Architecture §17.1 の release evidence 委譲先、Mainnet capability の fail-closed と運用詳細の境界を確認                                            |
+| [`docs/requirements/browser-extension.md`](../../requirements/browser-extension.md)                                                                                                                                                                                                              | ブラウザ呼び出し元文脈、特権を持つ層、許可、承認、ライフサイクル、wallet-core 境界および Mainnet 判定条件を確認                                    |
+| [`docs/requirements/mobile-app.md`](../../requirements/mobile-app.md)                                                                                                                                                                                                                            | モバイルホスト、認証 / ロック、受け渡し、プロファイル / アカウント、OS ライフサイクル、バックアップと wallet-core の責任境界を確認                 |
+| [`docs/requirements/relay.md`](../../requirements/relay.md)                                                                                                                                                                                                                                      | Relay の内容を解釈しない通信経路、構造上の検証、古くなった / 重複 / 状態消失および `RR-OPEN-001` / `002` を確認                                    |
+| [`docs/requirements/sdk.md`](../../requirements/sdk.md)                                                                                                                                                                                                                                          | SDK の非特権境界、署名主体非該当、認証 / 認可 / ロック解除の非代替、結果対応および SDK 未決項目を確認                                              |
+| [`docs/design/security-design.md`](../../design/security-design.md)                                                                                                                                                                                                                              | 共通信頼境界、ロック / 認証、署名認可、安全側での終了、セキュリティ上の不変条件と委譲先を確認                                                      |
+| [`docs/design/signing-flow.md`](../../design/signing-flow.md)                                                                                                                                                                                                                                    | 署名ライフサイクル、認可 / 対象結び付け、署名前再検証、結果検証およびフロー不変条件を確認                                                          |
+| [`docs/design/interfaces.md`](../../design/interfaces.md)                                                                                                                                                                                                                                        | 要求 / 応答の概念責務、各境界の検証器 / 信頼された判断権限、wallet-core / Relay / 署名主体の役割を確認                                             |
+| [`docs/design/browser-extension.md`](../../design/browser-extension.md)                                                                                                                                                                                                                          | ブラウザ拡張機能の特権を持つホスト、信頼された UI、許可、ライフサイクル、wallet-core 境界を確認                                                    |
+| [`docs/design/mobile-app.md`](../../design/mobile-app.md)                                                                                                                                                                                                                                        | モバイル信頼されたホスト、端末認証、OS ライフサイクル、受け渡し、wallet-core 境界および下流委譲を確認                                              |
+| [`docs/design/relay.md`](../../design/relay.md)                                                                                                                                                                                                                                                  | Relay の内容を解釈しない / 信頼されていない通信経路、構造上の検証、状態消失、未決項目、下流委譲を確認                                              |
+| [`docs/design/sdk.md`](../../design/sdk.md)                                                                                                                                                                                                                                                      | SDK の非特権統合、通信経路 / 対応付け、署名主体非代替、未決項目、下流委譲を確認                                                                    |
+| [`docs/specifications/chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md)                                                                                                                                                                                            | Symbol / NEM、Mainnet / Testnet、チェーン固有の内容検査、署名対象バイト列の正本とアーキテクチャの境界を確認                                        |
+| [`docs/specifications/profile-account-spec.md`](../../specifications/profile-account-spec.md)                                                                                                                                                                                                    | アプリケーションプロファイル / アカウント、ネットワーク、署名時認証、バックアップ / 復元の具体化先を確認                                           |
+| [`docs/specifications/web-transaction-handoff-spec.md`](../../specifications/web-transaction-handoff-spec.md)                                                                                                                                                                                    | SDK / 拡張機能 / モバイル / Relay 受け渡しの下流責務、結果対応および具体契約の委譲先を確認                                                         |
+| [`docs/specifications/product-spec.md`](../../specifications/product-spec.md)                                                                                                                                                                                                                    | ブラウザ拡張機能の署名、Provider、チェーン / ネットワーク、Mainnet 判定条件の整合を確認                                                            |
+| [`docs/adr/0001-mainnet-evidence-lite.md`](../../adr/0001-mainnet-evidence-lite.md)                                                                                                                                                                                                              | Mainnet リリース証跡の Lite 判定条件と安全側での終了方針を確認                                                                                     |
+| [`_snwc/README.md`](../../../_snwc/README.md)、[`wallet-core requirements`](../../../_snwc/docs/requirements/requirements.md)、[`wallet-core specification`](../../../_snwc/docs/specifications/specification.md)、[`Binding decision`](../../../_snwc/docs/decisions/binding-implementation.md) | wallet-core のウォレットストア、パスワード、生の署名、固定バインディング、WASM / ネイティブの境界、アプリケーションレベルの承認 / 認証非担当を確認 |
+| [`Mainnet release evidence`](../../release/mainnet-release-evidence.md)                                                                                                                                                                                                                          | アーキテクチャ §17.1 のリリース証跡委譲先、Mainnet 対応能力の安全側での終了と運用詳細の境界を確認                                                  |
 
-## 4. Review Result
+## 4. レビュー結果
 
-**Review Gate: `READY`**
+**レビュー判定条件: `READY`**
 
-前回の `DR-001` / `DR-002` は、現在の Architecture 本文に基づき、それぞれ `RESOLVED` と判定する。共通 Signer gate は Browser Extension の privileged layer と Mobile App の trusted host に共通適用され、署名前の必須条件、再確認、fail-closed、結果返却時の安全側確認および外部主体による迂回禁止が Architecture-level に成立している。§17.1 は Architecture-level の責務・不変条件・open item を authoritative downstream、owner、委譲境界へ対応付けている。
+前回の `DR-001` / `DR-002` は、現在のアーキテクチャ本文に基づき、それぞれ `RESOLVED` と判定する。共通署名主体判定条件はブラウザ拡張機能の特権を持つ層とモバイルアプリの信頼されたホストに共通適用され、署名前の必須条件、再確認、安全側での終了、結果返却時の安全側確認および外部主体による迂回禁止がアーキテクチャレベルのに成立している。§17.1 はアーキテクチャレベルの責務・不変条件・未決項目を正本となる下流、責任主体、委譲境界へ対応付けている。
 
-新規 Critical / Major finding、`AR-001` / `AR-002` の再発、Trust Boundary・Security・責任分界の重大な逆流および Design フェーズ逸脱は確認されなかった。
+新規重大 / 主要指摘、`AR-001` / `AR-002` の再発、信頼境界・セキュリティ・責任分界の重大な逆流および設計フェーズ逸脱は確認されなかった。
 
-## 5. Summary
+## 5. 要約
 
-- `DR-001`: `RESOLVED`。§6.9 に Authentication、Signing-capable unlock、Account authorization、Explicit user approval の4条件を共通署名 gate として定義し、Browser / Mobile の owner、署名前再確認、fail-closed、結果返却条件、connection / permission の非代替、wallet-core の非担当範囲、dApp / SDK / Relay の迂回禁止を確認できる。
-- `DR-002`: `RESOLVED`。§17.1 に共通 Security / Trust Boundary、共通署名 gate、Signing Flow、Interfaces、Browser Extension、Mobile App、Relay、SDK、Chain Compatibility、Profile / Account、wallet-core、Mainnet release evidence の authoritative downstream、owner、Architecture から委譲する詳細境界がある。
-- `CR-016` と `CR-AC-017`〜`CR-AC-019` は、4条件の列挙と fail-closed を定める §6.9、Trust Boundary の §8、主要フローの §10、主要 Security 原則の §16、下流の共通 Security Design への委譲を通じて、共通署名 gate へ一意に追跡できる。
-- `CR-OPEN-001` / `CR-OPEN-002` は、§17 の未決事項、§17.1 の Profile / Account 行および wallet-core 行へ追跡できる。Profile / Account 行は対応を担当し、隣接する wallet-core 行は `CR-OPEN-001` / `002` の host integration を除外しているため、責任境界は矛盾しない。
-- Mobile、Relay、SDK の Architecture-level open item / responsibility は §17 と §17.1 の各 platform 行に対応付けられ、詳細な OS、transport、runtime、API、protocol、retry、UI および release 運用は下流へ委譲されている。
-- `AR-001` / `AR-002` の再発はない。固定済み Binding method と host integration の未決範囲は分離され、Binding の API / data ownership boundary と WASM / host runtime の secret isolation も混同されていない。
-- SDK は Signer ではなく、Relay は opaque transport であり、wallet-core は Wallet Store、秘密情報処理および raw signing の正本である。Browser Extension / Mobile App が Signer であり、dApp / SDK / Relay は trusted wallet context の外側にある責任分界を維持している。
+- `DR-001`: `RESOLVED`。§6.9 に認証、署名可能な状態へのロック解除、アカウントの利用認可、利用者による明示的な承認の4条件を共通署名判定条件として定義し、ブラウザ / モバイルの責任主体、署名前再確認、安全側での終了、結果返却条件、接続 / 許可の非代替、wallet-core の非担当範囲、dApp / SDK / Relay の迂回禁止を確認できる。
+- `DR-002`: `RESOLVED`。§17.1 に共通セキュリティ / 信頼境界、共通署名判定条件、署名フロー、インターフェース、ブラウザ拡張機能、モバイルアプリ、Relay、SDK、チェーン互換性、プロファイル / アカウント、wallet-core、Mainnet リリース証跡の正本となる下流、責任主体、アーキテクチャから委譲する詳細境界がある。
+- `CR-016` と `CR-AC-017`〜`CR-AC-019` は、4条件の列挙と安全側での終了を定める §6.9、信頼境界の §8、主要フローの §10、主要セキュリティ原則の §16、下流の共通セキュリティ設計への委譲を通じて、共通署名判定条件へ一意に追跡できる。
+- `CR-OPEN-001` / `CR-OPEN-002` は、§17 の未決事項、§17.1 のプロファイル / アカウント行および wallet-core 行へ追跡できる。プロファイル / アカウント行は対応を担当し、隣接する wallet-core 行は `CR-OPEN-001` / `002` のホスト統合を除外しているため、責任境界は矛盾しない。
+- モバイル、Relay、SDK のアーキテクチャレベルの未決項目 / 責務は §17 と §17.1 の各プラットフォーム行に対応付けられ、詳細な OS、通信経路、実行環境、API、プロトコル、再試行、UI およびリリース運用は下流へ委譲されている。
+- `AR-001` / `AR-002` の再発はない。固定済みバインディングメソッドとホスト統合の未決範囲は分離され、バインディングの API / データ所有責任境界と WASM / ホスト実行環境の秘密情報の分離も混同されていない。
+- SDK は署名主体ではなく、Relay は内容を解釈しない通信経路であり、wallet-core はウォレットストア、秘密情報処理および生の署名の正本である。ブラウザ拡張機能 / モバイルアプリが署名主体であり、dApp / SDK / Relay は信頼されたウォレット文脈の外側にある責任分界を維持している。
 
-## 6. Finding Status
+## 6. 指摘の状態
 
-| ID       | Severity | Status   | 初出レビュー              | 今回の判定                                                                                          |
-| -------- | -------- | -------- | ------------------------- | --------------------------------------------------------------------------------------------------- |
-| `DR-001` | Critical | Resolved | `architecture-review-003` | `RESOLVED`。共通4条件、両 Signer owner、署名前再確認、fail-closed、結果返却条件および迂回禁止を確認 |
-| `DR-002` | Major    | Resolved | `architecture-review-003` | `RESOLVED`。§17.1 の authoritative downstream / owner / delegation matrix と open item の対応を確認 |
+| ID       | 重要度 | 状態     | 初出レビュー              | 今回の判定                                                                                                |
+| -------- | ------ | -------- | ------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `DR-001` | 重大   | 解消済み | `architecture-review-003` | `RESOLVED`。共通4条件、両署名主体責任主体、署名前再確認、安全側での終了、結果返却条件および迂回禁止を確認 |
+| `DR-002` | 主要   | 解消済み | `architecture-review-003` | `RESOLVED`。§17.1 の正本となる下流 / 責任主体 / 委譲対応表と未決項目の対応を確認                          |
 
-今回初出の正式 finding はない。Finding ID の重複はない。
+今回初出の正式指摘はない。指摘 ID の重複はない。
 
-## 7. Required Changes
+## 7. 必須の修正
 
-なし。Critical / Major の New、Open または Reopened finding はない。
+なし。重大 / 主要の新規、未決または再発指摘はない。
 
-## 8. Optional Improvements
+## 8. 任意の改善
 
-なし。今回の範囲で、Minor 相当の新規探索を目的とする改善提案は追加していない。
+なし。今回の範囲で、軽微相当の新規探索を目的とする改善提案は追加していない。
 
-## 9. Resolved Findings
+## 9. 解消済みの指摘
 
-| 過去 ID  | 状態       | 今回の確認                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| -------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DR-001` | `RESOLVED` | §6.3、§6.4、§6.9、§8、§10、§16 により、Browser Extension privileged layer と Mobile App trusted host の双方が、Authentication、Signing-capable unlock、Account authorization、Explicit user approval を署名前に再確認する共通 gate を管理する。未成立、locked、unknown、stale、失効または不整合では署名・成功結果返却を行わず、connection / permission、wallet-core password / Store 処理、外部主体の表示・配送成功を代替根拠にしない。 |
-| `DR-002` | `RESOLVED` | §17.1 は、共通 Security / Trust Boundary、Signing Flow、Interfaces、Browser、Mobile、Relay、SDK、Chain Compatibility、Profile / Account、wallet-core、Mainnet release evidence をそれぞれ対応する downstream Design / Specification へ割り当て、owner と委譲境界を併記する。`CR-OPEN-001` / `002` の Profile / Account 対応と、wallet-core の host integration を除く境界も明示されている。                                             |
+| 過去 ID  | 状態       | 今回の確認                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DR-001` | `RESOLVED` | §6.3、§6.4、§6.9、§8、§10、§16 により、ブラウザ拡張機能特権を持つ層とモバイルアプリ信頼されたホストの双方が、認証、署名可能な状態へのロック解除、アカウントの利用認可、利用者による明示的な承認を署名前に再確認する共通判定条件を管理する。未成立、ロック済み、不明、古くなった、失効または不整合では署名・成功結果返却を行わず、接続 / 許可、wallet-core パスワード / ストア処理、外部主体の表示・配送成功を代替根拠にしない。 |
+| `DR-002` | `RESOLVED` | §17.1 は、共通セキュリティ / 信頼境界、署名フロー、インターフェース、ブラウザ、モバイル、Relay、SDK、チェーン互換性、プロファイル / アカウント、wallet-core、Mainnet リリース証跡をそれぞれ対応する下流設計 / 仕様へ割り当て、責任主体と委譲境界を併記する。`CR-OPEN-001` / `002` のプロファイル / アカウント対応と、wallet-core のホスト統合を除く境界も明示されている。                                                       |
 
-## 10. Deferred Findings
+## 10. 後続工程へ委譲する指摘
 
-Architecture が明示的に下流へ委譲しており、今回の Architecture finding としない事項は次のとおりである。
+アーキテクチャが明示的に下流へ委譲しており、今回のアーキテクチャ指摘としない事項は次のとおりである。
 
-- Provider API、公開 function signature、JSON / DTO / schema、wire format、version field、correlation identifier、具体的 error code、timeout および concrete state machine。
-- Symbol / NEM の transaction type、aggregate、message format、canonical serialization、hash / signature bytes、parser および fixture の詳細。
-- Authentication / unlock method、credential 保存、PIN / biometric / OS session、UI layout、Browser / Mobile platform API および host lifecycle の具体実装。
-- Relay の HTTP / Redis、TTL、session / generation record、認証形式、storage、rate limit、retry と result retrieval の詳細。
-- SDK の runtime support matrix、transport 選択、caller binding、version policy、transaction construction および公開 operation の詳細。
-- wallet-core の Rust / Binding API、暗号処理、鍵導出、秘密情報の一時 lifecycle、ownership、error mapping および host integration の詳細。ただし v1 Binding method の固定判断と Application-level approval / authentication の責任境界は Architecture で維持されている。
-- Mainnet release evidence の収集、署名、trusted key、build embedding、runtime enforcement、release checklist および strict policy 移行の運用詳細。
+- Provider API、公開関数署名、JSON / DTO / スキーマ、通信上の形式、バージョンフィールド、対応付け識別子、具体的エラーコード、タイムアウトおよび具体的な状態遷移。
+- Symbol / NEM のトランザクション型、アグリゲート、メッセージ形式、正規シリアライズ、ハッシュ / 署名バイト列、パーサーおよびフィクスチャの詳細。
+- 認証 / ロック解除メソッド、認証情報保存、PIN / 生体認証 / OS セッション、UI 配置、ブラウザ / モバイルプラットフォーム API およびホストライフサイクルの具体実装。
+- Relay の HTTP / Redis、TTL、セッション / 世代レコード、認証形式、保存領域、頻度上限、再試行と結果取得の詳細。
+- SDK の実行環境サポート対応表、通信経路選択、呼び出し元結び付け、バージョンポリシー、トランザクション組み立ておよび公開操作の詳細。
+- wallet-core の Rust / バインディング API、暗号処理、鍵導出、秘密情報の一時ライフサイクル、所有責任、エラー対応付けおよびホスト統合の詳細。ただし v1 バインディングメソッドの固定判断とアプリケーションレベルの承認 / 認証の責任境界はアーキテクチャで維持されている。
+- Mainnet リリース証跡の収集、署名、信頼された鍵、ビルド埋め込み、実行環境強制、リリース確認項目および strict ポリシー移行の運用詳細。
 
-これらは未決または下流詳細であるが、共通署名 gate、secret isolation、Relay の opaque 性、SDK の非特権性、wallet-core の正本性および fail-closed を弱める根拠にはならない。
+これらは未決または下流詳細であるが、共通署名判定条件、秘密情報の分離、Relay の内容を解釈しない性、SDK の非特権性、wallet-core の正本性および安全側での終了を弱める根拠にはならない。
 
-## 11. Scope and Traceability
+## 11. 対象範囲と追跡可能性
 
-| Architecture 領域                                                     | 上流・整合根拠                                                                                               | authoritative downstream / owner                                                                                                                                                                                           | 判定                                                                                                                                             |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| §1〜§3 purpose / scope / principles                                   | Concept の目的・v1 境界、`CR-001`〜`CR-016`、`CR-NFR-*`                                                      | Architecture 自身の高位原則。詳細は各 platform / common Design                                                                                                                                                             | Pass。Browser / Mobile / Relay / SDK / wallet-core の対象と対象外が明確                                                                          |
-| §4〜§7 Context / components / dependency                              | `CR-011`、`CR-013`、`CR-015`、Browser / Mobile / Relay / SDK Requirements                                    | 各 platform Design、Interfaces、wallet-core external contract                                                                                                                                                              | Pass。Signer、SDK、Relay、dApp、wallet-core の依存方向と責任逆流の禁止が追跡可能                                                                 |
-| §6.3、§6.4、§6.9、§8、§10、§16 共通署名 gate                          | `CR-010`、`CR-011`、`CR-015`、`CR-016`、`CR-NFR-003`、`CR-NFR-004`、`CR-NFR-013`、`CR-AC-017`〜`CR-AC-019`   | [`security-design.md`](../../design/security-design.md) §5、§7〜§8、§15、§17。Owner: Browser Extension privileged layer / Mobile App trusted host                                                                          | Pass。4条件、両 Signer 適用、署名前再確認、fail-closed、result 条件および外部主体の非権限を一意に追跡可能                                        |
-| §6.3〜§6.9、§10〜§12                                                  | `CR-002`〜`CR-012`、Browser / Mobile / Relay / SDK Requirements                                              | [`signing-flow.md`](../../design/signing-flow.md)、[`interfaces.md`](../../design/interfaces.md)。Owner: Signer と各 boundary owner                                                                                        | Pass。lifecycle、approval / target binding、request / response、結果対応の詳細委譲が成立                                                         |
-| §13〜§16 Symbol / NEM、Mainnet / Testnet、local signing、release gate | `CR-005`、`CR-006`、`CR-NFR-005`、`CR-NFR-006`、ADR 0001                                                     | [`chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md)、[`mainnet-release-evidence.md`](../../release/mainnet-release-evidence.md)。Owner: chain integration / wallet-core、Release / Operation | Pass。chain / network の分離と Mainnet evidence gate を具体詳細へ安全に委譲                                                                      |
-| §17、§17.1 CR-OPEN-001 / 002、Profile / Account                       | `CR-013`、`CR-014`、`CR-OPEN-001`、`CR-OPEN-002`、Mobile / Profile Requirements                              | [`profile-account-spec.md`](../../specifications/profile-account-spec.md)。Owner: MosaicLynx Application（host が適用）                                                                                                    | Pass。Profile / Account 対応、署名 Account authorization、backup の共通非包含を Application 側へ割り当て、wallet-core host integration と分離    |
-| §17、§17.1 Mobile open item / responsibility                          | Mobile Requirements の `MR-OPEN-*`、`CR-010`、`CR-013`、`CR-NFR-006`                                         | [`mobile-app.md`](../../design/mobile-app.md)。Owner: Mobile App trusted host                                                                                                                                              | Pass。受信、auth、Profile / Account、trusted UI、OS lifecycle、Binding integration および platform 固有 open を下流へ委譲                        |
-| §17、§17.1 Relay open item / responsibility                           | Relay Requirements の `RR-OPEN-001` / `002`、`CR-011`、`CR-NFR-*`                                            | [`relay.md`](../../design/relay.md)。Owner: Relay service                                                                                                                                                                  | Pass。opaque delivery、structural validation、short-lived state、stale / duplicate / state loss の高位責務を維持                                 |
-| §17、§17.1 SDK open item / responsibility                             | SDK Requirements の `SDK-OPEN-*`、`CR-015`、`CR-011`                                                         | [`sdk.md`](../../design/sdk.md)。Owner: SDK / dApp-side integration layer                                                                                                                                                  | Pass。SDK を Signer にせず、request construction、correlation、transport abstraction、gate 非代替を下流へ委譲                                    |
-| §17.1 wallet-core                                                     | `CR-013`、`CR-NFR-002`、`CR-NFR-004`、`CR-OPEN-001` / `002`、wallet-core external contract、Binding decision | [`_snwc/docs/specifications/specification.md`](../../../_snwc/docs/specifications/specification.md)。Owner: wallet-core（secret processing） / host adapter（integration）                                                 | Pass。Profile / Account の Application 対応を除き、Wallet Store、key、secret processing、raw signing、固定 Binding を wallet-core 側へ割り当てる |
+| アーキテクチャ領域                                                   | 上流・整合根拠                                                                                             | 正本となる下流 / 責任主体                                                                                                                                                                                            | 判定                                                                                                                                                       |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| §1〜§3 目的 / 対象範囲 / principles                                  | コンセプトの目的・v1 境界、`CR-001`〜`CR-016`、`CR-NFR-*`                                                  | アーキテクチャ自身の高位原則。詳細は各プラットフォーム / 共通の設計                                                                                                                                                  | 合格。ブラウザ / モバイル / Relay / SDK / wallet-core の対象と対象外が明確                                                                                 |
+| §4〜§7 文脈 / コンポーネント / 依存関係                              | `CR-011`、`CR-013`、`CR-015`、ブラウザ / モバイル / Relay / SDK 要件                                       | 各プラットフォーム設計、インターフェース、wallet-core 外部契約                                                                                                                                                       | 合格。署名主体、SDK、Relay、dApp、wallet-core の依存方向と責任逆流の禁止が追跡可能                                                                         |
+| §6.3、§6.4、§6.9、§8、§10、§16 共通署名判定条件                      | `CR-010`、`CR-011`、`CR-015`、`CR-016`、`CR-NFR-003`、`CR-NFR-004`、`CR-NFR-013`、`CR-AC-017`〜`CR-AC-019` | [`security-design.md`](../../design/security-design.md) §5、§7〜§8、§15、§17。責任主体: ブラウザ拡張機能特権を持つ層 / モバイルアプリ信頼されたホスト                                                                | 合格。4条件、両署名主体適用、署名前再確認、安全側での終了、結果条件および外部主体の非権限を一意に追跡可能                                                  |
+| §6.3〜§6.9、§10〜§12                                                 | `CR-002`〜`CR-012`、ブラウザ / モバイル / Relay / SDK 要件                                                 | [`signing-flow.md`](../../design/signing-flow.md)、[`interfaces.md`](../../design/interfaces.md)。責任主体: 署名主体と各境界責任主体                                                                                 | 合格。ライフサイクル、承認 / 対象結び付け、要求 / 応答、結果対応の詳細委譲が成立                                                                           |
+| §13〜§16 Symbol / NEM、Mainnet / Testnet、ローカル署名、リリース判定 | `CR-005`、`CR-006`、`CR-NFR-005`、`CR-NFR-006`、ADR 0001                                                   | [`chain-compatibility-spec.md`](../../specifications/chain-compatibility-spec.md)、[`mainnet-release-evidence.md`](../../release/mainnet-release-evidence.md)。責任主体: チェーン統合 / wallet-core、リリース / 操作 | 合格。チェーン / ネットワークの分離と Mainnet 根拠判定条件を具体詳細へ安全に委譲                                                                           |
+| §17、§17.1 CR-OPEN-001 / 002、プロファイル / アカウント              | `CR-013`、`CR-014`、`CR-OPEN-001`、`CR-OPEN-002`、モバイル / プロファイル要件                              | [`profile-account-spec.md`](../../specifications/profile-account-spec.md)。責任主体: MosaicLynx アプリケーション（ホストが適用）                                                                                     | 合格。プロファイル / アカウント対応、署名アカウントの利用認可、バックアップの共通非包含をアプリケーション側へ割り当て、wallet-core ホスト統合と分離        |
+| §17、§17.1 モバイル未決項目 / 責務                                   | モバイル要件の `MR-OPEN-*`、`CR-010`、`CR-013`、`CR-NFR-006`                                               | [`mobile-app.md`](../../design/mobile-app.md)。責任主体: モバイルアプリ信頼されたホスト                                                                                                                              | 合格。受信、認証、プロファイル / アカウント、信頼された UI、OS ライフサイクル、バインディング統合およびプラットフォーム固有未決を下流へ委譲                |
+| §17、§17.1 Relay 未決項目 / 責務                                     | Relay 要件の `RR-OPEN-001` / `002`、`CR-011`、`CR-NFR-*`                                                   | [`relay.md`](../../design/relay.md)。責任主体: Relay サービス                                                                                                                                                        | 合格。内容を解釈しない配送、構造上の検証、短期間のみ有効な状態、古くなった / 重複 / 状態消失の高位責務を維持                                               |
+| §17、§17.1 SDK 未決項目 / 責務                                       | SDK 要件の `SDK-OPEN-*`、`CR-015`、`CR-011`                                                                | [`sdk.md`](../../design/sdk.md)。責任主体: SDK / dApp 側の統合層                                                                                                                                                     | 合格。SDK を署名主体にせず、要求組み立て、対応付け、通信経路抽象化、判定条件非代替を下流へ委譲                                                             |
+| §17.1 wallet-core                                                    | `CR-013`、`CR-NFR-002`、`CR-NFR-004`、`CR-OPEN-001` / `002`、wallet-core 外部契約、バインディング判断      | [`_snwc/docs/specifications/specification.md`](../../../_snwc/docs/specifications/specification.md)。責任主体: wallet-core（秘密情報処理） / ホストアダプター（統合）                                                | 合格。プロファイル / アカウントのアプリケーション対応を除き、ウォレットストア、鍵、秘密情報処理、生の署名、固定バインディングを wallet-core 側へ割り当てる |
 
-§17.1 の各行は、Architecture-level の responsibility / invariant / open item について、下流の正本、owner、委譲境界を一つの表で確認できる。下流資料の API / schema / concrete state machine / cryptographic detail は Architecture の責務へ逆流していない。
+§17.1 の各行は、アーキテクチャレベルの責務 / 不変条件 / 未決項目について、下流の正本、責任主体、委譲境界を一つの表で確認できる。下流資料の API / スキーマ / 具体的な状態遷移 / 暗号学的な詳細はアーキテクチャの責務へ逆流していない。
 
-## 12. Domain Checks
+## 12. ドメイン別の確認
 
-| Check                                                  | 判定 | 根拠                                                                                                                                                                 |
-| ------------------------------------------------------ | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Purpose / scope                                        | Pass | §1〜§3 が Browser Extension、Mobile、Relay、SDK、wallet-core の v1 構成、対象外および現在の Mobile 未実装状態を明示                                                  |
-| Common Signer gate                                     | Pass | §6.9 が4条件を列挙し、Browser privileged layer / Mobile trusted host の共通 gate として定義                                                                          |
-| Authentication / unlock / authorization separation     | Pass | §6.9、§8、§16 が Application-level authentication、signing-capable unlock、Account authorization、explicit approval と wallet-core password / Store 処理を分離       |
-| Pre-sign revalidation / result safety                  | Pass | §6.9、§10 step 6〜9 が署名前再確認、target binding、wallet-core 呼び出し、結果対応確認および確認不能時の成功結果不返却を定義                                         |
-| Fail-closed / lifecycle                                | Pass | locked、unknown、stale、失効、不整合、期限切れ、replay、duplicate、result unknown、restart / context loss を署名不可・旧承認不再利用へ接続                           |
-| Trust Boundary / secret lifecycle                      | Pass | §8〜§9 が dApp、SDK、Provider、Content Script、Relay を外部・untrusted とし、wallet-core の論理 / API 境界と host runtime isolation の限界を分離                     |
-| Browser Extension                                      | Pass | privileged layer が caller、permission、inspection、approval、gate、lifecycle、result を担い、Provider / Content Script に秘密情報を渡さない                         |
-| Mobile App                                             | Pass | trusted host が handoff、Profile / Account、auth / lock、approval、gate、OS lifecycle、wallet-core orchestration を担う。Mobile 未実装を実装済みと扱っていない       |
-| SDK                                                    | Pass | SDK は dApp 側の非特権 integration layer であり、署名、最終承認、Application auth / authorization、secret processing を担わない                                      |
-| Relay                                                  | Pass | Relay は opaque transport / structural validation に留まり、semantic validation、approval、authentication、signing、announce を担わない                              |
-| wallet-core                                            | Pass | Wallet Store、鍵管理、秘密情報処理、chain-specific key、raw signing の正本。UI、permission、Application-level auth / approval、transaction meaning は担わない        |
-| Symbol / NEM、Mainnet / Testnet                        | Pass | §13 と §17.1 が chain-specific inspection、Chain / Network、Profile / Account、wallet-core contract、Mainnet evidence の境界を分離                                   |
-| Binding / runtime isolation                            | Pass | §6.8、§8、§9、§15 が WASM `wasm-bindgen` / Native C ABI の固定と、WASM / JavaScript 同一 runtime の isolation 非保証を明記                                           |
-| Downstream traceability                                | Pass | §17.1 が common security、signing flow、interfaces、platform、chain、Profile、wallet-core、release evidence を各 downstream owner へ対応付け                         |
-| Architecture / Specification / Implementation boundary | Pass | API、schema、cryptographic parameter、concrete state machine、UI、platform API は下流へ委譲され、高位の gate / responsibility / invariant だけが Architecture に残る |
+| 確認                              | 判定 | 根拠                                                                                                                                                                          |
+| --------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 目的 / 対象範囲                   | 合格 | §1〜§3 がブラウザ拡張機能、モバイル、Relay、SDK、wallet-core の v1 構成、対象外および現在のモバイル未実装状態を明示                                                           |
+| 共通の署名主体判定条件            | 合格 | §6.9 が4条件を列挙し、ブラウザ特権を持つ層 / モバイル信頼されたホストの共通判定条件として定義                                                                                 |
+| 認証 / ロック解除 / 認可分離      | 合格 | §6.9、§8、§16 がアプリケーションレベルの認証、署名可能な状態へのロック解除、アカウントの利用認可、明示的な承認と wallet-core パスワード / ストア処理を分離                    |
+| 署名前再検証 / 結果安全性         | 合格 | §6.9、§10 step 6〜9 が署名前再確認、対象結び付け、wallet-core 呼び出し、結果対応確認および確認不能時の成功結果不返却を定義                                                    |
+| 安全側での終了 / ライフサイクル   | 合格 | ロック済み、不明、古くなった、失効、不整合、期限切れ、リプレイ、重複、結果不明、再起動 / 文脈消失を署名不可・旧承認不再利用へ接続                                             |
+| 信頼境界 / 秘密情報ライフサイクル | 合格 | §8〜§9 が dApp、SDK、Provider、コンテンツスクリプト、Relay を外部・信頼されていないとし、wallet-core の論理 / API 境界とホスト実行環境分離の限界を分離                        |
+| ブラウザ拡張機能                  | 合格 | 特権を持つ層が呼び出し元、許可、内容検査、承認、判定条件、ライフサイクル、結果を担い、Provider / コンテンツスクリプトに秘密情報を渡さない                                     |
+| モバイルアプリ                    | 合格 | 信頼されたホストが受け渡し、プロファイル / アカウント、認証 / ロック、承認、判定条件、OS ライフサイクル、wallet-core 処理の調整を担う。モバイル未実装を実装済みと扱っていない |
+| SDK                               | 合格 | SDK は dApp 側の非特権統合層であり、署名、最終承認、アプリケーション認証 / 認可、秘密情報処理を担わない                                                                       |
+| Relay                             | 合格 | Relay は内容を解釈しない通信経路 / 構造上の検証に留まり、意味上の検証、承認、認証、署名、アナウンスを担わない                                                                 |
+| wallet-core                       | 合格 | ウォレットストア、鍵管理、秘密情報処理、チェーン固有の鍵、生の署名の正本。UI、許可、アプリケーションレベルの認証 / 承認、トランザクション意味は担わない                       |
+| Symbol / NEM、Mainnet / Testnet   | 合格 | §13 と §17.1 がチェーン固有の内容検査、チェーン / ネットワーク、プロファイル / アカウント、wallet-core 契約、Mainnet 根拠の境界を分離                                         |
+| バインディング / 実行環境分離     | 合格 | §6.8、§8、§9、§15 が WASM `wasm-bindgen` / ネイティブ C ABI の固定と、WASM / JavaScript 同一実行環境の分離非保証を明記                                                        |
+| 下流追跡可能性                    | 合格 | §17.1 が共通のセキュリティ、署名フロー、インターフェース、プラットフォーム、チェーン、プロファイル、wallet-core、リリース証跡を各下流責任主体へ対応付け                       |
+| アーキテクチャ / 仕様 / 実装境界  | 合格 | API、スキーマ、暗号学的なパラメーター、具体的な状態遷移、UI、プラットフォーム API は下流へ委譲され、高位の判定条件 / 責務 / 不変条件だけがアーキテクチャに残る                |
 
-## 13. Validation Results
+## 13. 検証結果
 
-レビュー成果物の明示的なパスだけを formatter / format check の対象とした。Source 変更はないため、lint、typecheck、test、build は実施対象外とした。
+レビュー成果物の明示的なパスだけをフォーマッター / 形式確認の対象とした。送信元変更はないため、lint、typecheck、テスト、ビルドは実施対象外とした。
 
-- `pnpm exec prettier --write docs/reviews/design/architecture-review-004.md` — PASS
-- `pnpm exec prettier --check docs/reviews/design/architecture-review-004.md` — PASS
-- `git diff --check -- docs/reviews/design/architecture-review-004.md` — PASS
-- Review 内のローカルリンク検証 — PASS。対象、前回レビュー、指定された downstream Design / Specification、wallet-core contract、ADR、release evidence の参照先が存在する。
-- Finding ID 重複確認 — PASS。正式 finding は `DR-001` / `DR-002` の追跡のみで、新規 ID はない。
-- Review Gate と finding status の整合確認 — PASS。`DR-001` / `DR-002` は Resolved、Required Changes はなし、Review Gate は `READY`。
-- 変更範囲確認 — PASS。レビュー成果物以外の差分はない。
-- `Not validated`: `pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build`。レビュー成果物のみの変更で、Source の品質検証は対象外であるため。
+- `pnpm exec prettier --write docs/reviews/design/architecture-review-004.md` — 合格
+- `pnpm exec prettier --check docs/reviews/design/architecture-review-004.md` — 合格
+- `git diff --check -- docs/reviews/design/architecture-review-004.md` — 合格
+- レビュー内のローカルリンク検証 — 合格。対象、前回レビュー、指定された下流設計 / 仕様、wallet-core 契約、ADR、リリース証跡の参照先が存在する。
+- 指摘 ID 重複確認 — 合格。正式指摘は `DR-001` / `DR-002` の追跡のみで、新規 ID はない。
+- レビュー判定条件と指摘の状態の整合確認 — 合格。`DR-001` / `DR-002` は解消済み、必須の修正はなし、レビュー判定条件は `READY`。
+- 変更範囲確認 — 合格。レビュー成果物以外の差分はない。
+- `未検証`: `pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build`。レビュー成果物のみの変更で、送信元の品質検証は対象外であるため。
 
-## 14. Review Gates
+## 14. レビュー判定基準
 
-| Gate                                                   | 判定 | 根拠                                                                                                            |
-| ------------------------------------------------------ | ---- | --------------------------------------------------------------------------------------------------------------- |
-| 1. Purpose / scope                                     | Pass | v1 の対象、対象外、現在の Mobile 未実装状態、Architecture と下流仕様の境界が明確                                |
-| 2. Context / responsibility / trust boundary / secrets | Pass | §4、§6、§8、§9、§17.1 が外部主体、Signer、Relay、SDK、wallet-core、secret 境界を分離                            |
-| 3. Dependency direction                                | Pass | §7 が domain、SDK、Extension、Mobile、Relay、chain integration、wallet-core の依存方向と逆流禁止を定義          |
-| 4. Major flows and failure                             | Pass | §10〜§12 が受信、検証、inspection、approval、4条件 gate、署名、結果対応、stale / restart / unknown の責任を定義 |
-| 5. Data ownership / retention / destruction            | Pass | §8〜§9、§12、§16 が opaque Store、秘密情報、session、Relay retention、host lifecycle の高位境界を定義           |
-| 6. Security / interoperability                         | Pass | 共通 gate、fail-closed、Relay opaque、wallet-core 正本、Symbol / NEM および Mainnet / Testnet の分離を維持      |
-| 7. Upstream consistency                                | Pass | `CR-016` / `CR-AC-017`〜`019` と §6.9 / §10 / §16、各 platform 要件および Security Design の対応を確認          |
-| 8. Downstream implementability                         | Pass | §17.1 に authoritative downstream、owner、委譲境界があり、下位工程の詳細を Architecture に逆流させていない      |
+| 判定条件                             | 判定 | 根拠                                                                                                                       |
+| ------------------------------------ | ---- | -------------------------------------------------------------------------------------------------------------------------- |
+| 1. 目的 / 対象範囲                   | 合格 | v1 の対象、対象外、現在のモバイル未実装状態、アーキテクチャと下流仕様の境界が明確                                          |
+| 2. 文脈 / 責務 / 信頼境界 / 秘密情報 | 合格 | §4、§6、§8、§9、§17.1 が外部主体、署名主体、Relay、SDK、wallet-core、秘密情報境界を分離                                    |
+| 3. 依存関係方向                      | 合格 | §7 がドメイン、SDK、拡張機能、モバイル、Relay、チェーン統合、wallet-core の依存方向と逆流禁止を定義                        |
+| 4. 主要フローと失敗                  | 合格 | §10〜§12 が受信、検証、内容検査、承認、4条件判定条件、署名、結果対応、古くなった / 再起動 / 不明の責任を定義               |
+| 5. データ所有責任 / 保持 / 破棄      | 合格 | §8〜§9、§12、§16 が内容を解釈しないストア、秘密情報、セッション、Relay 保持、ホストライフサイクルの高位境界を定義          |
+| 6. セキュリティ / 相互運用性         | 合格 | 共通判定条件、安全側での終了、Relay 内容を解釈しない、wallet-core 正本、Symbol / NEM および Mainnet / Testnet の分離を維持 |
+| 7. 上流整合性                        | 合格 | `CR-016` / `CR-AC-017`〜`019` と §6.9 / §10 / §16、各プラットフォーム要件およびセキュリティ設計の対応を確認                |
+| 8. 下流実装可能性                    | 合格 | §17.1 に正本となる下流、責任主体、委譲境界があり、下位工程の詳細をアーキテクチャに逆流させていない                         |
 
-## 15. Remaining Risks and Open Decisions
+## 15. 残存リスクと未決定事項
 
-- `CR-OPEN-001` / `CR-OPEN-002` の wallet-core host integration、React Native 連携、秘密 byte の一時 lifecycle、OS 保護、error mapping および migration は下流設計の未決事項として残る。
-- Mobile の受信方式、OS protection、認証方式、lifecycle、backup / migration、画面露出および platform release の詳細は、Mobile 要件・Design・release 資料で確定する。現在の workspace に Mobile 実装がないことは変わらない。
-- Relay の handoff 契約、外部可視 failure 分類、retry / result retrieval、generation、retention、運用方式は Relay Design / Specification で確定する。
-- SDK の aggregate / cosignature 公開範囲、transport 選択、transaction construction、runtime / distribution、version policy、caller binding は SDK Design / Specification で確定する。
-- Symbol / NEM の対応 type、message、aggregate / multisig / cosignature、parser、serialization および固定 vector は Chain Compatibility Specification と下流実装レビューで確認する。
-- Mainnet release evidence の収集、署名、trusted key、build embedding、runtime enforcement および strict policy への移行は release / operation で確認する。
+- `CR-OPEN-001` / `CR-OPEN-002` の wallet-core ホスト統合、React ネイティブ連携、秘密バイトの一時ライフサイクル、OS 保護、エラー対応付けおよび移行は下流設計の未決事項として残る。
+- モバイルの受信方式、OS 保護、認証方式、ライフサイクル、バックアップ / 移行、画面露出およびプラットフォームリリースの詳細は、モバイル要件・設計・リリース資料で確定する。現在のワークスペースにモバイル実装がないことは変わらない。
+- Relay の受け渡し契約、外部可視失敗分類、再試行 / 結果取得、世代、保持、運用方式は Relay 設計 / 仕様で確定する。
+- SDK のアグリゲート / 連署署名公開範囲、通信経路選択、トランザクション組み立て、実行環境 / 配布、バージョンポリシー、呼び出し元結び付けは SDK 設計 / 仕様で確定する。
+- Symbol / NEM の対応型、メッセージ、アグリゲート / マルチシグ / 連署署名、パーサー、シリアライズおよび固定ベクターはチェーン互換性仕様と下流実装レビューで確認する。
+- Mainnet リリース証跡の収集、署名、信頼された鍵、ビルド埋め込み、実行環境強制および strict ポリシーへの移行はリリース / 操作で確認する。
 
-これらは残存する下流決定または運用確認であり、今回の Architecture Review Gate を阻害する問題ではない。共通署名 gate、secret isolation、外部主体の非権限性、Relay の opaque 性、wallet-core の正本性および AR-001 / AR-002 の境界は維持されている。
+これらは残存する下流決定または運用確認であり、今回のアーキテクチャレビュー判定条件を阻害する問題ではない。共通署名判定条件、秘密情報の分離、外部主体の非権限性、Relay の内容を解釈しない性、wallet-core の正本性および AR-001 / AR-002 の境界は維持されている。
 
-## 16. Automatic Changes
+## 16. 自動変更
 
-なし。`docs/reviews/design/architecture-review-004.md` のみを新規作成し、Architecture 本文、要件、仕様、ADR、個別 Design、wallet-core、Source、テストおよび既存レビューを変更していない。
+なし。`docs/reviews/design/architecture-review-004.md` のみを新規作成し、アーキテクチャ本文、要件、仕様、ADR、個別設計、wallet-core、送信元、テストおよび既存レビューを変更していない。
 
-## 17. Final Decision
+## 17. 最終判断
 
 **`READY`**
 
-`DR-001` / `DR-002` は現在の Architecture 本文に基づき `RESOLVED` と判定する。`AR-001` / `AR-002` の再発はなく、Trust Boundary、Security、責任分界の Critical / Major 問題および Design フェーズ逸脱も確認されなかった。Architecture Design は、指定された下流設計・仕様・release evidence へ進められる状態である。
+`DR-001` / `DR-002` は現在のアーキテクチャ本文に基づき `RESOLVED` と判定する。`AR-001` / `AR-002` の再発はなく、信頼境界、セキュリティ、責任分界の重大 / 主要問題および設計フェーズ逸脱も確認されなかった。アーキテクチャ設計は、指定された下流設計・仕様・リリース証跡へ進められる状態である。

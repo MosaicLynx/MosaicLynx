@@ -1,141 +1,141 @@
-# Specification Phase Cross Review 004
+# 仕様工程横断レビュー 004
 
-## Review Target
+## レビュー対象
 
-- **対象:** 単一 Chain Profile 方針を反映した Specification 工程の変更
+- **対象:** 単一チェーンプロファイル方針を反映した仕様工程の変更
 - **確認日:** 2026-09-20
 - **対象仕様:** `product-spec.md`、`profile-account-spec.md`、`chain-compatibility-spec.md`、`mobile-app.md`
 - **対象コミット:** `aad0d87`、`84006c6`
-- **レビュー範囲:** `CR-017` / `CR-AC-020` の追跡、Profile の Chain 固定、Account / default Account / permission の同一 Chain 境界、Symbol / NEM の別 Profile 利用、backup の適用範囲、既存の Chain / Network / wallet-core 責任境界、下流仕様の表現整合性
-- **未確認範囲:** 実装・テスト・fixture への適合、Design の更新後の最終整合、既存データの移行・互換性、将来 backup capability、外部 wallet-core の内部契約
+- **レビュー範囲:** `CR-017` / `CR-AC-020` の追跡、プロファイルのチェーン固定、アカウント / 既定アカウント / 許可の同一チェーン境界、Symbol / NEM の別プロファイル利用、バックアップの適用範囲、既存のチェーン / ネットワーク / wallet-core 責任境界、下流仕様の表現整合性
+- **未確認範囲:** 実装・テスト・フィクスチャへの適合、設計の更新後の最終整合、既存データの移行・互換性、将来バックアップ対応能力、外部 wallet-core の内部契約
 
-## Execution Audit
+## 実行記録
 
-- Reviewer A として、Profile / Account の入力、状態、データ例、禁止条件、受け入れ条件、Requirements への追跡を確認した。
-- Reviewer B として、Profile 作成、Account 管理、Symbol / NEM の併用、Mobile の Profile binding、backup の適用範囲および利用者から観測できる結果を確認した。
-- Reviewer C として、Chain / Network binding、Account / signing authority、secret boundary、wrong-chain 防止、fail-closed、wallet-core / Chain Compatibility の責任境界および検証可能性を確認した。
-- サブエージェントは使用していない。Chair が3観点を独立に走査し、候補を統合した。
+- レビュアー A として、プロファイル / アカウントの入力、状態、データ例、禁止条件、受け入れ条件、要件への追跡を確認した。
+- レビュアー B として、プロファイル作成、アカウント管理、Symbol / NEM の併用、モバイルのプロファイル結び付け、バックアップの適用範囲および利用者から観測できる結果を確認した。
+- レビュアー C として、チェーン / ネットワーク結び付け、アカウント / 署名判断権限、秘密情報境界、wrong-chain 防止、安全側での終了、wallet-core / チェーン互換性の責任境界および検証可能性を確認した。
+- サブエージェントは使用していない。レビュー統括が3観点を独立に走査し、候補を統合した。
 
-## Evidence Used
+## 参照した根拠
 
-| 資料                                                            | 用途                                                                                                                   |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `docs/requirements/requirements.md`                             | `CR-017`、`CR-AC-020`、既存の Profile / Account / Chain / Network 境界、移行・互換性を現行開発範囲に含めない判断の確認 |
-| `docs/reviews/requirements/requirements-review-007.md`          | Requirements 判定 `READY`、`REQ7-001` の対象、下流 Specification で解消すべき旧契約の確認                              |
-| `docs/design/architecture.md`、`docs/design/security-design.md` | Application Profile / Account、Chain / Network、wallet-core、secret および signing authority の責任境界の確認          |
-| `docs/specifications/profile-account-spec.md`                   | Profile の `chain` 固定、単一 Account、default Account、invariant、backup owner および traceability の確認             |
-| `docs/specifications/product-spec.md`                           | Product terminology、作成・管理フロー、logical model、MVP acceptance、traceability の確認                              |
-| `docs/specifications/chain-compatibility-spec.md`               | chain-specific Account 導出と別 Profile 前提の確認                                                                     |
-| `docs/specifications/mobile-app.md`                             | Mobile の Profile / Account / Scope binding と acceptance の確認                                                       |
-| `aad0d87`、`84006c6`                                            | Specification Author の実変更範囲と追補変更の確認                                                                      |
+| 資料                                                            | 用途                                                                                                                                 |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `docs/requirements/requirements.md`                             | `CR-017`、`CR-AC-020`、既存のプロファイル / アカウント / チェーン / ネットワーク境界、移行・互換性を現行開発範囲に含めない判断の確認 |
+| `docs/reviews/requirements/requirements-review-007.md`          | 要件判定 `READY`、`REQ7-001` の対象、下流仕様で解消すべき旧契約の確認                                                                |
+| `docs/design/architecture.md`、`docs/design/security-design.md` | アプリケーションプロファイル / アカウント、チェーン / ネットワーク、wallet-core、秘密情報および署名判断権限の責任境界の確認          |
+| `docs/specifications/profile-account-spec.md`                   | プロファイルの `chain` 固定、単一アカウント、既定アカウント、不変条件、バックアップ責任主体および追跡可能性の確認                    |
+| `docs/specifications/product-spec.md`                           | プロダクト用語、作成・管理フロー、論理的なモデル、MVP 受け入れ、追跡可能性の確認                                                     |
+| `docs/specifications/chain-compatibility-spec.md`               | チェーン固有のアカウント導出と別プロファイル前提の確認                                                                               |
+| `docs/specifications/mobile-app.md`                             | モバイルのプロファイル / アカウント / 対象範囲結び付けと受け入れの確認                                                               |
+| `aad0d87`、`84006c6`                                            | 仕様作成者の実変更範囲と追補変更の確認                                                                                               |
 
-## Review Result
+## レビュー結果
 
 **READY**
 
-## Summary
+## 要約
 
-`CR-017` と `CR-AC-020` は、Profile を一つの Network と一つの Chain に作成時から固定し、Symbol と NEM の両方を利用する場合は別 Profile を使用する外部契約へ具体化されている。旧 `enabledChains`、同一 Profile の Symbol / NEM Account、Profile 作成後の Chain 追加・変更、Chain ごとの default Account は対象仕様から除去され、Product、Profile、Chain Compatibility、Mobile の記述も同じ境界へ整合している。
+`CR-017` と `CR-AC-020` は、プロファイルを一つのネットワークと一つのチェーンに作成時から固定し、Symbol と NEM の両方を利用する場合は別プロファイルを使用する外部契約へ具体化されている。旧 `enabledChains`、同一プロファイルの Symbol / NEM アカウント、プロファイル作成後のチェーン追加・変更、チェーンごとの既定アカウントは対象仕様から除去され、プロダクト、プロファイル、チェーン互換性、モバイルの記述も同じ境界へ整合している。
 
-レビュー対象に Gate 不合格となる Critical finding はない。Design 側の Profile / Account 境界の明文化と、実装・テストでの mixed Profile 防止確認は次工程へ引き継ぐ。
+レビュー対象に判定条件不合格となる重大指摘はない。設計側のプロファイル / アカウント境界の明文化と、実装・テストでの混在したプロファイル防止確認は次工程へ引き継ぐ。
 
-## Finding Status
+## 指摘の状態
 
-| Finding | Severity | Status | 初出レビュー | 今回の状態根拠                                                      |
-| ------- | -------- | ------ | ------------ | ------------------------------------------------------------------- |
-| なし    | —        | —      | —            | Gate 不合格または任意改善として登録する新規 formal finding はない。 |
+| 指摘 | 重要度 | 状態 | 初出レビュー | 今回の状態根拠                                                   |
+| ---- | ------ | ---- | ------------ | ---------------------------------------------------------------- |
+| なし | —      | —    | —            | 判定条件不合格または任意改善として登録する新規正式な指摘はない。 |
 
-## Required Changes
+## 必須の修正
 
-なし。`Critical` の New / Open / Reopened finding はない。
+なし。`Critical` の新規 / 未決 / 再発指摘はない。
 
-## Optional Improvements
+## 任意の改善
 
-なし。実装・テストへ引き継ぐ確認事項は `Deferred Findings` に記録する。
+なし。実装・テストへ引き継ぐ確認事項は `後続工程へ委譲する指摘` に記録する。
 
-## Resolved Findings
+## 解消済みの指摘
 
-### `REQ7-001` — 旧 mixed Profile 契約の Specification 残存
+### `REQ7-001` — 旧混在したプロファイル契約の仕様残存
 
 - **対象箇所:** `profile-account-spec.md` §3、§4、§5、§6、§7、§9、§11、§12、§16、§24、§26、`product-spec.md` §4、§7.2、§7.4、§9、§10、§15、§18、`mobile-app.md` §6.1、§20、`chain-compatibility-spec.md` §2.2。
-- **確認事実:** Profile は `chain: 'symbol' | 'nem'` を一つだけ持ち、作成後に変更できない。HD Account Set、import Account、default Account、backup 候補、logical model、Mobile binding および acceptance は Profile.chain へ限定される。両 Chain の利用は別 Profile と明記されている。
-- **完了条件:** `enabledChains`、同一 Profile 内の Symbol / NEM Account、Profile 作成後の Chain 追加・無効化・復元、Chain ごとの default Account および同一 Profile 前提の Chain compatibility 表現が、今回の対象仕様から除去されている。
+- **確認事実:** プロファイルは `chain: 'symbol' | 'nem'` を一つだけ持ち、作成後に変更できない。HD アカウント集合、インポートアカウント、既定アカウント、バックアップ候補、論理的なモデル、モバイル結び付けおよび受け入れは Profile.chain へ限定される。両チェーンの利用は別プロファイルと明記されている。
+- **完了条件:** `enabledChains`、同一プロファイル内の Symbol / NEM アカウント、プロファイル作成後のチェーン追加・無効化・復元、チェーンごとの既定アカウントおよび同一プロファイル前提のチェーン互換性表現が、今回の対象仕様から除去されている。
 
-## Upstream Feedback
+## 上流工程へのフィードバック
 
-### Design への引継ぎ: Profile / Account の単一 Chain 境界
+### 設計への引継ぎ: プロファイル / アカウントの単一チェーン境界
 
-- **送信元フェーズ:** Specification Review
-- **受領すべき上流フェーズ:** Design
-- **対象となる正式資料 / decision:** `docs/design/architecture.md` §6、§13、§16 および関連 Security Design
-- **不足・曖昧さ・矛盾:** 現行 Design は Application の Profile / Account、Chain-specific Software Key および Chain / Network binding を定めているが、今回承認された「一つの Profile は一つの Chain に固定する」責務境界を一つの設計判断として明示していない。
-- **下流への影響:** 次の Design Author は Profile metadata、Account association、permission、active context、wallet-core Profile 対応を単一 Chain Profile 前提へ追跡し、同一 Profile に異なる Chain を関連付ける設計余地を残さない必要がある。
-- **non-normative status:** 本記録は Design への確認依頼であり、新しい Requirement、Design Decision または Specification contract ではない。現行 Specification は Requirements と既存 Design の責務境界を維持したまま安全にレビューできるため、Specification Gate を阻害しない。
-- **解消条件:** Design Author が `CR-017` / `CR-AC-020` と本 Specification の Profile.chain、Account、permission、signing context の対応を `docs/design/` の正式資料へ反映し、Design Review で追跡可能と判定すること。
+- **送信元フェーズ:** 仕様レビュー
+- **受領すべき上流フェーズ:** 設計
+- **対象となる正式資料 / 判断:** `docs/design/architecture.md` §6、§13、§16 および関連セキュリティ設計
+- **不足・曖昧さ・矛盾:** 現行設計はアプリケーションのプロファイル / アカウント、チェーン固有のソフトウェア鍵およびチェーン / ネットワーク結び付けを定めているが、今回承認された「一つのプロファイルは一つのチェーンに固定する」責務境界を一つの設計判断として明示していない。
+- **下流への影響:** 次の設計作成者はプロファイルメタデータ、アカウント関連付け、許可、有効な文脈、wallet-core プロファイル対応を単一チェーンプロファイル前提へ追跡し、同一プロファイルに異なるチェーンを関連付ける設計余地を残さない必要がある。
+- **非規範的な状態:** 本記録は設計への確認依頼であり、新しい要求、設計判断または仕様契約ではない。現行仕様は要件と既存設計の責務境界を維持したまま安全にレビューできるため、仕様判定条件を阻害しない。
+- **解消条件:** 設計作成者が `CR-017` / `CR-AC-020` と本仕様の Profile.chain、アカウント、許可、署名文脈の対応を `docs/design/` の正式資料へ反映し、設計レビューで追跡可能と判定すること。
 
-## Deferred Findings
+## 後続工程へ委譲する指摘
 
-- 実装工程で、Profile 作成時の Chain 固定、Profile.chain と Account.chain の一致、異なる Chain の Account / permission の関連付け拒否、mixed Profile を success としないこと、Profile 切替時の approval / authorization invalidation を確認する。
-- 実装工程で、既存実装に残る `enabledChains`、dual identity、Chain ごとの default Account または mixed Profile の保存形式を、現行開発範囲で新契約へ合わせる。既存データの migration / backward compatibility は追加しない。
-- `OPEN-PROFILE-001` の backup format、crypto、restore verification、migration compatibility は未決のままであり、本変更で close していない。現行 Browser Extension milestone の実装必須事項にも含めない。
-- 外部 wallet-core の key derivation、Wallet Store、secret processing、raw signing の内部実装および exact binding contract は本レビューの対象外である。
+- 実装工程で、プロファイル作成時のチェーン固定、Profile.chain と Account.chain の一致、異なるチェーンのアカウント / 許可の関連付け拒否、混在したプロファイルを成功としないこと、プロファイル切替時の承認 / 認可無効化を確認する。
+- 実装工程で、既存実装に残る `enabledChains`、dual 識別情報、チェーンごとの既定アカウントまたは混在したプロファイルの保存形式を、現行開発範囲で新契約へ合わせる。既存データの移行 / 後方互換性は追加しない。
+- `OPEN-PROFILE-001` のバックアップ形式、暗号処理、復元検証、移行互換性は未決のままであり、本変更で終了していない。現行ブラウザ拡張機能マイルストーンの実装必須事項にも含めない。
+- 外部 wallet-core の鍵導出、ウォレットストア、秘密情報処理、生の署名の内部実装および厳密な結び付け契約は本レビューの対象外である。
 
-## Scope and Traceability
+## 対象範囲と追跡可能性
 
-| 領域                          | Requirements / Design                                                       | 現行 Specification / owner                                                                                                                                       |
-| ----------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Profile の Chain 境界         | `CR-017`、`CR-AC-020`、Architecture の Profile / Account boundary           | `profile-account-spec.md` §3、§11、§26、`product-spec.md` §4、§7、§10、§18。Profile は一つの Network と一つの Chain に固定                                       |
-| Account / identity            | `CR-005`、`CR-009`、`CR-017`、Security Design の signing authority boundary | `profile-account-spec.md` §4、§10〜§12、`product-spec.md` §10、§15。Account の Chain は Profile.chain と一致し、外部公開 identity は既存 Interfaces owner を参照 |
-| Chain / Network compatibility | `CR-005`、`CR-NFR-005`、Chain Compatibility Design                          | `chain-compatibility-spec.md` §2。Chain-specific 導出と network validation は Chain Compatibility、Profile association は Profile / Account Specification        |
-| Mobile binding                | `CR-017`、`CR-AC-020`、Mobile Design                                        | `mobile-app.md` §6.1、§6.2、§20。Mobile は selected Profile.chain を request Scope / Account / signer と照合                                                     |
-| Backup / migration boundary   | `CR-014`、`OPEN-PROFILE-001`                                                | `profile-account-spec.md` §16〜§18、§27、`product-spec.md` §9.1、§20.1。将来 capability として owner / OPEN を参照し、現行 mixed backup migration は追加しない   |
+| 領域                          | 要件 / 設計                                                          | 現行仕様 / 責任主体                                                                                                                                                     |
+| ----------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| プロファイルのチェーン境界    | `CR-017`、`CR-AC-020`、アーキテクチャのプロファイル / アカウント境界 | `profile-account-spec.md` §3、§11、§26、`product-spec.md` §4、§7、§10、§18。プロファイルは一つのネットワークと一つのチェーンに固定                                      |
+| アカウント / 識別情報         | `CR-005`、`CR-009`、`CR-017`、セキュリティ設計の署名判断権限境界     | `profile-account-spec.md` §4、§10〜§12、`product-spec.md` §10、§15。アカウントのチェーンは Profile.chain と一致し、外部公開識別情報は既存インターフェース責任主体を参照 |
+| チェーン / ネットワーク互換性 | `CR-005`、`CR-NFR-005`、チェーン互換性設計                           | `chain-compatibility-spec.md` §2。チェーン固有の導出とネットワーク検証はチェーン互換性、プロファイル関連付けはプロファイル / アカウント仕様                             |
+| モバイル結び付け              | `CR-017`、`CR-AC-020`、モバイル設計                                  | `mobile-app.md` §6.1、§6.2、§20。モバイルは選択済みの Profile.chain を要求対象範囲 / アカウント / 署名主体と照合                                                        |
+| バックアップ / 移行境界       | `CR-014`、`OPEN-PROFILE-001`                                         | `profile-account-spec.md` §16〜§18、§27、`product-spec.md` §9.1、§20.1。将来対応能力として責任主体 / 未決を参照し、現行混在したバックアップ移行は追加しない             |
 
-## Domain Checks
+## ドメイン別の確認
 
-| Check                               | 判定 | 根拠                                                                                                                                                                                                    |
-| ----------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| API / data contract                 | Pass | `WalletProfile.chain`、`HdAccountSet.account`、単一 `defaultAccountId`、logical model の `chain` / `identity` が mixed Profile の field を置き換え、外部 Provider / common API を新設していない。       |
-| Validation / error / state          | Pass | Profile.chain の作成時固定、Account.chain の一致、最後の Account / HD Account Set の禁止、invariant および invalid import 時の no-mutation を確認できる。具体的 error code は既存責務へ委譲されている。 |
-| Security / secret boundary          | Pass | 別 Chain の秘密情報、Account、default 設定および権限を一つの Profile に保持しないこと、wallet-core が秘密処理を所有すること、backup format を未決のまま保つことを確認できる。                           |
-| Chain / network interoperability    | Pass | Symbol / NEM と Mainnet / Testnet を混同せず、Chain-specific 導出を維持し、同じ mnemonic / index を別 Profile で使用しても Account / Key Identity を分離する契約になっている。                          |
-| Malformed / wrong-chain input       | Pass | Profile.chain と Account.chain の不一致を登録不可とし、wrong-chain identity reuse を禁止している。具体的 parser / Wallet Core validation は対象 owner へ委譲されている。                                |
-| Fail-closed / atomic visible result | Pass | invalid mnemonic / identity は Profile / Vault / Account list を変更せず、mixed Profile は成立させず、異なる Chain の署名成功を許可しない受け入れ条件がある。                                           |
-| Traceability / verifiability        | Pass | `CR-017` / `CR-AC-020` が Profile、Product の両 traceability table と Requirements Review の `REQ7-001` へ追跡でき、Mobile / Chain Compatibility の下流表現も整合している。                             |
+| 確認                                        | 判定 | 根拠                                                                                                                                                                                                      |
+| ------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API / データ契約                            | 合格 | `WalletProfile.chain`、`HdAccountSet.account`、単一 `defaultAccountId`、論理的なモデルの `chain` / `identity` が混在したプロファイルのフィールドを置き換え、外部 Provider / 共通の API を新設していない。 |
+| 検証 / エラー / 状態                        | 合格 | Profile.chain の作成時固定、Account.chain の一致、最後のアカウント / HD アカウント集合の禁止、不変条件および無効なインポート時の no-mutation を確認できる。具体的エラーコードは既存責務へ委譲されている。 |
+| セキュリティ / 秘密情報境界                 | 合格 | 別チェーンの秘密情報、アカウント、既定設定および権限を一つのプロファイルに保持しないこと、wallet-core が秘密処理を所有すること、バックアップ形式を未決のまま保つことを確認できる。                        |
+| チェーン / ネットワーク相互運用性           | 合格 | Symbol / NEM と Mainnet / Testnet を混同せず、チェーン固有の導出を維持し、同じニーモニック / 索引を別プロファイルで使用してもアカウント / 鍵識別情報を分離する契約になっている。                          |
+| 不正な形式の / wrong-chain 入力             | 合格 | Profile.chain と Account.chain の不一致を登録不可とし、wrong-chain 識別情報再利用を禁止している。具体的パーサー / wallet-core 検証は対象責任主体へ委譲されている。                                        |
+| 安全側での終了 / 不可分な表示されている結果 | 合格 | 無効なニーモニック / 識別情報はプロファイル / Vault / アカウント一覧を変更せず、混在したプロファイルは成立させず、異なるチェーンの署名成功を許可しない受け入れ条件がある。                                |
+| 追跡可能性 / 検証可能性                     | 合格 | `CR-017` / `CR-AC-020` がプロファイル、プロダクトの両追跡可能性表と要件レビューの `REQ7-001` へ追跡でき、モバイル / チェーン互換性の下流表現も整合している。                                              |
 
-## Validation Results
+## 検証結果
 
-| Validation                                          | 結果                                                                                                                                                                                                                                            |
+| 検証                                                | 結果                                                                                                                                                                                                                                            |
 | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Target revision / worktree audit                    | **Pass**。`aad0d87`、`84006c6` の差分と対象仕様を確認し、レビュー成果物作成前の worktree は clean だった。                                                                                                                                      |
-| Specification search for old mixed Profile contract | **Pass**。対象 `docs/specifications/` で `enabledChains`、`SymbolとNEMの両方`、`有効チェーン`、`identities.symbol`、`identities.nem`、`DefaultAccountIds` の残存を確認しなかった。                                                              |
-| Review artifact Markdown formatter                  | **Pass**。`./node_modules/.bin/prettier --write docs/reviews/specifications/specification-phase-cross-review-004.md` と `./node_modules/.bin/prettier --check docs/reviews/specifications/specification-phase-cross-review-004.md` を実行した。 |
-| Whitespace / staged diff                            | **Pass**。`git diff --check` を実行した。                                                                                                                                                                                                       |
-| Lint / typecheck / test / build / runtime / E2E     | **Not applicable / skipped**。今回の変更は仕様・レビュー文書であり、実装適合性は次工程で確認する。                                                                                                                                              |
+| 対象リビジョン / 作業ツリー監査                     | **合格**。`aad0d87`、`84006c6` の差分と対象仕様を確認し、レビュー成果物作成前の作業ツリーは未コミットの変更がないだった。                                                                                                                       |
+| 仕様検索 for 旧混在したプロファイル契約             | **合格**。対象 `docs/specifications/` で `enabledChains`、`SymbolとNEMの両方`、`有効チェーン`、`identities.symbol`、`identities.nem`、`DefaultAccountIds` の残存を確認しなかった。                                                              |
+| レビュー成果物 Markdown フォーマッター              | **合格**。`./node_modules/.bin/prettier --write docs/reviews/specifications/specification-phase-cross-review-004.md` と `./node_modules/.bin/prettier --check docs/reviews/specifications/specification-phase-cross-review-004.md` を実行した。 |
+| 空白文字 / ステージ済み差分                         | **合格**。`git diff --check` を実行した。                                                                                                                                                                                                       |
+| Lint / typecheck / テスト / ビルド / 実行環境 / E2E | **Not 適用可能な / skipped**。今回の変更は仕様・レビュー文書であり、実装適合性は次工程で確認する。                                                                                                                                              |
 
-## Review Gates
+## レビュー判定基準
 
-| Gate                           | 判定     | 根拠                                                                                                                                                              | 対応 |
-| ------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
-| 1. Purpose / scope             | **Pass** | Product、Profile、Chain Compatibility、Mobile が対象 Chain の単一 Profile 境界、両 Chain 利用時の別 Profile、現行 backup / migration の範囲を一意に示している。   | —    |
-| 2. Contract                    | **Pass** | Profile、Account、default Account、logical model、Profile / Account / Scope binding、禁止される混在を確認できる。                                                 | —    |
-| 3. Processing / failure        | **Pass** | 作成時の Chain 選択、作成後変更禁止、Account / identity mismatch の拒否、最後の Account / HD Account Set の保護、wrong-chain success の禁止を確認できる。         | —    |
-| 4. Internal consistency        | **Pass** | Product、Profile、Chain Compatibility、Mobile の旧 `enabledChains` / mixed Profile 表現を除去し、`Profile.chain` へ統一している。                                 | —    |
-| 5. Verifiability               | **Pass** | `CR-AC-020`、MVP acceptance、Profile invariants、Mobile conformance、traceability table により単一 Chain、別 Profile、no-mixed state を独立確認できる。           | —    |
-| 6. Security / interoperability | **Pass** | Chain / Network binding、Account authority、secret boundary、別 Profile の identity 分離、wallet-core / Chain Compatibility ownership、fail-closed を確認できる。 | —    |
-| 7. Upstream consistency        | **Pass** | `CR-017` / `CR-AC-020` と Requirements Review `READY` に整合し、Design への明文化依頼は non-blocking の Upstream Feedback として分離している。                    | —    |
+| 判定条件                     | 判定     | 根拠                                                                                                                                                                        | 対応 |
+| ---------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| 1. 目的 / 対象範囲           | **合格** | プロダクト、プロファイル、チェーン互換性、モバイルが対象チェーンの単一プロファイル境界、両チェーン利用時の別プロファイル、現行バックアップ / 移行の範囲を一意に示している。 | —    |
+| 2. 契約                      | **合格** | プロファイル、アカウント、既定アカウント、論理的なモデル、プロファイル / アカウント / 対象範囲結び付け、禁止される混在を確認できる。                                        | —    |
+| 3. 処理 / 失敗               | **合格** | 作成時のチェーン選択、作成後変更禁止、アカウント / 識別情報不一致の拒否、最後のアカウント / HD アカウント集合の保護、wrong-chain 成功の禁止を確認できる。                   | —    |
+| 4. 内部整合性                | **合格** | プロダクト、プロファイル、チェーン互換性、モバイルの旧 `enabledChains` / 混在したプロファイル表現を除去し、`Profile.chain` へ統一している。                                 | —    |
+| 5. 検証可能性                | **合格** | `CR-AC-020`、MVP 受け入れ、プロファイル不変条件、モバイル適合性、追跡可能性表により単一チェーン、別プロファイル、no-mixed 状態を独立確認できる。                            | —    |
+| 6. セキュリティ / 相互運用性 | **合格** | チェーン / ネットワーク結び付け、アカウントに関する判断権限、秘密情報境界、別プロファイルの識別情報分離、wallet-core / チェーン互換性所有責任、安全側での終了を確認できる。 | —    |
+| 7. 上流整合性                | **合格** | `CR-017` / `CR-AC-020` と要件レビュー `READY` に整合し、設計への明文化依頼は判定を妨げないの上流工程へのフィードバックとして分離している。                                  | —    |
 
-## Remaining Risks and Open Decisions
+## 残存リスクと未決定事項
 
-- Design 文書は次工程で単一 Chain Profile の責務境界を明文化する必要がある。
-- 現行実装が新しい Profile / Account 契約に適合しているか、mixed state の生成・保存・署名拒否が機械的に検証できるかは未確認である。
-- Profile backup / restore は `OPEN-PROFILE-001` の未決事項であり、既存 mixed backup の移行・互換性を今回決定していない。
+- 設計文書は次工程で単一チェーンプロファイルの責務境界を明文化する必要がある。
+- 現行実装が新しいプロファイル / アカウント契約に適合しているか、混在した状態の生成・保存・署名拒否が機械的に検証できるかは未確認である。
+- プロファイルバックアップ / 復元は `OPEN-PROFILE-001` の未決事項であり、既存混在したバックアップの移行・互換性を今回決定していない。
 
-## Automatic Changes
+## 自動変更
 
-なし。レビュー中は対象 Specification、Requirements、Design、実装およびテストを変更していない。レビュー成果物のみ新規作成する。
+なし。レビュー中は対象仕様、要件、設計、実装およびテストを変更していない。レビュー成果物のみ新規作成する。
 
-## Final Decision
+## 最終判断
 
 `READY`
 
-単一 Chain Profile の Specification 契約は Requirements から追跡可能で、Critical finding なしに実装・Design 整合工程へ進められる。Design の明文化、実装適合、mixed state の拒否および未決 backup contract は次工程へ引き継ぐ。
+単一チェーンプロファイルの仕様契約は要件から追跡可能で、重大指摘なしに実装・設計整合工程へ進められる。設計の明文化、実装適合、混在した状態の拒否および未決バックアップ契約は次工程へ引き継ぐ。
