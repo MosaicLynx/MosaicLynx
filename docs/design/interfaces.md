@@ -8,11 +8,11 @@
 
 ## 2. 適用範囲と位置づけ
 
-正式 wallet-core ファサード 0.2.0 の API / DTO / エラー / 三つのバックエンドと秘密情報の許容範囲の正本は [wallet-core 統合仕様](../specifications/wallet-core-integration.md) とする。コア ID の内部対応と事前準備済みの内容を解釈しないストアを用い、秘密を取得する初期設定 / エクスポートを現行対象にしない。
+本書の責任境界は [共通要件](../requirements/requirements.md) `CR-013` / `CR-015` / `CR-016` / `CR-NFR-002` / `CR-NFR-004` と適用される共通設計を根拠とする。wallet-core の API / DTO / バックエンドに関する技術的事実は対象バージョンの外部契約へ直接確認する。[wallet-core 統合仕様](../specifications/wallet-core-integration.md) は、本設計を具体化する下流の引継ぎ・整合確認先であり、本設計の判断を確定する正本ではない。
 
 本書は [アーキテクチャ設計](./architecture.md) を共通データモデルとインターフェース境界の観点から補足する基本設計書である。[セキュリティ設計](./security-design.md) が定める秘密情報、信頼境界、承認および安全側での終了の原則を前提とし、署名の処理順や状態遷移は [署名フロー基本設計](./signing-flow.md) に委譲する。
 
-SDK と Web アプリ、ブラウザ拡張機能、モバイルアプリ、Relay の受け渡し契約は [SDK 要件](../requirements/sdk.md)、[ブラウザ拡張機能要件](../requirements/browser-extension.md)、[モバイルアプリ要件](../requirements/mobile-app.md)、[Relay 要件](../requirements/relay.md) および [Web トランザクション受け渡し仕様](../specifications/web-transaction-handoff-spec.md) と整合させる。Symbol / NEM 固有の解釈は [チェーン互換性仕様](../specifications/chain-compatibility-spec.md) に、プロファイル / アカウントの詳細は [プロファイル / アカウント仕様](../specifications/profile-account-spec.md) に従う。
+SDK と Web アプリ、ブラウザ拡張機能、モバイルアプリ、Relay の責任境界は [SDK 要件](../requirements/sdk.md)、[ブラウザ拡張機能要件](../requirements/browser-extension.md)、[モバイルアプリ要件](../requirements/mobile-app.md) および [Relay 要件](../requirements/relay.md) に従う。[Web トランザクション受け渡し仕様](../specifications/web-transaction-handoff-spec.md)、[チェーン互換性仕様](../specifications/chain-compatibility-spec.md) および [プロファイル / アカウント仕様](../specifications/profile-account-spec.md) は、それぞれの具体契約を記述する下流の引継ぎ・整合確認先であり、本書の概念モデルや要求の根拠にしない。
 
 本書でいう「インターフェース」は、データの意味、責任および検証の境界を指す。特定の通信方式、公開 API、DTO または画面を意味しない。
 
@@ -469,13 +469,15 @@ Signer は、同一の呼び出し元、プロファイル、アカウント、�
 
 - SDK の具体的なバージョンポリシー、呼び出し元 / オリジンとの結び付け、通信経路選択、トランザクション組み立ておよびアグリゲート / 連署署名の公開範囲（[SDK 要件の未決事項](../requirements/sdk.md#15-未決事項)）。
 - モバイルの受信方式、OS 保護と wallet-core バインディング、プロセスライフサイクル、バックアップ / 移行（[モバイルアプリ要件の未決事項](../requirements/mobile-app.md#7-スマホアプリ固有の未決事項)）。
-- アプリケーション / コア識別情報対応付け、三つのバックエンド、エラー対応付けは Wallet-core 統合で確定済み。OS 保護・移行と将来秘密情報を含まない初期設定は別の後続契約を必要とする。
+- アプリケーション / コア識別情報対応付け、ホストごとのバインディング統合、秘密情報の一時ライフサイクル、OS 保護、移行およびエラー対応付け（[共通要件](../requirements/requirements.md) `CR-OPEN-001` / `CR-OPEN-002`）。下流の Wallet-core 統合仕様だけでは確定済みとしない。初期設定の対応範囲も上流の要求・設計判断を確認し、下流の API 利用表から逆生成しない。
 - Relay 障害時の外部から観測できる失敗境界と、結果不明後の既存結果の照会・再配送契約（[Relay 要件の未決事項](../requirements/relay.md#9-relay-固有の未決事項)）。
 - Symbol / NEM の対応トランザクション型 / バージョン、アグリゲート / マルチシグ / 連署署名、メッセージ形式の公開範囲と表示受け入れ条件。
 
 これらが未決であっても、秘密情報の分離、Signer による意味上の検証、利用者の明示承認、要約と実ペイロードの一致、Relay の非署名責任および安全側での終了の原則は変更しない。
 
 ## 14. 関連資料
+
+MosaicLynx の仕様は下流の整合確認・引継ぎ先であり、本設計の根拠ではない。上流要件・関連設計・外部契約への追跡は §14.1、下流引継ぎは §14.2 に分ける。
 
 - [コンセプトシート](../concept/concept-sheet.md)
 - [共通要件](../requirements/requirements.md)
@@ -495,12 +497,18 @@ Signer は、同一の呼び出し元、プロファイル、アカウント、�
 
 ### 14.1 追跡可能性
 
-| 本書で固定する設計内容                                                                                                 | 上位・関連資料                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| プロファイル内の文脈、プロファイルチェーン / ネットワーク、ライフサイクル無効化、ブラウザ / モバイル呼び出し元結び付け | [アーキテクチャ](./architecture.md) §6.6 / §6.9、[セキュリティ設計](./security-design.md) §6 / §7 / §9 / §10、[署名フロー](./signing-flow.md) §5 / §7 / §16 / §20、[ブラウザ拡張機能設計](./browser-extension.md) §7 / §12 / §17、[モバイルアプリ設計](./mobile-app.md) §7 / §9 / §14 / §21                                                                                                                                      |
-| アプリケーションアカウントに関する判断権限、wallet-core 暗号学的な識別情報判断権限、チェーン固有の整合検証             | [アーキテクチャ](./architecture.md) §6.6〜§6.8、[プロファイル / アカウント仕様](../specifications/profile-account-spec.md)、[チェーン互換性仕様](../specifications/chain-compatibility-spec.md)、[wallet-core 要件](../../_snwc/docs/requirements/requirements.md)、[wallet-core 仕様](../../_snwc/docs/specifications/specification.md)、[wallet-core ファサード仕様](../../_snwc/docs/specifications/npm-typescript-facade.md) |
-| 共通4条件判定条件と対応能力の非代替性                                                                                  | [要件](../requirements/requirements.md) `CR-016` / `CR-AC-017`、[アーキテクチャ](./architecture.md) §6.9、[セキュリティ設計](./security-design.md) §7 / §8、[署名フロー](./signing-flow.md) §4 / §16 / §23                                                                                                                                                                                                                       |
-| 失敗意味、キャンセル結果、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、自動再署名禁止                                        | [要件](../requirements/requirements.md) `CR-012` / `CR-NFR-010`〜`CR-NFR-012`、[署名フロー](./signing-flow.md) §7、§20〜§22、[インターフェース仕様](../specifications/interfaces.md) §10、[署名プロトコル](../specifications/signing-protocol.md) §19 / §20                                                                                                                                                                      |
-| 受け渡し受信者 / 参加者、端末 / Signer 識別情報、応答チャネル / 方向の結び付け                                         | [要件](../requirements/requirements.md) `CR-006`、`CR-007`、`CR-NFR-011`、[Relay 要件](../requirements/relay.md) `RR-001`〜`RR-009`、[署名フロー](./signing-flow.md) §5、§7、§19〜§20、[Relay 仕様](../specifications/relay.md) §6〜§9                                                                                                                                                                                           |
-| 並行する要求分離と遅延した / 古くなった結果の分離                                                                      | [セキュリティ設計](./security-design.md) §10.2、[署名フロー](./signing-flow.md) §4 / §7、[ブラウザ拡張機能設計](./browser-extension.md) §17、[モバイルアプリ設計](./mobile-app.md) §21、[SDK 設計](./sdk.md) §5.8                                                                                                                                                                                                                |
-| SDK Signer ではないこと、Relay 内容を解釈しない、wallet-core 生の署名 / 秘密情報境界                                   | [要件](../requirements/requirements.md) `CR-015`、[アーキテクチャ](./architecture.md) §6.2 / §6.5 / §6.8、[SDK 設計](./sdk.md) §6 / §7、[Relay 設計](./relay.md) §3 / §5 / §6、[wallet-core ファサード仕様](../../_snwc/docs/specifications/npm-typescript-facade.md)                                                                                                                                                            |
+表は上流要件・関連設計への追跡を示す。外部 wallet-core 文書は外部コンポーネントの技術的契約として参照し、MosaicLynx の要求を追加する根拠にしない。
+
+| 本書で固定する設計内容                                                                                                 | 上流要件・関連設計・外部契約                                                                                                                                                                                                                                                                |
+| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| プロファイル内の文脈、プロファイルチェーン / ネットワーク、ライフサイクル無効化、ブラウザ / モバイル呼び出し元結び付け | [アーキテクチャ](./architecture.md) §6.6 / §6.9、[セキュリティ設計](./security-design.md) §6 / §7 / §9 / §10、[署名フロー](./signing-flow.md) §5 / §7 / §16 / §20、[ブラウザ拡張機能設計](./browser-extension.md) §7 / §12 / §17、[モバイルアプリ設計](./mobile-app.md) §7 / §9 / §14 / §21 |
+| アプリケーションアカウントに関する判断権限、wallet-core 暗号学的な識別情報判断権限、チェーン固有の整合検証             | [アーキテクチャ](./architecture.md) §6.6〜§6.8、[wallet-core 要件](../../_snwc/docs/requirements/requirements.md)、[wallet-core 仕様](../../_snwc/docs/specifications/specification.md)、[wallet-core ファサード仕様](../../_snwc/docs/specifications/npm-typescript-facade.md)             |
+| 共通4条件判定条件と対応能力の非代替性                                                                                  | [要件](../requirements/requirements.md) `CR-016` / `CR-AC-017`、[アーキテクチャ](./architecture.md) §6.9、[セキュリティ設計](./security-design.md) §7 / §8、[署名フロー](./signing-flow.md) §4 / §16 / §23                                                                                  |
+| 失敗意味、キャンセル結果、`RESULT_UNKNOWN` / `DELIVERY_UNKNOWN`、自動再署名禁止                                        | [要件](../requirements/requirements.md) `CR-012` / `CR-NFR-010`〜`CR-NFR-012`、[署名フロー](./signing-flow.md) §7、§20〜§22                                                                                                                                                                 |
+| 受け渡し受信者 / 参加者、端末 / Signer 識別情報、応答チャネル / 方向の結び付け                                         | [要件](../requirements/requirements.md) `CR-006`、`CR-007`、`CR-NFR-011`、[Relay 要件](../requirements/relay.md) `RR-001`〜`RR-009`、[署名フロー](./signing-flow.md) §5、§7、§19〜§20                                                                                                       |
+| 並行する要求分離と遅延した / 古くなった結果の分離                                                                      | [セキュリティ設計](./security-design.md) §10.2、[署名フロー](./signing-flow.md) §4 / §7、[ブラウザ拡張機能設計](./browser-extension.md) §17、[モバイルアプリ設計](./mobile-app.md) §21、[SDK 設計](./sdk.md) §5.8                                                                           |
+| SDK Signer ではないこと、Relay 内容を解釈しない、wallet-core 生の署名 / 秘密情報境界                                   | [要件](../requirements/requirements.md) `CR-015`、[アーキテクチャ](./architecture.md) §6.2 / §6.5 / §6.8、[SDK 設計](./sdk.md) §6 / §7、[Relay 設計](./relay.md) §3 / §5 / §6、[wallet-core ファサード仕様](../../_snwc/docs/specifications/npm-typescript-facade.md)                       |
+
+### 14.2 下流仕様への引継ぎ
+
+アカウント / チェーンの具体契約は [プロファイル / アカウント仕様](../specifications/profile-account-spec.md) と [チェーン互換性仕様](../specifications/chain-compatibility-spec.md)、結果 / エラーは [インターフェース仕様](../specifications/interfaces.md) と [署名プロトコル](../specifications/signing-protocol.md)、受け渡しの結び付けは [Relay 仕様](../specifications/relay.md) へ引き継ぐ。これらは §14.1 の設計判断の根拠ではない。

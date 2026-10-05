@@ -8,6 +8,8 @@
 
 本書で定めないものは、公開 API の型・関数・クラス、データ形式、URL、RPC または WebSocket のメッセージ、ディープリンク形式、暗号アルゴリズム、暗号パラメータ、状態遷移、パッケージ分割、ビルド構成および実装ライブラリである。これらは、承認済み要件を満たす後続の仕様・設計で定める。
 
+本書の上流根拠はコンセプトと共通要件である。[AGENTS.md の参照規則](../../AGENTS.md#source-of-truth) に従い、設計・仕様・公開資料を「整合確認」として参照しても、本要件の規範的根拠または未決事項の解決証拠にはしない。
+
 ### 1.1 要求の表記
 
 - **MUST**: SDK の対象範囲に含まれる場合、満たさなければならない要求。
@@ -498,7 +500,8 @@ SDK が要求を整形・検証することは、Signer が行う最終的なト
 - 未決の理由: プロダクト / チェーン互換性は全体解析・確認を要求し、既存受け渡し仕様は連署署名の契約を記載するが、共通要件は独立した連署署名対応能力の v1 範囲を明示していないため。
 - 影響: SDK-FR-006、公開操作、チェーンアダプターの検証契約、モバイル / Relay 受け渡し、受け入れフィクスチャ。
 - 決定時期: SDK 仕様とチェーン互換性の対応範囲を確定する前。対応しない操作は対応能力で未対応とし、通常署名へ変換しない。
-- 根拠: 共通要件 CR-007-TX、`docs/specifications/product-spec.md` §12、`docs/specifications/chain-compatibility-spec.md` §4、`docs/specifications/web-transaction-handoff-spec.md` §5、既存受け渡し契約。
+- 上流根拠: 共通要件 CR-007-TX、CR-002、CR-003、CR-NFR-005。独立した連署署名操作の v1 範囲が未決であることは上流要求で確認し、下流仕様に契約があることだけで提供必須としない。
+- 下流の整合確認・引継ぎ: `docs/specifications/product-spec.md` §12、`docs/specifications/chain-compatibility-spec.md` §4、`docs/specifications/web-transaction-handoff-spec.md` §5。
 
 ### SDK-OPEN-003：通信経路選択、明示的代替経路および第三者連携
 
@@ -522,7 +525,8 @@ SDK が要求を整形・検証することは、Signer が行う最終的なト
 - 未決の理由: Web 受け渡しはブラウザ文脈、オリジン、ページライフサイクルおよび利用者有効化に依存し得るが、全実行環境の保証範囲は既存要件で確定していないため。
 - 影響: SDK-PLAT-001、SDK-PLAT-004、呼び出し元結び付け、配布、テスト対応表。
 - 決定時期: SDK 配布 / 実行環境仕様と各プラットフォームマイルストーンの決定時。
-- 根拠: コンセプト §6.5、共通要件 OPEN-003、`docs/specifications/web-transaction-handoff-spec.md` §1、§4、§5.3、`docs/design/architecture.md` §1、§6。
+- 上流根拠: コンセプト §6.5、共通要件 OPEN-003。
+- 下流の整合確認・引継ぎ: `docs/specifications/web-transaction-handoff-spec.md` §1、§4、§5.3、`docs/design/architecture.md` §1、§6。実行環境の正式対応をこれらから逆生成しない。
 
 ### SDK-OPEN-006：バージョン管理、後方互換性および非推奨化ポリシー
 
